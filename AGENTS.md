@@ -1,3 +1,17 @@
+<!-- DONT:START -->
+<!-- dont: managed block -->
+See .dont/ for grounded-claim workflow.
+
+<!-- provenance: generator=pretender version=0.12.3 source=DONT sha=62570e95 -->
+<!-- DONT:END -->
+
+<!-- OPENSPEC:START -->
+<!-- openspec: managed block -->
+See openspec/ for spec-driven development.
+
+<!-- provenance: generator=pretender version=0.12.3 source=OPENSPEC sha=f3e72eb1 -->
+<!-- OPENSPEC:END -->
+
 <!-- ah:managed:start -->
 ## espectacular
 
