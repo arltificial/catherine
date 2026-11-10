@@ -5,16 +5,16 @@ description = "Multi-language structural code-quality checks"
 type = "file"
 path = "pretender.toml"
 
-[tools.espectacular]
-description = "Spec-test correspondence enforcer"
-
-[tools.espectacular.detector]
-type = "directory"
-path = ".espectacular"
-
 [tools.wai]
 description = "Workflow manager for AI-assisted development"
 
 [tools.wai.detector]
 type = "directory"
 path = ".wai"
+
+[tools.espectacular]
+description = "Spec-test correspondence enforcer"
+
+[tools.espectacular.detector]
+type = "directory"
+path = ".espectacular"
