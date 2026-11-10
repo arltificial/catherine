@@ -1,0 +1,24 @@
+# lefthook.yml — ddl-managed gates (created by `ddl init --gates`)
+# Managed blocks: markers `# ddl:managed:start/end (hook)` — edit around them.
+
+pre-commit:
+  commands:
+    bd:
+      run: bd hooks run pre-commit
+    # ddl:managed:start (pre-commit)
+    ddl-ah-check:
+      run: ah check
+    ddl-pretender-gate:
+      run: pretender check --diff-only --mode gate
+    ddl-spk-lint:
+      run: spk lint openspec/specs || test $? -eq 2
+    # ddl:managed:end (pre-commit)
+
+pre-push:
+  commands:
+    bd:
+      run: bd hooks run pre-push
+    # ddl:managed:start (pre-push)
+    ddl-ah-check:
+      run: ah check
+    # ddl:managed:end (pre-push)

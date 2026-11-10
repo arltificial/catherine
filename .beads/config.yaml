@@ -1,0 +1,7 @@
+# Beads Configuration File
+# Stamped by `ddl init --gates`. no-db keeps the issue store in
+# .beads/issues.jsonl; on bd 1.x Dolt remains the storage backend
+# and agents must never run dolt commands.
+no-db: true
+sync:
+    remote: "git+ssh://git@at/arltificial/catherine.git"
