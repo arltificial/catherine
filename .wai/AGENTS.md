@@ -13,10 +13,13 @@
 | Track work items/bugs | `bd` | `bd create --title="..." --type=task` |
 | Find available work | `bd` | `bd ready` |
 | Manage dependencies | `bd` | `bd dep add <blocked> <blocker>` |
+| Propose system changes | openspec | Read `openspec/AGENTS.md` |
+| Define requirements | openspec | `openspec validate --strict` |
 
 Key distinction:
 - **wai** = *why* decisions were made (reasoning, context, handoffs)
 - **`bd`** (beads) = *what* needs to be done (concrete tasks, status tracking)
+- **openspec** = *what the system should look like* (specs, requirements, proposals)
 
 ## Starting a Session
 
@@ -25,14 +28,15 @@ Key distinction:
 3. Run `bd ready` to find available work items.
    Before claiming: read the relevant source files to confirm
    the issue is not already implemented.
-4. Check the phase — it tells you what kind of work is expected:
+4. Check `openspec list` for active change proposals.
+5. Check the phase — it tells you what kind of work is expected:
    - **research** → gather information, explore options
    - **design** → make architectural decisions
    - **plan** → break work into tasks
    - **implement** → write code, guided by research/plans
    - **review** → validate against plans
    - **archive** → wrap up
-5. Read existing artifacts with `wai search "<topic>"` before starting new work.
+6. Read existing artifacts with `wai search "<topic>"` before starting new work.
 
 ## Capturing Work
 
@@ -49,6 +53,15 @@ Use `--project <name>` if multiple projects exist. Otherwise wai picks the first
 
 Phases are a guide, not a gate. Use `wai phase show` / `wai phase next`.
 
+## Tracking Work Across Tools
+
+When beads and openspec are both active, keep them in sync:
+- When creating a beads ticket for an openspec task, include the task
+  reference in the description (format: `<change-id>:<phase>.<task>`,
+  e.g. `add-why-command:7.1`)
+- When closing a beads ticket linked to a task, also check the box
+  (`[x]`) in the change's `tasks.md`
+
 ## Ending a Session
 
 Before saying "done", run this checklist:
@@ -56,6 +69,8 @@ Before saying "done", run this checklist:
 ```
 [ ] wai handoff create <project>   # capture context for next session
 [ ] bd close <id>                  # close completed issues; also close parent epic if last sub-task
+[ ] openspec tasks.md — mark completed tasks [x]
+[ ] openspec list — archive any ✓ Complete changes (`openspec archive <id> --yes`)
 [ ] wai reflect                    # update CLAUDE.md with project patterns (every ~5 sessions)
 [ ] git add <files> && git commit  # commit code + handoff
 ```
@@ -124,6 +139,13 @@ bd show <id>                 # Issue details
 bd create --title="..."      # New issue
 bd update <id> --status=in_progress
 bd close <id>                # Complete work
+```
+
+### openspec
+Read `openspec/AGENTS.md` for full instructions.
+```bash
+openspec list              # Active changes
+openspec list --specs      # Capabilities
 ```
 
 ## Available Pipelines
