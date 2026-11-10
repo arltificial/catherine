@@ -200,6 +200,65 @@ what is merely hypothesized. Deterministic operations in v1:
 spec-only until P6 validates the deterministic ops (open question §8.2).
 `UNKNOWN` is a first-class result, not a failure.
 
+### 4.4 Rule lens (P8, post-v1 — the HYPOTHESIZED capability)
+
+kata-6 killed the *schema-lens* rule table at the triviality floor (7-line
+conditional; checks fired, cost didn't) — it did not refute categorical
+structure in rules. The rule lens models rule systems directly:
+
+```rust
+pub struct RulePresentation {
+    pub domain: Ident,                 // X: the input object
+    pub rules: Vec<Rule>,
+    pub policy: Policy,                // PriorityOrder | FirstMatch | DeclaredDisjoint
+}
+pub struct Rule {
+    pub predicate: Predicate,          // decidable expr over attribute columns
+    pub action: String,
+    pub order: usize,                  // position in the priority chain
+}
+```
+
+Semantics: rules are **subobjects** R_i of the input domain X; the action
+assignment must become a total function on X; the **resolution policy** is
+order-enrichment on the family. Effective region E_i = R_i \\ ⋃_{j<i} R_j.
+
+Findings (each maps onto an existing finding kind, so no new epistemic
+machinery is needed):
+
+| Finding | Condition | Bug class |
+|---|---|---|
+| gap | ⋃R_i ⊊ X | input class with no rule — partiality explicit |
+| overlap | R_i ∩ R_j ≠ ∅, no policy for the intersection | nondeterminism ("who wins?") |
+| shadow | E_i = ∅ | dead rule, derivable from earlier rules + policy |
+| derivable | R_k = R_i ∩ R_j (boolean combination) | simplification candidate |
+
+Two properties make this more than a linter:
+
+1. **Equivalence-checkable simplification.** Two rule tables are equivalent
+   iff they induce the same total action on X; `distinguish` produces a
+   witness input where they differ. "Collapsed 3 rules into 2 + precedence,
+   no distinguishing witness in-domain" is compliance, proven — FizzBuzz's
+   FizzBuzz-rule is derivable from Fizz ∧ Buzz + precedence.
+2. **Rule discovery support.** Examples (input→output pairs) + a declared
+   predicate vocabulary: candidates come from the agent/human, the tool
+   checks partition equivalence against the examples; uncovered examples
+   are gap findings. C5's loop applied to rule tables.
+
+For enumerable X with decidable predicates every finding is exact via the
+P4 bounded-search machinery — the rule lens is a presentation over the
+same kernel, not a new engine. This also resolves the attribute-alphabet
+open question in the rules' favor: predicates require int/bool/string
+comparisons, ∧ ∨ ¬, mod — a tiny decidable expression language, not a
+logic.
+
+**Epistemic status: HYPOTHESIZED.** Precedent above the floor exists (Rust
+match exhaustiveness/reachability; DMN hit-policy conflict detection) but
+no ct-catlab-class evidence does. Validation (P8): one kata above the
+floor (10–20 compound rules + priority policy, e.g. pricing/eligibility
+table) + one second negative control near the floor. Killed if unique
+detections don't appear above the floor.
+
 ## 5. Validation plan (reuse the ct-catlab harness discipline)
 
 - **Negative control first**: FizzBuzz kata fixture must produce the verdict
@@ -258,6 +317,11 @@ to the tool itself.
    results recorded in the ledger. **This is the project stop condition.**
 8. **P7 migration axis**: Δ only, with loud lost-data counterexamples
    (kata-10 pattern) as fixtures.
+9. **P8 rule lens** (gated on P6 having recorded the schema-lens negative
+   control first — no goalpost moves mid-experiment): rule presentation,
+   findings, equivalence checking, with its own two-kata validation as
+   pre-registered in §4.4. Killed honestly if it earns nothing above the
+   floor.
 
 ## 7. Risks and mitigations
 
@@ -273,9 +337,10 @@ to the tool itself.
 
 ## 8. Open questions
 
-1. Attribute alphabet: is string/int/bool enough for the kata fixtures, or do
-   we need enums at the schema level in v1? (Lean: defer until a fixture
-   demands it.)
+1. Attribute alphabet: **resolved by the P8 rule lens** — predicates
+   require int/bool/string comparisons + ∧ ∨ ¬ + mod, so attribute columns
+   with a decidable expression language enter the kernel design (P8 scope;
+   v1 kata fixtures don't demand them before that).
 2. Should `alternatives`/`questions` scaffolds ship in v1 at all, or stay
    spec-only until the deterministic ops are validated by P6? (Current lean:
    spec-only.)
