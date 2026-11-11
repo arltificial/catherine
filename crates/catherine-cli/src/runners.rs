@@ -90,6 +90,21 @@ fn prune_undeclared_rows(
     }
 }
 
+/// catherine-348: a `--follow` name matching no declared arrow silently
+/// contributes no edges downstream (the donor's subgraph-restriction
+/// semantics); name each ignored arrow on the warnings channel — once
+/// per distinct name. Traversal semantics and exit codes unchanged.
+fn prune_undeclared_follow(schema: &Schema, follow: &[String], warnings: &mut Vec<Warning>) {
+    let mut named: Vec<&str> = Vec::new();
+    for name in follow {
+        let declared = schema.arrows.contains_key(&Ident(name.clone()));
+        if !declared && !named.contains(&name.as_str()) {
+            named.push(name);
+            warnings.push(render::unknown_follow_warning(name));
+        }
+    }
+}
+
 /// `redundant`: findings-bearing op — exits through the existing
 /// min-over-class decision (7 when any redundancy is proven, 0 when
 /// none is).
@@ -236,7 +251,9 @@ fn schema_mismatch(
 }
 
 /// `query`: the ported traversal — exit 0 with the node list; an
-/// unknown seed is a labeled error (`unknown_seed`), exit 1.
+/// unknown seed is a labeled error (`unknown_seed`), exit 1; a
+/// `--follow` name matching no declared arrow is named on the warnings
+/// channel (catherine-348), exit semantics unchanged.
 #[allow(clippy::too_many_arguments)]
 pub fn run_query(
     model_path: &str,
@@ -253,6 +270,8 @@ pub fn run_query(
         Ok(model) => model,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
+    let mut warnings = warnings;
+    prune_undeclared_follow(&model.schema, follow, &mut warnings);
     let (walk, seeds) = match parse_direction(direction)
         .and_then(|walk| parse_seeds(seeds).map(|seeds| (walk, seeds)))
     {

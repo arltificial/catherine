@@ -60,6 +60,16 @@ Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
   `format_version` with `unsupported_version` at the version node (or at
   the document root when the field is absent) — never a partial or
   guessed parse.
+- **Audit (catherine-348):** the raw document structs
+  (`src/parse/schema.rs`: `RawDoc`, `RawSchema`, `RawArrow`,
+  `RawEquation`, `RawInstance`) are serde `Deserialize` **without**
+  `deny_unknown_fields` (zero occurrences workspace-wide), so unknown
+  JSON keys are silently ignored — the deliberate additive-minor policy
+  above, kept and documented per the catherine-51v precedent (no
+  parse-behavior change). The negative-input matrix
+  (`crates/catherine-cli/tests/negative_matrix.rs`) pins the
+  semantics-bearing half of this policy: unknown *versions* are rejected
+  with `unsupported_version`, never guessed.
 
 ## Errors
 

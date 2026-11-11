@@ -82,6 +82,20 @@ pub fn unknown_rows_warning(object: &str) -> Warning {
     }
 }
 
+/// A `--follow` warning: an arrow name matching no declared arrow
+/// (catherine-348) — the name contributes no edges, so the typo is
+/// named on the warnings channel instead of silently vanishing.
+pub fn unknown_follow_warning(arrow: &str) -> Warning {
+    Warning {
+        rule_name: "follow".to_string(),
+        entity_id: None,
+        message: format!("--follow names undeclared arrow `{arrow}`; it contributes no edges"),
+        suggested_remediation: Some(format!(
+            "spell the traversal over a declared arrow, or declare `{arrow}` in the schema"
+        )),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
