@@ -68,6 +68,20 @@ pub fn config_warning(message: &str) -> Warning {
     }
 }
 
+/// A search-bound warning: an `--rows` spec naming an undeclared object
+/// (catherine-0kw) — the bound is ignored, so the typo is named on the
+/// warnings channel instead of silently vanishing.
+pub fn unknown_rows_warning(object: &str) -> Warning {
+    Warning {
+        rule_name: "rows".to_string(),
+        entity_id: None,
+        message: format!("--rows names undeclared object `{object}`; the bound is ignored"),
+        suggested_remediation: Some(format!(
+            "spell the bound over a declared object, or declare `{object}` in the schema"
+        )),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

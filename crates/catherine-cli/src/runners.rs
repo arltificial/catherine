@@ -22,6 +22,7 @@ use catherine_core::findings::Finding;
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{Ident, Schema};
 use genesis::envelope::Warning;
+use std::collections::BTreeMap;
 use std::io::Write;
 
 /// `search`: bounds are flag inputs; the outcome decides the exit — a
@@ -44,10 +45,12 @@ pub fn run_search(
         Ok(model) => model,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
-    let max_rows = match parse_rows(rows) {
+    let mut max_rows = match parse_rows(rows) {
         Ok(max_rows) => max_rows,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
+    let mut warnings = warnings;
+    prune_undeclared_rows(&model.schema, &mut max_rows, &mut warnings);
     let bound = SearchBounds {
         max_rows,
         max_candidates,
@@ -64,6 +67,26 @@ pub fn run_search(
     match &report.outcome {
         SearchOutcome::Contradiction { finding } => exit_code(std::slice::from_ref(finding)),
         _ => 0,
+    }
+}
+
+/// catherine-0kw: a bound over an undeclared object would be silently
+/// dropped downstream (zero rows → UNKNOWN with empty scope); name each
+/// ignored object on the warnings channel and drop it from the bound.
+/// Exit semantics unchanged.
+fn prune_undeclared_rows(
+    schema: &Schema,
+    max_rows: &mut BTreeMap<Ident, usize>,
+    warnings: &mut Vec<Warning>,
+) {
+    let undeclared: Vec<Ident> = max_rows
+        .keys()
+        .filter(|object| !schema.objects.contains_key(*object))
+        .cloned()
+        .collect();
+    for object in undeclared {
+        warnings.push(render::unknown_rows_warning(&object.0));
+        max_rows.remove(&object);
     }
 }
 
@@ -173,6 +196,9 @@ pub fn run_distinguish(
         Ok(model) => model,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
+    if let Some(labeled) = schema_mismatch(&second.schema, &model.schema, second_path) {
+        return emit_error(&labeled, json, warnings, stdout, stderr);
+    }
     let observations = match parse_observations(observe, &model.schema, &model.instance) {
         Ok(observations) => observations,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
@@ -189,6 +215,24 @@ pub fn run_distinguish(
         }
     }
     0
+}
+
+/// catherine-18t: the second document's schema was previously parsed and
+/// dropped, silently reinterpreting its tables under the first document's
+/// schema. A differing schema is a labeled input error, not a
+/// schema-equivalence claim (that boundary stays intact).
+fn schema_mismatch(
+    second_schema: &Schema,
+    model_schema: &Schema,
+    second_path: &str,
+) -> Option<LabeledError> {
+    (second_schema != model_schema).then(|| LabeledError {
+        code: "schema_mismatch".to_string(),
+        line: None,
+        column: None,
+        message: format!("the second document's schema differs from the first (`{second_path}`)"),
+        hint: "distinguish compares two instances of the same schema; give two documents with identical schemas",
+    })
 }
 
 /// `query`: the ported traversal — exit 0 with the node list; an

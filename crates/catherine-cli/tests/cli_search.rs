@@ -179,3 +179,37 @@ fn analysis_search_bad_bound_is_a_labeled_error() {
     assert_eq!(v["data"]["code"], "bad_argument");
     assert!(!stderr(&out).contains("panicked"));
 }
+
+/// catherine-0kw: an `--rows` spec naming an undeclared object is
+/// ignored for the bound, but named on the warnings channel — never
+/// dropped without a word.
+#[test]
+fn analysis_search_warns_on_undeclared_rows_object() {
+    let out = run(&[
+        "search",
+        ANALYSIS_CONTRADICTION,
+        "--json",
+        "--rows",
+        "Objet=4",
+        "--rows",
+        "a=1",
+        "--rows",
+        "b=0",
+        "--rows",
+        "c=1",
+        "--max-candidates",
+        "64",
+    ]);
+    assert_eq!(code(&out), 5, "exit semantics unchanged by the warning");
+    let v = parse_json(&stdout(&out));
+    let warnings = v["warnings"].as_array().expect("warnings array");
+    assert_eq!(warnings.len(), 1, "exactly one warning for the typo");
+    assert!(
+        warnings[0]["message"]
+            .as_str()
+            .map(|m| m.contains("Objet"))
+            .unwrap_or(false),
+        "the warning names the ignored object: {:?}",
+        warnings[0]
+    );
+}

@@ -40,7 +40,7 @@ pub use crate::render::analysis::{
 };
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::envelope::{
-    config_warning, error_envelope, findings_envelope, FindingsData,
+    config_warning, error_envelope, findings_envelope, unknown_rows_warning, FindingsData,
 };
 pub use crate::render::errors::LabeledError;
 

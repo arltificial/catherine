@@ -141,6 +141,29 @@ fn analysis_distinguish_names_the_difference_and_exits_0() {
     assert_eq!(observations[0]["object"], "a");
 }
 
+/// catherine-18t: the second document carries its own schema, and a
+/// different one is a labeled input error (`schema_mismatch`), exit 1 —
+/// never a silent reinterpretation of B's tables under A's schema.
+#[test]
+fn analysis_distinguish_rejects_a_different_schema() {
+    const REV_SCHEMA: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/analysis_dist_revschema.ct.json"
+    );
+    let out = run(&[
+        "distinguish",
+        ANALYSIS_DIST_A,
+        REV_SCHEMA,
+        "--observe",
+        "f@a#0",
+        "--json",
+    ]);
+    assert_eq!(code(&out), 1, "a differing schema is a labeled error");
+    let v = parse_json(&stderr(&out));
+    assert_eq!(v["ok"], false);
+    assert_eq!(v["data"]["code"], "schema_mismatch");
+}
+
 /// The same pair restricted to an observation where they agree:
 /// `equivalent-in-scope` — in scope, and no claim beyond it.
 #[test]
