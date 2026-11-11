@@ -39,6 +39,7 @@ control is a release gate).
 | [`docs/DESIGN.md`](docs/DESIGN.md) | how: architecture, kernel spec, technology decisions, phased plan |
 | [`docs/USING.md`](docs/USING.md) | usage: agent recipes, human flow, what it enables, what it does NOT do |
 | [`docs/ref/category_theoretic_modeling_methodology.md`](docs/ref/category_theoretic_modeling_methodology.md) | the modeling methodology the tool serves (vendored) |
+| [`docs/ref/ct_methodology_playbook.md`](docs/ref/ct_methodology_playbook.md) | the methodology by problem type — drills, witnesses, stop rules; **works with no tool at all** |
 
 ## Status & roadmap
 
