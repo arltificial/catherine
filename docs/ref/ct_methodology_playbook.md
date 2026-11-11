@@ -14,7 +14,7 @@ not the automation.
 mathematical structure that produces falsifiable design insights; elegance
 by itself is not evidence of value.* And its shadow rule: for rule-heavy
 logic — parsing, formatting, scoring — stop. Model it conventionally. This
-is a measured boundary, not a taste (see §8).
+is a measured boundary, not a taste (see §9).
 
 ## 0. The manual discipline (read once, use everywhere)
 
@@ -207,7 +207,53 @@ specs, silent constraint loss, non-compositional metrics) and — measured —
 costs 1–3× more effort (E4). Budget accordingly: spend it on the seams
 (evolution, integration, agent-generated designs), not on CRUD screens.
 
-## 8. When NOT to use any of this
+## 8. Reverse-engineering a system that already exists
+
+**Use when:** the artifact is on disk — code, schema, data, docs — and you
+need its inconsistencies and gaps, not a redesign. Model it from **both
+directions** and diff: the divergences between the two models are the
+findings. Neither direction alone finds them.
+
+**Bottom-up (from the artifact).** Extract objects and arrows from what
+*is*: tables/classes → objects; foreign keys, lookups, function calls →
+arrows; unique constraints → declared equations; NOT NULL → totality; check
+constraints → equations. Include behavior the code performs but no one
+documented ("failed payment returns the order to pending" is an arrow in
+the state graph). One extraction table per object: arrow | from | to |
+total? | unique? | witness (file:line). Every extraction is labeled PROVED
+— with the witness, or it isn't in the model. Then hand-chase each candidate
+equation against **real rows pulled from the actual data** — invented rows
+only find the violations you already imagined.
+
+**Top-down (from the claims).** The docs, READMEs, wikis, type names, and
+prose say what the system is *supposed* to be. Model those claims the §1
+way (freeze baseline, semantic graph, parallel paths). Every claim is
+HYPOTHESIZED until a bottom-up witness confirms it.
+
+**Reconciliation — where the findings live.** Diff the two models,
+direction by direction:
+
+| Divergence | Finding class | Witness |
+|---|---|---|
+| top-down claims it, bottom-up lacks it | **phantom requirement** (spec'd, not built) | the missing FK / unimplemented branch |
+| bottom-up has it, top-down lacks it | **undocumented behavior** (built, not spec'd) | file:line — often the most valuable findings: the system knows something the docs don't |
+| both have it, shapes differ (endpoint, totality, equation on one side only) | **inconsistency** — strongest class | the row that satisfies one model and violates the other |
+| both agree | confirmed core — anchor here | any real row |
+| neither has it, domain needs it | **missing concept** (§1's question machinery) | the unrepresentable real example |
+
+**Direction order:** bottom-up first when data exists (the artifact cannot
+lie about what it stores); top-down first when the system is spec-rich and
+code-light — there the top-down model audits *internal consistency of the
+claims themselves* (a spec can contradict itself before a single line of
+code exists; that audit once found several contradictions in a 3,500-line
+spec whose implementation was two stub classes). Both directions converge
+on the same reconciliation table.
+
+**Boundary:** model a frozen revision — pin the commit. A codebase mid-
+refactor is a moving bottom-up target; expect the model to expire and date
+it.
+
+## 9. When NOT to use any of this
 
 - **Rule-heavy logic** (parsing, scoring, pricing below ~a dozen compound
   rules, formatting): killed at a 7-line conditional in a controlled
@@ -227,7 +273,7 @@ costs 1–3× more effort (E4). Budget accordingly: spend it on the seams
   evolution (§5) and composition (§4/§6). A one-shot script with no seams
   wants types and tests, not a model document.
 
-## 9. The stopping rule
+## 10. The stopping rule
 
 Stop extending the model when additional structure yields no new discovery,
 clarity, or guarantee. Concretely: three consecutive ledger entries that say
@@ -242,7 +288,11 @@ something else — that too is the methodology working.
 Method: Johnson & Dampney (commutative diagrams in information modelling —
 the assignment example, §1), Johnson & Rosebrugh (sketch data models; view
 updatability — the determinate-meaning question, §5/§6), Johnson (categorical
-logic — the anti-overengineering principle, §8/§9), Spivak (migration as
+logic — the anti-overengineering principle, §9/§10), Spivak (migration as
 Δ/Σ/Π — hand versions in §5), Patterson/Lynch/Fairbanks (ACsets — what a
-checker would automate). Full anchors: `../../THEORY.md` §9. Validated
-boundary and effort costs: `ak/matadero/series/ct-catlab/REPORT.md` (E4).
+checker would automate). The reverse-engineering drill (§8) descends from a
+bottom-up extraction of a real Rust/SQLite codebase (observed facts separated
+from proposed extensions; missing constraints reported as findings) and a
+top-down pilot that ported a live repo's prose-spec invariants into checked
+models. Full anchors: `../../THEORY.md` §9. Validated boundary and effort
+costs: `ak/matadero/series/ct-catlab/REPORT.md`.
