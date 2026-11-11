@@ -1,0 +1,6 @@
+ticket: catherine-86i
+branch: main
+brief_path: ""
+steps:
+  - claim dc4c95e
+  - gates dc4c95e

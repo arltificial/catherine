@@ -7,3 +7,4 @@ steps:
   - brief f585793
   - spawn f585793
   - verify f585793
+  - ship dc4c95e
