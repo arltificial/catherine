@@ -1,6 +1,9 @@
 ticket: catherine-bpz
 branch: main
-brief_path: ""
+brief_path: .wai/projects/catherine/briefs/catherine-bpz.md
 steps:
   - claim 9e52e78
   - gates 9e52e78
+  - brief db6651f
+  - spawn db6651f
+  - verify db6651f

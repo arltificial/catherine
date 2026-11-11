@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "catherine/ct-schema-v1.json",
+  "title": "Catherine model document v1 (.ct.json)",
+  "description": "Syntactic surface of the Catherine model document format v1. This artifact covers ONLY the schema-expressible checks: missing required fields, JSON type mismatches, the equation status enum, ident-pattern violations, and duplicate array-identifiers (via uniqueItems). Semantic checks that cross-reference user declarations — unknown arrows in equation paths (unknown_arrow) and ill-typed equations whose path endpoints do not match (ill_typed_equation) — remain kernel-side (crates/catherine-core parse). Unknown major format_version values are also kernel-side: this artifact accepts any MAJOR.MINOR shape, the parser accepts only majors it knows (v1), so editors can validate shape offline while the kernel remains the version authority.",
+  "type": "object",
+  "required": ["format_version", "schema", "instance"],
+  "properties": {
+    "format_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "MAJOR.MINOR. Additive change = minor version; breaking change = a new extension, never an in-place mutation of v1. Whether the major is known (v1) is checked kernel-side."
+    },
+    "schema": {
+      "type": "object",
+      "required": ["objects", "arrows", "equations"],
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ident" },
+          "uniqueItems": true,
+          "description": "Declared objects; duplicates are duplicate array-identifiers (editor-side here, kernel-side as duplicate_ident)."
+        },
+        "arrows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "src", "tgt"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/ident" },
+              "src": { "$ref": "#/$defs/ident" },
+              "tgt": { "$ref": "#/$defs/ident" }
+            }
+          }
+        },
+        "equations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["lhs", "rhs"],
+            "additionalProperties": false,
+            "properties": {
+              "lhs": { "$ref": "#/$defs/path" },
+              "rhs": { "$ref": "#/$defs/path" },
+              "rationale": { "type": "string" },
+              "status": {
+                "enum": ["proposed", "accepted"],
+                "description": "Defaults to accepted when absent; the semantic split (violations vs hypotheses) is a P1 concern and is not expressed here."
+              }
+            }
+          }
+        }
+      }
+    },
+    "instance": {
+      "type": "object",
+      "required": ["rows", "tables"],
+      "properties": {
+        "rows": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/ident" },
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/ident" },
+            "uniqueItems": true,
+            "description": "Per-object row names; duplicates are duplicate array-identifiers."
+          }
+        },
+        "tables": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/ident" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "null", "description": "Dangling reference — preserved as a value, never dropped or repaired." },
+                { "$ref": "#/$defs/ident" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ident": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "path": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ident" },
+      "minItems": 1,
+      "description": "A composable arrow sequence; whether every arrow is declared and the endpoints match is kernel-side (unknown_arrow / ill_typed_equation)."
+    }
+  }
+}

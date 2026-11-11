@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc ca8c34280f74e7d488f743dbc64725308a4046d9e13430f08c91c93456833547 # shrinks to model = Model { format_version: Version { major: 1, minor: 1 }, schema: Schema { objects: {Ident("AJD_2t"): ()}, arrows: {Ident("_o5"): Arrow { src: Ident("AJD_2t"), tgt: Ident("AJD_2t") }}, equations: [Equation { lhs: Path([Ident("AJD_2t")]), rhs: Path([Ident("AJD_2t")]), rationale: "equation-0", status: Accepted }] }, instance: Instance { rows: {Ident("AJD_2t"): [RowId(0), RowId(1)]}, values: {Ident("_o5"): [Some(RowId(0)), Some(RowId(0))]} } }
+cc f70d716fc0b4ad86b756a5563599f853f92c3d8d04af26f6271569293e9b8efc # shrinks to model = Model { format_version: Version { major: 1, minor: 1 }, schema: Schema { objects: {Ident("Yb"): (), Ident("xvUNL_p"): ()}, arrows: {Ident("a_"): Arrow { src: Ident("Yb"), tgt: Ident("xvUNL_p") }}, equations: [Equation { lhs: Path([Ident("Yb")]), rhs: Path([Ident("Yb")]), rationale: "equation-0", status: Accepted }] }, instance: Instance { rows: {Ident("Yb"): [], Ident("xvUNL_p"): []}, values: {Ident("a_"): []} } }
+cc 9baaf97ef9a776b827c08c732b23af5f2b20689c40cd8ff3c00f0f0ae0c6230d # shrinks to model = Model { format_version: Version { major: 1, minor: 1 }, schema: Schema { objects: {Ident("O"): (), Ident("Rf"): (), Ident("YbbcW"): ()}, arrows: {Ident("b7w_1"): Arrow { src: Ident("O"), tgt: Ident("YbbcW") }}, equations: [] }, instance: Instance { rows: {Ident("O"): [RowId(0), RowId(1), RowId(2)], Ident("Rf"): [RowId(0), RowId(1)], Ident("YbbcW"): [RowId(0), RowId(1)]}, values: {Ident("b7w_1"): [Some(RowId(0)), Some(RowId(0)), Some(RowId(0))]} } }

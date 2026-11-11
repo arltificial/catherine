@@ -1,0 +1,14 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A", "B", "C"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "B"},
+      {"name": "g", "src": "B", "tgt": "C"}
+    ],
+    "equations": [
+      {"lhs": ["f", "q"], "rhs": ["g"], "rationale": "demo", "status": "accepted"}
+    ]
+  },
+  "instance": { "rows": {"A": [], "B": [], "C": []}, "tables": {"f": {}, "g": {}} }
+}

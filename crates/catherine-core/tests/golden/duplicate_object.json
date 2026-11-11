@@ -1,0 +1,9 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A", "B", "A"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": { "rows": {"A": [], "B": []}, "tables": {} }
+}
