@@ -1,10 +1,13 @@
 # catherine-core
 
-Catherine's kernel skeleton: the `.ct.json` v1 **model document** format,
-its parser, canonical serialization, and model hash. Everything downstream
-(P1 executed checks, P6 ledger content-addressing) consumes the artifact
-this crate publishes. Implemented per openspec change
-`add-model-document-kernel` (beads `catherine-bpz`).
+Catherine's kernel: the `.ct.json` v1 **model document** format, its
+parser, canonical serialization, model hash, typed instance tables, and
+**executed path-equation checks** — `check(schema, instance)` evaluates
+every declared equation on every applicable row (E3: declarations do not
+enforce; checks do). Everything downstream (P2 findings taxonomy, P6
+ledger content-addressing) consumes the artifacts this crate publishes.
+Implemented per openspec changes `add-model-document-kernel` (beads
+`catherine-bpz`) and `add-executed-checks` (beads `catherine-0gk`).
 
 ## The format (v1)
 
@@ -126,6 +129,7 @@ recorded here and in per-file headers.
 | Upstream | Files | Taken |
 |---|---|---|
 | specodelic (`charly/specodelic`, Apache-2.0) | `src/acset/instance.rs`, `src/acset/schema.rs` | canonical sorted enumeration (`canonical_order`), byte-stable deterministic builds (`build_deterministic`), dense interned ids with sorted-order assignment, partial morphism storage (`None` = unresolved, never dropped) |
+| specodelic (`charly/specodelic`, Apache-2.0) | `src/acset/instance.rs` → `src/instance.rs` (P1, `add-executed-checks`) | the typed instance builder behind the parity gate (`tests/parity_gate.rs` over `fixtures/parity/`): dense per-object id spaces, one partial morphism table per arrow (`None` = dangling, a representable value never dropped), build-time typing violations reported and never stored as morphism values, total builder — dropped as specodelic-domain: `graph::build` parity machinery, walk-order edge recording, attribute cells, markdown `Spec` parsing. Path-equation execution (`src/checks.rs`) is new code (E10) with its own property tests |
 | wild (`charly/wild`, Apache-2.0) | `src/formats.rs` | canonical-JSON writer rules (recursively sorted keys, no whitespace, base-ten integers, lowercase `\u00xx` control escapes, unescaped solidus, literal UTF-8) and the `sha256:` + 64-lowercase-hex digest format, with wild's normative examples ported verbatim; sha256 itself is in-crate per FIPS 180-4 because this crate's dependencies are locked to serde/serde_json/proptest |
 
 Dropped as specodelic-domain: parity/refinement/typing-table predicates,
@@ -136,8 +140,11 @@ docs, not markdown), and `query.rs` (a P1/P4 donor).
 
 ```
 just ci                                        # fmt + clippy -D warnings + tests
-cargo test -p catherine-core                   # unit + golden fixtures + properties
+cargo test -p catherine-core                   # unit + golden fixtures + parity gate + properties
 cargo test -p catherine-core --test golden_fixtures
+cargo test -p catherine-core --test check_fixtures
+cargo test -p catherine-core --test parity_gate
+cargo test -p catherine-core --test checks_properties
 cargo test -p catherine-core --test roundtrip
 ```
 

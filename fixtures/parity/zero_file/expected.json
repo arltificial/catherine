@@ -1,0 +1,8 @@
+{
+  "mirror": "specodelic tests/fixtures/zero_file — a corpus with zero files: the degenerate empty-schema + empty-instance boundary, expected clean (zero outcomes, not an unevaluated declaration)",
+  "route": "parse",
+  "typing_violations": [],
+  "dangling": [],
+  "tables": {},
+  "outcomes": []
+}

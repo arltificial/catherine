@@ -1,0 +1,8 @@
+{
+  "mirror": "specodelic tests/fixtures/single_intent/one.md — a bare single-intent corpus: no layers, no edges, no violations",
+  "route": "parse",
+  "typing_violations": [],
+  "dangling": [],
+  "tables": {},
+  "outcomes": []
+}

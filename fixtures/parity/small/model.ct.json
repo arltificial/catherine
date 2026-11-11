@@ -1,0 +1,14 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Constraint", "Intent"],
+    "arrows": [
+      {"name": "traces_to", "src": "Constraint", "tgt": "Intent"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Constraint": ["clean_row"], "Intent": ["small"]},
+    "tables": {"traces_to": {"clean_row": "small"}}
+  }
+}

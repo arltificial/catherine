@@ -1,0 +1,18 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A", "B"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "B"}
+    ],
+    "equations": [
+      {"lhs": ["f"], "rhs": ["f"], "rationale": "the path agrees with itself", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a1", "a2"], "B": ["b1"]},
+    "tables": {
+      "f": {"a1": "b1", "a2": "a2"}
+    }
+  }
+}

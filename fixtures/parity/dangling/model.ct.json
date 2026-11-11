@@ -1,0 +1,25 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Constraint", "Intent", "State", "Transition"],
+    "arrows": [
+      {"name": "from", "src": "Transition", "tgt": "State"},
+      {"name": "to", "src": "Transition", "tgt": "State"},
+      {"name": "traces_to", "src": "Constraint", "tgt": "Intent"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Constraint": ["c2_real", "d_row1", "d_row2"],
+      "Intent": ["c1", "c2"],
+      "State": ["alive", "dead"],
+      "Transition": ["t1", "t2"]
+    },
+    "tables": {
+      "from": {"t1": "alive", "t2": null},
+      "to": {"t1": "dead", "t2": null},
+      "traces_to": {"c2_real": "c2", "d_row1": null, "d_row2": "c1"}
+    }
+  }
+}

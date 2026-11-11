@@ -1,6 +1,10 @@
 ticket: catherine-0gk
 branch: main
-brief_path: ""
+brief_path: .wai/projects/catherine/briefs/catherine-0gk.md
 steps:
   - claim 1f62581
   - gates 1f62581
+  - brief 5a9f69b
+  - spawn 5a9f69b
+  - blocked 1f62581 (402 credits; resume GkImplement pending top-up)
+  - verify 5a9f69b

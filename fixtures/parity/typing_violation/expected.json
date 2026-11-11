@@ -1,0 +1,12 @@
+{
+  "mirror": "specodelic tests/fixtures/typing_violations/{c1,c2}.md — v_row1's traces_to resolves to a Constraint row while traces_to admits only Intent (the corpus's 'traces_to must resolve to an Intent' violation class): the resolved reference is outside the target object's dense id space, so the build records a typing violation naming row + arrow and the value does not become a morphism table entry. The document carries a wrong-object table value, which P0's parser rejects structurally, so this fixture loads through the lenient presentation loader — the builder-level typing contract (typing_enforced_at_build) is what the gate pins",
+  "route": "presentation",
+  "typing_violations": [
+    {"arrow": "traces_to", "src": 0, "value": 1}
+  ],
+  "dangling": [],
+  "tables": {
+    "traces_to": [null, 0]
+  },
+  "outcomes": []
+}

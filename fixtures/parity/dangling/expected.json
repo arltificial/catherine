@@ -1,0 +1,20 @@
+{
+  "mirror": "specodelic tests/fixtures/dangling/{c1,c2}.md — t2's from/to dangle on undefined states (ghost_from/ghost_to), d_row1's traces_to dangles on the undefined ghost_row; real edges (t1 from/to, d_row2 traces_to c1, c2_real traces_to c2) are stored. Dangling is a stored value (None), reported with arrow + source row — never dropped, never a hard failure",
+  "route": "parse",
+  "typing_violations": [],
+  "dangling": [
+    {"arrow": "from", "src": 1},
+    {"arrow": "to", "src": 1},
+    {"arrow": "traces_to", "src": 1}
+  ],
+  "tables": {
+    "from": [0, null],
+    "to": [1, null],
+    "traces_to": [1, null, 0]
+  },
+  "outcomes": [
+    {"kind": "dangling", "arrow": "from", "src": 1},
+    {"kind": "dangling", "arrow": "to", "src": 1},
+    {"kind": "dangling", "arrow": "traces_to", "src": 1}
+  ]
+}

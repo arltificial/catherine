@@ -1,0 +1,8 @@
+{
+  "mirror": "specodelic tests/fixtures/small/clean.md — a minimal corpus that triggers no violation, no dangling: the clean baseline every typed shape is compared against",
+  "route": "parse",
+  "typing_violations": [],
+  "dangling": [],
+  "tables": {"traces_to": [0]},
+  "outcomes": []
+}

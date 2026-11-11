@@ -1,0 +1,21 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A", "B"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "B"},
+      {"name": "g", "src": "A", "tgt": "B"}
+    ],
+    "equations": [
+      {"lhs": ["f"], "rhs": ["g"], "rationale": "question under review", "status": "proposed"},
+      {"lhs": ["f"], "rhs": ["g"], "rationale": "settled invariant", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a1"], "B": ["b1", "b2"]},
+    "tables": {
+      "f": {"a1": "b1"},
+      "g": {"a1": "b2"}
+    }
+  }
+}

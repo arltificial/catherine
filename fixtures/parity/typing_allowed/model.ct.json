@@ -1,0 +1,30 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Constraint", "Intent", "Property", "State", "Transition"],
+    "arrows": [
+      {"name": "derives_from", "src": "Property", "tgt": "Constraint"},
+      {"name": "from", "src": "Transition", "tgt": "State"},
+      {"name": "guard", "src": "Transition", "tgt": "Constraint"},
+      {"name": "to", "src": "Transition", "tgt": "State"},
+      {"name": "traces_to", "src": "Constraint", "tgt": "Intent"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Constraint": ["c1_row", "c2_row"],
+      "Intent": ["c1", "c2"],
+      "Property": ["prop1"],
+      "State": ["alive", "dead"],
+      "Transition": ["t1"]
+    },
+    "tables": {
+      "derives_from": {"prop1": "c1_row"},
+      "from": {"t1": "alive"},
+      "guard": {"t1": "c2_row"},
+      "to": {"t1": "dead"},
+      "traces_to": {"c1_row": "c1", "c2_row": "c2"}
+    }
+  }
+}

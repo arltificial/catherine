@@ -1,0 +1,19 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Constraint", "Intent"],
+    "arrows": [
+      {"name": "traces_to", "src": "Constraint", "tgt": "Intent"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Constraint": ["v_row1", "v_row2"],
+      "Intent": ["c1"]
+    },
+    "tables": {
+      "traces_to": {"v_row1": "v_row2", "v_row2": "c1"}
+    }
+  }
+}

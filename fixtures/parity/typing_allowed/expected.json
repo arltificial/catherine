@@ -1,0 +1,14 @@
+{
+  "mirror": "specodelic tests/fixtures/typing_allowed/{c1,c2}.md — allowed edges across every layer (Property derives_from Constraint, Transition from/to State and guard Constraint, Constraint traces_to Intent): every value resolves into its target object's id space and is stored as a morphism value",
+  "route": "parse",
+  "typing_violations": [],
+  "dangling": [],
+  "tables": {
+    "derives_from": [0],
+    "from": [0],
+    "guard": [1],
+    "to": [1],
+    "traces_to": [0, 1]
+  },
+  "outcomes": []
+}
