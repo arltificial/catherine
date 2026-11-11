@@ -98,7 +98,7 @@ assignment forever*.
   (`lhs=Unit#1, rhs=Unit#2`), i.e. a *witness*.
 - **Underconstraint** — the two paths exist but no equation was declared:
   the tool raises the domain question *"should these agree?"* This is the
-  discovery mechanism: in kata-08 this pattern exposed a genuine ambiguity
+  discovery mechanism: in kata-8 this pattern exposed a genuine ambiguity
   the spec never answered. The question is raised *by the model*, not by a
   test author.
 

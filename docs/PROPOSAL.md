@@ -25,7 +25,7 @@ witnesses instead of vibes.
 The ct-catlab kata series (10 katas, validated 2026-11-02) pinned down
 where this pays off in software terms:
 
-- **Discovery pressure is real.** In kata-08, the categorical arm failed one
+- **Discovery pressure is real.** In kata-8, the categorical arm failed one
   of its own sealed holdout requirements — and that failure exposed a
   genuine ambiguity in the spec itself. The act of modeling forced a domain
   question nobody had asked. That is the thinking value, measured.
@@ -112,7 +112,7 @@ The same artifact, openable in the browser: schema graph, findings panel,
 and the questions the model forces you to answer. The value is **thinking
 pressure** — the act of declaring paths exposes the questions a
 back-of-the-napkin diagram hides (Johnson & Dampney's original empirical
-claim; re-measured by kata-08's spec-ambiguity discovery). Files stay
+claim; re-measured by kata-8's spec-ambiguity discovery). Files stay
 `.ct.json` in your repo; they review like code; the web view is
 read-mostly (JSON editing).
 
@@ -175,7 +175,7 @@ honestly useless for rule-based ones — and the tool says which is which.
    the pre-committed stop condition, not a failure mode.
 2. Three ported katas (Bowling, Gilded Rose, Vending) reproduce their
    validated findings as executed, witness-backed checks — without Julia.
-3. A spec-ambiguity discovery is reproduced at least once (kata-08
+3. A spec-ambiguity discovery is reproduced at least once (kata-8
    pattern): the tool's underconstraint/parallel-path findings surface a
    genuine domain question the input spec never answered.
 4. The agent loop (propose schema → check → refine) completes in seconds,

@@ -189,7 +189,7 @@ Rules:
 - Uniqueness/mono-style constraints (injective arrows): **not** in the v1
   kernel. The P6 fixture set is therefore scoped to
   path-equation-expressible findings; the expressibility gap vs full ACset
-  invariants (kata-08/09 used some injectivity-flavored constraints) is
+  invariants (kata-8/9 used some injectivity-flavored constraints) is
   recorded as a known limitation in the ledger, not silently papered over.
 - `check(schema, instance) -> Vec<Finding>` executes every equation on every
   applicable row (E3). Empty schema or empty instance → zero findings, OK.
@@ -300,6 +300,23 @@ detections don't appear above the floor.
   structural result, 6/6 ≍ 6/6). Success = the tool reproduces the validated
   findings that are expressible as path equations + totality, finding-typed,
   without Julia; the expressibility gap is recorded, not hidden (§4.1).
+
+  Kata roster (grounded: `ak/matadero/series/ct-catlab/SERIES.md` — the
+  canonical numbering this repo uses):
+
+  | Kata | Domain | ct-catlab verdict |
+  |---|---|---|
+  | kata-1 | Bowling — temporal semantics, construction-time inexpressibility | survived (scoped) |
+  | kata-2 | Gilded Rose — frozen-quality + post-concert invariants | survived (scoped) |
+  | kata-3 | Vending Machine — bounds, command vocabulary, collision | survived (scoped) |
+  | kata-4 | bank ledger shape invariants | survived (scoped) |
+  | kata-5 | Bowling win-legality — history-dependent | survived (scoped) |
+  | kata-6 | FizzBuzz — negative control | killed |
+  | kata-7 | roman numerals — canonical round-trip | survived (scoped) |
+  | kata-8 | spec-ambiguity discovery (holdout failure exposed a spec ambiguity) | survived |
+  | kata-9 | delegated implementation — shipment↔reservation ACset invariants | survived |
+  | kata-10 | migration axis — lost-data + unsupported-inverse | survived (split) |
+
 - **Agent-loop walkthrough (the P3/P6 acceptance story)**:
 
   ```
