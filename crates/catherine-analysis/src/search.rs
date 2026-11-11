@@ -9,7 +9,9 @@
 //! cells first, then row ids ascending — the counterexample-minimality
 //! discipline folded into the enumeration), evaluate each candidate with
 //! the kernel's own `check` (a candidate witnesses satisfiability iff
-//! executing all checks on it emits nothing), and never claim what the
+//! every cell resolves and every *accepted* equation holds — proposed
+//! equations fail as `hypothesized` questions and never block a
+//! witness), and never claim what the
 //! bounds did not establish: a budget that expires before exhaustion is
 //! `UNKNOWN`, a zero-size bound is `UNKNOWN` with the empty scope — never
 //! a contradiction — and "no violation found" is never an output.
@@ -30,7 +32,7 @@
 
 use crate::bounds::{contradiction_finding, SearchBounds, SearchScope};
 use catherine_core::checks;
-use catherine_core::findings::Finding;
+use catherine_core::findings::{EpistemicLabel, Finding, FindingKind};
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{ConstraintStatus, Ident, Instance, RowId, Schema};
 use std::collections::BTreeMap;
@@ -235,13 +237,25 @@ fn materialize(
     }
 }
 
-/// The satisfaction predicate is the kernel's own check: the candidate
-/// witnesses satisfiability iff executing all checks on it emits
-/// nothing (no dangling — full resolution; no violation — every
-/// accepted equation holds).
+/// The satisfaction predicate: the candidate witnesses satisfiability
+/// iff every arrow cell resolves (no dangling finding) and every
+/// *accepted* equation holds (no `executed` violation). Proposed
+/// equations fail with the `hypothesized` label — questions under
+/// review, not satisfiability constraints — so a `hypothesized`
+/// violation never blocks a witness.
 fn is_clean(schema: &Schema, instance: &Instance) -> bool {
     let typed = TypedInstance::build(schema, instance);
-    checks::check(schema, &typed).is_empty()
+    checks::check(schema, &typed).into_iter().all(|finding| {
+        match finding.kind {
+            // Dangling short-circuits prove nothing: never clean.
+            FindingKind::Dangling(_) => false,
+            // Accepted-equation failures are kernel-computed (`executed`);
+            // proposed-equation failures are questions (`hypothesized`).
+            FindingKind::Violation(_) => finding.label != EpistemicLabel::Executed,
+            // No other kind is emitted by the kernel walk.
+            _ => true,
+        }
+    })
 }
 
 /// Advance the big-endian mixed-radix counter. `false` = wrapped: the
@@ -255,4 +269,82 @@ fn increment(digits: &mut [usize], radices: &[usize]) -> bool {
         digits[slot] = 0;
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bounds::SearchBounds;
+    use catherine_core::model::{Arrow, Equation, Path};
+
+    /// One object `a` with the endoarrow `f`; the accepted equation
+    /// `f;f;f = f` (holds on the swap, on constants, on identities) and
+    /// the proposed equation `f = f;f` (rejects the swap — it is a
+    /// question, not a constraint).
+    fn swap_schema() -> Schema {
+        let mut objects = BTreeMap::new();
+        objects.insert(Ident("a".to_string()), ());
+        let mut arrows = BTreeMap::new();
+        arrows.insert(
+            Ident("f".to_string()),
+            Arrow {
+                src: Ident("a".to_string()),
+                tgt: Ident("a".to_string()),
+            },
+        );
+        let eq = |lhs: &[&str], rhs: &[&str], status| Equation {
+            lhs: Path(lhs.iter().map(|s| Ident(s.to_string())).collect()),
+            rhs: Path(rhs.iter().map(|s| Ident(s.to_string())).collect()),
+            rationale: String::new(),
+            status,
+        };
+        Schema {
+            objects,
+            arrows,
+            equations: vec![
+                eq(&["f", "f", "f"], &["f"], ConstraintStatus::Accepted),
+                eq(&["f"], &["f", "f"], ConstraintStatus::Proposed),
+            ],
+        }
+    }
+
+    fn two_row_bound() -> SearchBounds {
+        let mut max_rows = BTreeMap::new();
+        max_rows.insert(Ident("a".to_string()), 2);
+        SearchBounds {
+            max_rows,
+            max_candidates: 1000,
+        }
+    }
+
+    /// The swap instance: fully resolved, the accepted equation holds
+    /// (`f³ = f` on an involution), the proposed equation fails
+    /// (`f ≠ f²`). `is_clean` judges satisfiability by the *accepted*
+    /// equations only — a hypothesized violation marks a question under
+    /// review, never a blocked witness.
+    #[test]
+    fn is_clean_accepts_accepted_clean_proposed_dirty() {
+        let schema = swap_schema();
+        let mut values = BTreeMap::new();
+        values.insert(Ident("f".to_string()), vec![Some(RowId(1)), Some(RowId(0))]);
+        let instance = Instance {
+            rows: BTreeMap::from([(Ident("a".to_string()), vec![RowId(0), RowId(1)])]),
+            values,
+        };
+        assert!(is_clean(&schema, &instance));
+    }
+
+    /// End to end: the same schema under search returns a Witness, never
+    /// a Contradiction — a proposed-equation violation must not block
+    /// the outcome even if every enumerated candidate carried one.
+    #[test]
+    fn search_returns_witness_despite_proposed_violations() {
+        let schema = swap_schema();
+        let report = search(&schema, &two_row_bound());
+        assert!(
+            matches!(report.outcome, SearchOutcome::Witness { .. }),
+            "expected a witness, got {:?}",
+            report.outcome
+        );
+    }
 }
