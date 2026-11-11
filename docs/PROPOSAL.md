@@ -192,6 +192,10 @@ honestly useless for rule-based ones — and the tool says which is which.
 - **CatColab / Catlab / CQL** — prior art and references; not dependencies,
   not competitors at this layer. Catherine is the embeddable kernel layer
   below CatColab's application layer.
+- **genesis-vibes** — the suite's shared CLI foundation (envelope, verbosity,
+  doctor); consumed by `catherine-cli` only, so agents get the exact JSON
+  envelope semantics every charly-vibes tool already speaks. Kernel stays
+  suite-dep-free.
 - **Methodology v1.0** (`docs/ref/`) — the human procedure the tool
   mechanically supports (freeze baseline → semantic graph → parallel paths
   → justified constraints → derive & attack → evolve → stop). Catherine is

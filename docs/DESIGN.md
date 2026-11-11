@@ -97,6 +97,17 @@ grounds**: the corpus contains no OCaml CT implementation experience to
 reuse (the only OCaml-adjacent finding is that low-resource languages cost
 agents more repair cycles), and agent contributors are a first-class user.
 
+**Suite plumbing: `genesis-vibes` — CLI crate only.** The charly-vibes
+cross-cutting foundation (stable, crates.io `0.13`) owns the JSON envelope
+(`ok/envelope_kind/data/warnings/hints` — the exact envelope every suite
+agent already speaks), verbosity/format clap structs (`guide`), doctor,
+suggestions, and config. Adopted for `catherine-cli` (P3) so agents get
+identical envelope semantics to turu/whisper/ddl. The kernel crates
+(core/analysis/inquiry) and `catherine-wasm` stay **genesis-free** — domain
+logic per genesis's boundary rule, and keeps the kernel portable/pure for
+WASM. Stable modules only for v1 (the `new` ones — doctor/cli/status —
+wait until they graduate).
+
 Testing tooling: `proptest` for round-trip and parity properties;
 golden-file fixtures for parser errors and findings; `insta`-style snapshots
 are deliberately avoided — findings carry witnesses and must be asserted
@@ -116,9 +127,10 @@ crates/
 web/                   static site: TS + SVG; loads .ct.json files; no server
 ```
 
-Dependency direction: `cli`/`wasm` → `inquiry` → `analysis` → `core`.
-The web UI depends only on the wasm exports and the model document format —
-it is never the source of truth (E5).
+Dependency direction: `cli`/`wasm` → `inquiry` → `analysis` → `core`;
+`catherine-cli` additionally consumes `genesis-vibes` (envelope/guide only
+— never leaks into the kernel). The web UI depends only on the wasm exports
+and the model document format — it is never the source of truth (E5).
 
 ### 4.1 Core kernel (what "simpler than Catlab" means concretely)
 
@@ -284,6 +296,24 @@ detections don't appear above the floor.
 - **Parity gate on extraction**: pieces ported from specodelic acset
   (instance tables, query closures) must show identical findings on the
   specodelic corpus before rewrite (E8 pattern); property tests stay green.
+- **Pilot corpus — bogart** (`at/bogart`, P9): the first real-domain
+  dogfood. Bogart's openspec prose invariants map directly onto kernel
+  findings, demonstrating the tool on a live repo beyond toy katas:
+
+  | Bogart spec invariant (prose) | Catherine model | Finding class |
+  |---|---|---|
+  | "every FTS hit resolves to text_blocks rows carrying edition and page anchors" (corpus-storage) | equation: `block → document → edition = block → edition`; totality of `block → document` | violation (drifted denormalized anchor) + dangling |
+  | "a section page never fabricates an aviso identity" (stable_ids) | identity-domain disjointness (aviso vs section-acquisition id formats) as a rule-lens table (P8 preview) | overlap/shadow on identity domains |
+  | `capture_ambiguous` / `capture_unavailable` (backfill selector) | selector→capture relation: multiple matches without tie-break policy = overlap; no match = gap | overlap + gap |
+  | raw working corpus vs derived serving projection | schema map + Δ migration; lost-data counterexamples | migration axis (P7) |
+  | "FTS layer always runs, structured layer on identity-covered docs, `layer` records which fired" (alerts-matching) | tiered rule table with priority policy + declared coverage | rule lens (P8) full example |
+
+  Bogart is Clojure — the pilot also demonstrates language-neutrality
+  (a Clojure repo's invariants, checked by a Rust kernel over JSON).
+  Deliverable: `.ct.json` models checked in bogart's CI (`catherine check`
+  exits per finding class) + a pilot report recording which findings were
+  real vs noise.
+
 - **Evaluation dimensions** (from E5 §8): requirements discovery, injected
   defect detection, complexity, cognitive load, explainability, composition,
   effort — measured against the same scenarios with and without the tool;
@@ -322,6 +352,10 @@ to the tool itself.
    findings, equivalence checking, with its own two-kata validation as
    pre-registered in §4.4. Killed honestly if it earns nothing above the
    floor.
+10. **P9 bogart pilot** (gated on P3 CLI + P4 findings): port the pilot
+   table above into real `.ct.json` models under bogart's CI; record which
+   findings fired on the live corpus and which were noise — the first
+   evidence outside the kata lab.
 
 ## 7. Risks and mitigations
 
