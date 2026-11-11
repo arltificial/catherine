@@ -25,6 +25,19 @@ use genesis::envelope::Warning;
 use std::collections::BTreeMap;
 use std::io::Write;
 
+/// catherine-uh0: run-level warnings reach stderr in human mode too —
+/// the same `warning: <message>` line `main.rs` prints for config
+/// warnings; JSON mode keeps them on the envelope only (pinned by
+/// `negative_matrix.rs`).
+fn print_run_warnings(json: bool, warnings: &[Warning], stderr: &mut impl Write) {
+    if json {
+        return;
+    }
+    for warning in warnings {
+        let _ = writeln!(stderr, "warning: {}", warning.message);
+    }
+}
+
 /// `search`: bounds are flag inputs; the outcome decides the exit — a
 /// contradiction is a finding-bearing run (exit 5 through the existing
 /// decision), a witness or UNKNOWN completes within its bounds (exit 0,
@@ -56,6 +69,7 @@ pub fn run_search(
         max_candidates,
     };
     let report = search::search(&model.schema, &bound);
+    print_run_warnings(json, &warnings, stderr);
     if json {
         let envelope = render::search_envelope(&report, warnings);
         write_envelope(&envelope, stdout, stderr, "search");
@@ -342,6 +356,7 @@ fn render_query_outcome(
     stderr: &mut impl Write,
 ) -> i32 {
     let morphism_names: Vec<String> = follow.to_vec();
+    print_run_warnings(json, &warnings, stderr);
     if json {
         let envelope = render::query_envelope(direction, &morphism_names, ordered, warnings);
         write_envelope(&envelope, stdout, stderr, "query");

@@ -286,3 +286,25 @@ fn analysis_query_unknown_seed_exits_1_with_error_envelope() {
         .expect("message")
         .contains("q#9"));
 }
+
+/// catherine-uh0: an undeclared `--follow` name is warned on stderr in
+/// human mode too — `warning: <message>`, naming the typo'd arrow.
+#[test]
+fn analysis_query_human_mode_prints_follow_warning_to_stderr() {
+    let out = run(&[
+        "query",
+        ANALYSIS_QUERY,
+        "--seed",
+        "p#0",
+        "--follow",
+        "h",
+        "--follow",
+        "f",
+    ]);
+    assert_eq!(code(&out), 0, "exit semantics unchanged by the warning");
+    let err = stderr(&out);
+    assert!(
+        err.contains("warning: --follow names undeclared arrow `h`"),
+        "human-mode stderr carries the warning line: {err:?}"
+    );
+}

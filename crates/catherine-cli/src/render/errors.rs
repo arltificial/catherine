@@ -94,7 +94,7 @@ fn hint_for_code(code: ErrorCode) -> &'static str {
         ErrorCode::InvalidIdent => "idents match [A-Za-z_][A-Za-z0-9_]*",
         ErrorCode::InvalidStatus => "status is one of: accepted, proposed",
         ErrorCode::UnsupportedVersion => {
-            "set format_version to \"1.0\" — additive minors of major 1 are accepted"
+            "set format_version to \"1.0\" — the known version is 1.0; raise KNOWN_MINOR when new additive semantics land"
         }
     }
 }

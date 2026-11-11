@@ -213,3 +213,24 @@ fn analysis_search_warns_on_undeclared_rows_object() {
         warnings[0]
     );
 }
+
+/// catherine-uh0: the same `--rows` warning reaches stderr in human mode
+/// (the default surface) — `warning: <message>`, naming the typo'd
+/// object; the JSON envelope keeps its warnings untouched.
+#[test]
+fn analysis_search_human_mode_prints_rows_warning_to_stderr() {
+    let out = run(&[
+        "search",
+        ANALYSIS_CONTRADICTION,
+        "--rows",
+        "Objet=2",
+        "--rows",
+        "a=1",
+    ]);
+    assert_eq!(code(&out), 5, "exit semantics unchanged by the warning");
+    let err = stderr(&out);
+    assert!(
+        err.contains("warning: --rows names undeclared object `Objet`"),
+        "human-mode stderr carries the warning line: {err:?}"
+    );
+}

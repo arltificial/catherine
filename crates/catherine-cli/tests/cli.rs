@@ -38,6 +38,10 @@ const DANGLING: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/dangling.ct.json"
 );
+const BAD_VERSION: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/bad_version.ct.json"
+);
 const MULTI_CLASS: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/multi_class.ct.json"
@@ -278,4 +282,22 @@ fn design_s5_walkthrough_violating_then_fixed() {
     assert_eq!(code(&fixed), 0, "clean re-check exit code");
     assert_eq!(stdout(&fixed), "", "zero findings print nothing");
     assert_eq!(stderr(&fixed), "", "no errors");
+}
+
+/// catherine-uh0: the `unsupported_version` hint states the real
+/// KNOWN_MINOR policy — the known-version cap — and no longer claims
+/// additive minors are accepted.
+#[test]
+fn unsupported_version_hint_states_known_version_policy() {
+    let out = run(&["check", BAD_VERSION]);
+    assert_eq!(code(&out), 1, "unsupported version exits 1");
+    let err = stderr(&out);
+    assert!(
+        !err.contains("additive minors"),
+        "the stale 'minors accepted' claim is gone: {err:?}"
+    );
+    assert!(
+        err.contains("1.0") && err.contains("KNOWN_MINOR"),
+        "the hint states the known version and the KNOWN_MINOR cap: {err:?}"
+    );
 }
