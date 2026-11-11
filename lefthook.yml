@@ -1,5 +1,7 @@
 # lefthook.yml — ddl-managed gates (created by `ddl init --gates`)
 # Managed blocks: markers `# ddl:managed:start/end (hook)` — edit around them.
+# hook-swallow-guard and ah-check-run-tests live OUTSIDE the managed blocks on
+# purpose so ddl/pretender regeneration cannot clobber them.
 
 pre-commit:
   commands:
@@ -13,6 +15,34 @@ pre-commit:
     ddl-spk-lint:
       run: spk lint openspec/specs || test $? -eq 2
     # ddl:managed:end (pre-commit)
+    hook-swallow-guard:
+      # catherine-u6y: fails while .beads/hooks/* swallow lefthook's exit code
+      # (what `bd init` regenerates). Passes only while the hand-fixed capture
+      # is present after `call_lefthook run`. HOOK_SWALLOW_GUARD_DIR exists so
+      # the gate can be pointed at a scratch copy for synthetic red/green tests.
+      run: |
+        dir=${HOOK_SWALLOW_GUARD_DIR:-.beads/hooks}
+        status=0
+        for hook in pre-commit pre-push prepare-commit-msg; do
+          file="$dir/$hook"
+          if [ ! -f "$file" ]; then
+            echo "hook-swallow-guard: $file missing — lefthook wrapper not installed" >&2
+            status=1
+          elif ! grep -q 'call_lefthook run' "$file"; then
+            echo "hook-swallow-guard: $file never invokes lefthook — gates disarmed" >&2
+            status=1
+          elif ! grep -A2 'call_lefthook run' "$file" | grep -qF '_lh_exit=$?'; then
+            echo "hook-swallow-guard: $file drops lefthook's exit code — gates silently disarmed" >&2
+            status=1
+          fi
+        done
+        if [ "$status" -ne 0 ]; then
+          echo 'hook-swallow-guard: bd init regenerated swallowing wrappers — re-apply exit capture after call_lefthook in .beads/hooks/*:' >&2
+          echo '  call_lefthook run "<hook>" "$@"' >&2
+          echo '  _lh_exit=$?' >&2
+          echo '  if [ "$_lh_exit" -ne 0 ]; then exit "$_lh_exit"; fi' >&2
+        fi
+        exit "$status"
 
 pre-push:
   commands:
@@ -22,3 +52,6 @@ pre-push:
     ddl-ah-check:
       run: ah check
     # ddl:managed:end (pre-push)
+    # catherine-za6: full ah check with tests on push; static check stays pre-commit
+    ah-check-run-tests:
+      run: ah check --run-tests
