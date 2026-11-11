@@ -37,6 +37,7 @@ control is a release gate).
 | [`docs/PROPOSAL.md`](docs/PROPOSAL.md) | why & what: evidence base, conclusions, value proposition |
 | [`docs/THEORY.md`](docs/THEORY.md) | the mathematics: each construction, what it buys, where validated, reading order, glossary |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | how: architecture, kernel spec, technology decisions, phased plan |
+| [`docs/USING.md`](docs/USING.md) | usage: agent recipes, human flow, what it enables, what it does NOT do |
 | [`docs/ref/category_theoretic_modeling_methodology.md`](docs/ref/category_theoretic_modeling_methodology.md) | the modeling methodology the tool serves (vendored) |
 
 ## Status & roadmap
