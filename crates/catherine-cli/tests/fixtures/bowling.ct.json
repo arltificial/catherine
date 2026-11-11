@@ -1,0 +1,53 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Assignment", "Equipment", "Staff", "Unit"],
+    "arrows": [
+      {"name": "staff_unit", "src": "Assignment", "tgt": "Staff"},
+      {"name": "assigned_staff", "src": "Staff", "tgt": "Unit"},
+      {"name": "equipment_unit", "src": "Assignment", "tgt": "Equipment"},
+      {"name": "assigned_item", "src": "Equipment", "tgt": "Unit"}
+    ],
+    "equations": [
+      {
+        "lhs": ["staff_unit", "assigned_staff"],
+        "rhs": ["equipment_unit", "assigned_item"],
+        "rationale": "a row's staff and its equipment land in the same unit",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Assignment": ["assignment_1", "assignment_2", "assignment_3", "assignment_4"],
+      "Equipment": ["ball_1", "ball_2", "ball_3", "pin_machine"],
+      "Staff": ["alice", "bob", "carol"],
+      "Unit": ["unit_alpha", "unit_beta", "unit_gamma"]
+    },
+    "tables": {
+      "staff_unit": {
+        "assignment_1": "alice",
+        "assignment_2": "alice",
+        "assignment_3": "carol",
+        "assignment_4": "bob"
+      },
+      "assigned_staff": {
+        "alice": "unit_alpha",
+        "bob": "unit_beta",
+        "carol": "unit_alpha"
+      },
+      "equipment_unit": {
+        "assignment_1": "ball_1",
+        "assignment_2": "ball_1",
+        "assignment_3": "ball_1",
+        "assignment_4": "ball_2"
+      },
+      "assigned_item": {
+        "ball_1": "unit_alpha",
+        "ball_2": "unit_gamma",
+        "ball_3": "unit_alpha",
+        "pin_machine": "unit_alpha"
+      }
+    }
+  }
+}

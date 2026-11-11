@@ -1,0 +1,28 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Block", "Section"],
+    "arrows": [
+      {"name": "in_section", "src": "Block", "tgt": "Section"},
+      {"name": "in_section_alt", "src": "Block", "tgt": "Section"}
+    ],
+    "equations": [
+      {
+        "lhs": ["in_section"],
+        "rhs": ["in_section_alt"],
+        "rationale": "both section references agree",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Block": ["b1", "b2", "b3"],
+      "Section": ["s1", "s2"]
+    },
+    "tables": {
+      "in_section": {"b1": null, "b2": "s1", "b3": "s2"},
+      "in_section_alt": {"b1": "s1", "b2": "s1", "b3": "s1"}
+    }
+  }
+}

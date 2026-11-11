@@ -1,0 +1,19 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Block", "Section"],
+    "arrows": [
+      {"name": "in_section", "src": "Block", "tgt": "Section"},
+      {"name": "in_section_alt", "src": "Block", "tgt": "Section"},
+      {"name": "cites", "src": "Block", "tgt": "Block"},
+      {"name": "revises", "src": "Block", "tgt": "Block"},
+      {"name": "has_anchor", "src": "Block", "tgt": "Section"},
+      {"name": "anchors_path", "src": "Section", "tgt": "Block"},
+      {"name": "supersedes", "src": "Block", "tgt": "Block"},
+      {"name": "in_section_alt2", "src": "Section", "tgt": "Section"},
+      {"name": "in_section", "src": "Section", "tgt": "Section"}
+    ],
+    "equations": []
+  },
+  "instance": { "rows": {"Block": [], "Section": []}, "tables": {} }
+}

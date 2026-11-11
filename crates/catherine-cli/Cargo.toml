@@ -1,0 +1,21 @@
+[package]
+name = "catherine-cli"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "The catherine CLI: check and findings over .ct.json model documents"
+
+[[bin]]
+name = "catherine"
+path = "src/main.rs"
+
+[dependencies]
+catherine-core = { path = "../catherine-core" }
+clap = { version = "4", features = ["derive"] }
+genesis-vibes = "0.13"
+# Suite-convention companions of genesis envelope/config emission (whisper,
+# dont, testaruda, dulce-de-leche all carry them beside genesis-vibes);
+# versions unify with catherine-core's.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+

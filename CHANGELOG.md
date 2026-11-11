@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pre-registered two-kata validation.
 - Bogart pilot corpus (P9, `catherine-hc6`): openspec prose invariants →
   executed findings; genesis-vibes adopted for CLI plumbing (P3).
+- `catherine` CLI (P3, `catherine-86i`): `catherine check` and
+  `catherine findings` — one execution path over `.ct.json` model
+  documents, findings printed in the DESIGN §5 format (human) or the
+  genesis-vibes JSON envelope (`data.findings`, the kernel encoding
+  verbatim); labeled errors with line/column, stable code, and
+  remediation hint on stderr; exit codes mirror finding classes
+  (clean 0, parse/build 1, usage 2, violation 3, dangling 4,
+  contradiction 5, underconstraint 6, redundant 7 — multi-class runs
+  exit with the minimum class code); genesis-vibes consumed by the CLI
+  crate only — the kernel stays genesis-free.
 
 ### Changed
 

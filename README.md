@@ -30,6 +30,47 @@ tells you when modeling is a waste of time.
 problems the tool says *"model this conventionally"* (FizzBuzz negative
 control is a release gate).
 
+## The CLI (P3)
+
+The binary is `catherine` (`crates/catherine-cli`). Two commands share
+one execution path (parse → build → execute all checks); they differ in
+name only — `findings` is the findings-only entry point for agents,
+never a divergent re-run:
+
+```
+catherine check <model.ct.json>      # every finding with kind, label, witness
+catherine check <model.ct.json> --json   # the genesis-vibes JSON envelope, findings under data.findings
+catherine findings <model.ct.json> [--json]
+```
+
+Human output implements the DESIGN §5 transcript (kind label, `eq-<n>`,
+paths joined with `∘`/`≠`, witness on the indented continuation line);
+parse errors and typing violations print as labeled errors with
+line/column, stable code, and a remediation hint — never a stack trace.
+Errors go to stderr, findings to stdout. `catherine.toml` (optional,
+genesis config module) defaults `format` and `verbosity`; explicit
+flags win.
+
+Exit codes mirror finding classes — CI and agents branch on exit
+status without parsing any text:
+
+| Exit | Meaning | Class |
+|---|---|---|
+| 0 | clean — zero findings | — |
+| 1 | parse/build failure — labeled error (parse error or typing violation), never a finding | — |
+| 2 | usage error — clap's own code for bad args/unknown subcommand; never a finding exit | — |
+| 3 | violation | highest severity |
+| 4 | dangling | |
+| 5 | contradiction | |
+| 6 | underconstraint | |
+| 7 | redundant | lowest severity |
+
+Multi-class runs exit with the **minimum** present class code; the full
+class set is always in the payload. The three analysis classes
+(contradiction/underconstraint/redundant) have no producer until P4 —
+their exit codes and renderings are pinned by unit tests, never
+fabricated end-to-end.
+
 ## Documentation map
 
 | Doc | Contents |
