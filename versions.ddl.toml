@@ -1,11 +1,13 @@
 # Pinned ecosystem tool versions for this repo's CI and dev setup.
 # Standardization §4: installs are pinned, never `latest` — a broken release
 # of any tool must not break CI of the whole fleet.
-# Update deliberately; the conformance test (tests/standard_conformance.rs)
-# requires this file to exist.
+# Update deliberately; the conformance test
+# (crates/catherine-cli/tests/standard_conformance.rs) requires this file to
+# exist.
 #
 # §4 matrix row (ddl): pretender ✅ · wai ✅ · bd ✅ · openspec ✅ · dont ✅
-# CI installs these pinned (see ci.yml).
+# CI installs these pinned — .github/workflows/ci.yml calls
+# scripts/ci-install.sh, which reads the pins below.
 
 [tools]
 wai = "2026.10.19"      # crates.io: wai-cli — realigned to installed (drift from 2026.10.10)

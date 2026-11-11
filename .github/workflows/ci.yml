@@ -1,0 +1,41 @@
+# CI gate for catherine (beads catherine-6p5).
+#
+# Pins come from versions.ddl.toml (Standardization §4) via
+# scripts/ci-install.sh — never `latest`. The bd-export freshness gate is
+# NOT a workflow step: bd export reads bd's dolt database and CI never runs
+# dolt (no-db invariant), so freshness is asserted by the
+# standard_conformance test inside `cargo test --workspace` (the `just ci`
+# step below).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable (rustup) + fmt/clippy components
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+
+      - name: Install pinned ecosystem tools (versions.ddl.toml)
+        run: scripts/ci-install.sh
+
+      - name: Install just (gate runner)
+        run: cargo install just --version 1.59.0
+
+      - name: Gate — fmt / clippy -D warnings / tests (incl. conformance)
+        run: just ci
+
+      - name: Gate — openspec validate, all changes, strict
+        run: openspec validate --changes --strict --no-interactive
+
+      - name: Gate — ah check (spec-test correspondence)
+        run: ah check
