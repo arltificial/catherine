@@ -1,6 +1,8 @@
 ticket: catherine-86i
 branch: main
-brief_path: ""
+brief_path: .wai/projects/catherine/briefs/catherine-86i.md
 steps:
   - claim dc4c95e
   - gates dc4c95e
+  - brief 8b29552
+  - spawn 8b29552
