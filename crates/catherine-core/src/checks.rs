@@ -1,76 +1,39 @@
 //! Purpose: executed path-equation checks — the E3 bet. `check` evaluates
-//! every declared equation on every applicable row and emits finding-typed
-//! outcomes with witnesses (openspec change `add-executed-checks`).
+//! every declared equation on every applicable row and emits labeled
+//! findings with witnesses (openspec changes `add-executed-checks` and
+//! `add-findings-taxonomy`).
 //!
 //! Responsibilities: [`check`] walks the typed instance tables — one
-//! dangling outcome per unresolved cell, then one outcome per equation per
-//! applicable row whose composed paths disagree — and never emits an
-//! outcome without its witnesses. A dangling value short-circuits path
+//! dangling finding per unresolved cell, then one finding per equation per
+//! applicable row whose composed paths disagree — and never emits a
+//! finding without its witness. A dangling value short-circuits path
 //! composition at that arrow: the affected row is recorded (by the
-//! dangling outcome naming arrow + source row), never reported as a
+//! dangling finding naming arrow + source row), never reported as a
 //! violation, and the run continues. Equation `status` decides the
-//! epistemic weight of a failure: `accepted` →
-//! [`CheckOutcome::Violation`], `proposed` →
-//! [`CheckOutcome::Hypothesis`] — distinguishable, never merged into one
-//! severity. Totality: an empty schema or an empty instance yields zero
-//! outcomes — silence after evaluation is real success, never an
-//! unevaluated declaration.
+//! epistemic label of a violation-shaped finding: `accepted` →
+//! `executed`, `proposed` → `hypothesized` — one kind, countable apart by
+//! label, never merged into one severity. Totality: an empty schema or an
+//! empty instance yields zero findings — silence after evaluation is real
+//! success, never an unevaluated declaration.
 //!
 //! Rationale: new code (E10) — specodelic's acset has no path-equation
-//! execution; equations were already new in P0. Outcome order is
-//! deterministic: dangling outcomes first (arrow-name order, then source
-//! row order), then per-equation outcomes in canonical equation order ×
-//! domain row order, so goldens pin structural expectations exactly.
+//! execution; equations were already new in P0. P1's `CheckOutcome` enum
+//! is superseded by the findings taxonomy (evolved into `findings.rs`,
+//! not wrapped — kind names the shape, the label names the weight).
+//! Finding order is the taxonomy's total order: kind first in
+//! declaration order (violations before dangling — P1's dangling-first
+//! outcome order is superseded per the findings spec), then witness ids
+//! in canonical id order, label last as tiebreak; `check` sorts before
+//! returning, so repeated checks of the same model serialize
+//! byte-identically (findings spec: repeated runs are diff-stable).
 
-use crate::checks::CheckOutcome::{Dangling, Hypothesis, Violation};
+use crate::findings::{DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind};
 use crate::instance::TypedInstance;
 use crate::model::{ConstraintStatus, Ident, RowId, Schema};
 use std::collections::BTreeSet;
 
-/// The outcome kinds the P1 checks surface. Minimal and open: P2's
-/// findings taxonomy (`catherine-1x7`) extends the enum with new kinds —
-/// witnesses stay mandatory — never by merging kinds or reusing one
-/// variant for two epistemic weights. A typing violation is a *build
-/// report* ([`TypedInstance::typing_violations`]), not a check outcome.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CheckOutcome {
-    /// An `accepted` equation failed on a row: enforcement.
-    Violation {
-        /// The equation's index in `Schema::equations` (canonical order).
-        equation: usize,
-        /// The row of the equation's domain object that failed.
-        row: RowId,
-        /// The composed `lhs` path value.
-        lhs: RowId,
-        /// The composed `rhs` path value.
-        rhs: RowId,
-    },
-    /// A `proposed` equation failed on a row: a domain question under
-    /// review, countable separately from violations — never merged into
-    /// one severity.
-    Hypothesis {
-        /// The equation's index in `Schema::equations` (canonical order).
-        equation: usize,
-        /// The row of the equation's domain object that failed.
-        row: RowId,
-        /// The composed `lhs` path value.
-        lhs: RowId,
-        /// The composed `rhs` path value.
-        rhs: RowId,
-    },
-    /// An arrow cell holds no row (dangling reference value) — witness:
-    /// the arrow and the source row. Paths traversing this cell are
-    /// not-evaluable and emit nothing for the affected row.
-    Dangling {
-        /// The arrow whose cell is unresolved.
-        arrow: Ident,
-        /// The source row the dangling value sits on.
-        src: RowId,
-    },
-}
-
 /// Execute every declared equation on every applicable row of the typed
-/// instance. See the module docs for the outcome contract.
+/// instance. See the module docs for the finding contract.
 ///
 /// Every lookup inside the walk is total (`get`-based): for parsed
 /// presentations each declared equation's lead arrow, domain rows, and
@@ -81,12 +44,13 @@ pub enum CheckOutcome {
 /// space, a path composing through a cell the presentation does not
 /// carry) — they skip an inapplicable equation, never a row of an
 /// applicable one.
-pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<CheckOutcome> {
-    let mut outcomes = Vec::new();
-    // Dangling values first: one outcome per unresolved cell that is not
-    // accounted for by a typing violation (a violated value never became
-    // a table entry — its `None` cell is a build report, not a dangling
-    // reference).
+pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
+    let mut findings = Vec::new();
+    // Dangling values first in the walk (the taxonomy's kind order sorts
+    // them after the violations): one finding per unresolved cell that is
+    // not accounted for by a typing violation (a violated value never
+    // became a table entry — its `None` cell is a build report, not a
+    // dangling reference).
     let violated: BTreeSet<(Ident, RowId)> = instance
         .typing_violations()
         .iter()
@@ -95,17 +59,22 @@ pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<CheckOutcome> {
     for (arrow, cells) in instance.tables() {
         for (idx, cell) in cells.iter().enumerate() {
             if cell.is_none() && !violated.contains(&(arrow.clone(), RowId(idx))) {
-                outcomes.push(Dangling {
-                    arrow: arrow.clone(),
-                    src: RowId(idx),
+                findings.push(Finding {
+                    label: EpistemicLabel::Executed,
+                    kind: FindingKind::Dangling(DanglingWitness {
+                        arrow: arrow.clone(),
+                        src: RowId(idx),
+                    }),
                 });
             }
         }
     }
     // Every declared equation on every row of its domain object. A path
     // through a dangling (or violated) cell cannot compose: the affected
-    // row is already recorded by its dangling outcome and emits nothing
-    // here — recorded, not crashed, never a violation.
+    // row is already recorded by its dangling finding and emits nothing
+    // here — recorded, not crashed, never a violation. The failure's
+    // witness is constructed once; only the label rides on the equation's
+    // status (accepted → executed, proposed → hypothesized).
     for (index, equation) in schema.equations.iter().enumerate() {
         let Some(lead) = equation.lhs.0.first() else {
             continue;
@@ -123,22 +92,27 @@ pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<CheckOutcome> {
                 continue;
             };
             if lhs != rhs {
-                outcomes.push(match equation.status {
-                    ConstraintStatus::Accepted => Violation {
+                let label = match equation.status {
+                    ConstraintStatus::Accepted => EpistemicLabel::Executed,
+                    ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
+                };
+                findings.push(Finding {
+                    label,
+                    kind: FindingKind::Violation(EquationWitness {
                         equation: index,
                         row,
                         lhs,
                         rhs,
-                    },
-                    ConstraintStatus::Proposed => Hypothesis {
-                        equation: index,
-                        row,
-                        lhs,
-                        rhs,
-                    },
+                    }),
                 });
             }
         }
     }
-    outcomes
+    // The taxonomy's total order (kind declaration order — violations
+    // before dangling — then witness ids, label last) is the emitted
+    // contract: the walk's push order is not, and the sorted result makes
+    // repeated checks byte-identical (findings spec: repeated runs are
+    // diff-stable).
+    findings.sort();
+    findings
 }

@@ -1,6 +1,9 @@
 ticket: catherine-1x7
 branch: main
-brief_path: ""
+brief_path: .wai/projects/catherine/briefs/catherine-1x7.md
 steps:
   - claim 809be72
   - gates 809be72
+  - brief f585793
+  - spawn f585793
+  - verify f585793

@@ -1,13 +1,17 @@
 //! Purpose: the executed-checks properties (proptest, never
-//! insta-snapshots; openspec change `add-executed-checks`, task 10) —
-//! totality (empty schema or empty instance → zero outcomes), self-loops
-//! legal and evaluated like any arrow, and the outcomes matching an
+//! insta-snapshots; openspec change `add-executed-checks`, task 10,
+//! reshaped onto the findings taxonomy by `add-findings-taxonomy`) —
+//! totality (empty schema or empty instance → zero findings), self-loops
+//! legal and evaluated like any arrow, and the findings matching an
 //! independent recomputation of the check contract over arbitrary
-//! well-typed models. Outcomes are asserted structurally — kind +
-//! witnesses — never byte snapshots; the vendored parity sets in
+//! well-typed models. Findings are asserted structurally — kind +
+//! witness + label — never byte snapshots; the vendored parity sets in
 //! `fixtures/parity/` are the parity contract, not snapshots.
 
-use catherine_core::checks::{check, CheckOutcome};
+use catherine_core::checks::check;
+use catherine_core::findings::{
+    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
+};
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{
     Arrow, ConstraintStatus, Equation, Ident, Instance, Path, RowId, Schema,
@@ -216,11 +220,13 @@ fn assemble(case: &Case) -> (Schema, Instance) {
 }
 
 /// The independent recomputation of the check contract (written from the
-/// kernel-checks spec, not from `check`'s code): one Dangling outcome per
-/// unresolved, non-typing-violated cell (arrow-name order, then source
-/// row order), then per equation (canonical order) per domain row, a
-/// Violation/Hypothesis by status when both paths compose and disagree.
-fn expected_outcomes(schema: &Schema, built: &TypedInstance) -> Vec<CheckOutcome> {
+/// kernel-checks + findings specs, not from `check`'s code): one executed
+/// dangling finding per unresolved, non-typing-violated cell (arrow-name
+/// order, then source row order), then per equation (canonical order) per
+/// domain row, a violation-shaped finding labeled by status when both
+/// paths compose and disagree — sorted under the taxonomy's total order
+/// (kind first, then witness ids), exactly as `check` emits.
+fn expected_findings(schema: &Schema, built: &TypedInstance) -> Vec<Finding> {
     let mut out = Vec::new();
     let violated: Vec<(String, usize)> = built
         .typing_violations()
@@ -230,9 +236,12 @@ fn expected_outcomes(schema: &Schema, built: &TypedInstance) -> Vec<CheckOutcome
     for (name, cells) in built.tables() {
         for (i, cell) in cells.iter().enumerate() {
             if cell.is_none() && !violated.contains(&(name.0.clone(), i)) {
-                out.push(CheckOutcome::Dangling {
-                    arrow: name.clone(),
-                    src: RowId(i),
+                out.push(Finding {
+                    label: EpistemicLabel::Executed,
+                    kind: FindingKind::Dangling(DanglingWitness {
+                        arrow: name.clone(),
+                        src: RowId(i),
+                    }),
                 });
             }
         }
@@ -247,24 +256,23 @@ fn expected_outcomes(schema: &Schema, built: &TypedInstance) -> Vec<CheckOutcome
             let rhs = naive_compose(built, &equation.rhs, row);
             if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
                 if lhs != rhs {
-                    out.push(match equation.status {
-                        ConstraintStatus::Accepted => CheckOutcome::Violation {
+                    out.push(Finding {
+                        label: match equation.status {
+                            ConstraintStatus::Accepted => EpistemicLabel::Executed,
+                            ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
+                        },
+                        kind: FindingKind::Violation(EquationWitness {
                             equation: index,
                             row: RowId(row),
                             lhs,
                             rhs,
-                        },
-                        ConstraintStatus::Proposed => CheckOutcome::Hypothesis {
-                            equation: index,
-                            row: RowId(row),
-                            lhs,
-                            rhs,
-                        },
+                        }),
                     });
                 }
             }
         }
     }
+    out.sort();
     out
 }
 
@@ -281,64 +289,85 @@ fn naive_compose(built: &TypedInstance, path: &Path, start: usize) -> Option<Row
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(256))]
 
-    /// The outcomes match the spec recomputation, structurally, over
+    /// The findings match the spec recomputation, structurally, over
     /// arbitrary well-typed models (self-loop arrows included — drawn
     /// shapes carry src == tgt arrows and are evaluated like any arrow).
     #[test]
-    fn outcomes_match_the_contract_recomputation(case in arb_case()) {
+    fn findings_match_the_contract_recomputation(case in arb_case()) {
         let (schema, instance) = assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
         prop_assert_eq!(
             check(&schema, &built),
-            expected_outcomes(&schema, &built),
+            expected_findings(&schema, &built),
             "check matches the independent recomputation (self-loops included)"
         );
     }
 
-    /// Every outcome's witnesses stay in scope: dangling names a declared
-    /// arrow and a row of its source object; violations/hypotheses name a
-    /// valid equation index, a row of the equation's domain, and composed
-    /// values — never witnesses without rows.
+    /// Every finding's witnesses stay in scope: dangling names a declared
+    /// arrow and a row of its source object; violations name a valid
+    /// equation index, a row of the equation's domain, and composed
+    /// values — never witnesses without rows. Labels are epistemically
+    /// honest: only executed/hypothesized, mirroring equation status; the
+    /// analysis kinds have no producer in this crate.
     #[test]
-    fn every_outcome_carries_in_scope_witnesses(case in arb_case()) {
+    fn every_finding_carries_in_scope_witnesses(case in arb_case()) {
         let (schema, instance) = assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
-        for outcome in check(&schema, &built) {
-            match outcome {
-                CheckOutcome::Dangling { arrow, src } => {
-                    let cells = built.tables().get(&arrow);
-                    prop_assert!(cells.is_some(), "dangling arrow `{arrow:?}` declared");
-                    let n = built.rows().get(&schema.arrows[&arrow].src).map(Vec::len).unwrap_or(0);
-                    prop_assert!(src.0 < n, "dangling src row in the arrow's source space");
+        for finding in check(&schema, &built) {
+            prop_assert!(
+                matches!(finding.label, EpistemicLabel::Executed | EpistemicLabel::Hypothesized),
+                "kernel labels are executed/hypothesized only, got {:?}",
+                finding.label
+            );
+            match finding.kind {
+                FindingKind::Dangling(w) => {
+                    prop_assert_eq!(finding.label, EpistemicLabel::Executed, "dangling is executed");
+                    let cells = built.tables().get(&w.arrow);
+                    prop_assert!(cells.is_some(), "dangling arrow `{w:?}` declared");
+                    let n = built.rows().get(&schema.arrows[&w.arrow].src).map(Vec::len).unwrap_or(0);
+                    prop_assert!(w.src.0 < n, "dangling src row in the arrow's source space");
                 }
-                CheckOutcome::Violation { equation, row, lhs, rhs }
-                | CheckOutcome::Hypothesis { equation, row, lhs, rhs } => {
-                    prop_assert!(equation < schema.equations.len(), "equation index valid");
-                    let eq = &schema.equations[equation];
+                FindingKind::Violation(w) => {
+                    prop_assert!(w.equation < schema.equations.len(), "equation index valid");
+                    let eq = &schema.equations[w.equation];
+                    prop_assert_eq!(
+                        finding.label == EpistemicLabel::Hypothesized,
+                        eq.status == ConstraintStatus::Proposed,
+                        "the label mirrors the equation's status"
+                    );
                     let lead = &schema.arrows[&eq.lhs.0[0]];
                     let n = built.rows().get(&lead.src).map(Vec::len).unwrap_or(0);
-                    prop_assert!(row.0 < n, "row is a row of the equation's domain object");
+                    prop_assert!(w.row.0 < n, "row is a row of the equation's domain object");
                     let tgt_space = built.rows().get(&schema.arrows[&eq.lhs.0[eq.lhs.0.len() - 1]].tgt).map(Vec::len).unwrap_or(0);
-                    prop_assert!(lhs.0 < tgt_space && rhs.0 < tgt_space, "composed values are rows of the path's target");
+                    prop_assert!(w.lhs.0 < tgt_space && w.rhs.0 < tgt_space, "composed values are rows of the path's target");
+                }
+                FindingKind::Redundant(_)
+                | FindingKind::Contradiction(_)
+                | FindingKind::Underconstraint(_) => {
+                    prop_assert!(
+                        false,
+                        "the analysis kinds have no kernel producer (P4's), got {:?}",
+                        finding.kind
+                    );
                 }
             }
         }
     }
 
     /// A declared schema over an instance with zero rows evaluates
-    /// nothing: zero outcomes even when every arrow and equation is
+    /// nothing: zero findings even when every arrow and equation is
     /// populated.
     #[test]
     fn zero_row_instance_is_silent(shapes in proptest::collection::vec((0usize..3, 0usize..3), 1..=4)) {
         let case = build_case(&shapes, &[0, 0, 0], &[0; 4], &[], &[]);
         let (schema, instance) = assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
-        prop_assert_eq!(check(&schema, &built), vec![], "zero rows — zero evaluations, zero outcomes");
+        prop_assert_eq!(check(&schema, &built), vec![], "zero rows — zero evaluations, zero findings");
     }
 }
 
 /// Totality: the empty document — empty schema, empty instance — yields
-/// zero outcomes. Silence is real success, not an unevaluated
+/// zero findings. Silence is real success, not an unevaluated
 /// declaration.
 #[test]
 fn empty_schema_and_empty_instance_are_silent() {
@@ -348,7 +377,7 @@ fn empty_schema_and_empty_instance_are_silent() {
     assert_eq!(
         check(&schema, &built),
         vec![],
-        "the empty document checks to zero outcomes"
+        "the empty document checks to zero findings"
     );
 }
 
@@ -412,9 +441,12 @@ fn self_loop_arrows_are_legal_and_evaluated() {
     let built = TypedInstance::build(&schema, &Instance { rows, values });
     assert_eq!(
         check(&schema, &built),
-        vec![CheckOutcome::Dangling {
-            arrow: Ident("a".into()),
-            src: RowId(0)
+        vec![Finding {
+            label: EpistemicLabel::Executed,
+            kind: FindingKind::Dangling(DanglingWitness {
+                arrow: Ident("a".into()),
+                src: RowId(0),
+            }),
         }],
         "the self-loop composes like any arrow; its dangling cell speaks, the run continues"
     );
@@ -434,11 +466,14 @@ fn self_loop_arrows_are_legal_and_evaluated() {
     // f(a(1)) = f(0) = 0 vs f(1) = 1 — violation.
     assert_eq!(
         check(&schema, &built),
-        vec![CheckOutcome::Violation {
-            equation: 0,
-            row: RowId(1),
-            lhs: RowId(0), // f(a(1)) = f(0) = 0
-            rhs: RowId(1), // f(1) = 1
+        vec![Finding {
+            label: EpistemicLabel::Executed,
+            kind: FindingKind::Violation(EquationWitness {
+                equation: 0,
+                row: RowId(1),
+                lhs: RowId(0), // f(a(1)) = f(0) = 0
+                rhs: RowId(1), // f(1) = 1
+            }),
         }],
         "the self-loop's composition difference is a witnessed violation on row 1"
     );

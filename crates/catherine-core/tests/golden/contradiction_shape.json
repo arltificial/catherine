@@ -1,0 +1,21 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A", "B"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "B"},
+      {"name": "g", "src": "A", "tgt": "B"}
+    ],
+    "equations": [
+      {"lhs": ["f"], "rhs": ["g"], "rationale": "must agree", "status": "accepted"},
+      {"lhs": ["g"], "rhs": ["f"], "rationale": "must agree both ways", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a"], "B": ["b1", "b2"]},
+    "tables": {
+      "f": {"a": "b1"},
+      "g": {"a": "b2"}
+    }
+  }
+}

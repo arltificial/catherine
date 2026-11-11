@@ -11,9 +11,11 @@
 //! route it (parse for documents P0 accepts; the lenient presentation
 //! loader for the typing-violation document whose wrong-object value P0's
 //! parser gates structurally), build the typed instance, and compare
-//! build reports, morphism tables, and check outcomes against the
-//! vendored expected set — structurally, by kind and witness, never
-//! snapshots. The expected sets ARE the parity contract.
+//! build reports, morphism tables, and check findings against the
+//! vendored expected set — structurally, by kind, witness, and label,
+//! never snapshots. The expected sets ARE the parity contract; their
+//! outcome lists record P1-era facts, re-sorted under the findings
+//! taxonomy's total order (the P2 ordering contract) before comparing.
 //!
 //! Rationale: specodelic's acset has no path equations, so the gate
 //! covers the shared acset behavior — instance tables, typing, dangling —
@@ -26,7 +28,10 @@ mod common;
 
 use common::load_presentation;
 
-use catherine_core::checks::{check, CheckOutcome};
+use catherine_core::checks::check;
+use catherine_core::findings::{
+    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
+};
 use catherine_core::instance::{TypedInstance, TypingViolation};
 use catherine_core::model::{Ident, RowId};
 use catherine_core::parse::parse;
@@ -136,30 +141,40 @@ fn assert_fixture(dir: &Path) {
         .collect();
     assert_eq!(built.tables(), &expected_tables, "[{name}] morphism tables");
 
-    let expected_outcomes: Vec<CheckOutcome> = expected["outcomes"]
+    // The vendored expected files record the parity facts (and P1's
+    // then-current dangling-first order); the findings taxonomy's total
+    // order is the P2 contract, so the expected set is sorted the same
+    // way `check` sorts before comparing — same facts, P2 order.
+    let mut expected_findings: Vec<Finding> = expected["outcomes"]
         .as_array()
         .unwrap_or_else(|| panic!("[{name}] missing outcomes"))
         .iter()
         .map(|o| match o["kind"].as_str() {
-            Some("dangling") => CheckOutcome::Dangling {
-                arrow: Ident(o["arrow"].as_str().expect("arrow").to_string()),
-                src: RowId(o["src"].as_u64().expect("src") as usize),
+            Some("dangling") => Finding {
+                label: EpistemicLabel::Executed,
+                kind: FindingKind::Dangling(DanglingWitness {
+                    arrow: Ident(o["arrow"].as_str().expect("arrow").to_string()),
+                    src: RowId(o["src"].as_u64().expect("src") as usize),
+                }),
             },
-            Some("violation") => CheckOutcome::Violation {
-                equation: o["equation"].as_u64().expect("equation") as usize,
-                row: RowId(o["row"].as_u64().expect("row") as usize),
-                lhs: RowId(o["lhs"].as_u64().expect("lhs") as usize),
-                rhs: RowId(o["rhs"].as_u64().expect("rhs") as usize),
-            },
-            Some("hypothesis") => CheckOutcome::Hypothesis {
-                equation: o["equation"].as_u64().expect("equation") as usize,
-                row: RowId(o["row"].as_u64().expect("row") as usize),
-                lhs: RowId(o["lhs"].as_u64().expect("lhs") as usize),
-                rhs: RowId(o["rhs"].as_u64().expect("rhs") as usize),
+            Some("violation") | Some("hypothesis") => Finding {
+                // Kind names the shape; P1's `hypothesis` outcomes carry
+                // the `hypothesized` label on the same violation shape.
+                label: match o["kind"].as_str() {
+                    Some("hypothesis") => EpistemicLabel::Hypothesized,
+                    _ => EpistemicLabel::Executed,
+                },
+                kind: FindingKind::Violation(EquationWitness {
+                    equation: o["equation"].as_u64().expect("equation") as usize,
+                    row: RowId(o["row"].as_u64().expect("row") as usize),
+                    lhs: RowId(o["lhs"].as_u64().expect("lhs") as usize),
+                    rhs: RowId(o["rhs"].as_u64().expect("rhs") as usize),
+                }),
             },
             other => panic!("[{name}] unknown outcome kind {other:?}"),
         })
         .collect();
-    let outcomes = check(&schema, &built);
-    assert_eq!(outcomes, expected_outcomes, "[{name}] check outcomes");
+    expected_findings.sort();
+    let findings = check(&schema, &built);
+    assert_eq!(findings, expected_findings, "[{name}] check findings");
 }

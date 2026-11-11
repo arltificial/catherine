@@ -16,17 +16,21 @@
 //! (sorted first-reference order), so presentation row names never reach
 //! the model and the model hash depends on structure only.
 
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A declared identifier. The parser guarantees `[A-Za-z_][A-Za-z0-9_]*`
 /// (`invalid_ident` otherwise) — the type carries no validity re-check.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// Serde-derived for the findings taxonomy's witness payloads, which name
+/// real declared ids (a `String` transparently, per newtype).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Ident(pub String);
 
 /// A dense per-object row id (`0..n`, assigned in sorted first-reference
 /// order over the object's declared row names). Presentation names never
-/// reach the parsed model.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// reach the parsed model. Serde-derived for findings witnesses (as the
+/// bare row number).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct RowId(pub usize);
 
 /// The document's declared format version: `major.minor`. The parser
@@ -66,8 +70,9 @@ impl ConstraintStatus {
 }
 
 /// A composable arrow sequence: the path `f ∘ g ∘ …` as its arrow names in
-/// composition order.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// composition order. Serde-derived for findings witnesses (as the
+/// arrow-name sequence).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Path(pub Vec<Ident>);
 
 /// A generating morphism, typed with exactly one src and one tgt

@@ -1,0 +1,24 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A", "B"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "B"},
+      {"name": "g", "src": "A", "tgt": "B"},
+      {"name": "h", "src": "A", "tgt": "B"}
+    ],
+    "equations": [
+      {"lhs": ["f"], "rhs": ["g"], "rationale": "first leg", "status": "accepted"},
+      {"lhs": ["g"], "rhs": ["h"], "rationale": "second leg", "status": "accepted"},
+      {"lhs": ["f"], "rhs": ["h"], "rationale": "already derivable", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a"], "B": ["b"]},
+    "tables": {
+      "f": {"a": "b"},
+      "g": {"a": "b"},
+      "h": {"a": "b"}
+    }
+  }
+}
