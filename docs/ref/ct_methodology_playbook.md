@@ -74,7 +74,7 @@ you suspect the seams between assumptions.
 
 **What you get:** the spec's unwritten decisions, surfaced as questions with
 counterexamples — the ambiguity discovery effect. What you do *not* get:
-proof that no requirement is missing (see §8).
+proof that no requirement is missing (see §9).
 
 **Micro-example:** "An assignment's staff unit must equal its equipment's
 unit" (Johnson & Dampney's running example). Paths: `staffUnit ∘ staff` and
