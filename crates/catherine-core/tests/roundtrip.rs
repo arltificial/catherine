@@ -73,12 +73,7 @@ fn build_model(
     raw_equations: &[(Vec<usize>, Vec<usize>)],
     cell_pool: &[usize],
 ) -> Model {
-    let format_version = Version {
-        major: 1,
-        // KNOWN_MINOR (parse::schema): higher minors are rejected with
-        // unsupported_version, so the generator must stay within them.
-        minor: 0,
-    };
+    let format_version = Version { major: 1, minor: 0 }; // within KNOWN_MINOR (parse::schema)
     if names.is_empty() {
         return Model {
             format_version,
