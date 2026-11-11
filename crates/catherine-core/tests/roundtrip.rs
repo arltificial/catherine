@@ -75,7 +75,9 @@ fn build_model(
 ) -> Model {
     let format_version = Version {
         major: 1,
-        minor: (arrows.len() % 7) as u64,
+        // KNOWN_MINOR (parse::schema): higher minors are rejected with
+        // unsupported_version, so the generator must stay within them.
+        minor: 0,
     };
     if names.is_empty() {
         return Model {

@@ -49,8 +49,11 @@ Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
 ## `format_version` policy
 
 - **Additive change = minor version** (new optional fields, new instance
-  sections that old parsers may ignore). The parser accepts any additive
-  minor of the current major.
+  sections that old parsers may ignore). The parser accepts additive
+  minors of the current major **only up to `KNOWN_MINOR`** (currently 0,
+  i.e. `1.0`): a minor greater than `KNOWN_MINOR` means semantics this
+  build doesn't know, so it is rejected with `unsupported_version`
+  (no-guessed-parse rule) until the build is updated.
 - **Breaking change = a new extension** (a new file extension with its own
   schema), **never an in-place mutation of v1**. v1 is never redefined.
 - The parser rejects an unknown major, a malformed version, or an absent

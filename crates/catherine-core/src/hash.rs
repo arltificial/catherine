@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn model_hash_is_structure_only() {
         let ordered = r#"{
-          "format_version": "1.2",
+          "format_version": "1.0",
           "schema": {
             "objects": ["A", "B"],
             "arrows": [{"name": "f", "src": "A", "tgt": "B"}, {"name": "s", "src": "B", "tgt": "B"}],
@@ -198,13 +198,13 @@ mod tests {
             "arrows": [{"tgt": "B", "src": "B", "name": "s"}, {"tgt": "B", "src": "A", "name": "f"}],
             "objects": ["B", "A"]
           },
-          "format_version": "1.2"
+          "format_version": "1.0"
         }"#;
         let a = parse(ordered).expect("parses");
         let b = parse(shuffled).expect("parses");
         assert_eq!(model_hash(&a), model_hash(&b), "equal models, equal hash");
         let retargeted = r#"{
-          "format_version": "1.2",
+          "format_version": "1.0",
           "schema": {
             "objects": ["A", "B"],
             "arrows": [{"name": "f", "src": "A", "tgt": "B"}, {"name": "s", "src": "B", "tgt": "A"}],

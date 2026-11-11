@@ -95,6 +95,13 @@ const CASES: &[Case] = &[
         column: 21,
         message_contains: &["unsupported `format_version` `2.0`", "known major is 1"],
     },
+    Case {
+        file: "unknown_minor.json",
+        code: ErrorCode::UnsupportedVersion,
+        line: 2,
+        column: 21,
+        message_contains: &["unsupported `format_version` `1.1`", "known version is 1.0"],
+    },
 ];
 
 fn read_fixture(file: &str) -> String {

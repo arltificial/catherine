@@ -11,9 +11,16 @@ mutation of v1 (wild accretion-laws discipline).
 
 #### Scenario: Current major parses
 - **WHEN** a `.ct.json` document with `format_version` of the current
-  major (any additive minor) is parsed
+  major is parsed and its minor is one this build knows
+  (minor <= KNOWN_MINOR, currently 0)
 - **THEN** parsing succeeds and the document's schema and instance are
   fully represented
+
+#### Scenario: Unknown additive minor is rejected
+- **WHEN** a document declares `format_version` of the current major
+  with a minor greater than the build's `KNOWN_MINOR`
+- **THEN** parsing fails with `unsupported_version` carrying line/column
+  of the `format_version` node — never a partial or guessed parse
 
 #### Scenario: Unknown major is rejected
 - **WHEN** a document declares a `format_version` major the parser does

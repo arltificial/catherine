@@ -32,7 +32,9 @@ use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
 
 /// Parse a `.ct.json` v1 model document. Accepted additive minors of the
-/// current major (1); malformed presentations rejected with line-accurate
+/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 0);
+/// higher minors are rejected with `unsupported_version` — never guessed.
+/// Malformed presentations rejected with line-accurate
 /// errors. Check order (documented in the crate README): version →
 /// schema objects → arrows → equations → instance rows → tables.
 pub fn parse(text: &str) -> Result<Model, ParseError> {

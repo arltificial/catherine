@@ -56,7 +56,13 @@ pub(super) struct RawInstance {
     pub(super) tables: BTreeMap<String, BTreeMap<String, Option<String>>>,
 }
 
-/// The version gate: `MAJOR.MINOR`, present, well-formed, known major.
+/// The highest additive minor this build's parser knows. Additive minors
+/// above it must be rejected, not silently parsed: a future 1.x with
+/// semantics this build doesn't understand must never be misinterpreted
+/// (no-guessed-parse rule). Raise this when new additive semantics land.
+const KNOWN_MINOR: u64 = 0;
+
+/// The version gate: `MAJOR.MINOR`, present, well-formed, known major, minor within `KNOWN_MINOR`.
 pub(super) fn check_version(
     doc: &RawDoc,
     spans: &Spans,
@@ -80,6 +86,13 @@ pub(super) fn check_version(
             "/format_version",
             ErrorCode::UnsupportedVersion,
             format!("unsupported `format_version` `{text}`: known major is 1"),
+        ));
+    }
+    if minor > KNOWN_MINOR {
+        return Err(spans.semantic(
+            "/format_version",
+            ErrorCode::UnsupportedVersion,
+            format!("unsupported `format_version` `{text}`: known version is 1.{KNOWN_MINOR}"),
         ));
     }
     Ok(Version { major, minor })
