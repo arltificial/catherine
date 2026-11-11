@@ -97,8 +97,9 @@ pre-registered hypothesis, not a shipped claim.
   panel, and the questions the model forces you to answer.
 - **The value is thinking pressure.** The act of declaring paths exposes
   questions a back-of-the-napkin diagram hides (Johnson & Dampney's original
-  empirical claim; re-measured by kata-8). The findings panel is a checklist
-  of decisions you have not made yet.
+  empirical claim, from industrial elicitation; echoed — by a different
+  instrument — in kata-8's sealed-holdout failure). The findings panel is a
+  checklist of decisions you have not made yet.
 - **The modeling procedure is documented separately**
   (`ref/category_theoretic_modeling_methodology.md`): freeze the baseline →
   semantic graph → inspect parallel paths → add only justified constraints →
@@ -141,6 +142,16 @@ Equally load-bearing — each line with its source:
   mid-game scoring needs history the schema cannot see).
 - **No Σ/Π migrations yet.** Δ first (P7); Σ/Π only after Δ is validated —
   "Π does not yet" (DESIGN §4.3). Kan extensions are named, gated, not shipped.
+- **No sketch cones yet.** The vendored methodology's step-3 constructions —
+  pullbacks for compatibility, monomorphisms for uniqueness, coproducts for
+  exhaustive alternatives (Johnson & Rosebrugh sketch data models) — are
+  advisory only in v1: the kernel executes **path equations**, not limit/colimit
+  cones (THEORY §9: ACsets implement Spivak's model, not the full Johnson
+  sketch methodology — enforcement is the contribution). Declaring a cone in
+  this version checks nothing; treat it as prose until cones ship.
+- **No view-update checking.** Whether an update against a model has a
+  determinate meaning (the Johnson–Rosebrugh `unupdatable` finding) is
+  post-v1; do not promise it.
 - **Not a runtime monitor.** Offline CLI, seconds per check, no daemon, no
   coupling to a live filesystem or database (grounded instances are extracted
   *outside* the kernel — bogart's job, C4/E2).
