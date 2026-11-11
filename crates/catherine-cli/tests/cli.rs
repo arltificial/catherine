@@ -262,6 +262,10 @@ fn design_s5_walkthrough_violating_then_fixed() {
     let violating = run(&["check", BOWLING]);
     assert_eq!(code(&violating), 3, "violation exit code");
     assert_eq!(stderr(&violating), "", "findings go to stdout");
+    // Byte-for-byte: the `\` continuations strip leading indentation, so
+    // `\x20 ` supplies exactly the transcript's two leading spaces on the
+    // witness line. (A plain-literal twin of this block is pinned at the
+    // unit level: `render::tests::violation_renders_the_s5_block`.)
     assert_eq!(
         stdout(&violating),
         "violation: eq-0 staff_unit∘assigned_staff ≠ equipment_unit∘assigned_item\n\

@@ -6,3 +6,4 @@ steps:
   - gates dc4c95e
   - brief 8b29552
   - spawn 8b29552
+  - verify (post-user-commit)
