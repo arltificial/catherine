@@ -241,15 +241,9 @@ fn negative_matrix_every_row_surfaces_honestly() {
                 let v = parse_json(&stderr(&out), name);
                 assert_eq!(v["ok"], false, "[{name}] error envelope is a failure");
                 assert_eq!(v["envelope_kind"], "error", "[{name}] envelope kind");
-                assert_eq!(
-                    v["data"]["code"], *expected,
-                    "[{name}] stable error code"
-                );
+                assert_eq!(v["data"]["code"], *expected, "[{name}] stable error code");
                 assert!(
-                    !v["data"]["message"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .is_empty(),
+                    !v["data"]["message"].as_str().unwrap_or_default().is_empty(),
                     "[{name}] a labeled error carries a message"
                 );
             }
@@ -261,12 +255,12 @@ fn negative_matrix_every_row_surfaces_honestly() {
                     text.contains("error:"),
                     "[{name}] clap's error text is on stderr: {text}"
                 );
-                assert!(
-                    !text.contains("panicked"),
-                    "[{name}] never a panic: {text}"
-                );
+                assert!(!text.contains("panicked"), "[{name}] never a panic: {text}");
             }
-            Expect::Warning { exit: expected, contains } => {
+            Expect::Warning {
+                exit: expected,
+                contains,
+            } => {
                 assert_eq!(
                     code(&out),
                     *expected,
@@ -279,12 +273,10 @@ fn negative_matrix_every_row_surfaces_honestly() {
                     panic!("[{name}] warnings array present, got: {}", stdout(&out))
                 });
                 assert!(
-                    warnings
-                        .iter()
-                        .any(|w| w["message"]
-                            .as_str()
-                            .map(|m| m.contains(contains))
-                            .unwrap_or(false)),
+                    warnings.iter().any(|w| w["message"]
+                        .as_str()
+                        .map(|m| m.contains(contains))
+                        .unwrap_or(false)),
                     "[{name}] a warning names the ignored input `{contains}`: {warnings:?}"
                 );
             }
