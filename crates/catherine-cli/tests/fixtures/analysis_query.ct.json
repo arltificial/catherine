@@ -1,0 +1,15 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["p", "q", "r"],
+    "arrows": [
+      {"name": "f", "src": "p", "tgt": "q"},
+      {"name": "g", "src": "q", "tgt": "r"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"p": ["p0"], "q": ["q0", "q1"], "r": ["r0"]},
+    "tables": {"f": {"p0": "q1"}, "g": {"q0": "r0", "q1": null}}
+  }
+}

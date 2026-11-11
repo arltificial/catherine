@@ -22,107 +22,35 @@
 //! analysis kinds have no producer until P4; their renderings are
 //! pinned by unit tests over constructed findings and their phrasing
 //! stays minimal — P4's producers own the richer domain wording.
+//!
+//! Layout: the §5 finding renderer lives here; the labeled-error type
+//! is [`errors`], the envelope constructors are [`envelope`], and the
+//! analysis view structs/renderers are [`analysis`]. The re-exports
+//! keep the `render::` paths stable for the callers.
 
-use catherine_core::error::{ErrorCode, ParseError};
+mod analysis;
+mod envelope;
+mod errors;
+
+#[allow(unused_imports)] // pub surface kept stable at `render::`
+pub use crate::render::analysis::{
+    distinguish_envelope, query_envelope, render_distinguish, render_query, render_search,
+    search_envelope, BoundView, DifferenceView, DistinguishData, InstanceView, NodeView,
+    ObservationView, QueryData, ScopeView, SearchData,
+};
+#[allow(unused_imports)] // pub surface kept stable at `render::`
+pub use crate::render::envelope::{
+    config_warning, error_envelope, findings_envelope, FindingsData,
+};
+pub use crate::render::errors::LabeledError;
+
 use catherine_core::findings::{
     DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind,
 };
 use catherine_core::model::{Path, RowId, Schema};
-use genesis::envelope::{Envelope, EnvelopeKind, ErrorResult, RemediationEntry, Warning};
-use serde::Serialize;
 
 /// The CLI version carried in every envelope's `cli_version`.
 pub const CLI_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-// ── Labeled errors ───────────────────────────────────────────────────
-
-/// A labeled CLI-level error: the stable code, the position when the
-/// kernel or the filesystem pins one, the kernel's message verbatim,
-/// and a remediation hint. Never a stack trace.
-pub struct LabeledError {
-    /// The stable code: one of P0's six codes spelled as the fixtures
-    /// pin them, or `syntax` for JSON-structural malformations, or
-    /// `read_error` for an unreadable input path.
-    pub code: String,
-    /// 1-based line of the offending node, when known.
-    pub line: Option<usize>,
-    /// 1-based character column of the offending node, when known.
-    pub column: Option<usize>,
-    /// The kernel's message, verbatim (or the filesystem's).
-    pub message: String,
-    /// The remediation hint from the closed per-code table.
-    pub hint: &'static str,
-}
-
-impl LabeledError {
-    /// The kernel's labeled error data under the CLI's rendering: the
-    /// stable code string, the position, the message verbatim, and the
-    /// hint from the closed table. The CLI renders existing codes; it
-    /// never extends them (P0's six-code enum is closed).
-    pub fn from_parse(err: &ParseError) -> Self {
-        match err {
-            ParseError::Syntax {
-                line,
-                column,
-                message,
-            } => Self {
-                code: "syntax".to_string(),
-                line: Some(*line),
-                column: Some(*column),
-                message: message.clone(),
-                hint: "fix the JSON at the reported position — the document must be a .ct.json v1 model",
-            },
-            ParseError::Semantic(sem) => Self {
-                code: sem.code.as_str().to_string(),
-                line: Some(sem.line),
-                column: Some(sem.column),
-                message: sem.message.clone(),
-                hint: hint_for_code(sem.code),
-            },
-        }
-    }
-
-    /// The message with its position suffix — the JSON error envelope's
-    /// message field and the human head's core content.
-    pub fn positioned_message(&self) -> String {
-        match (self.line, self.column) {
-            (Some(line), Some(column)) => {
-                format!("{} (line {}, column {})", self.message, line, column)
-            }
-            _ => self.message.clone(),
-        }
-    }
-
-    /// The human error's first line: `error[<code>] at line L, column C:
-    /// <message>` (or without the position when none is known).
-    pub fn human_head(&self) -> String {
-        match (self.line, self.column) {
-            (Some(line), Some(column)) => format!(
-                "error[{}] at line {}, column {}: {}",
-                self.code, line, column, self.message
-            ),
-            _ => format!("error[{}]: {}", self.code, self.message),
-        }
-    }
-}
-
-/// The remediation hints, keyed by the closed six-code enum.
-fn hint_for_code(code: ErrorCode) -> &'static str {
-    match code {
-        ErrorCode::DuplicateIdent => {
-            "idents must be unique within their collection — rename one of the duplicates"
-        }
-        ErrorCode::UnknownArrow => "declare the arrow in schema.arrows, or fix the path spelling",
-        ErrorCode::IllTypedEquation => {
-            "both paths must start at the same object and end at the same object"
-        }
-        ErrorCode::InvalidIdent => "idents match [A-Za-z_][A-Za-z0-9_]*",
-        ErrorCode::InvalidStatus => "status is one of: accepted, proposed",
-        ErrorCode::UnsupportedVersion => {
-            "set format_version to \"1.0\" — additive minors of major 1 are accepted"
-        }
-    }
-}
 
 // ── Human finding rendering (the §5 format) ──────────────────────────
 
@@ -136,7 +64,7 @@ pub fn render_findings(findings: &[Finding], schema: &Schema) -> Vec<String> {
         .collect()
 }
 
-fn render_one(finding: &Finding, schema: &Schema) -> Vec<String> {
+pub(super) fn render_one(finding: &Finding, schema: &Schema) -> Vec<String> {
     let label = label_suffix(finding.label);
     match &finding.kind {
         FindingKind::Violation(w) => render_violation(w, schema, &label),
@@ -254,66 +182,11 @@ fn path_codomain<'a>(schema: &'a Schema, path: &Path) -> Option<&'a str> {
     schema.arrows.get(path.0.last()?).map(|a| a.tgt.0.as_str())
 }
 
-// ── Envelope construction (one path for both subcommands) ────────────
-
-/// The findings payload: P2's serialization verbatim — the kernel's
-/// `Vec<Finding>` under `data.findings`, no reshaping.
-#[derive(Serialize)]
-pub struct FindingsData<'a> {
-    pub findings: &'a [Finding],
-}
-
-/// The one findings-envelope path both subcommands share: kind `Check`,
-/// empty hints, the caller's warnings carried alongside the data.
-pub fn findings_envelope(
-    findings: &[Finding],
-    warnings: Vec<Warning>,
-) -> Envelope<FindingsData<'_>> {
-    Envelope::success(
-        CLI_VERSION,
-        EnvelopeKind::Check,
-        FindingsData { findings },
-        warnings,
-        Vec::new(),
-    )
-}
-
-/// The one error-envelope path: the envelope's error form with the
-/// kernel's labeled error data under it — stable code, message with
-/// position, remediation hint (Invariant 3.2.5: remediation non-empty).
-pub fn error_envelope(err: &LabeledError, warnings: Vec<Warning>) -> Envelope<ErrorResult> {
-    let result = ErrorResult::new(
-        &err.code,
-        &err.positioned_message(),
-        None,
-        None,
-        None,
-        Vec::new(),
-        vec![RemediationEntry {
-            command: "catherine check <model.ct.json>".to_string(),
-            description: err.hint.to_string(),
-        }],
-    )
-    .expect("remediation is non-empty by construction");
-    Envelope::error(CLI_VERSION, result, warnings)
-}
-
-/// A config-loading warning, ruled under `config`.
-pub fn config_warning(message: &str) -> Warning {
-    Warning {
-        rule_name: "config".to_string(),
-        entity_id: None,
-        message: message.to_string(),
-        suggested_remediation: None,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use catherine_core::findings::{
-        ContradictionWitness, DanglingWitness, DomainQuestion, RedundantWitness,
-        UnderconstraintWitness,
+        ContradictionWitness, DanglingWitness, RedundantWitness, UnderconstraintWitness,
     };
     use catherine_core::model::{Arrow, ConstraintStatus, Equation, Ident};
     use std::collections::BTreeMap;
@@ -421,13 +294,12 @@ mod tests {
     }
 
     #[test]
-    fn analysis_kinds_render_labeled_lines() {
+    fn redundant_renders_labeled_lines() {
         // The three analysis classes have no P4 producer; constructed
         // findings pin their renderings at the unit level (brief §3
         // criterion 4). No schema anchor is needed.
         let schema = Schema::default();
-
-        let redundant = render_one(
+        let lines = render_one(
             &finding(
                 FindingKind::Redundant(RedundantWitness {
                     derivable: Path(vec![Ident("f".to_string()), Ident("g".to_string())]),
@@ -437,12 +309,13 @@ mod tests {
             ),
             &schema,
         );
-        assert_eq!(
-            redundant,
-            vec!["redundant: f∘g (unknown)", "  derivable as h",]
-        );
+        assert_eq!(lines, vec!["redundant: f∘g (unknown)", "  derivable as h",]);
+    }
 
-        let contradiction = render_one(
+    #[test]
+    fn contradiction_renders_labeled_lines() {
+        let schema = Schema::default();
+        let lines = render_one(
             &finding(
                 FindingKind::Contradiction(ContradictionWitness { scope: vec![0, 2] }),
                 EpistemicLabel::Unknown,
@@ -450,11 +323,15 @@ mod tests {
             &schema,
         );
         assert_eq!(
-            contradiction,
+            lines,
             vec!["contradiction: eq-0, eq-2 admit no instance (unknown)"]
         );
+    }
 
-        let underconstraint = render_one(
+    #[test]
+    fn underconstraint_renders_labeled_lines() {
+        let schema = Schema::default();
+        let lines = render_one(
             &finding(
                 FindingKind::Underconstraint(UnderconstraintWitness {
                     case: DomainQuestion::ParallelPaths {
@@ -468,57 +345,11 @@ mod tests {
             &schema,
         );
         assert_eq!(
-            underconstraint,
+            lines,
             vec![
                 "underconstraint: parallel paths staff_unit / equipment_unit (hypothesized)",
                 "  have no declared equation?",
             ]
         );
-    }
-
-    #[test]
-    fn findings_envelope_carries_the_suite_shape() {
-        let findings = vec![finding(
-            FindingKind::Violation(EquationWitness {
-                equation: 0,
-                row: RowId(3),
-                lhs: RowId(1),
-                rhs: RowId(2),
-            }),
-            EpistemicLabel::Executed,
-        )];
-        let envelope = findings_envelope(&findings, Vec::new());
-        let v: serde_json::Value = serde_json::to_value(&envelope).expect("envelope serializes");
-        for key in ["ok", "envelope_kind", "data", "warnings", "hints"] {
-            assert!(v.get(key).is_some(), "envelope key `{key}` present");
-        }
-        assert_eq!(v["ok"], true);
-        assert_eq!(v["data"]["findings"][0]["kind"], "violation");
-        assert_eq!(v["data"]["findings"][0]["witness"]["equation"], 0);
-    }
-
-    #[test]
-    fn error_envelope_carries_code_position_and_hint() {
-        let err = LabeledError {
-            code: "duplicate_ident".to_string(),
-            line: Some(14),
-            column: Some(16),
-            message: "duplicate arrow ident `in_section`".to_string(),
-            hint: "idents must be unique within their collection — rename one of the duplicates",
-        };
-        let v: serde_json::Value =
-            serde_json::to_value(error_envelope(&err, Vec::new())).expect("envelope serializes");
-        assert_eq!(v["ok"], false);
-        assert_eq!(v["envelope_kind"], "error");
-        assert_eq!(v["data"]["code"], "duplicate_ident");
-        let message = v["data"]["message"].as_str().expect("message");
-        assert!(
-            message.contains("line 14") && message.contains("column 16"),
-            "{message}"
-        );
-        assert!(!v["data"]["remediation"]
-            .as_array()
-            .expect("remediation")
-            .is_empty());
     }
 }

@@ -1,0 +1,13 @@
+[package]
+name = "catherine-analysis"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Catherine analysis: bounded search, redundancy, underconstraint, distinguish, and the query traversals"
+
+[dependencies]
+catherine-core = { path = "../catherine-core" }
+
+[dev-dependencies]
+proptest = "1"
+serde_json = "1"

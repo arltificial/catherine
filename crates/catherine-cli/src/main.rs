@@ -1,99 +1,36 @@
 //! Purpose: the `catherine` entry point — CLI parsing with genesis
 //! suggestions for unknown subcommands, optional `catherine.toml`
-//! config (genesis config module), and the stream discipline: findings
-//! to stdout, every error to stderr, exit codes from the finding
-//! classes.
+//! config (genesis config module, [`config`]), and the stream
+//! discipline: findings to stdout, every error to stderr, exit codes
+//! from the finding classes.
 //!
 //! Responsibilities: parse [`cli::Cli`]; on usage errors keep clap's
 //! own output and exit code 2, augmented with a genesis did-you-mean
-//! line for unknown subcommands; load the config best-effort (missing
-//! file = defaults; malformed file or invalid value = a warning, never
-//! a failure); resolve the effective format (explicit flag > config >
-//! human default) and verbosity; dispatch through the one execution
-//! path in [`run`].
+//! line for unknown subcommands; resolve the effective format and
+//! verbosity from flags over config; dispatch each subcommand through
+//! the one execution path in [`run`] / [`runners`].
 //!
-//! Rationale: the config file carries only the genesis-standard knobs
-//! (format, verbosity) — no catherine-specific surface. Config problems
-//! degrade to warnings (carried in the JSON envelope's `warnings`,
-//! printed to stderr in human mode) instead of masquerading as model
-//! failures, so exit 1 stays "parse/build failure of the model" and
-//! nothing else.
+//! Rationale: config problems degrade to warnings (carried in the JSON
+//! envelope's `warnings`, printed to stderr in human mode) instead of
+//! masquerading as model failures, so exit 1 stays "parse/build failure
+//! of the model" and nothing else. The dispatch is thin per-command
+//! forwarding wrappers — every command funnels into the shared
+//! execution path, never a second pipeline.
 
+mod args;
 mod cli;
+mod config;
 mod render;
 mod run;
+mod runners;
 
 use clap::error::{ContextKind, ContextValue, ErrorKind};
 use clap::Parser;
-use genesis::config::ConfigFile;
+use genesis::envelope::Warning;
 use genesis::guide::{OutputFormat, Verbosity};
 use genesis::suggestions::{CommandRegistry, SuggestionEngine};
-use serde::Deserialize;
 use std::io::Write;
-use std::path::{Path, PathBuf};
 use std::process::exit;
-
-/// The optional `catherine.toml` — genesis-standard knobs only. Every
-/// field is optional; absent file means defaults.
-#[derive(Debug, Default, Deserialize)]
-struct CatherineConfig {
-    /// Default output format: "human" (default) or "json".
-    format: Option<String>,
-    /// Default verbosity: "quiet", "normal" (default), or "verbose".
-    verbosity: Option<String>,
-}
-
-impl ConfigFile for CatherineConfig {
-    fn path(repo_root: &Path) -> PathBuf {
-        repo_root.join("catherine.toml")
-    }
-}
-
-/// Load the config best-effort: defaults when the file is absent; a
-/// warning (collected for the caller) when it exists but cannot serve.
-fn load_config(repo_root: &Path) -> (CatherineConfig, Vec<String>) {
-    match CatherineConfig::read(repo_root) {
-        Ok(config) => (config, Vec::new()),
-        Err(genesis::config::ConfigError::MissingFile { .. }) => {
-            (CatherineConfig::default(), Vec::new())
-        }
-        Err(error) => (
-            CatherineConfig::default(),
-            vec![format!(
-                "ignoring catherine.toml: {} — {}",
-                error,
-                error.to_suggestion().message()
-            )],
-        ),
-    }
-}
-
-/// Resolve the output format: explicit flag > config > human default.
-/// `--human` and the default both mean human — the spec pins
-/// human-by-default regardless of whether stdout is a TTY.
-fn resolve_format(cli: &cli::Cli, config: &CatherineConfig) -> OutputFormat {
-    if cli.format.json {
-        OutputFormat::Json
-    } else if cli.format.human {
-        OutputFormat::Human
-    } else if config.format.as_deref() == Some("json") {
-        OutputFormat::Json
-    } else {
-        OutputFormat::Human
-    }
-}
-
-/// Resolve the verbosity: explicit flag > config > normal.
-fn resolve_verbosity(cli: &cli::Cli, config: &CatherineConfig) -> Verbosity {
-    if cli.verbose.raw_count() == 0 && !cli.verbose.quiet {
-        return match config.verbosity.as_deref() {
-            Some("quiet") => Verbosity::Quiet,
-            Some("verbose") => Verbosity::Verbose,
-            _ => Verbosity::Normal,
-        };
-    }
-    cli.verbose.verbosity()
-}
 
 /// The genesis suggestions line for an unknown subcommand, if any.
 fn did_you_mean(err: &clap::error::Error) -> Option<String> {
@@ -107,16 +44,45 @@ fn did_you_mean(err: &clap::error::Error) -> Option<String> {
     let mut registry = CommandRegistry::new();
     registry.register(
         "catherine",
-        vec!["check".to_string(), "findings".to_string()],
+        vec![
+            "check".to_string(),
+            "findings".to_string(),
+            "search".to_string(),
+            "redundant".to_string(),
+            "underconstraint".to_string(),
+            "distinguish".to_string(),
+            "query".to_string(),
+        ],
     );
     SuggestionEngine::new()
         .suggest_typo(&name, &registry)
         .map(|suggestion| suggestion.message())
 }
 
+/// Resolve the effective settings: flags over config, plus the config
+/// warnings on the genesis warning channel (stderr in human mode, the
+/// envelope's warnings in JSON mode).
+fn resolve_settings(cli: &cli::Cli) -> (bool, bool, Vec<Warning>) {
+    let (config, mut config_warnings) = config::load_config(std::path::Path::new("."));
+    let format = config::resolve_format(cli, &config);
+    let verbosity = config::resolve_verbosity(cli, &config);
+    let json = format == OutputFormat::Json;
+    let quiet = verbosity == Verbosity::Quiet;
+    let warnings: Vec<Warning> = config_warnings
+        .drain(..)
+        .map(|message| render::config_warning(&message))
+        .collect();
+    if !json {
+        let mut stderr = std::io::stderr();
+        for warning in &warnings {
+            let _ = writeln!(stderr, "warning: {}", warning.message);
+        }
+    }
+    (json, quiet, warnings)
+}
+
 fn main() {
-    let parsed = cli::Cli::try_parse();
-    let cli = match parsed {
+    let cli = match cli::Cli::try_parse() {
         Ok(cli) => cli,
         Err(err) => {
             // Usage errors keep clap's own code (2) and output stream;
@@ -128,99 +94,198 @@ fn main() {
         }
     };
 
-    let (config, mut config_warnings) = load_config(Path::new("."));
-    let format = resolve_format(&cli, &config);
-    let verbosity = resolve_verbosity(&cli, &config);
-    let json = format == OutputFormat::Json;
-    let quiet = verbosity == Verbosity::Quiet;
-
-    // Config problems ride the warning channel: stderr in human mode,
-    // the envelope's warnings in JSON mode.
-    let envelope_warnings: Vec<genesis::envelope::Warning> = config_warnings
-        .drain(..)
-        .map(|message| render::config_warning(&message))
-        .collect();
-    if !json {
-        let mut stderr = std::io::stderr();
-        for warning in &envelope_warnings {
-            let _ = writeln!(stderr, "warning: {}", warning.message);
-        }
-    }
-
-    let (model, surface) = match cli.command {
-        cli::Commands::Check { model } => (model, run::Surface::Check),
-        cli::Commands::Findings { model } => (model, run::Surface::Findings),
-    };
-
+    let (json, quiet, warnings) = resolve_settings(&cli);
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();
-    let code = run::run(
-        surface,
-        &model,
+    let code = dispatch(
+        &cli.command,
         json,
         quiet,
-        envelope_warnings,
+        warnings,
         &mut stdout,
         &mut stderr,
     );
     exit(code);
 }
 
+/// The subcommand dispatch: one thin forwarding wrapper per command,
+/// all funneling into the shared execution path.
+fn dispatch(
+    command: &cli::Commands,
+    json: bool,
+    quiet: bool,
+    warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> i32 {
+    let ctx = &mut Ctx::new(json, quiet, warnings, stdout, stderr);
+    use cli::Commands as C;
+    match command {
+        C::Check { model } => check_command(run::Surface::Check, model, ctx),
+        C::Findings { model } => check_command(run::Surface::Findings, model, ctx),
+        C::Search {
+            model,
+            rows,
+            max_candidates,
+        } => search_command(model, rows, *max_candidates, ctx),
+        C::Redundant { model } => redundant_command(model, ctx),
+        C::Underconstraint {
+            model,
+            max_path_length,
+        } => underconstraint_command(model, *max_path_length, ctx),
+        C::Distinguish {
+            model,
+            second,
+            observe,
+        } => distinguish_command(model, second, observe, ctx),
+        C::Query {
+            model,
+            seed,
+            follow,
+            direction,
+        } => query_command(model, seed, follow, direction, ctx),
+    }
+}
+
+/// The per-run settings and output streams threaded through every
+/// command handler: settings as resolved by [`resolve_settings`], the
+/// config warnings, and the stdout/stderr pair under the stream
+/// discipline.
+struct Ctx<'a, O: Write, E: Write> {
+    json: bool,
+    quiet: bool,
+    warnings: Vec<Warning>,
+    stdout: &'a mut O,
+    stderr: &'a mut E,
+}
+
+impl<'a, O: Write, E: Write> Ctx<'a, O, E> {
+    fn new(
+        json: bool,
+        quiet: bool,
+        warnings: Vec<Warning>,
+        stdout: &'a mut O,
+        stderr: &'a mut E,
+    ) -> Self {
+        Ctx {
+            json,
+            quiet,
+            warnings,
+            stdout,
+            stderr,
+        }
+    }
+}
+
+/// Forward [`runners::run_search`] on the shared execution path.
+fn search_command<O: Write, E: Write>(
+    model: &str,
+    rows: &[String],
+    max_candidates: usize,
+    ctx: &mut Ctx<'_, O, E>,
+) -> i32 {
+    runners::run_search(
+        model,
+        rows,
+        max_candidates,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// Forward [`runners::run_redundant`] on the shared execution path.
+fn redundant_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -> i32 {
+    runners::run_redundant(
+        model,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// Forward [`runners::run_underconstraint`] on the shared execution path.
+fn underconstraint_command<O: Write, E: Write>(
+    model: &str,
+    max_path_length: usize,
+    ctx: &mut Ctx<'_, O, E>,
+) -> i32 {
+    runners::run_underconstraint(
+        model,
+        max_path_length,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// Forward [`runners::run_distinguish`] on the shared execution path.
+fn distinguish_command<O: Write, E: Write>(
+    model: &str,
+    second: &str,
+    observe: &[String],
+    ctx: &mut Ctx<'_, O, E>,
+) -> i32 {
+    runners::run_distinguish(
+        model,
+        second,
+        observe,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// Forward [`runners::run_query`] on the shared execution path.
+fn query_command<O: Write, E: Write>(
+    model: &str,
+    seed: &[String],
+    follow: &[String],
+    direction: &str,
+    ctx: &mut Ctx<'_, O, E>,
+) -> i32 {
+    runners::run_query(
+        model,
+        seed,
+        follow,
+        direction,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// The check/findings pair: one execution path under two names.
+fn check_command<O: Write, E: Write>(
+    surface: run::Surface,
+    model: &str,
+    ctx: &mut Ctx<'_, O, E>,
+) -> i32 {
+    run::run(
+        surface,
+        model,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use clap::CommandFactory;
-
-    fn cli_args(args: &[&str]) -> cli::Cli {
-        cli::Cli::try_parse_from(args).expect("args parse")
-    }
-
-    #[test]
-    fn format_flag_wins_over_config() {
-        let cli = cli_args(&["catherine", "check", "m.ct.json", "--json"]);
-        let config = CatherineConfig {
-            format: Some("human".to_string()),
-            verbosity: None,
-        };
-        assert_eq!(resolve_format(&cli, &config), OutputFormat::Json);
-    }
-
-    #[test]
-    fn human_is_the_default_regardless_of_tty() {
-        let cli = cli_args(&["catherine", "check", "m.ct.json"]);
-        let config = CatherineConfig::default();
-        assert_eq!(resolve_format(&cli, &config), OutputFormat::Human);
-    }
-
-    #[test]
-    fn config_can_default_to_json_without_a_flag() {
-        let cli = cli_args(&["catherine", "check", "m.ct.json"]);
-        let config = CatherineConfig {
-            format: Some("json".to_string()),
-            verbosity: None,
-        };
-        assert_eq!(resolve_format(&cli, &config), OutputFormat::Json);
-    }
-
-    #[test]
-    fn verbosity_flag_wins_over_config() {
-        let cli = cli_args(&["catherine", "check", "m.ct.json", "-q"]);
-        let config = CatherineConfig {
-            format: None,
-            verbosity: Some("verbose".to_string()),
-        };
-        assert_eq!(resolve_verbosity(&cli, &config), Verbosity::Quiet);
-    }
-
-    #[test]
-    fn config_defaults_verbosity_when_flags_are_absent() {
-        let cli = cli_args(&["catherine", "check", "m.ct.json"]);
-        let config = CatherineConfig {
-            format: None,
-            verbosity: Some("quiet".to_string()),
-        };
-        assert_eq!(resolve_verbosity(&cli, &config), Verbosity::Quiet);
-    }
 
     #[test]
     fn unknown_subcommand_gets_a_did_you_mean() {

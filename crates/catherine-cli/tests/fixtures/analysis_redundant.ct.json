@@ -1,0 +1,19 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["a", "b", "c", "d"],
+    "arrows": [
+      {"name": "f", "src": "a", "tgt": "b"},
+      {"name": "g", "src": "b", "tgt": "c"},
+      {"name": "h", "src": "a", "tgt": "c"},
+      {"name": "k", "src": "c", "tgt": "d"},
+      {"name": "n", "src": "a", "tgt": "d"}
+    ],
+    "equations": [
+      {"lhs": ["f", "g"], "rhs": ["h"], "rationale": "h is the composite", "status": "accepted"},
+      {"lhs": ["h", "k"], "rhs": ["n"], "rationale": "n continues the composite", "status": "accepted"},
+      {"lhs": ["f", "g", "k"], "rhs": ["n"], "rationale": "same route spelled through the generators", "status": "accepted"}
+    ]
+  },
+  "instance": {"rows": {}, "tables": {}}
+}

@@ -1,0 +1,21 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["a", "b", "c"],
+    "arrows": [
+      {"name": "f", "src": "a", "tgt": "b"},
+      {"name": "g", "src": "b", "tgt": "c"},
+      {"name": "h", "src": "a", "tgt": "c"},
+      {"name": "s", "src": "a", "tgt": "a"},
+      {"name": "t", "src": "a", "tgt": "a"}
+    ],
+    "equations": [
+      {"lhs": ["f", "g"], "rhs": ["h"], "rationale": "the composite lands via b", "status": "accepted"},
+      {"lhs": ["s"], "rhs": ["t"], "rationale": "the two endomorphisms agree", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"a": ["x"], "b": [], "c": ["z"]},
+    "tables": {"h": {"x": "z"}, "s": {"x": "x"}, "t": {"x": "x"}}
+  }
+}

@@ -18,13 +18,14 @@
 //! under two names: same execution, same presentation, same exit — a
 //! divergence between them would be a re-run-semantics bug, which the
 //! proposal binds away ("same execution, different presentation" names
-//! the entry point, not a second pipeline).
+//! the entry point, not a second pipeline). The analysis runners live
+//! in [`crate::runners`], the flag parsers in [`crate::args`].
 
 use crate::render::{self, LabeledError};
 use catherine_core::checks;
 use catherine_core::findings::{Finding, FindingKind};
 use catherine_core::instance::TypedInstance;
-use catherine_core::parse;
+use catherine_core::model::Model;
 use genesis::envelope::Warning;
 use std::io::Write;
 
@@ -74,31 +75,9 @@ pub fn run(
 ) -> i32 {
     let _ = surface; // one path for both names — see the module docs.
 
-    let text = match std::fs::read_to_string(model_path) {
-        Ok(text) => text,
-        Err(error) => {
-            let labeled = LabeledError {
-                code: "read_error".to_string(),
-                line: None,
-                column: None,
-                message: format!("cannot read model document `{model_path}`: {error}"),
-                hint: "pass a readable .ct.json model document path",
-            };
-            return emit_error(&labeled, json, warnings, stdout, stderr);
-        }
-    };
-
-    let model = match parse::parse(&text) {
+    let model = match load_model(model_path) {
         Ok(model) => model,
-        Err(error) => {
-            return emit_error(
-                &LabeledError::from_parse(&error),
-                json,
-                warnings,
-                stdout,
-                stderr,
-            )
-        }
+        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
 
     let typed = TypedInstance::build(&model.schema, &model.instance);
@@ -124,7 +103,7 @@ pub fn run(
 /// Emit a labeled error on the error stream — human two-liner, or the
 /// JSON error envelope under `--json` — and return the error exit code.
 /// Errors never write stdout, in either mode.
-fn emit_error(
+pub(crate) fn emit_error(
     labeled: &LabeledError,
     json: bool,
     warnings: Vec<Warning>,
@@ -148,6 +127,39 @@ fn emit_error(
         let _ = writeln!(stderr, "  hint: {}", labeled.hint);
     }
     1
+}
+
+/// Load and parse a model document once — the single load both the
+/// check path and every analysis runner share. Errors are labeled:
+/// `read_error` for an unreadable path, the kernel's codes for a parse
+/// failure.
+pub(crate) fn load_model(model_path: &str) -> Result<Model, LabeledError> {
+    let text = std::fs::read_to_string(model_path).map_err(|error| LabeledError {
+        code: "read_error".to_string(),
+        line: None,
+        column: None,
+        message: format!("cannot read model document `{model_path}`: {error}"),
+        hint: "pass a readable .ct.json model document path",
+    })?;
+    catherine_core::parse::parse(&text).map_err(|error| LabeledError::from_parse(&error))
+}
+
+/// Write a success envelope as one JSON line to stdout; a serialization
+/// failure is reported on stderr (the stream discipline never breaks).
+pub(crate) fn write_envelope<T: serde::Serialize>(
+    envelope: &genesis::envelope::Envelope<T>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+    what: &str,
+) {
+    match serde_json::to_string(envelope) {
+        Ok(text) => {
+            let _ = writeln!(stdout, "{text}");
+        }
+        Err(error) => {
+            let _ = writeln!(stderr, "catherine: cannot write {what} envelope: {error}");
+        }
+    }
 }
 
 #[cfg(test)]

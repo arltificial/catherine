@@ -7,28 +7,20 @@
 //! this crate produces none) round-tripping from arbitrary witnesses.
 //! Assertions are structural and by parsed value — never byte snapshots.
 
+mod common;
+
+use common::fixture::{self, FixtureCase};
+
 use catherine_core::checks::check;
 use catherine_core::findings::{
     ContradictionWitness, DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness,
     Finding, FindingKind, RedundantWitness, UnderconstraintWitness,
 };
 use catherine_core::instance::TypedInstance;
-use catherine_core::model::{
-    Arrow, ConstraintStatus, Equation, Ident, Instance, Path, RowId, Schema,
-};
+use catherine_core::model::{ConstraintStatus, Ident, Path, RowId};
 use proptest::prelude::*;
-use std::collections::BTreeMap;
 
-/// Object names, unique by construction.
-const OBJECTS: [&str; 3] = ["O0", "O1", "O2"];
-
-#[derive(Debug, Clone)]
-struct Case {
-    arrows: Vec<(usize, usize)>, // (src object idx, tgt object idx); src == tgt is a self-loop
-    row_counts: Vec<usize>,
-    cells: Vec<Vec<Option<usize>>>, // per arrow, parallel to src rows; value = tgt row idx
-    equations: Vec<Equation>,       // deterministic insertion order
-}
+type Case = FixtureCase;
 
 fn arb_case() -> impl Strategy<Value = Case> {
     (1usize..=3usize, 1usize..=4usize)
@@ -54,128 +46,8 @@ fn arb_case() -> impl Strategy<Value = Case> {
             )
         })
         .prop_map(|(shapes, row_counts, cell_pool, eq_seeds, statuses)| {
-            build_case(&shapes, &row_counts, &cell_pool, &eq_seeds, &statuses)
+            fixture::build_case(&shapes, &row_counts, &cell_pool, &eq_seeds, &statuses)
         })
-}
-
-/// Build the case from drawn parts: well-typed tables (a drawn value is
-/// clamped into the target object's row space, an empty target space
-/// leaves the cell dangling), equations over endpoint-matched candidate
-/// paths, in deterministic order.
-fn build_case(
-    shapes: &[(usize, usize)],
-    row_counts: &[usize],
-    cell_pool: &[usize],
-    eq_seeds: &[(usize, usize)],
-    statuses: &[bool],
-) -> Case {
-    let mut pool = cell_pool.iter().copied();
-    let mut cells = Vec::new();
-    for &(s, t) in shapes.iter() {
-        let tgt_rows = row_counts[t];
-        let arrow_cells = (0..row_counts[s])
-            .map(|_| match pool.next() {
-                Some(v) if tgt_rows > 0 => Some(v % tgt_rows),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        cells.push(arrow_cells);
-    }
-
-    // Candidate paths between an endpoint pair (s, t): 1-hop arrows and
-    // 2-hop compositions through an intermediate object, grouped by
-    // endpoints so lhs/rhs are always well-typed.
-    let mut by_endpoints: BTreeMap<(usize, usize), Vec<Vec<usize>>> = BTreeMap::new();
-    let n = shapes.len().min(row_counts.len());
-    for s in 0..n {
-        for t in 0..n {
-            let mut matching = Vec::new();
-            for (i, &(src, tgt)) in shapes.iter().enumerate() {
-                if src == s && tgt == t {
-                    matching.push(vec![i]);
-                }
-                if src == s {
-                    for (j, &(src2, tgt2)) in shapes.iter().enumerate() {
-                        if i != j && src2 == tgt && tgt2 == t {
-                            matching.push(vec![i, j]);
-                        }
-                    }
-                }
-            }
-            if !matching.is_empty() {
-                by_endpoints.insert((s, t), matching);
-            }
-        }
-    }
-    let candidates: Vec<&Vec<Vec<usize>>> = by_endpoints.values().collect();
-    let mut equations = Vec::new();
-    for (k, &(l, r)) in eq_seeds.iter().enumerate() {
-        if candidates.is_empty() {
-            break;
-        }
-        let group = candidates[(l + r + k) % candidates.len()];
-        equations.push(Equation {
-            lhs: Path(path_idents(&group[l % group.len()])),
-            rhs: Path(path_idents(&group[r % group.len()])),
-            rationale: format!("property equation {k}"),
-            status: if statuses.get(k).copied().unwrap_or(false) {
-                ConstraintStatus::Proposed
-            } else {
-                ConstraintStatus::Accepted
-            },
-        });
-    }
-
-    Case {
-        arrows: shapes.to_vec(),
-        row_counts: row_counts.to_vec(),
-        cells,
-        equations,
-    }
-}
-
-fn path_idents(path: &[usize]) -> Vec<Ident> {
-    path.iter().map(|i| Ident(format!("A{i}"))).collect()
-}
-
-/// Assemble the `Schema` + `Instance` the case describes.
-fn assemble(case: &Case) -> (Schema, Instance) {
-    let mut objects = BTreeMap::new();
-    for name in OBJECTS.iter().take(case.row_counts.len()) {
-        objects.insert(Ident(name.to_string()), ());
-    }
-    let mut arrows = BTreeMap::new();
-    for (i, &(s, t)) in case.arrows.iter().enumerate() {
-        arrows.insert(
-            Ident(format!("A{i}")),
-            Arrow {
-                src: Ident(OBJECTS[s].to_string()),
-                tgt: Ident(OBJECTS[t].to_string()),
-            },
-        );
-    }
-    let mut rows = BTreeMap::new();
-    for (o, &count) in case.row_counts.iter().enumerate() {
-        rows.insert(
-            Ident(OBJECTS[o].to_string()),
-            (0..count).map(RowId).collect::<Vec<_>>(),
-        );
-    }
-    let mut values = BTreeMap::new();
-    for (i, arrow_cells) in case.cells.iter().enumerate() {
-        values.insert(
-            Ident(format!("A{i}")),
-            arrow_cells.iter().map(|c| c.map(RowId)).collect::<Vec<_>>(),
-        );
-    }
-    (
-        Schema {
-            objects,
-            arrows,
-            equations: case.equations.clone(),
-        },
-        Instance { rows, values },
-    )
 }
 
 fn arb_label() -> impl Strategy<Value = EpistemicLabel> {
@@ -247,7 +119,7 @@ proptest! {
     /// order (kind, then witness ids).
     #[test]
     fn findings_round_trip_and_serialize_stably(case in arb_case()) {
-        let (schema, instance) = assemble(&case);
+        let (schema, instance) = fixture::assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
         let findings = check(&schema, &built);
         let first = serde_json::to_string(&findings).expect("findings serialize");
@@ -310,7 +182,7 @@ proptest! {
     /// kinds (their producers are P4's).
     #[test]
     fn kernel_findings_are_label_and_kind_sound(case in arb_case()) {
-        let (schema, instance) = assemble(&case);
+        let (schema, instance) = fixture::assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
         for finding in check(&schema, &built) {
             prop_assert!(

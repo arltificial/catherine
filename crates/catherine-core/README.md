@@ -95,15 +95,19 @@ by design:
   each row's outgoing cells and incoming preimage classes per named
   arrow; remaining ties broken by individualization with a
   lexicographically-minimal serialization, with branches pruned when
-  their post-seed refinement profile matches an explored branch). The
-  labeling is a deterministic, name-free function of the structure, so
-  it is invariant under *any* renaming of rows — including
-  order-reversing ones — and the hash is the identity of the model's
-  structure, not of its presentation. One documented bound: the pruning
-  treats profile-equal ties as interchangeable (true for every structure
-  this format is expected to carry); adversarially crafted
-  refinement-indistinguishable structures could, in principle, collide —
-  a follow-up for P6 if the ledger ever admits untrusted documents.
+  their post-seed refined partition equals an explored branch's
+  partition, compared exactly). The labeling is a
+  deterministic, name-free function of the structure, so it is invariant
+  under *any* renaming of rows — including order-reversing ones — and
+  the hash is the identity of the model's structure, not of its
+  presentation. Supersedes the earlier "[CORR-001] could collide" bound:
+  an initial version pruned branches by class-size multisets, which does
+  not imply equal partitions and made the tie-break sensitive to the
+  input's row order (rename-variant hashes); pruning now keys on the
+  exact refined partition, which is a sound equivalence — equal
+  partitions have identical deterministic continuations, so deduping
+  them cannot change the chosen minimum — so there is no collision
+  class and no documented bound remains.
 
 `model_hash(model)` = `sha256:` + 64 lowercase hex digits over the
 canonical bytes (wild's identity discipline). This is what makes ledger

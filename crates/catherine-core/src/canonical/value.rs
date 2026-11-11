@@ -1,0 +1,126 @@
+//! The model as a canonical-shape JSON value. Split out of `canonical.rs`
+//! verbatim (mechanical lint refactor); no behavior change.
+
+use crate::model::{Equation, Model, RowId};
+use serde_json::{Map, Value};
+
+use super::writer::write_value;
+
+/// Canonical serialization: a valid `.ct.json` v1 document (dense
+/// per-object row names `_<id>` in id order) that re-parses to the same
+/// model. This is the byte sequence the model hash is taken over.
+pub fn serialize(model: &Model) -> String {
+    write_value(&canonical_value(model))
+}
+
+/// The model as a JSON value in canonical shape: sorted enumerations,
+/// dense per-object row names, total per-arrow tables.
+pub fn canonical_value(model: &Model) -> Value {
+    obj([
+        (
+            "format_version",
+            string(&format!(
+                "{}.{}",
+                model.format_version.major, model.format_version.minor
+            )),
+        ),
+        ("instance", instance_value(model)),
+        ("schema", schema_value(model)),
+    ])
+}
+
+/// The canonical `instance` section: dense per-object row names and total
+/// per-arrow tables.
+fn instance_value(model: &Model) -> Value {
+    let mut rows = Map::new();
+    for (object, ids) in &model.instance.rows {
+        let names: Vec<Value> = (0..ids.len()).map(|i| string(&row_name(i))).collect();
+        rows.insert(object.0.clone(), Value::Array(names));
+    }
+    let mut tables = Map::new();
+    for (arrow, cells) in &model.instance.values {
+        tables.insert(arrow.0.clone(), table_value(cells));
+    }
+    obj([
+        ("rows", Value::Object(rows)),
+        ("tables", Value::Object(tables)),
+    ])
+}
+
+/// One arrow's canonical table: keys and values spelled as dense row
+/// names, dangling cells as `null`.
+fn table_value(cells: &[Option<RowId>]) -> Value {
+    let mut emitted = Map::new();
+    for (i, cell) in cells.iter().enumerate() {
+        let value = match cell {
+            Some(RowId(j)) => string(&row_name(*j)),
+            None => Value::Null,
+        };
+        emitted.insert(row_name(i), value);
+    }
+    Value::Object(emitted)
+}
+
+/// The canonical `schema` section: sorted objects, arrows, and equations
+/// (equations sorted by their canonical sort key — the parser already
+/// stores them sorted, but constructed values must serialize the same
+/// way, specodelic's `schema_export` discipline).
+fn schema_value(model: &Model) -> Value {
+    let mut equations: Vec<&Equation> = model.schema.equations.iter().collect();
+    equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    let arrows: Vec<Value> = model
+        .schema
+        .arrows
+        .iter()
+        .map(|(name, arrow)| {
+            obj([
+                ("name", string(&name.0)),
+                ("src", string(&arrow.src.0)),
+                ("tgt", string(&arrow.tgt.0)),
+            ])
+        })
+        .collect();
+    let equation_values: Vec<Value> = equations.iter().map(|e| equation_value(e)).collect();
+    obj([
+        (
+            "objects",
+            Value::Array(model.schema.objects.keys().map(|o| string(&o.0)).collect()),
+        ),
+        ("arrows", Value::Array(arrows)),
+        ("equations", Value::Array(equation_values)),
+    ])
+}
+
+/// One canonical equation entry.
+fn equation_value(equation: &Equation) -> Value {
+    obj([
+        ("lhs", path(&equation.lhs)),
+        ("rationale", string(&equation.rationale)),
+        ("rhs", path(&equation.rhs)),
+        ("status", string(equation.status.as_str())),
+    ])
+}
+
+fn obj<const N: usize>(entries: [(&str, Value); N]) -> Value {
+    Value::Object(
+        entries
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+    )
+}
+
+fn string(s: &str) -> Value {
+    Value::String(s.to_string())
+}
+
+fn path(p: &crate::model::Path) -> Value {
+    Value::Array(p.0.iter().map(|i| string(&i.0)).collect())
+}
+
+/// The presentation spelling of a dense row id inside serialized bytes:
+/// `_`-prefixed so it is a valid ident (leading digits are
+/// `invalid_ident`).
+fn row_name(i: usize) -> String {
+    format!("_{i}")
+}

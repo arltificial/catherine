@@ -1,6 +1,10 @@
 ticket: catherine-1ay
 branch: main
-brief_path: ""
+brief_path: .wai/projects/catherine/briefs/catherine-1ay.md
 steps:
   - claim 0a5ec98
   - gates 0a5ec98
+  - brief 2c9534b
+  - spawn 2c9534b
+  - blocked (402 credits; resumed after top-up)
+  - verify (post-resume)

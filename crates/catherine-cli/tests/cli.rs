@@ -46,7 +46,6 @@ const MALFORMED: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/malformed.ct.json"
 );
-
 /// Spawn the `catherine` binary with the given arguments.
 fn run(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_catherine"))

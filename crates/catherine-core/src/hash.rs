@@ -88,8 +88,8 @@ fn sha256(bytes: &[u8]) -> [u8; 32] {
     out
 }
 
-/// One FIPS 180-4 compression round over a 64-byte block.
-fn compress(h: &mut [u32; 8], block: &[u8]) {
+/// FIPS 180-4 §6.2.2 message schedule: expand the 16 block words to 64.
+fn message_schedule(block: &[u8]) -> [u32; 64] {
     let mut w = [0u32; 64];
     for (i, word) in block.as_chunks::<4>().0.iter().enumerate() {
         w[i] = u32::from_be_bytes(*word);
@@ -102,6 +102,12 @@ fn compress(h: &mut [u32; 8], block: &[u8]) {
             .wrapping_add(w[i - 7])
             .wrapping_add(s1);
     }
+    w
+}
+
+/// One FIPS 180-4 compression round over a 64-byte block.
+fn compress(h: &mut [u32; 8], block: &[u8]) {
+    let w = message_schedule(block);
     let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut hh] = *h;
     for i in 0..64 {
         let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);

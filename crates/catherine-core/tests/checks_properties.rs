@@ -8,6 +8,13 @@
 //! witness + label — never byte snapshots; the vendored parity sets in
 //! `fixtures/parity/` are the parity contract, not snapshots.
 
+mod common;
+#[path = "checks_properties/expected.rs"]
+mod expected;
+
+use common::fixture::{self, FixtureCase};
+use expected::expected_findings;
+
 use catherine_core::checks::check;
 use catherine_core::findings::{
     DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
@@ -19,15 +26,27 @@ use catherine_core::model::{
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 
-/// Object names, unique by construction.
-const OBJECTS: [&str; 3] = ["O0", "O1", "O2"];
+type Case = FixtureCase;
 
-#[derive(Debug, Clone)]
-struct Case {
-    arrows: Vec<(usize, usize)>, // (src object idx, tgt object idx); src == tgt is a self-loop
-    row_counts: Vec<usize>,
-    cells: Vec<Vec<Option<usize>>>, // per arrow, parallel to src rows; value = tgt row idx
-    equations: Vec<Equation>,       // canonical order, as the parser stores them
+/// Build the case from drawn parts via the shared fixture builder, then
+/// sort the equations into the parser's canonical storage order.
+fn build_case(
+    shapes: &[(usize, usize)],
+    row_counts: &[usize],
+    cell_pool: &[usize],
+    eq_seeds: &[(usize, usize)],
+    statuses: &[bool],
+) -> Case {
+    let mut case = fixture::build_case(shapes, row_counts, cell_pool, eq_seeds, statuses);
+    case.equations.sort_by(|a, b| {
+        (&a.lhs, &a.rhs, &a.rationale, a.status.as_str()).cmp(&(
+            &b.lhs,
+            &b.rhs,
+            &b.rationale,
+            b.status.as_str(),
+        ))
+    });
+    case
 }
 
 fn arb_case() -> impl Strategy<Value = Case> {
@@ -62,230 +81,6 @@ fn arb_case() -> impl Strategy<Value = Case> {
         })
 }
 
-/// Build the case from drawn parts: well-typed tables (a drawn value is
-/// clamped into the target object's row space), equations over candidate
-/// paths with matching endpoints, stored in canonical order.
-fn build_case(
-    shapes: &[(usize, usize)],
-    row_counts: &[usize],
-    cell_pool: &[usize],
-    eq_seeds: &[(usize, usize)],
-    statuses: &[bool],
-) -> Case {
-    let mut pool = cell_pool.iter().copied();
-    let mut cells = Vec::new();
-    for &(s, t) in shapes.iter() {
-        let tgt_rows = row_counts[t];
-        let arrow_cells = (0..row_counts[s])
-            .map(|_| match pool.next() {
-                // Clamp into the target's row space; an empty target space
-                // leaves the cell dangling (a representable value).
-                Some(v) if tgt_rows > 0 => Some(v % tgt_rows),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        cells.push(arrow_cells);
-    }
-
-    // Candidate paths between an endpoint pair (s, t): 1-hop arrows and
-    // 2-hop compositions through an intermediate object.
-    let mut paths: Vec<Vec<usize>> = Vec::new();
-    for (s, t) in endpoint_pairs(shapes.len(), row_counts.len()) {
-        for (i, &(src, tgt)) in shapes.iter().enumerate() {
-            if src == s && tgt == t {
-                paths.push(vec![i]);
-            }
-            if src == s {
-                for (j, &(src2, tgt2)) in shapes.iter().enumerate() {
-                    if i != j && src2 == tgt && tgt2 == t {
-                        paths.push(vec![i, j]);
-                    }
-                }
-            }
-        }
-    }
-    // Group candidate paths by (s, t) so lhs/rhs come from the same
-    // endpoints — parse rejects mismatched endpoints (ill_typed_equation),
-    // so the generator must stay well-typed.
-    let mut by_endpoints: BTreeMap<(usize, usize), Vec<Vec<usize>>> = BTreeMap::new();
-    for (s, t) in endpoint_pairs(shapes.len(), row_counts.len()) {
-        let matching: Vec<Vec<usize>> = paths
-            .iter()
-            .filter(|p| path_endpoints(shapes, p) == (s, t))
-            .cloned()
-            .collect();
-        if !matching.is_empty() {
-            by_endpoints.insert((s, t), matching);
-        }
-    }
-    let candidates: Vec<&Vec<Vec<usize>>> = by_endpoints.values().collect();
-    let mut equations = Vec::new();
-    for (k, &(l, r)) in eq_seeds.iter().enumerate() {
-        if candidates.is_empty() {
-            break;
-        }
-        let group = candidates[(l + r + k) % candidates.len()];
-        let lhs = group[l % group.len()].clone();
-        let rhs = group[r % group.len()].clone();
-        let status = if statuses.get(k).copied().unwrap_or(false) {
-            ConstraintStatus::Proposed
-        } else {
-            ConstraintStatus::Accepted
-        };
-        equations.push(Equation {
-            lhs: Path(path_idents(&lhs)),
-            rhs: Path(path_idents(&rhs)),
-            rationale: format!("property equation {k}"),
-            status,
-        });
-    }
-    // Canonical order — the parser's storage rule.
-    equations.sort_by(|a, b| {
-        (&a.lhs, &a.rhs, &a.rationale, a.status.as_str()).cmp(&(
-            &b.lhs,
-            &b.rhs,
-            &b.rationale,
-            b.status.as_str(),
-        ))
-    });
-
-    Case {
-        arrows: shapes.to_vec(),
-        row_counts: row_counts.to_vec(),
-        cells,
-        equations,
-    }
-}
-
-fn endpoint_pairs(max_arrows: usize, max_objects: usize) -> Vec<(usize, usize)> {
-    let n = max_arrows.min(max_objects);
-    let mut pairs = Vec::new();
-    for s in 0..n {
-        for t in 0..n {
-            pairs.push((s, t));
-        }
-    }
-    pairs
-}
-
-fn path_endpoints(shapes: &[(usize, usize)], path: &[usize]) -> (usize, usize) {
-    (
-        shapes[path[0]].0,
-        shapes[*path.last().expect("non-empty path")].1,
-    )
-}
-
-fn path_idents(path: &[usize]) -> Vec<Ident> {
-    path.iter().map(|i| Ident(format!("A{i}"))).collect()
-}
-
-/// Assemble the `Schema` + `Instance` the case describes.
-fn assemble(case: &Case) -> (Schema, Instance) {
-    let mut objects = BTreeMap::new();
-    for name in OBJECTS.iter().take(case.row_counts.len()) {
-        objects.insert(Ident(name.to_string()), ());
-    }
-    let mut arrows = BTreeMap::new();
-    for (i, &(s, t)) in case.arrows.iter().enumerate() {
-        arrows.insert(
-            Ident(format!("A{i}")),
-            Arrow {
-                src: Ident(OBJECTS[s].to_string()),
-                tgt: Ident(OBJECTS[t].to_string()),
-            },
-        );
-    }
-    let mut rows = BTreeMap::new();
-    for (o, &count) in case.row_counts.iter().enumerate() {
-        rows.insert(
-            Ident(OBJECTS[o].to_string()),
-            (0..count).map(RowId).collect::<Vec<_>>(),
-        );
-    }
-    let mut values = BTreeMap::new();
-    for (i, arrow_cells) in case.cells.iter().enumerate() {
-        values.insert(
-            Ident(format!("A{i}")),
-            arrow_cells.iter().map(|c| c.map(RowId)).collect::<Vec<_>>(),
-        );
-    }
-    (
-        Schema {
-            objects,
-            arrows,
-            equations: case.equations.clone(),
-        },
-        Instance { rows, values },
-    )
-}
-
-/// The independent recomputation of the check contract (written from the
-/// kernel-checks + findings specs, not from `check`'s code): one executed
-/// dangling finding per unresolved, non-typing-violated cell (arrow-name
-/// order, then source row order), then per equation (canonical order) per
-/// domain row, a violation-shaped finding labeled by status when both
-/// paths compose and disagree — sorted under the taxonomy's total order
-/// (kind first, then witness ids), exactly as `check` emits.
-fn expected_findings(schema: &Schema, built: &TypedInstance) -> Vec<Finding> {
-    let mut out = Vec::new();
-    let violated: Vec<(String, usize)> = built
-        .typing_violations()
-        .iter()
-        .map(|v| (v.arrow.0.clone(), v.src.0))
-        .collect();
-    for (name, cells) in built.tables() {
-        for (i, cell) in cells.iter().enumerate() {
-            if cell.is_none() && !violated.contains(&(name.0.clone(), i)) {
-                out.push(Finding {
-                    label: EpistemicLabel::Executed,
-                    kind: FindingKind::Dangling(DanglingWitness {
-                        arrow: name.clone(),
-                        src: RowId(i),
-                    }),
-                });
-            }
-        }
-    }
-    for (index, equation) in schema.equations.iter().enumerate() {
-        let Some(lead) = schema.arrows.get(&equation.lhs.0[0]) else {
-            continue;
-        };
-        let n_rows = built.rows().get(&lead.src).map(Vec::len).unwrap_or(0);
-        for row in 0..n_rows {
-            let lhs = naive_compose(built, &equation.lhs, row);
-            let rhs = naive_compose(built, &equation.rhs, row);
-            if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
-                if lhs != rhs {
-                    out.push(Finding {
-                        label: match equation.status {
-                            ConstraintStatus::Accepted => EpistemicLabel::Executed,
-                            ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
-                        },
-                        kind: FindingKind::Violation(EquationWitness {
-                            equation: index,
-                            row: RowId(row),
-                            lhs,
-                            rhs,
-                        }),
-                    });
-                }
-            }
-        }
-    }
-    out.sort();
-    out
-}
-
-fn naive_compose(built: &TypedInstance, path: &Path, start: usize) -> Option<RowId> {
-    let mut current = start;
-    for name in &path.0 {
-        let cells = built.tables().get(name)?;
-        let cell = cells.get(current)?;
-        current = (*cell)?.0;
-    }
-    Some(RowId(current))
-}
-
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(256))]
 
@@ -294,7 +89,7 @@ proptest! {
     /// shapes carry src == tgt arrows and are evaluated like any arrow).
     #[test]
     fn findings_match_the_contract_recomputation(case in arb_case()) {
-        let (schema, instance) = assemble(&case);
+        let (schema, instance) = common::fixture::assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
         prop_assert_eq!(
             check(&schema, &built),
@@ -311,7 +106,7 @@ proptest! {
     /// analysis kinds have no producer in this crate.
     #[test]
     fn every_finding_carries_in_scope_witnesses(case in arb_case()) {
-        let (schema, instance) = assemble(&case);
+        let (schema, instance) = common::fixture::assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
         for finding in check(&schema, &built) {
             prop_assert!(
@@ -360,7 +155,7 @@ proptest! {
     #[test]
     fn zero_row_instance_is_silent(shapes in proptest::collection::vec((0usize..3, 0usize..3), 1..=4)) {
         let case = build_case(&shapes, &[0, 0, 0], &[0; 4], &[], &[]);
-        let (schema, instance) = assemble(&case);
+        let (schema, instance) = common::fixture::assemble(&case);
         let built = TypedInstance::build(&schema, &instance);
         prop_assert_eq!(check(&schema, &built), vec![], "zero rows — zero evaluations, zero findings");
     }
@@ -390,6 +185,65 @@ fn empty_schema_and_empty_instance_are_silent() {
 fn self_loop_arrows_are_legal_and_evaluated() {
     // Objects A, B; arrows: a: A→A (self-loop), f: A→B, g: A→B; equation
     // f∘a = f (accepted). Endpoints: f∘a: A→A→B = A→B, f: A→B.
+    let schema = self_loop_schema();
+
+    // Case 1: the self-loop leaves row 0 dangling and maps row 1 to
+    // itself; f maps both rows to B's only row. Row 0 cannot compose
+    // (dangling, reported); row 1 composes equal (silent).
+    let case_one = TypedInstance::build(
+        &schema,
+        &self_loop_instance(
+            1,
+            &[None, Some(RowId(1))],
+            &[Some(RowId(0)), Some(RowId(0))],
+            &[Some(RowId(0)), Some(RowId(0))],
+        ),
+    );
+    assert_eq!(
+        check(&schema, &case_one),
+        vec![Finding {
+            label: EpistemicLabel::Executed,
+            kind: FindingKind::Dangling(DanglingWitness {
+                arrow: Ident("a".into()),
+                src: RowId(0),
+            }),
+        }],
+        "the self-loop composes like any arrow; its dangling cell speaks, the run continues"
+    );
+
+    // Case 2: two rows in B; the self-loop maps row 1 away to row 0 and
+    // f maps row 1 to B's second row — row 1's two routes disagree, and
+    // the violation witnesses the composition through the self-loop.
+    let case_two = TypedInstance::build(
+        &schema,
+        &self_loop_instance(
+            2,
+            &[Some(RowId(0)), Some(RowId(0))],
+            &[Some(RowId(0)), Some(RowId(1))],
+            &[Some(RowId(0)), Some(RowId(1))],
+        ),
+    );
+    // Row 0: f(a(0)) = f(0) = 0 vs f(0) = 0 — silent. Row 1:
+    // f(a(1)) = f(0) = 0 vs f(1) = 1 — violation.
+    assert_eq!(
+        check(&schema, &case_two),
+        vec![Finding {
+            label: EpistemicLabel::Executed,
+            kind: FindingKind::Violation(EquationWitness {
+                equation: 0,
+                row: RowId(1),
+                lhs: RowId(0), // f(a(1)) = f(0) = 0
+                rhs: RowId(1), // f(1) = 1
+            }),
+        }],
+        "the self-loop's composition difference is a witnessed violation on row 1"
+    );
+}
+
+/// The self-loop document: objects A, B; arrows a: A→A (self-loop),
+/// f: A→B, g: A→B; the accepted equation f∘a = f. Endpoints: f∘a:
+/// A→A→B = A→B, f: A→B.
+fn self_loop_schema() -> Schema {
     let mut objects = BTreeMap::new();
     for name in ["A", "B"] {
         objects.insert(Ident(name.into()), ());
@@ -409,16 +263,6 @@ fn self_loop_arrows_are_legal_and_evaluated() {
             tgt: Ident("B".into()),
         },
     );
-    let equations = vec![Equation {
-        lhs: Path(vec![Ident("f".into()), Ident("a".into())]),
-        rhs: Path(vec![Ident("f".into())]),
-        rationale: "through the self-loop".into(),
-        status: ConstraintStatus::Accepted,
-    }];
-
-    // Case 1: the self-loop leaves row 0 dangling and maps row 1 to
-    // itself; f maps both rows to B's only row. Row 0 cannot compose
-    // (dangling, reported); row 1 composes equal (silent).
     arrows.insert(
         Ident("g".into()),
         Arrow {
@@ -426,55 +270,33 @@ fn self_loop_arrows_are_legal_and_evaluated() {
             tgt: Ident("B".into()),
         },
     );
-    let schema = Schema {
+    let equations = vec![Equation {
+        lhs: Path(vec![Ident("f".into()), Ident("a".into())]),
+        rhs: Path(vec![Ident("f".into())]),
+        rationale: "through the self-loop".into(),
+        status: ConstraintStatus::Accepted,
+    }];
+    Schema {
         objects,
         arrows,
         equations,
-    };
-    let mut rows = BTreeMap::new();
-    rows.insert(Ident("A".into()), vec![RowId(0), RowId(1)]);
-    rows.insert(Ident("B".into()), vec![RowId(0)]);
-    let mut values = BTreeMap::new();
-    values.insert(Ident("a".into()), vec![None, Some(RowId(1))]);
-    values.insert(Ident("f".into()), vec![Some(RowId(0)), Some(RowId(0))]);
-    values.insert(Ident("g".into()), vec![Some(RowId(0)), Some(RowId(0))]);
-    let built = TypedInstance::build(&schema, &Instance { rows, values });
-    assert_eq!(
-        check(&schema, &built),
-        vec![Finding {
-            label: EpistemicLabel::Executed,
-            kind: FindingKind::Dangling(DanglingWitness {
-                arrow: Ident("a".into()),
-                src: RowId(0),
-            }),
-        }],
-        "the self-loop composes like any arrow; its dangling cell speaks, the run continues"
-    );
+    }
+}
 
-    // Case 2: two rows in B; the self-loop maps row 1 away to row 0 and
-    // f maps row 1 to B's second row — row 1's two routes disagree, and
-    // the violation witnesses the composition through the self-loop.
+/// An instance over the self-loop schema: two A rows, `b_rows` B rows,
+/// and the drawn cell tables for a, f, g.
+fn self_loop_instance(
+    b_rows: usize,
+    a_cells: &[Option<RowId>],
+    f_cells: &[Option<RowId>],
+    g_cells: &[Option<RowId>],
+) -> Instance {
     let mut rows = BTreeMap::new();
     rows.insert(Ident("A".into()), vec![RowId(0), RowId(1)]);
-    rows.insert(Ident("B".into()), vec![RowId(0), RowId(1)]);
+    rows.insert(Ident("B".into()), (0..b_rows).map(RowId).collect());
     let mut values = BTreeMap::new();
-    values.insert(Ident("a".into()), vec![Some(RowId(0)), Some(RowId(0))]);
-    values.insert(Ident("f".into()), vec![Some(RowId(0)), Some(RowId(1))]);
-    values.insert(Ident("g".into()), vec![Some(RowId(0)), Some(RowId(1))]);
-    let built = TypedInstance::build(&schema, &Instance { rows, values });
-    // Row 0: f(a(0)) = f(0) = 0 vs f(0) = 0 — silent. Row 1:
-    // f(a(1)) = f(0) = 0 vs f(1) = 1 — violation.
-    assert_eq!(
-        check(&schema, &built),
-        vec![Finding {
-            label: EpistemicLabel::Executed,
-            kind: FindingKind::Violation(EquationWitness {
-                equation: 0,
-                row: RowId(1),
-                lhs: RowId(0), // f(a(1)) = f(0) = 0
-                rhs: RowId(1), // f(1) = 1
-            }),
-        }],
-        "the self-loop's composition difference is a witnessed violation on row 1"
-    );
+    values.insert(Ident("a".into()), a_cells.to_vec());
+    values.insert(Ident("f".into()), f_cells.to_vec());
+    values.insert(Ident("g".into()), g_cells.to_vec());
+    Instance { rows, values }
 }

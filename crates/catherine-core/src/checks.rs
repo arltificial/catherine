@@ -56,6 +56,24 @@ pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
         .iter()
         .map(|v| (v.arrow.clone(), v.src))
         .collect();
+    findings.extend(dangling_findings(instance, &violated));
+    findings.extend(equation_findings(schema, instance));
+    // The taxonomy's total order (kind declaration order — violations
+    // before dangling — then witness ids, label last) is the emitted
+    // contract: the walk's push order is not, and the sorted result makes
+    // repeated checks byte-identical (findings spec: repeated runs are
+    // diff-stable).
+    findings.sort();
+    findings
+}
+
+/// One dangling finding per unresolved cell not accounted for by a typing
+/// violation.
+fn dangling_findings(
+    instance: &TypedInstance,
+    violated: &BTreeSet<(Ident, RowId)>,
+) -> Vec<Finding> {
+    let mut findings = Vec::new();
     for (arrow, cells) in instance.tables() {
         for (idx, cell) in cells.iter().enumerate() {
             if cell.is_none() && !violated.contains(&(arrow.clone(), RowId(idx))) {
@@ -69,12 +87,17 @@ pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
             }
         }
     }
-    // Every declared equation on every row of its domain object. A path
-    // through a dangling (or violated) cell cannot compose: the affected
-    // row is already recorded by its dangling finding and emits nothing
-    // here — recorded, not crashed, never a violation. The failure's
-    // witness is constructed once; only the label rides on the equation's
-    // status (accepted → executed, proposed → hypothesized).
+    findings
+}
+
+/// Every declared equation on every row of its domain object. A path
+/// through a dangling (or violated) cell cannot compose: the affected
+/// row is already recorded by its dangling finding and emits nothing
+/// here — recorded, not crashed, never a violation. The failure's
+/// witness is constructed once; only the label rides on the equation's
+/// status (accepted → executed, proposed → hypothesized).
+fn equation_findings(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
+    let mut findings = Vec::new();
     for (index, equation) in schema.equations.iter().enumerate() {
         let Some(lead) = equation.lhs.0.first() else {
             continue;
@@ -86,33 +109,42 @@ pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
             continue;
         };
         for &row in rows {
-            let lhs = instance.compose(&equation.lhs, row);
-            let rhs = instance.compose(&equation.rhs, row);
-            let (Some(lhs), Some(rhs)) = (lhs, rhs) else {
-                continue;
-            };
-            if lhs != rhs {
-                let label = match equation.status {
-                    ConstraintStatus::Accepted => EpistemicLabel::Executed,
-                    ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
-                };
-                findings.push(Finding {
-                    label,
-                    kind: FindingKind::Violation(EquationWitness {
-                        equation: index,
-                        row,
-                        lhs,
-                        rhs,
-                    }),
-                });
+            if let Some(finding) = equation_finding(schema, instance, index, row) {
+                findings.push(finding);
             }
         }
     }
-    // The taxonomy's total order (kind declaration order — violations
-    // before dangling — then witness ids, label last) is the emitted
-    // contract: the walk's push order is not, and the sorted result makes
-    // repeated checks byte-identical (findings spec: repeated runs are
-    // diff-stable).
-    findings.sort();
     findings
+}
+
+/// The violation finding for one equation on one row, if the composed
+/// paths exist and disagree.
+fn equation_finding(
+    schema: &Schema,
+    instance: &TypedInstance,
+    index: usize,
+    row: RowId,
+) -> Option<Finding> {
+    let equation = &schema.equations[index];
+    let lhs = instance.compose(&equation.lhs, row);
+    let rhs = instance.compose(&equation.rhs, row);
+    let (Some(lhs), Some(rhs)) = (lhs, rhs) else {
+        return None;
+    };
+    if lhs == rhs {
+        return None;
+    }
+    let label = match equation.status {
+        ConstraintStatus::Accepted => EpistemicLabel::Executed,
+        ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
+    };
+    Some(Finding {
+        label,
+        kind: FindingKind::Violation(EquationWitness {
+            equation: index,
+            row,
+            lhs,
+            rhs,
+        }),
+    })
 }

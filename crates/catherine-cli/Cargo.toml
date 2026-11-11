@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 catherine-core = { path = "../catherine-core" }
+catherine-analysis = { path = "../catherine-analysis" }
 clap = { version = "4", features = ["derive"] }
 genesis-vibes = "0.13"
 # Suite-convention companions of genesis envelope/config emission (whisper,

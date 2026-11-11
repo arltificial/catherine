@@ -1,5 +1,5 @@
 [pretender]
-mode = "tiered"
+mode = "gate"
 languages = ["auto"]
 exclude = ["vendor/**", "node_modules/**", "**/*_generated.*"]
 
