@@ -19,8 +19,8 @@
 //! a domain decision the tool raises, never answers — `hypothesized` is
 //! the epistemic weight, and the witness carries the P2 flattened shape
 //! (`case`/`detail` first, the question text last). The
-//! `DomainQuestion::UncoveredInputs` arm is P8-reserved and is never
-//! produced here (hard constraint 9).
+//! `DomainQuestion::UncoveredInputs` arm is P8-reserved and has no
+//! producer here (hard constraint 9).
 
 use crate::bounds::{parallel_paths_finding, ScopeCaps};
 use catherine_core::findings::Finding;

@@ -4,19 +4,19 @@
 //!
 //! Responsibilities: [`TypedInstance::build`] turns a parsed
 //! [`Instance`](crate::model::Instance) into the tables [`checks::check`]
-//! evaluates: every parsed arrow value lands somewhere — a morphism value,
-//! a dangling record, or a typing violation — never silently dropped. The
-//! builder is total and typing-enforcing at build
+//! evaluates: every parsed arrow value lands in one of three documented
+//! places — a morphism value, a dangling record, or a typing violation
+//! report. The builder is total and typing-enforcing at build
 //! (acset-core `typing_enforced_at_build`): a value outside the arrow's
 //! target object's dense id space is a named [`TypingViolation`] naming
-//! the row and the arrow, and never becomes a morphism table entry.
+//! the row and the arrow, not a morphism table entry.
 //!
 //! Rationale: adapted (not authored) from specodelic
 //! (`charly/specodelic`, Apache-2.0, ships no NOTICE file)
 //! `src/acset/instance.rs` — dense interning with sorted-order
 //! assignment, partial morphism storage where an unresolved reference is
-//! a representable value (`None`) that is never dropped or repaired, and
-//! build-time reports that name their witnesses. Dropped as
+//! a representable value (`None`), kept as-is (the documented limit of
+//! the partial table), and build-time reports that name their witnesses. Dropped as
 //! specodelic-domain: the `graph::build` parity machinery, walk-order
 //! edge recording, attribute cells, and markdown `Spec` parsing (P0's
 //! parser owns the input). On the kernel's normalized presentation a

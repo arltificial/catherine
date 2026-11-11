@@ -14,7 +14,7 @@
 //! `executed`, `proposed` → `hypothesized` — one kind, countable apart by
 //! label, never merged into one severity. Totality: an empty schema or an
 //! empty instance yields zero findings — silence after evaluation is real
-//! success, never an unevaluated declaration.
+//! success, not an unevaluated declaration.
 //!
 //! Rationale: new code (E10) — specodelic's acset has no path-equation
 //! execution; equations were already new in P0. P1's `CheckOutcome` enum

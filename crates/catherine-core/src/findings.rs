@@ -8,8 +8,8 @@
 //! (the five v1 kinds, each carrying its concrete witness — a finding
 //! without a witness is unrepresentable), [`EpistemicLabel`] (exactly
 //! `executed` / `hypothesized` / `unknown` constructible; `proved` and
-//! `illustrated` do not exist in the type and are never fabricated by the
-//! kernel — those labels belong to later layers, if ever), and the shared
+//! `illustrated` do not exist in the type, so the kernel cannot fabricate
+//! them — those labels belong to later layers, if ever), and the shared
 //! witness payloads the kernel walk constructs once ([`EquationWitness`],
 //! [`DanglingWitness`]). Kind names the *shape* of the fact; the label
 //! names its *weight*: an accepted-equation failure and a proposed-
@@ -20,7 +20,7 @@
 //! their producers are P4's (bounded analysis) — nothing in this crate
 //! emits them. The underconstraint witness's
 //! [`DomainQuestion::UncoveredInputs`] arm is reserved for P8's rule-lens
-//! gap mapping: defined here, never produced in v1.
+//! gap mapping: defined here, with no v1 producer.
 //!
 //! Ordering is total and documented: by kind (variant declaration order
 //! of [`FindingKind`]), then witness ids (canonical id order inside each

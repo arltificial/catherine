@@ -7,7 +7,8 @@
 //! named start row) on both typed instances and report the first
 //! differing observation — `Some` vs `Some` (different rows), or `Some`
 //! vs `None` (one instance cannot resolve the behavior there; a missing
-//! row or a dangling cell is an honest "no value", never hidden) — or
+//! row or a dangling cell is an honest "no value" — the documented
+//! limit: it reads as `None`, not a separate report) — or
 //! declare the pair equivalent *in scope*. The observation set is part
 //! of the result, echoed sorted and deduplicated.
 //!
@@ -15,7 +16,7 @@
 //! P2 taxonomy has no distinguish kind and stays closed (no new finding
 //! kinds, hard constraint on the change). Schema equivalence is
 //! undecidable and out of scope by name: the verdict holds exactly over
-//! the echoed observation set and is never extended into a claim about
+//! the echoed observation set — a scope-limited result, not a claim about
 //! the schemas or the instances beyond it. Determinism: the observation
 //! set is stored in a `BTreeSet`, so the walk order (and thus which
 //! difference is named first) is fixed by the `(object, row, path)`

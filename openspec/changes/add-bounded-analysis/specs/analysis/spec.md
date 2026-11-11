@@ -21,6 +21,19 @@ reported as a proven contradiction.
 - **THEN** the outcome is `UNKNOWN` labeled with the explored scope —
   never collapsed into "no contradiction found"
 
+#### Scenario: Accepted equations constrain, proposed equations question
+- **WHEN** the search evaluates a candidate against a schema carrying
+  both accepted and proposed equations
+- **THEN** only the accepted equations judge satisfiability — a
+  candidate the accepted equations admit is clean even when it fails a
+  proposed equation, the failure surfaces as a `hypothesized` finding,
+  and a proposed-equation violation never blocks a witness or turns the
+  outcome into a contradiction
+
+
+#### Scenario: accepted-equations-constrain-proposed-equations-question
+- **WHEN** [describe the action or condition]
+- **THEN** [describe the expected observable result]
 ### Requirement: Redundancy is proven by derivation
 The system SHALL report a path (or declared equation) as `redundant` only
 when normal-form rewriting under the declared equations proves it equal

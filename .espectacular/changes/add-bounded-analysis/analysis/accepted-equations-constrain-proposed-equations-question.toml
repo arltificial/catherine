@@ -1,0 +1,12 @@
+id = "accepted-equations-constrain-proposed-equations-question"
+description = "Bounded search judges satisfiability by the accepted equations only: a candidate the accepted equations admit is clean even when it fails a proposed equation, the failure surfaces as a hypothesized finding, and a proposed-equation violation never blocks a witness or turns the outcome into a contradiction."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "is_clean_accepts_accepted_clean_proposed_dirty" },
+    { flags = "search_returns_witness_despite_proposed_violations" },
+]

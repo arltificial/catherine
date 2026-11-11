@@ -21,7 +21,8 @@
 //! resolved* instance: every arrow value resolves and every accepted
 //! equation holds on every applicable row. Candidates that satisfy
 //! equations only by dangling short-circuits prove nothing about the
-//! constraints, so they never witness. Consequence, documented in the
+//! constraints, so they do not witness — a documented limit: only fully
+//! resolved candidates witness. Consequence, documented in the
 //! crate README: pure path equalities are collapse-satisfiable
 //! (one-row-collapse satisfies every equation), so a proven contradiction
 //! arises exactly when the bounds make full resolution impossible — the
