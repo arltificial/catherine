@@ -1,0 +1,6 @@
+ticket: catherine-1ay
+branch: main
+brief_path: ""
+steps:
+  - claim 0a5ec98
+  - gates 0a5ec98

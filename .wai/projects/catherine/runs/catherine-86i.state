@@ -7,3 +7,4 @@ steps:
   - brief 8b29552
   - spawn 8b29552
   - verify (post-user-commit)
+  - ship 0a5ec98
