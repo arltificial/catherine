@@ -1,0 +1,7 @@
+- 2026-11-11T00:09:36Z [id:be553ad04993b42c4dea41874130addd0c120559079e00f76a0211a4911c02bb] Session 2026-11-10/11 (tracked summary; detailed decision records in private zone):
+  - Investigation: Michael Johnson CT conversations traced (chatgpt 6adf915c origin -> ct-kata01 topic -> matadero ct-catlab series) -> validated boundary E1-E9 distilled to docs/PROPOSAL.md.
+  - Design converged via Rule-of-5: docs/DESIGN.md v2 (kernel, findings taxonomy, Rust+WASM+genesis CLI, P0-P9).
+  - Rule lens added as P8 (rules = subobjects + resolution policy; kata-6 reframed as triviality-floor claim; HYPOTHESIZED with pre-registered validation).
+  - genesis-vibes adopted for CLI only (P3); bogart = pilot corpus (P9): FTS-anchor equation, identity-domain disjointness, capture selector overlap/gap, raw-vs-derived migration, alerts tiered rules.
+  - Theory doc: docs/THEORY.md (constructions, what they buy, validated negatives, reading order, glossary).
+  - Tracking: 10 beads tickets exported fresh; ledger discipline inherited from ct-catlab; whisper decisions in private zone.

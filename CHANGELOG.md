@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `docs/THEORY.md` — theory documentation: each categorical construction
+  (schemas, instances/functors, path equations, findings taxonomy,
+  migration, rule lens), what it buys, where validated, reading order
+  (Johnson → Spivak → AlgebraicJulia), glossary.
+- README: project overview, deliverables manifest, docs map, roadmap,
+  tooling guide.
+- Rule lens (P8, `catherine-nq5`): rules as subobjects + resolution
+  policy; kata-6 boundary reframed as a triviality-floor claim;
+  pre-registered two-kata validation.
+- Bogart pilot corpus (P9, `catherine-hc6`): openspec prose invariants →
+  executed findings; genesis-vibes adopted for CLI plumbing (P3).
+
+### Added (initial baseline)
+
 - ddl-managed tooling baseline: lefthook gates (pre-commit: `ah check`,
   pretender gate, `spk lint`; pre-push: `ah check`), beads no-db tracked
   export, wai workspace, espectacular (`ah`) config, openspec skeleton.
