@@ -8,3 +8,5 @@ steps:
   - spawn 5a9f69b
   - blocked 1f62581 (402 credits; resume GkImplement pending top-up)
   - verify 5a9f69b
+  - ship 809be72
+  - stop done
