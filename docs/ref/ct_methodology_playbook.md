@@ -1,6 +1,9 @@
 # Category-theoretic modeling playbook — by problem type, no tool required
 
-Status: v1 (2026-11-11) · tool-free companion to
+Status: v1 (2026-11-11) · audience: anyone who ships schemas, specs, or
+integrations — engineer, analyst, or agent. Drills run ~30–90 minutes each;
+the modeled attack costs 1–3× a conventional review (measured — budget for
+it up front, see §7). Tool-free companion to
 `category_theoretic_modeling_methodology.md` (the method) and
 `../../THEORY.md` (the mathematics). Everything here works with paper, a
 text editor, and an adversarial reader. Where a deterministic checker would
@@ -38,6 +41,15 @@ Without a tool, four habits replace enforcement:
 4. **The findings ledger.** Every modeling session ends with a table:
    claim | evidence type | derivation or witness | counterexample | verdict.
    Keep it in the repo next to the model. It reviews like code.
+
+**An empty ledger is a result, not a failure.** A disciplined pass that
+yields no findings means the spec was sound — record that and move on.
+The source experiment series pre-registered it: "a negative or inconclusive
+verdict is a valid, expected outcome." Do not manufacture findings to
+justify the session; manufactured findings are the failure mode, not the
+empty ledger. When adversarial readers disagree, the owner arbitrates with
+a witness row — disputed entries land in the ledger as HYPOTHESIZED,
+never silently dropped.
 
 ## 1. Requirements & spec review — before anything is built
 
@@ -121,7 +133,10 @@ reporting layer must combine per-team numbers into a company number.
 **Drill:** for each metric, classify its composition behavior —
 *additive* (sums across any partition), *monoidal-with-structure* (sums with
 carrying: weights, pairs), or *emergent* (defined only on the whole:
-percentiles, VaR, distinct counts). The classification is the deliverable:
+percentiles, VaR, distinct counts). (For the curious: additive = sum over
+any partition; the middle class is a monoid — e.g. an average is the pair
+(sum, count), merged pairwise; the last class has no merge at all.) The
+classification is the deliverable:
 it tells you which aggregations can be computed per-partition and merged
 (safe to parallelize) and which must be recomputed globally (unsafe to
 parallelize — the bug where distributed percentiles are averaged). Attach a
@@ -198,7 +213,7 @@ costs 1–3× more effort (E4). Budget accordingly: spend it on the seams
   rules, formatting): killed at a 7-line conditional in a controlled
   comparison — the checks fired, the cost didn't. Conventional: tables +
   tests. Exception: a large rule table *with a priority policy* — then the
-  manual subobject drill earns its keep: list rules as predicates over the
+  four-region drill earns its keep: list rules as predicates over the
   input, mark regions: **gap** (no rule fires), **overlap** (two fire, no
   policy), **shadow** (dead rule), **derivable** (boolean combination).
   These four are findable by hand on an enumerable input and are the bugs
@@ -218,7 +233,9 @@ Stop extending the model when additional structure yields no new discovery,
 clarity, or guarantee. Concretely: three consecutive ledger entries that say
 "no new finding" means the model is done; record what remains UNKNOWN and
 ship. Complexity added past that point is decoration, and decoration is the
-failure mode this whole discipline exists to prevent.
+failure mode this whole discipline exists to prevent. And the symmetrical
+rule: if the very first pass finds nothing, close the ledger and do
+something else — that too is the methodology working.
 
 ## Lineage
 
