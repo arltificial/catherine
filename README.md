@@ -65,9 +65,14 @@ pre-committed stop condition, not a failure mode.
 - **knowledge**: whisper/turu workspace; repo-scope tracked, `.whisper/private/`
   is machine-local and never pushed
 - **CLI plumbing**: `genesis-vibes` (CLI crate only; kernel stays suite-dep-free)
+- **Code reuse**: specodelic acset (instance/query, parity-gated) + wild
+  canonical hashing — see the reuse map in `DESIGN.md` §3; repo is
+  Apache-2.0 to match the donors
 - **pilot corpus**: bogart (`at/bogart`) — its openspec prose invariants are
   the first real-world modeling targets (P9)
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Apache-2.0 — see [LICENSE](LICENSE). Matches the code donors
+(specodelic, wild, genesis); switched from the initial MIT before any code
+landed because Apache-2.0 code cannot be relicensed to MIT.

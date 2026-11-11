@@ -196,6 +196,13 @@ honestly useless for rule-based ones — and the tool says which is which.
   doctor); consumed by `catherine-cli` only, so agents get the exact JSON
   envelope semantics every charly-vibes tool already speaks. Kernel stays
   suite-dep-free.
+- **wild** (`charly/wild`) — in-suite prior art discovered during the doc
+  review: contracts modeled as a category with checkable accretion laws;
+  canonical-JSON + sha256 identity is *implemented* and ported into this
+  design (reuse map, DESIGN §3). Compose/registry tiers are normative-only —
+  cited as design, never as validated evidence. Catherine remains the suite's
+  first *general-purpose* CT modeling kernel; wild validates that
+  category-with-checkable-laws works inside this org's engineering practice.
 - **Methodology v1.0** (`docs/ref/`) — the human procedure the tool
   mechanically supports (freeze baseline → semantic graph → parallel paths
   → justified constraints → derive & attack → evolve → stop). Catherine is

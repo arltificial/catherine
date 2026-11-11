@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bogart pilot corpus (P9, `catherine-hc6`): openspec prose invariants →
   executed findings; genesis-vibes adopted for CLI plumbing (P3).
 
+### Changed
+
+- License: MIT → Apache-2.0 (matches code donors specodelic/wild/genesis;
+  switched before any code landed).
+
 ### Added (initial baseline)
 
 - ddl-managed tooling baseline: lefthook gates (pre-commit: `ah check`,

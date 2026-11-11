@@ -102,7 +102,8 @@ assignment forever*.
   the spec never answered. The question is raised *by the model*, not by a
   test author.
 
-**Critical empirical caveat (E3):** Catlab's ACSet path equations are
+**Critical empirical caveat** (declarations don't enforce — ct-catlab smoke
+gate S3; Catlab's own docs): Catlab's ACSet path equations are
 documentation, not enforcement — the library does not evaluate them on
 instances. Executing the equations *is* catherine's core deliverable (P1–P2):
 declarations don't enforce; checks do.
@@ -238,10 +239,14 @@ generator.
    Technical Computing.** ACsets: the efficient in-memory implementation
    catherine's instance tables descend from.
 
-How the three threads relate: **Johnson** supplies the design methodology
+How the threads relate: **Johnson** supplies the design methodology
 (sketches + universal properties as thinking tools); **Spivak** supplies the
 algebraic simplification (schemas as functors, migrations as Kan
-extensions); **AlgebraicJulia** supplies the implementation substrate. ACsets
+extensions); **AlgebraicJulia** supplies the implementation substrate; and
+**wild** (same org) supplies in-suite proof that a category with checkable
+laws is sound engineering practice — accretion of contract revisions is a
+thin category (preorder), demand-restriction is a functor, identity is
+canonical-JSON hashing (implemented, byte-for-byte normative). ACsets
 implement Spivak's model — *not* the full Johnson sketch methodology — which
 is why enforcement and findings are catherine's contribution rather than
 redundant with any of them.

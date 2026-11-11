@@ -26,6 +26,7 @@ Conclusions this design commits to, each with provenance:
 | E7 | Agent-facing language choice is a training-data question: OCaml and other low-resource languages mean higher repair cost for agent contributors. Honest read: Rust is adequately resourced **but not free** — it produced the only 3 failures in the cited 600-run benchmark; semantic regularity and predictable evaluation matter more than type-system sophistication, so the kernel must stay small and regular | grok `0ad787db` ("Programming Languages AI Software") |
 | E8 | Incremental extraction with parity gates works: specodelic acset was extracted behind a graph-parity gate + rename-oracle; Tambor analysis established "falsifiable migration experiment" as the pattern | claude `e7bfb3b5`; chatgpt `6adf3073` ("Assess Rust Migration") |
 | E9 | An earlier recommendation for this exact project was TypeScript-first with the Rust/WASM core as a later optimization | chatgpt `6ae94740` §7 |
+| E10 | **wild** (`charly/wild`) models software contracts as a *category* in-suite: accretion between revisions is a thin category (preorder) with checkable laws, demand-restriction is a functor, identity is canonical-JSON + sha256 hashing — implemented in Rust (`formats.rs` canonicalizer is byte-for-byte normative; `extract`/`check` runtime-tested). Compose/registry tiers are normative-only (4 scenarios). Specodelic acset has cycle/reachability machinery but **no path-equation execution** — that remains genuinely new code | `wild/README.md`, `wild/openspec/specs/wild-core/spec.md`, `wild/src/formats.rs` |
 
 ## 1. Problem statement and hypothesis
 
@@ -96,6 +97,23 @@ model interchange format. **OCaml was considered and rejected on E7
 grounds**: the corpus contains no OCaml CT implementation experience to
 reuse (the only OCaml-adjacent finding is that low-resource languages cost
 agents more repair cycles), and agent contributors are a first-class user.
+**License: Apache-2.0** — matches specodelic/wild/genesis, the code donors
+(E2, E7, E10); extracted Apache-2.0 code cannot be relicensed to MIT.
+
+### Reuse map (what ports, what is new)
+
+| Source (Apache-2.0) | → catherine | Gate |
+|---|---|---|
+| specodelic `src/acset/instance.rs` (925 LOC) | kernel instance tables | graph-parity on specodelic corpus (E8) |
+| specodelic `src/acset/query.rs` (264 LOC) | analysis traversals (reachability, fan-in) | parity + property tests |
+| specodelic acset openspec contracts (`acset-core`, `acset-writer`) | P0 spec base — executable contracts, adapt not author | `ah check` green |
+| wild `src/formats.rs` canonical-JSON + sha256 | model-document hashing; ledger content-addressing (P6) | byte-for-byte normative port + tests |
+| wild accretion-laws discipline (identity/canonical/invariant table) | `.ct.json` format_version policy | schema-review checklist |
+| specodelic `src/acset/writer.rs` (631 LOC) | **dropped** — no lossless text round-trip needed (JSON model docs, not markdown) | n/a — scope reduction |
+| specodelic `src/acset/schema.rs` (946 LOC) | **partial** — no equations exist there; path-equation presentation is new code | new property tests |
+
+Simulation-before-Rust pattern (wild `prototype/wild_cat_sim.py`):
+pre-implement P8 rule-lens laws as a Python sim to de-risk the semantics.
 
 **Suite plumbing: `genesis-vibes` — CLI crate only.** The charly-vibes
 cross-cutting foundation (stable, crates.io `0.13`) owns the JSON envelope
@@ -327,10 +345,11 @@ ledger entry after the phase's validation run (verdict vocabulary: killed /
 survived / inconclusive / invalid-run) — ct-catlab record discipline applied
 to the tool itself.
 
-1. **P0 kernel skeleton**: model document format + parser + round-trip
-   property test. Red: malformed presentations rejected with line-accurate
-   errors (golden fixtures incl. duplicate idents, unknown arrows, ill-typed
-   equations).
+1. P0 kernel skeleton: model document format + parser + round-trip
+   property test, **starting from specodelic's acset-core executable
+   contracts** (adapt, don't author). Red: malformed presentations rejected
+   with line-accurate errors (golden fixtures incl. duplicate idents, unknown
+   arrows, ill-typed equations).
 2. **P1 instance + executed checks**: instance tables, dangling-as-value,
    path-equality execution with witness rows. This is the E3 bet; if
    nothing else ships, this must.
@@ -365,16 +384,20 @@ to the tool itself.
 | The UI grows into the product before the kernel is validated | P5 is *after* CLI; web is a viewer until P6 passes |
 | WASM/TS boundary leaks Rust types into ad-hoc JS | single `wasm-bindgen` surface, JSON-only payloads, TS types generated from the model document schema |
 | Repeating Catlab's enforcement gap (E3) | checks are the core deliverable (P1/P2); equations without execution = bug |
-| Overclaiming (the corpus's own failure mode: verdict/record contradictions, ct-catlab REPORT methodology §1) | ledger + validator-style checks from day one; finding labels mandatory |
+| Overclaiming (the corpus's own failure mode: verdict/record contradictions, ct-catlab REPORT methodology §1) | ledger + validator-style checks from day one; findings labels mandatory; every record content-addressed (canonical-JSON + sha256, E10) |
+| License drift across extracted Apache-2.0 code | repo is Apache-2.0 (matches donors); NOTICE/attribution preserved on ported files |
+| Reuse circularity (catherine kernel flowing back into specodelic) | one-way extraction for v1; flow-back is a separate decision after P6, not a design assumption |
 | Agent ergonomics sacrificed for human UI | CLI is a first-class artifact (P3), not an afterthought; regularity over type ceremony (E7) |
 | Kernel expressiveness gap vs validated kata invariants | scoped P6 fixtures + recorded limitation (§4.1), not silent failure |
 
 ## 8. Open questions
 
-1. Attribute alphabet: **resolved by the P8 rule lens** — predicates
+1. ~~Attribute alphabet~~ **resolved by the P8 rule lens** — predicates
    require int/bool/string comparisons + ∧ ∨ ¬ + mod, so attribute columns
    with a decidable expression language enter the kernel design (P8 scope;
    v1 kata fixtures don't demand them before that).
+2. ~~License~~ **resolved: Apache-2.0** (matches code donors; was MIT before
+   any code existed — zero-cost switch).
 2. Should `alternatives`/`questions` scaffolds ship in v1 at all, or stay
    spec-only until the deterministic ops are validated by P6? (Current lean:
    spec-only.)
