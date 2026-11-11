@@ -7,3 +7,5 @@ steps:
   - brief db6651f
   - spawn db6651f
   - verify db6651f
+  - ship f2c27a8
+  - stop 1f62581
