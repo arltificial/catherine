@@ -23,3 +23,4 @@ pub mod instance;
 pub mod migrate;
 pub mod model;
 pub mod parse;
+pub mod rule_lens;

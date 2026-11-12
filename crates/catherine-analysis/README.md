@@ -62,12 +62,22 @@ Every analysis answer is either **a proof within stated bounds** or
   (unresolved cells first, then row ids ascending), which folds the
   counterexample-minimality discipline into the enumeration — the
   returned witness is the first satisfying candidate in that order.
-- **Findings emit into the P2 taxonomy.** The three analysis kinds with
-  their pinned witness shapes and labels: `contradiction`/`redundant`
-  carry `executed` (deterministic proofs the kernel computed);
+- **Findings emit into the P2 taxonomy.** The analysis kinds with their
+  pinned witness shapes and labels: `contradiction`/`redundant` carry
+  `executed` (deterministic proofs the kernel computed);
   `underconstraint` carries `hypothesized` with the domain question
-  "should these agree?". No new finding kinds; `UncoveredInputs` is
-  P8-reserved and has no producer here.
+  "should these agree?". No new finding kinds; the P8 rule lens is the
+  only producer of the reserved `UncoveredInputs` arm.
+- **Rule lens (P8).** `rule_lens` analyses a rule presentation over a
+  declared finite domain (`catherine-core::rule_lens`): gap →
+  `underconstraint` (`hypothesized`, `UncoveredInputs` naming the class),
+  overlap under `DeclaredDisjoint` → `violation` (`executed`), shadow and
+  derivable → `redundant` (`executed`). A priority policy resolves
+  intersections, so it reports no overlap finding; an absent policy
+  leaves overlap a diagnostic mapped to no kind (Decision 1/3). The
+  candidate enumeration is bounded by `max_candidates`; expiry is
+  `UNKNOWN { scope }` with the declared column sizes, never a partial
+  finding set.
 
 ## Scope caps (configured, not magic numbers)
 

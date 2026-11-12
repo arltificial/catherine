@@ -5,9 +5,10 @@
 //! is this declaration derivable (redundancy via normal-form rewriting),
 //! which parallel paths were never reconciled (underconstraint,
 //! hypothesized), where do two instances differ (distinguish over an
-//! explicit observation set), and the query traversals (reachability,
+//! explicit observation set), the query traversals (reachability,
 //! blast radius, fan-in/fan-out) ported from specodelic behind the parity
-//! gate.
+//! gate, and the rule lens (P8: effective regions and the four rule-table
+//! bug classes over a declared finite domain, mapped onto the taxonomy).
 //!
 //! Responsibilities: expose the analysis operations over the kernel's
 //! public surfaces (`Schema`, `Instance`, `TypedInstance`, `check`) —
@@ -32,4 +33,5 @@ pub mod distinguish;
 pub mod parallel;
 pub mod query;
 pub mod rewrite;
+pub mod rule_lens;
 pub mod search;

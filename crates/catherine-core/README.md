@@ -115,6 +115,23 @@ above are the stable semantic contract. Check order is the document
 order: version → objects → arrows → equations → rows → tables →
 schema map → rule presentation.
 
+## Rule-lens semantics (1.2)
+
+`rule_lens` analyses a `RulePresentation` over a caller-supplied finite
+domain (`RuleDomain::from_presentation` validates the value lists against
+the declared column types and enumerates them in product order). It
+computes regions R_i, effective regions E_i = R_i \ ⋃_{j<i} R_j under
+`PriorityOrder`/`FirstMatch` (regions unchanged under
+`DeclaredDisjoint`; none when no policy is declared), gap, pairwise
+overlaps, shadowed rules, and rules derivable as a two-factor
+intersection. `analyze_with_bounds` stops at the caller's candidate
+budget and returns `UNKNOWN { scope }` with the exact column sizes and
+candidates explored — a zero budget yields the empty scope, never a clean
+claim. `equivalence` returns `EquivalentInScope` or the first differing
+input as a witness. The findings-taxonomy mapping (gap → underconstraint,
+overlap under `DeclaredDisjoint` → violation, shadow/derivable →
+redundant) lives in `catherine-analysis::rule_lens`.
+
 ## Canonical form and hashing
 
 Parsing normalizes presentation away: rows become dense per-object ids,

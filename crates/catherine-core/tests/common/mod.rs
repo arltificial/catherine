@@ -11,6 +11,7 @@
 #![allow(dead_code)]
 
 pub mod fixture;
+pub mod rule_lens;
 
 use catherine_core::model::{
     Arrow, ConstraintStatus, Equation, Ident, Instance, Path, RowId, Schema,

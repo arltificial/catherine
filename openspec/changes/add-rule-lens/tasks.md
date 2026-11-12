@@ -15,12 +15,21 @@ killable per design.md Decision 4.
 
 - [x] 3. Attribute columns + predicate expression language (additive
       format extension + JSON Schema update)
-- [ ] 4. `RulePresentation` types + policy semantics (total, no implicit
-      precedence)
-- [ ] 5. Effective-region computation in Rust; sim/kernel parity on all
-      sim tables
-- [ ] 6. Findings as taxonomy producers (no new variants); enumeration
-      via P4 bounded search
+- [x] 4. `RulePresentation` types + policy semantics (total, no implicit
+      precedence). Evidence: `core::rule_lens::analysis` computes
+      effective regions per policy; `rule_lens_parity` pins priority,
+      declared-disjoint, and no-policy behavior.
+- [x] 5. Effective-region computation in Rust; sim/kernel parity on all
+      sim tables. Evidence: `tests/rule_lens_parity.rs` (7 analysis
+      cases) + `tests/rule_lens_equivalence.rs` (4 equivalence cases)
+      reproduce `prototype/rule_lens_sim.py`; `tests/rule_lens_fixtures.rs`
+      analyses all four golden fixtures.
+- [x] 6. Findings as taxonomy producers (no new variants); enumeration
+      via P4 bounded search. Evidence: `analysis::rule_lens` maps the
+      four classes (gap → underconstraint/hypothesized with
+      `UncoveredInputs`; overlap under DeclaredDisjoint → violation;
+      shadow/derivable → redundant), `tests/rule_lens_findings.rs`
+      pins all four plus `UNKNOWN { scope }` on budget expiry.
 - [ ] 7. Equivalence checking + discovery support (examples in, gap
       findings out)
 - [ ] 8. CLI surface for rule-lens analysis

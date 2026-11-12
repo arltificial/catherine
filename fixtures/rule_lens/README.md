@@ -9,7 +9,10 @@ the format, the predicate language, and the expected taxonomy mapping.
 
 `fixtures/rule_lens/README.md` is not read by any test at runtime — the
 expectations below are asserted by `crates/catherine-core/tests/rule_lens.rs`
-(structure) and by the sim (semantics, bounded enumeration).
+(structure), by `crates/catherine-core/tests/rule_lens_{parity,fixtures}.rs`
+(semantics, bounded enumeration), and by
+`crates/catherine-analysis/tests/rule_lens_findings.rs` (taxonomy
+mapping) as well as by the sim.
 
 ## Input domain and policy
 

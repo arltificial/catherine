@@ -1,0 +1,251 @@
+//! Purpose: the rule lens's input domain and predicate evaluator
+//! (openspec change `add-rule-lens` phase B; design.md Decisions 2/3) —
+//! the declared finite enumeration of X and the structural semantics of
+//! its tiny decidable predicate language.
+//!
+//! Responsibilities: [`RuleDomain`] binds the presentation's typed columns
+//! to caller-supplied finite value lists (validated: every column has
+//! values, every value matches the column type, no undeclared column) and
+//! enumerates inputs in the oracle's `itertools.product` order;
+//! [`evaluate`] implements comparisons (`eq`/`ne`/`lt`/`le`/`gt`/`ge`,
+//! strings byte-wise, bools `false < true`), `mod` as a non-negative
+//! remainder, and `and`/`or`/`not`.
+//!
+//! Rationale: X is declared data, not the instance rows — the rule lens
+//! analyses the table against the attribute alphabet, so the caller must
+//! supply the finite values in scope (bounded search never invents an
+//! infinite `int`/`string` domain). Value lists of different lengths make
+//! the enumeration mixed-radix; the first declared column varies slowest,
+//! matching `itertools.product` in the oracle so gap examples and
+//! equivalence witnesses are identical across sim and kernel. Evaluation
+//! is total over well-typed presentations (the parser guarantees literal
+//! and column agree; a hand-built mismatch evaluates as unequal and
+//! unordered, never panics).
+
+use crate::model::{CmpOp, ColumnType, Ident, Literal, Predicate, RulePresentation};
+use std::collections::BTreeMap;
+use std::fmt;
+
+/// One input of X: its values in the domain's declared column order.
+pub type RuleInput = Vec<Literal>;
+
+/// The declared finite enumeration of the rule presentation's input
+/// domain X. Column order is the presentation's key order (`columns` is a
+/// `BTreeMap`, so sorted); values are as supplied by the caller.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuleDomain {
+    columns: Vec<Ident>,
+    values: Vec<Vec<Literal>>,
+    positions: BTreeMap<Ident, usize>,
+}
+
+/// A labeled rejection of a domain that does not match its presentation.
+/// The rule lens never guesses a value list or a column type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RuleDomainError {
+    /// The presentation declares a column the caller supplied no values
+    /// for.
+    MissingValues(Ident),
+    /// The caller supplied values for a column the presentation never
+    /// declared.
+    UnexpectedColumn(Ident),
+    /// A supplied literal does not have its column's declared type.
+    WrongType {
+        /// The offending column.
+        column: Ident,
+        /// The column's declared type.
+        expected: ColumnType,
+    },
+}
+
+impl fmt::Display for RuleDomainError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MissingValues(column) => {
+                write!(formatter, "no values supplied for column `{}`", column.0)
+            }
+            Self::UnexpectedColumn(column) => write!(
+                formatter,
+                "column `{}` is not declared by the rule presentation",
+                column.0
+            ),
+            Self::WrongType { column, expected } => write!(
+                formatter,
+                "a value supplied for column `{}` is not `{}`",
+                column.0,
+                expected.as_str()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for RuleDomainError {}
+
+impl RuleDomain {
+    /// Bind the presentation's columns to the supplied finite value lists.
+    /// Every declared column needs an entry (an empty list means X has no
+    /// inputs on that column); every value must match its column's type.
+    pub fn from_presentation(
+        presentation: &RulePresentation,
+        mut supplied: BTreeMap<Ident, Vec<Literal>>,
+    ) -> Result<Self, RuleDomainError> {
+        let mut columns = Vec::with_capacity(presentation.columns.len());
+        let mut values = Vec::with_capacity(presentation.columns.len());
+        let mut positions = BTreeMap::new();
+        for (position, (column, column_type)) in presentation.columns.iter().enumerate() {
+            let Some(list) = supplied.remove(column) else {
+                return Err(RuleDomainError::MissingValues(column.clone()));
+            };
+            if list.iter().any(|value| !matches_type(value, *column_type)) {
+                return Err(RuleDomainError::WrongType {
+                    column: column.clone(),
+                    expected: *column_type,
+                });
+            }
+            positions.insert(column.clone(), position);
+            columns.push(column.clone());
+            values.push(list);
+        }
+        if let Some(undeclared) = supplied.keys().next() {
+            return Err(RuleDomainError::UnexpectedColumn(undeclared.clone()));
+        }
+        Ok(Self {
+            columns,
+            values,
+            positions,
+        })
+    }
+
+    /// The domain's columns, in enumeration order.
+    pub fn columns(&self) -> &[Ident] {
+        &self.columns
+    }
+
+    /// The number of declared values per column — the exact shape of the
+    /// enumeration (the rule lens's analogue of a search scope's rows).
+    pub fn column_sizes(&self) -> BTreeMap<Ident, usize> {
+        self.columns
+            .iter()
+            .cloned()
+            .zip(self.values.iter().map(Vec::len))
+            .collect()
+    }
+
+    /// Every input of X, in declared enumeration order (first column
+    /// varies slowest; an empty value list makes X empty).
+    pub fn inputs(&self) -> Vec<RuleInput> {
+        self.enumerate_within(usize::MAX)
+            .expect("the full domain enumeration cannot exhaust usize::MAX inputs")
+    }
+
+    /// Enumerate at most `max_candidates` inputs. `Ok` means exhaustion
+    /// completed within the budget; `Err(explored)` means the budget
+    /// expired after exactly `explored` candidates — the caller must
+    /// report `UNKNOWN { scope }`, never a partial analysis.
+    pub(crate) fn enumerate_within(&self, max_candidates: usize) -> Result<Vec<RuleInput>, usize> {
+        if max_candidates == 0 {
+            return Err(0);
+        }
+        if self.values.iter().any(Vec::is_empty) {
+            return Ok(Vec::new());
+        }
+        let widths: Vec<usize> = self.values.iter().map(Vec::len).collect();
+        let mut digits = vec![0usize; widths.len()];
+        let mut inputs = Vec::new();
+        loop {
+            if inputs.len() == max_candidates {
+                return Err(inputs.len());
+            }
+            inputs.push(self.input_at(&digits));
+            if !increment(&mut digits, &widths) {
+                return Ok(inputs);
+            }
+        }
+    }
+
+    /// The input at one mixed-radix position.
+    fn input_at(&self, digits: &[usize]) -> RuleInput {
+        digits
+            .iter()
+            .zip(&self.values)
+            .map(|(&digit, values)| values[digit].clone())
+            .collect()
+    }
+
+    fn value<'a>(&self, input: &'a [Literal], column: &Ident) -> Option<&'a Literal> {
+        let position = *self.positions.get(column)?;
+        input.get(position)
+    }
+}
+
+/// Whether a literal is of the column's declared type.
+fn matches_type(value: &Literal, column_type: ColumnType) -> bool {
+    matches!(
+        (value, column_type),
+        (Literal::Int(_), ColumnType::Int)
+            | (Literal::Bool(_), ColumnType::Bool)
+            | (Literal::String(_), ColumnType::String)
+    )
+}
+
+/// Advance a mixed-radix counter (last digit fastest); `false` when it
+/// wraps, meaning every combination was visited.
+fn increment(digits: &mut [usize], widths: &[usize]) -> bool {
+    for (digit, width) in digits.iter_mut().zip(widths).rev() {
+        *digit += 1;
+        if *digit < *width {
+            return true;
+        }
+        *digit = 0;
+    }
+    false
+}
+
+/// Evaluate a predicate on one input aligned to `domain`'s column order.
+/// The presentation is assumed well-typed (the parser enforces it); a
+/// column or literal outside the domain evaluates as false rather than
+/// panicking.
+pub fn evaluate(predicate: &Predicate, input: &[Literal], domain: &RuleDomain) -> bool {
+    match predicate {
+        Predicate::Cmp { column, op, value } => domain
+            .value(input, column)
+            .is_some_and(|actual| compare(actual, value, *op)),
+        Predicate::Mod {
+            column,
+            modulus,
+            equals,
+        } => {
+            let Some(Literal::Int(value)) = domain.value(input, column) else {
+                return false;
+            };
+            *modulus > 0 && value.rem_euclid(*modulus) == *equals
+        }
+        Predicate::And(args) => args.iter().all(|arg| evaluate(arg, input, domain)),
+        Predicate::Or(args) => args.iter().any(|arg| evaluate(arg, input, domain)),
+        Predicate::Not(arg) => !evaluate(arg, input, domain),
+    }
+}
+
+/// One typed comparison. Strings compare byte-wise (Rust `str` order);
+/// bools order `false < true`; mismatched literal types are unequal and
+/// unordered.
+fn compare(left: &Literal, right: &Literal, op: CmpOp) -> bool {
+    match (left, right) {
+        (Literal::Int(left), Literal::Int(right)) => ordered(left, right, op),
+        (Literal::Bool(left), Literal::Bool(right)) => ordered(left, right, op),
+        (Literal::String(left), Literal::String(right)) => ordered(left, right, op),
+        _ => matches!(op, CmpOp::Ne),
+    }
+}
+
+/// Apply a comparison operator to two ordered values.
+fn ordered<T: Ord>(left: &T, right: &T, op: CmpOp) -> bool {
+    match op {
+        CmpOp::Eq => left == right,
+        CmpOp::Ne => left != right,
+        CmpOp::Lt => left < right,
+        CmpOp::Le => left <= right,
+        CmpOp::Gt => left > right,
+        CmpOp::Ge => left >= right,
+    }
+}

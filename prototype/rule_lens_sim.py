@@ -109,14 +109,14 @@ def find_derivable(table, regions):
     ]
 
 
-def mapped_kinds(policy, gap, overlaps, shadow, derivable):
+def mapped_kinds(report: dict):
     """design.md Decision 1's taxonomy mapping, in finding order."""
-    kinds = [("gap", "underconstraint", "hypothesized")] if gap else []
-    if overlaps:
+    kinds = [("gap", "underconstraint", "hypothesized")] if report["gap"] else []
+    if report["overlaps"]:
         violation = ("overlap", "violation", "accepted")
-        kinds.append(violation if policy == "DeclaredDisjoint" else ("overlap", None, None))
-    kinds += [("shadow", "redundant", "accepted") for _ in shadow or ()]
-    kinds += [("derivable", "redundant", "accepted") for _ in derivable]
+        kinds.append(violation if report["policy"] == "DeclaredDisjoint" else ("overlap", None, None))
+    kinds += [("shadow", "redundant", "accepted") for _ in report["shadow"] or ()]
+    kinds += [("derivable", "redundant", "accepted") for _ in report["derivable"]]
     return tuple(kinds)
 
 
@@ -133,7 +133,8 @@ def analyze(table, domain):
     derivable = find_derivable(table, regions)
     return {"inputs": inputs, "regions": regions, "effective": effective, "gap": gap,
             "overlaps": overlaps, "shadow": shadow, "derivable": derivable,
-            "kinds": mapped_kinds(policy, gap, overlaps, shadow, derivable)}
+            "kinds": mapped_kinds({"policy": policy, "gap": gap, "overlaps": overlaps,
+                                      "shadow": shadow, "derivable": derivable})}
 
 
 def induced_action(table, names, inputs):

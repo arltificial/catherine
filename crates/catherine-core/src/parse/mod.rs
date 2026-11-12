@@ -56,46 +56,42 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
     spans.semantic(pointer, code, message)
 }
 
+/// The parse composition, step by step (each step delegated):
+/// 1. version gate — unknown majors are never interpreted, not a partial
+///    or guessed parse;
+/// 2. required top-level sections — structural;
+/// 3. schema objects — charset and duplicate idents (second occurrence);
+/// 4. schema arrows — name charset + duplicates, src/tgt charset and
+///    declaredness (the stable `unknown_arrow` is about equation paths);
+/// 5. equations — path idents, declared arrows, endpoint typing, status,
+///    canonical order (file order is presentation — Decision 4);
+/// 6. instance rows — repeated JSON keys caught from the span scan before
+///    serde's last-wins map can drop them; object keys declared; row
+///    idents checked per list;
+/// 7. instance tables — repeated keys, declared arrows, declared src
+///    rows, values that are declared target rows or `null`;
+/// 8. schema map (additive 1.1) — declared data only, totality over the
+///    declared source elements, targets declared (absent = hash-neutral);
+/// 9. rule presentation (additive 1.2) — declared domain, typed columns,
+///    decidable predicates, required actions, declared policy (absent =
+///    hash-neutral);
+/// 10. the normalized model — dense rows, total value vectors, canonical
+///     equation order; presentation names never reach it.
 fn validate(doc: RawDoc, spans: &Spans) -> Result<Model, ParseError> {
-    // 1. The version gate: content under an unknown major is never
-    // interpreted — not a partial or guessed parse.
     let version = check_version(&doc, spans)?;
-    // 2. Required top-level sections — structural.
     let Some(schema) = doc.schema else {
         return Err(spans.syntax("", "missing required field `schema`"));
     };
     let Some(instance) = doc.instance else {
         return Err(spans.syntax("", "missing required field `instance`"));
     };
-    // 3. Schema objects: charset and duplicate idents (second occurrence).
     let objects = check_objects(&schema, spans)?;
-    // 4. Schema arrows: name charset + duplicates; src/tgt charset and
-    // declaredness (structural — the stable `unknown_arrow` is about
-    // equation paths).
     let arrows = check_arrows(&schema, &objects, spans)?;
-    // 5. Equations: path idents, declared arrows, endpoint typing, status;
-    // canonical order (equation list order in the file is presentation —
-    // design Decision 4).
     let equations = check_equations(&schema, &arrows, spans)?;
-    // 6. Instance rows: repeated JSON keys (dropped silently by serde's
-    // last-wins map) are caught from the span scan before they can be
-    // lost; object keys must be declared; row idents checked per list.
     let row_index = check_rows(&instance, &objects, spans)?;
-    // 7. Instance tables: repeated keys, declared arrows, declared src
-    // rows, and values that are declared target rows or `null`.
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
-    // 8. The schema map (additive 1.1): declared data only — totality
-    // over the declared source objects and arrows, targets declared in
-    // the target schema. Absent in every pre-map document (hash-neutral).
     let schema_map = declared_schema_map(&doc.schema_map, &objects, &arrows, spans)?;
-    // 9. The rule presentation (additive 1.2): a declared input domain,
-    // typed attribute columns, rules with decidable predicates and required
-    // actions, and a declared policy (never defaulted). Absent in every
-    // pre-rule document (hash-neutral).
     let rule_presentation = declared_rule_presentation(&doc.rule_presentation, &objects, spans)?;
-    // 10. The normalized model: dense rows per declared object, total
-    // value vectors, canonical equation order. Presentation names never
-    // reach it.
     Ok(build_model(
         version,
         objects,

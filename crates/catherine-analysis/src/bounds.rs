@@ -7,23 +7,24 @@
 //! configurable caps (candidate budget, path length, rewrite steps) as
 //! configured values rather than magic numbers scattered through the
 //! engines, with the defaults documented in the crate README's
-//! decidability-boundary section; and the three witness builders —
-//! one construction site per P2 analysis finding shape, so no op can
-//! drift from the taxonomy's label/witness contract.
+//! decidability-boundary section; and the witness builders — one
+//! construction site per P2 analysis finding shape, so no op can drift
+//! from the taxonomy's label/witness contract (the P8 rule lens's
+//! `UncoveredInputs` gap builder is the fourth).
 //!
 //! Rationale: the honesty contract lives in types: bounds are inputs,
 //! a scope names exactly what was explored, and every finding the ops
 //! emit is built once here — `executed` for the proven results
 //! (contradiction-by-completed-exhaustion, redundant-by-derivation),
-//! `hypothesized` for the domain question, with the P2 witness shapes
-//! verbatim. No new finding kinds; `UncoveredInputs` stays P8-reserved
-//! and has no builder here.
+//! `hypothesized` for the domain questions, with the P2 witness shapes
+//! verbatim. No new finding kinds: `UncoveredInputs` was P8-reserved and
+//! is now produced only by the rule lens, through the builder here.
 
 use catherine_core::findings::{
     ContradictionWitness, DomainQuestion, EpistemicLabel, Finding, FindingKind, RedundantWitness,
     UnderconstraintWitness,
 };
-use catherine_core::model::{Ident, Path};
+use catherine_core::model::{Ident, Path, RowId};
 use std::collections::BTreeMap;
 
 /// The caller-supplied bounds: per-object row counts of the searched
@@ -109,6 +110,24 @@ pub fn parallel_paths_finding(lhs: Path, rhs: Path) -> Finding {
         kind: FindingKind::Underconstraint(UnderconstraintWitness {
             case: DomainQuestion::ParallelPaths { lhs, rhs },
             question: PARALLEL_PATHS_QUESTION.to_string(),
+        }),
+    }
+}
+
+/// The question every rule-lens gap raises — the input class is named in
+/// the witness; the question stays fixed across classes.
+pub const UNCOVERED_INPUTS_QUESTION: &str = "which action applies? no rule covers this input class";
+
+/// The underconstraint finding for a rule-lens gap — `UncoveredInputs`
+/// with the class name and its example inputs (dense enumeration
+/// indices), `hypothesized` until totality is declared (design.md
+/// Decision 1). The P8 rule lens is the only producer of this arm.
+pub fn uncovered_inputs_finding(class: String, examples: Vec<RowId>) -> Finding {
+    Finding {
+        label: EpistemicLabel::Hypothesized,
+        kind: FindingKind::Underconstraint(UnderconstraintWitness {
+            case: DomainQuestion::UncoveredInputs { class, examples },
+            question: UNCOVERED_INPUTS_QUESTION.to_string(),
         }),
     }
 }

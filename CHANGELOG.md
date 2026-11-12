@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rule lens phase B (P8, `catherine-nq5`, HYPOTHESIZED): the semantic
+  kernel in `catherine-core::rule_lens` — a validated finite `RuleDomain`
+  over the declared typed columns, predicate evaluation (`mod` as a
+  non-negative remainder, byte-wise strings), R_i regions, effective
+  regions E_i = R_i \ ⋃_{j<i} R_j under `PriorityOrder`/`FirstMatch`
+  (unchanged regions under `DeclaredDisjoint`, absent under no policy),
+  gap/overlap/shadow/derivable detection, budget-bounded enumeration
+  (`UNKNOWN { scope }` on expiry, empty scope for a zero budget), and
+  rule-table equivalence with a first-differing-input witness. Sim/kernel
+  parity is pinned by the oracle's seven analysis and four equivalence
+  cases as Rust tests. `catherine-analysis::rule_lens` maps the four
+  classes onto the existing taxonomy — gap → underconstraint
+  (`hypothesized`, the reserved `UncoveredInputs` arm), overlap under
+  `DeclaredDisjoint` → violation (`executed`), shadow/derivable →
+  redundant (`executed`) — with no new finding variants; priority
+  policies and absent policies emit no overlap finding. Equivalence
+  discovery support, CLI surface, and the pre-registered validation
+  katas remain later phases.
+
 - Rule lens phase A (P8, `catherine-nq5`, HYPOTHESIZED): the additive
   `format_version` 1.2 `rule_presentation` section in `catherine-core` —
   input domain X as typed attribute columns (`int`/`bool`/`string`,
