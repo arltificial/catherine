@@ -1,0 +1,19 @@
+{
+  "name": "catherine-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Catherine's read-mostly static web view over the wasm boundary — no framework, no server",
+  "scripts": {
+    "generate:types": "node scripts/generate-types.mjs",
+    "build": "npm run generate:types && esbuild src/app.ts --bundle --format=esm --outfile=dist/app.js && cp index.html style.css dist/",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -34,6 +34,11 @@ jobs:
       - name: Gate — fmt / clippy -D warnings / tests (incl. conformance)
         run: just ci
 
+      - name: Gate — wasm32 compile-only, kernel stays wasm-optional (add-wasm-web-view task 4)
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo check -p catherine-wasm --target wasm32-unknown-unknown
+
       - name: Gate — openspec validate, all changes, strict
         run: openspec validate --changes --strict --no-interactive
 

@@ -1,0 +1,34 @@
+/* Catherine's static view — plain CSS, no framework (add-wasm-web-view). */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+}
+body { max-width: 60rem; margin: 0 auto 4rem; padding: 0 1rem; }
+h1 { font-size: 1.4rem; }
+h2 { font-size: 1.1rem; border-bottom: 1px solid currentColor; padding-bottom: 0.2rem; }
+.note { color: gray; font-size: 0.9rem; }
+#doc { width: 100%; font-family: ui-monospace, monospace; white-space: pre; }
+.error-line { color: crimson; font-weight: 600; }
+
+/* Findings panel: one row per finding — kind, label, witness. */
+ul.findings { list-style: none; padding: 0; display: grid; gap: 0.4rem; }
+li.finding {
+  border: 1px solid currentColor;
+  border-left-width: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+li.finding .kind { font-family: ui-monospace, monospace; font-weight: 700; }
+li.finding .label { font-size: 0.85rem; color: gray; font-variant: small-caps; }
+li.finding .witness { font-family: ui-monospace, monospace; font-size: 0.9rem; }
+
+/* Schema graph. */
+#schema-graph { width: 100%; height: auto; border: 1px solid currentColor; }
+#schema-graph .node-circle { fill: none; stroke: currentColor; stroke-width: 1.5; }
+#schema-graph .node-label { font-size: 0.8rem; }
+#schema-graph .edge line { stroke: currentColor; stroke-width: 1.2; }
+#schema-graph .edge-label { font-size: 0.7rem; fill: gray; }

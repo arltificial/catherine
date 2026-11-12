@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- wasm boundary + minimal web view (P5, `catherine-9b5`): `crates/catherine-wasm`
+  (`check`/`analyze` JSON in/out over the kernel's own findings encoding,
+  512 KiB document cap enforced before the kernel is invoked with a typed
+  `code`-tagged error, `analyze` reports the search outcome discriminator —
+  witness findings never collapse into silence); `web/` static site (no
+  framework, no server): JSON-textarea document, file load/save, SVG schema
+  graph, findings panel rendering kind + epistemic label + witness; TS types
+  generated from `ct-schema-v1.json`; wasm32 compile-only gate in `just ci`
+  and CI; parity test pins browser and terminal to identical finding
+  encodings across the fixture corpus (19 fixtures).
 - `docs/THEORY.md` — theory documentation: each categorical construction
   (schemas, instances/functors, path equations, findings taxonomy,
   migration, rule lens), what it buys, where validated, reading order

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>catherine — model view</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>catherine — model view</h1>
+    <p class="note">
+      The JSON textarea is the document; every panel below is a view of it.
+      The kernel runs in your browser tab over the wasm boundary — nothing
+      is uploaded, no server exists.
+    </p>
+
+    <section id="editor">
+      <h2>Model document</h2>
+      <label for="file">Load .ct.json</label>
+      <input type="file" id="file" accept=".json,application/json" />
+      <button type="button" id="save-btn">Save</button>
+      <button type="button" id="check-btn">Check</button>
+      <textarea id="doc" rows="18" spellcheck="false" aria-label="model document JSON"></textarea>
+    </section>
+
+    <section id="error" aria-live="polite"></section>
+
+    <section id="findings">
+      <h2>Findings</h2>
+      <div id="findings-panel"></div>
+    </section>
+
+    <section id="schema">
+      <h2>Schema graph</h2>
+      <svg id="schema-graph" role="img" aria-label="schema graph"></svg>
+    </section>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

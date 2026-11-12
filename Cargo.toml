@@ -1,3 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["crates/catherine-core", "crates/catherine-analysis", "crates/catherine-cli"]
+members = [
+    "crates/catherine-core",
+    "crates/catherine-analysis",
+    "crates/catherine-cli",
+    "crates/catherine-wasm",
+]
