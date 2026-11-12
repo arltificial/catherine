@@ -146,15 +146,188 @@ pub struct SchemaMap {
     pub arrows: BTreeMap<Ident, Option<Path>>,
 }
 
+/// One declared attribute column of the rule presentation's input domain
+/// X (format 1.2, add-rule-lens phase A). `Int` values are `i64`, `Bool`
+/// is a two-valued domain, and `String` ordering is byte-wise (UTF-8,
+/// locale-independent, deterministic — design.md Decision 2: no collation).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColumnType {
+    Int,
+    Bool,
+    String,
+}
+
+impl ColumnType {
+    /// The document spelling (also the canonical sort key, though columns
+    /// are keyed by name).
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Int => "int",
+            Self::Bool => "bool",
+            Self::String => "string",
+        }
+    }
+
+    /// The declared type for a document spelling; `None` for anything
+    /// outside the three-value enum.
+    pub fn parse(text: &str) -> Option<Self> {
+        match text {
+            "int" => Some(Self::Int),
+            "bool" => Some(Self::Bool),
+            "string" => Some(Self::String),
+            _ => None,
+        }
+    }
+}
+
+/// A comparison operator of the rule presentation's predicate language
+/// (the tiny decidable language of DESIGN §4.4: comparisons, ∧ ∨ ¬, mod —
+/// deliberately not a logic, design.md Decision 2). Boolean columns admit
+/// only `Eq`/`Ne`; int and string columns admit all six.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CmpOp {
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+}
+
+impl CmpOp {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Eq => "eq",
+            Self::Ne => "ne",
+            Self::Lt => "lt",
+            Self::Le => "le",
+            Self::Gt => "gt",
+            Self::Ge => "ge",
+        }
+    }
+
+    /// The operator for a document spelling; `None` for an unknown one.
+    pub fn parse(text: &str) -> Option<Self> {
+        match text {
+            "eq" => Some(Self::Eq),
+            "ne" => Some(Self::Ne),
+            "lt" => Some(Self::Lt),
+            "le" => Some(Self::Le),
+            "gt" => Some(Self::Gt),
+            "ge" => Some(Self::Ge),
+            _ => None,
+        }
+    }
+}
+
+/// A predicate literal whose variant must agree with its column's
+/// [`ColumnType`] (the parser enforces the agreement; the type carries no
+/// re-check).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Literal {
+    Int(i64),
+    Bool(bool),
+    String(String),
+}
+
+/// A decidable predicate over the declared attribute columns: a typed
+/// comparison, an integer modulus test, or a boolean combination. This is
+/// the whole language — every extension must re-justify decidability
+/// (design.md Decision 2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Predicate {
+    /// `column op value`, with `value`'s variant matching the column type.
+    Cmp {
+        column: Ident,
+        op: CmpOp,
+        value: Literal,
+    },
+    /// `column mod modulus == equals`, on an int column with a positive
+    /// modulus (non-negative remainder).
+    Mod {
+        column: Ident,
+        modulus: i64,
+        equals: i64,
+    },
+    /// Conjunction of one or more predicates.
+    And(Vec<Predicate>),
+    /// Disjunction of one or more predicates.
+    Or(Vec<Predicate>),
+    /// Negation.
+    Not(Box<Predicate>),
+}
+
+/// One rule of a rule table: a name (witness-addressable), a decidable
+/// predicate (the subobject R_i of X), and the action assigned on it. The
+/// action is a required non-empty string — the action assignment must be a
+/// total function on X, so a rule without one is a labeled build error.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Rule {
+    pub name: Ident,
+    pub predicate: Predicate,
+    pub action: String,
+}
+
+/// The resolution policy of a rule table (design.md Decision 3: total and
+/// conventional). There is no implicit policy: `None` on the presentation
+/// means no declared precedence, never a default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Policy {
+    /// Lowest index wins on an intersection.
+    PriorityOrder,
+    /// Rule order as written wins.
+    FirstMatch,
+    /// Intersections are declared violations; there is no precedence.
+    DeclaredDisjoint,
+}
+
+impl Policy {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::PriorityOrder => "PriorityOrder",
+            Self::FirstMatch => "FirstMatch",
+            Self::DeclaredDisjoint => "DeclaredDisjoint",
+        }
+    }
+
+    /// The policy for a document spelling; `None` outside the enum.
+    pub fn parse(text: &str) -> Option<Self> {
+        match text {
+            "PriorityOrder" => Some(Self::PriorityOrder),
+            "FirstMatch" => Some(Self::FirstMatch),
+            "DeclaredDisjoint" => Some(Self::DeclaredDisjoint),
+            _ => None,
+        }
+    }
+}
+
+/// A rule table presented over the input domain X (DESIGN §4.4; format
+/// 1.2, add-rule-lens phase A). `domain` names the declared schema object
+/// the columns describe; `columns` is the attribute alphabet keyed by name
+/// (declaration order is presentation); `rules` is the ordered priority
+/// chain — its index *is* the rule's order, so rule order is semantic and
+/// never sorted away; `policy` is the declared resolution policy, absent
+/// when the table declares none. Effective regions E_i = R_i \ ⋃_{j<i} R_j
+/// are computed under a priority policy (analysis phase).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RulePresentation {
+    pub domain: Ident,
+    pub columns: BTreeMap<Ident, ColumnType>,
+    pub rules: Vec<Rule>,
+    pub policy: Option<Policy>,
+}
+
 /// A parsed `.ct.json` model document: version, schema, and instance.
-/// `schema_map` is the additive 1.1 section — absent (`None`) in every
-/// pre-map document, and skip-serialized (so hash-neutral) when absent.
+/// `schema_map` is the additive 1.1 section and `rule_presentation` the
+/// additive 1.2 section — both absent (`None`) in every earlier document,
+/// and skip-serialized (so hash-neutral) when absent.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Model {
     pub format_version: Version,
     pub schema: Schema,
     pub instance: Instance,
     pub schema_map: Option<SchemaMap>,
+    pub rule_presentation: Option<RulePresentation>,
 }
 
 impl Model {

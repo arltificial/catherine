@@ -4,44 +4,56 @@
 //! Responsibilities: gate JSON syntax through serde_json (its own
 //! line/column), locate every JSON node by pointer with a span scan so
 //! semantic errors carry the line/column of the *offending node*, and
-//! enforce the six stable error codes (`duplicate_ident`, `unknown_arrow`,
-//! `ill_typed_equation`, `invalid_ident`, `invalid_status`,
-//! `unsupported_version`) — the fixture harness's expected shape. Parse
+//! enforce the stable semantic error codes (`duplicate_ident`,
+//! `unknown_arrow`, `ill_typed_equation`, `invalid_ident`,
+//! `invalid_status`, `unsupported_version`, plus the named additive-section
+//! extensions) — the fixture harness's expected shape. Parse
 //! normalizes presentation away: row names become dense per-object ids in
 //! sorted order, equations are stored in canonical sorted order, and
 //! every declared arrow carries a total value vector (`None` = dangling).
 //!
 //! Rationale: design Decision 3 — "line-accurate" means the line/column of
 //! the offending JSON node, not of a bespoke text syntax. Structural
-//! malformations outside the six stable codes (missing required fields,
-//! JSON type mismatches, references to undeclared objects/arrows/rows)
-//! surface as `ParseError::Syntax` with a human message; the six codes are
-//! the stable semantic contract the golden fixtures pin. Dangling `null`
+//! malformations outside the stable codes (missing required fields, JSON
+//! type mismatches, references to undeclared objects/arrows/rows) surface
+//! as `ParseError::Syntax` with a human message; the codes are the stable
+//! semantic contract the golden fixtures pin. Dangling `null`
 //! references parse as `None` — a representable value, never dropped or
 //! repaired (acset-core `dangling_is_a_value`). Check order is the
 //! document order documented in the crate README, so an error is
 //! predictable, never order-dependent on the walk.
 
+mod predicate;
+mod rule_presentation;
 mod schema;
 mod schema_map;
 mod spans;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
-use crate::model::{Arrow, Equation, Ident, Instance, Model, RowId, Schema, SchemaMap, Version};
+use crate::model::{
+    Arrow, Equation, Ident, Instance, Model, RowId, RulePresentation, Schema, SchemaMap, Version,
+};
 use schema::{check_arrows, check_equations, check_ident, check_objects, check_version, RawDoc};
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
 
 /// Parse a `.ct.json` v1 model document. Accepted additive minors of the
-/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 0);
+/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 2);
 /// higher minors are rejected with `unsupported_version` — never guessed.
 /// Malformed presentations rejected with line-accurate
 /// errors. Check order (documented in the crate README): version →
-/// schema objects → arrows → equations → instance rows → tables.
+/// schema objects → arrows → equations → instance rows → tables →
+/// schema map → rule presentation.
 pub fn parse(text: &str) -> Result<Model, ParseError> {
     let doc: RawDoc = serde_json::from_str(text).map_err(syntax_err)?;
     let spans = scan_spans(text);
     validate(doc, &spans)
+}
+
+/// A labeled rejection at the offending node, shared by the additive-section
+/// passes (schema map, rule presentation, predicate language).
+fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> ParseError {
+    spans.semantic(pointer, code, message)
 }
 
 fn validate(doc: RawDoc, spans: &Spans) -> Result<Model, ParseError> {
@@ -58,7 +70,7 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<Model, ParseError> {
     // 3. Schema objects: charset and duplicate idents (second occurrence).
     let objects = check_objects(&schema, spans)?;
     // 4. Schema arrows: name charset + duplicates; src/tgt charset and
-    // declaredness (structural — the six-code `unknown_arrow` is about
+    // declaredness (structural — the stable `unknown_arrow` is about
     // equation paths).
     let arrows = check_arrows(&schema, &objects, spans)?;
     // 5. Equations: path idents, declared arrows, endpoint typing, status;
@@ -76,11 +88,23 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<Model, ParseError> {
     // over the declared source objects and arrows, targets declared in
     // the target schema. Absent in every pre-map document (hash-neutral).
     let schema_map = declared_schema_map(&doc.schema_map, &objects, &arrows, spans)?;
-    // 9. The normalized model: dense rows per declared object, total
+    // 9. The rule presentation (additive 1.2): a declared input domain,
+    // typed attribute columns, rules with decidable predicates and required
+    // actions, and a declared policy (never defaulted). Absent in every
+    // pre-rule document (hash-neutral).
+    let rule_presentation = declared_rule_presentation(&doc.rule_presentation, &objects, spans)?;
+    // 10. The normalized model: dense rows per declared object, total
     // value vectors, canonical equation order. Presentation names never
     // reach it.
     Ok(build_model(
-        version, objects, arrows, equations, row_index, values, schema_map,
+        version,
+        objects,
+        arrows,
+        equations,
+        row_index,
+        values,
+        schema_map,
+        rule_presentation,
     ))
 }
 
@@ -95,6 +119,21 @@ fn declared_schema_map(
     match doc_schema_map {
         Some(raw) => Ok(Some(schema_map::build_schema_map(
             raw, objects, arrows, spans,
+        )?)),
+        None => Ok(None),
+    }
+}
+
+/// The document's declared rule presentation, validated (additive 1.2) —
+/// `None` for every pre-rule document (hash-neutral).
+fn declared_rule_presentation(
+    doc_rule_presentation: &Option<rule_presentation::RawRulePresentation>,
+    objects: &BTreeMap<Ident, ()>,
+    spans: &Spans,
+) -> Result<Option<RulePresentation>, ParseError> {
+    match doc_rule_presentation {
+        Some(raw) => Ok(Some(rule_presentation::build_rule_presentation(
+            raw, objects, spans,
         )?)),
         None => Ok(None),
     }
@@ -278,6 +317,7 @@ fn build_model(
     row_index: BTreeMap<String, BTreeMap<String, RowId>>,
     values: BTreeMap<Ident, Vec<Option<RowId>>>,
     schema_map: Option<SchemaMap>,
+    rule_presentation: Option<RulePresentation>,
 ) -> Model {
     let rows_out = objects
         .keys()
@@ -299,6 +339,7 @@ fn build_model(
             values,
         },
         schema_map,
+        rule_presentation,
     }
 }
 

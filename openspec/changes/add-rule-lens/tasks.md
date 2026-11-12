@@ -5,15 +5,15 @@ killable per design.md Decision 4.
 
 ## RED (sim-first per Decision 5)
 
-- [ ] 1. Python sim: effective regions + equivalence laws vs
+- [x] 1. Python sim: effective regions + equivalence laws vs
       hand-computed tables (the oracle); commit as prototype
-- [ ] 2. Golden fixtures: gap, overlap-under-DeclaredDisjoint, shadow,
+- [x] 2. Golden fixtures: gap, overlap-under-DeclaredDisjoint, shadow,
       derivable — each asserting the mapped taxonomy kind from
       design.md Decision 1
 
 ## GREEN
 
-- [ ] 3. Attribute columns + predicate expression language (additive
+- [x] 3. Attribute columns + predicate expression language (additive
       format extension + JSON Schema update)
 - [ ] 4. `RulePresentation` types + policy semantics (total, no implicit
       precedence)

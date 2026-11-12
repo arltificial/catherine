@@ -3,11 +3,12 @@
 //!
 //! Responsibilities: convert a kernel [`ParseError`] into the CLI's
 //! [`LabeledError`]; render the position suffix and the human head
-//! line; keep the closed remediation-hint table for P0's six codes.
+//! line; keep the remediation-hint table for the kernel's closed,
+//! named-ticket-extended code set.
 //!
 //! Rationale: the CLI renders existing codes and never extends them
-//! (P0's six-code enum is closed); errors are labeled two-liners, never
-//! a stack trace.
+//! (the kernel enum is closed; additive-section extensions arrive with
+//! their own hints); errors are labeled two-liners, never a stack trace.
 
 use catherine_core::error::{ErrorCode, ParseError};
 
@@ -15,9 +16,9 @@ use catherine_core::error::{ErrorCode, ParseError};
 /// kernel or the filesystem pins one, the kernel's message verbatim,
 /// and a remediation hint. Never a stack trace.
 pub struct LabeledError {
-    /// The stable code: one of P0's six codes spelled as the fixtures
-    /// pin them, or `syntax` for JSON-structural malformations, or
-    /// `read_error` for an unreadable input path.
+    /// The stable code: one of the kernel's closed semantic codes spelled
+    /// as the fixtures pin it, or `syntax` for JSON-structural
+    /// malformations, or `read_error` for an unreadable input path.
     pub code: String,
     /// 1-based line of the offending node, when known.
     pub line: Option<usize>,
@@ -33,7 +34,8 @@ impl LabeledError {
     /// The kernel's labeled error data under the CLI's rendering: the
     /// stable code string, the position, the message verbatim, and the
     /// hint from the closed table. The CLI renders existing codes; it
-    /// never extends them (P0's six-code enum is closed).
+    /// never extends them (the kernel's closed enum gains codes only by
+    /// named ticket).
     pub fn from_parse(err: &ParseError) -> Self {
         match err {
             ParseError::Syntax {
@@ -94,10 +96,24 @@ fn hint_for_code(code: ErrorCode) -> &'static str {
         ErrorCode::InvalidIdent => "idents match [A-Za-z_][A-Za-z0-9_]*",
         ErrorCode::InvalidStatus => "status is one of: accepted, proposed",
         ErrorCode::UnsupportedVersion => {
-            "set format_version to \"1.1\" — the known version is 1.1; raise KNOWN_MINOR when new additive semantics land"
+            "set format_version to \"1.2\" — the known version is 1.2; raise KNOWN_MINOR when new additive semantics land"
         }
         ErrorCode::PartialSchemaMap => {
             "a schema map must be total: assign every declared source object and arrow — map it to the target, or to null to drop it explicitly"
         }
+        ErrorCode::UndeclaredRuleDomain => {
+            "declare the rule presentation's domain in schema.objects, or fix the domain spelling"
+        }
+        ErrorCode::InvalidColumnType => "column types are one of: int, bool, string",
+        ErrorCode::UnknownColumn => {
+            "declare the column in rule_presentation.columns, or fix the predicate spelling"
+        }
+        ErrorCode::InvalidPredicate => {
+            "predicates are comparisons, mod, and/or/not over declared columns; a comparison literal must match its column's type"
+        }
+        ErrorCode::InvalidPolicy => {
+            "policy is one of: PriorityOrder, FirstMatch, DeclaredDisjoint (omit it to declare no precedence)"
+        }
+        ErrorCode::MissingAction => "every rule must assign a non-empty action",
     }
 }

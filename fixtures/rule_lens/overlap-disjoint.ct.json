@@ -1,0 +1,21 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Input"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [{"name": "amount", "type": "int"}],
+    "rules": [
+      {"name": "small", "predicate": {"kind": "cmp", "column": "amount", "op": "le", "value": 100}, "action": "small"},
+      {"name": "large", "predicate": {"kind": "cmp", "column": "amount", "op": "ge", "value": 100}, "action": "large"}
+    ],
+    "policy": "DeclaredDisjoint"
+  }
+}

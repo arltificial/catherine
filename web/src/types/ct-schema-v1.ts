@@ -6,6 +6,38 @@ export type Ident = string;
 
 export type Path = Array<Ident>;
 
+export type Column = {
+  "name": Ident;
+  "type": "int" | "bool" | "string";
+};
+
+export type Rule = {
+  "name": Ident;
+  "predicate": Predicate;
+  "action": string;
+};
+
+export type Predicate = ({
+  "kind": "cmp";
+  "column": Ident;
+  "op": "eq" | "ne" | "lt" | "le" | "gt" | "ge";
+  "value": unknown;
+}) | ({
+  "kind": "mod";
+  "column": Ident;
+  "modulus": unknown;
+  "equals": unknown;
+}) | ({
+  "kind": "and";
+  "args": Array<Predicate>;
+}) | ({
+  "kind": "or";
+  "args": Array<Predicate>;
+}) | ({
+  "kind": "not";
+  "arg": Predicate;
+});
+
 export type CtSchemaV1Document = {
   "format_version": string;
   "schema": {
@@ -43,5 +75,11 @@ export type CtSchemaV1Document = {
 };
   "objects": Record<string, (null) | (Ident)>;
   "arrows": Record<string, (null) | (Array<Ident>)>;
+};
+  "rule_presentation"?: {
+  "domain": Ident;
+  "columns": Array<Column>;
+  "rules": Array<Rule>;
+  "policy"?: "PriorityOrder" | "FirstMatch" | "DeclaredDisjoint";
 };
 };

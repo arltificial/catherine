@@ -1,0 +1,24 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Input"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [{"name": "age", "type": "int"}],
+    "rules": [
+      {"name": "kid", "predicate": {"kind": "cmp", "column": "age", "op": "lt", "value": 18}, "action": "kid"},
+      {"name": "adult", "predicate": {"kind": "and", "args": [
+        {"kind": "cmp", "column": "age", "op": "ge", "value": 18},
+        {"kind": "cmp", "column": "age", "op": "lt", "value": 65}
+      ]}, "action": "adult"}
+    ],
+    "policy": "PriorityOrder"
+  }
+}

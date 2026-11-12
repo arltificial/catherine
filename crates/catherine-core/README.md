@@ -43,6 +43,18 @@ Implemented per openspec changes `add-model-document-kernel` (beads
   classification is a check, P1). An unspecified cell parses as `null`.
 - Unknown top-level or section keys are ignored: additive minors of v1
   may introduce optional fields without breaking this parser.
+- `rule_presentation` — the additive **1.2** section (rule lens):
+  `domain` names a declared schema object, `columns` declares the typed
+  attribute alphabet (`int` | `bool` | `string`; string order is byte-wise,
+  no collation), `rules` is the priority chain (`name`, decidable
+  `predicate`, required non-empty `action`), and `policy` is
+  `PriorityOrder` | `FirstMatch` | `DeclaredDisjoint`. Predicates are a
+  tiny decidable language: typed comparisons (`eq ne lt le gt ge`; bool
+  only `eq`/`ne`), `mod` on int columns with a positive modulus, and
+  `and`/`or`/`not`. **No implicit precedence**: an absent (or `null`)
+  `policy` stays absent, so only gap/overlap diagnostics apply. Every
+  rule must assign an action — the action assignment is a required total
+  function on X.
 
 Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
 
@@ -50,8 +62,9 @@ Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
 
 - **Additive change = minor version** (new optional fields, new instance
   sections that old parsers may ignore). The parser accepts additive
-  minors of the current major **only up to `KNOWN_MINOR`** (currently 0,
-  i.e. `1.0`): a minor greater than `KNOWN_MINOR` means semantics this
+  minors of the current major **only up to `KNOWN_MINOR`** (currently 2,
+  i.e. `1.2` — 1.1 added `schema_map`, 1.2 added `rule_presentation`): a
+  minor greater than `KNOWN_MINOR` means semantics this
   build doesn't know, so it is rejected with `unsupported_version`
   (no-guessed-parse rule) until the build is updated.
 - **Breaking change = a new extension** (a new file extension with its own
@@ -62,7 +75,9 @@ Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
   guessed parse.
 - **Audit (catherine-348):** the raw document structs
   (`src/parse/schema.rs`: `RawDoc`, `RawSchema`, `RawArrow`,
-  `RawEquation`, `RawInstance`) are serde `Deserialize` **without**
+  `RawEquation`, `RawInstance`; `src/parse/schema_map.rs`:
+  `RawSchemaMap`; `src/parse/rule_presentation.rs`: `RawRulePresentation`)
+  are serde `Deserialize` **without**
   `deny_unknown_fields` (zero occurrences workspace-wide), so unknown
   JSON keys are silently ignored — the deliberate additive-minor policy
   above, kept and documented per the catherine-51v precedent (no
@@ -85,12 +100,20 @@ stable, closed set:
 | `invalid_ident` | an identifier violates `[A-Za-z_][A-Za-z0-9_]*` — position at the ident node |
 | `invalid_status` | an equation `status` is outside `{proposed, accepted}` |
 | `unsupported_version` | `format_version` absent, malformed, or of an unknown major |
+| `partial_schema_map` | a schema map (1.1) fails to assign every declared source object or arrow, or assigns an undeclared element — the message names the unmapped element |
+| `undeclared_rule_domain` | a rule presentation (1.2) names a `domain` that is not a declared schema object |
+| `invalid_column_type` | a rule presentation column's `type` is outside `{int, bool, string}` |
+| `unknown_column` | a predicate references a column the presentation does not declare |
+| `invalid_predicate` | a predicate is malformed or ill-typed: unknown `kind`/operator, a literal of the wrong JSON type, `mod` outside int columns, a non-positive modulus, or an empty `and`/`or` |
+| `invalid_policy` | a present `policy` is outside `{PriorityOrder, FirstMatch, DeclaredDisjoint}` (an absent or `null` policy is legal and means no precedence) |
+| `missing_action` | a rule has no action (or an empty one) — the action assignment must be total on X |
 
 Structural malformations outside this set (missing required fields, JSON
 type mismatches, references to undeclared objects/rows, empty equation
-paths) are `Syntax` errors with a human message and a position; the six
-codes above are the stable semantic contract. Check order is the document
-order: version → objects → arrows → equations → rows → tables.
+paths) are `Syntax` errors with a human message and a position; the codes
+above are the stable semantic contract. Check order is the document
+order: version → objects → arrows → equations → rows → tables →
+schema map → rule presentation.
 
 ## Canonical form and hashing
 

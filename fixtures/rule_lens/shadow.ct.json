@@ -1,0 +1,21 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Input"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [{"name": "n", "type": "int"}],
+    "rules": [
+      {"name": "all", "predicate": {"kind": "cmp", "column": "n", "op": "ge", "value": 1}, "action": "default"},
+      {"name": "even", "predicate": {"kind": "mod", "column": "n", "modulus": 2, "equals": 0}, "action": "even"}
+    ],
+    "policy": "FirstMatch"
+  }
+}

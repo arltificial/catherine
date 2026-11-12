@@ -152,6 +152,31 @@
           }
         }
       }
+    },
+    "rule_presentation": {
+      "type": "object",
+      "description": "Additive 1.2 (rule lens, add-rule-lens phase A): the input domain X as typed attribute columns plus a rule table with a declared resolution policy. Domain declaredness, column typing, predicate typing, and action totality are kernel-side (undeclared_rule_domain / invalid_column_type / unknown_column / invalid_predicate / invalid_policy / missing_action); this artifact covers only the syntactic surface.",
+      "required": ["domain", "columns", "rules"],
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/ident",
+          "description": "The declared schema object the columns describe. Declaredness is kernel-side."
+        },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/column" }
+        },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/rule" },
+          "description": "The priority chain: array order is the rule order (semantic), never sorted by the kernel."
+        },
+        "policy": {
+          "enum": ["PriorityOrder", "FirstMatch", "DeclaredDisjoint"],
+          "description": "Absent means no declared precedence — never a default."
+        }
+      }
     }
   },
   "$defs": {
@@ -164,6 +189,93 @@
       "items": { "$ref": "#/$defs/ident" },
       "minItems": 1,
       "description": "A composable arrow sequence; whether every arrow is declared and the endpoints match is kernel-side (unknown_arrow / ill_typed_equation)."
+    },
+    "column": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/ident" },
+        "type": { "enum": ["int", "bool", "string"] }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": ["name", "predicate", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/ident" },
+        "predicate": { "$ref": "#/$defs/predicate" },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required: the action assignment must be a total function on X (kernel-side missing_action for an absent or empty action)."
+        }
+      }
+    },
+    "predicate": {
+      "description": "The tiny decidable predicate language (design.md Decision 2): typed comparisons, an integer modulus test, and ∧ ∨ ¬. Literal typing against the column is kernel-side (invalid_predicate).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "column", "op", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["cmp"] },
+            "column": { "$ref": "#/$defs/ident" },
+            "op": { "enum": ["eq", "ne", "lt", "le", "gt", "ge"] },
+            "value": {
+              "description": "The comparison literal: integer for an int column, boolean for a bool column, string for a string column (int → integer; bool → boolean; string → string). Type agreement is kernel-side."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "column", "modulus", "equals"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["mod"] },
+            "column": { "$ref": "#/$defs/ident" },
+            "modulus": { "type": "integer" },
+            "equals": { "type": "integer" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "args"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["and"] },
+            "args": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/predicate" },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "args"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["or"] },
+            "args": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/predicate" },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "arg"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["not"] },
+            "arg": { "$ref": "#/$defs/predicate" }
+          }
+        }
+      ]
     }
   }
 }

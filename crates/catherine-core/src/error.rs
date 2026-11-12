@@ -14,8 +14,9 @@
 //! serde_json's own line/column and a human message.
 
 /// The stable semantic error codes. Closed at P0; extended only by a
-/// named ticket — `partial_schema_map` is the one extension so far
-/// (openspec change `add-delta-migration` phase A).
+/// named ticket — `partial_schema_map` (openspec change
+/// `add-delta-migration` phase A) and the rule-presentation codes
+/// (openspec change `add-rule-lens` phase A) are the extensions so far.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     DuplicateIdent,
@@ -27,6 +28,20 @@ pub enum ErrorCode {
     /// A schema map that fails to assign every declared source object or
     /// arrow — never repaired with a silent default.
     PartialSchemaMap,
+    /// A rule presentation's `domain` names no declared schema object.
+    UndeclaredRuleDomain,
+    /// A rule presentation column's `type` is outside `int`/`bool`/`string`.
+    InvalidColumnType,
+    /// A predicate references a column the presentation does not declare.
+    UnknownColumn,
+    /// A predicate is malformed or ill-typed (unknown kind or operator, a
+    /// literal of the wrong type, `mod` misuse, empty `and`/`or`).
+    InvalidPredicate,
+    /// A presentation policy is outside the three declared policies.
+    InvalidPolicy,
+    /// A rule assigns no action — the action must be a total function on
+    /// the input domain.
+    MissingAction,
 }
 
 impl ErrorCode {
@@ -40,6 +55,12 @@ impl ErrorCode {
             Self::InvalidStatus => "invalid_status",
             Self::UnsupportedVersion => "unsupported_version",
             Self::PartialSchemaMap => "partial_schema_map",
+            Self::UndeclaredRuleDomain => "undeclared_rule_domain",
+            Self::InvalidColumnType => "invalid_column_type",
+            Self::UnknownColumn => "unknown_column",
+            Self::InvalidPredicate => "invalid_predicate",
+            Self::InvalidPolicy => "invalid_policy",
+            Self::MissingAction => "missing_action",
         }
     }
 }

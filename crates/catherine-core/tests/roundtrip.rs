@@ -93,6 +93,7 @@ fn build_model(
         },
         instance: Instance { rows, values },
         schema_map: None,
+        rule_presentation: None,
     }
 }
 

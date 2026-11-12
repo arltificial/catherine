@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rule lens phase A (P8, `catherine-nq5`, HYPOTHESIZED): the additive
+  `format_version` 1.2 `rule_presentation` section in `catherine-core` —
+  input domain X as typed attribute columns (`int`/`bool`/`string`,
+  byte-wise string order), rules with a tiny decidable predicate language
+  (typed comparisons, `mod`, `and`/`or`/`not`) and a required non-empty
+  action, and an explicit `PriorityOrder`/`FirstMatch`/`DeclaredDisjoint`
+  policy that is never defaulted; six labeled parse codes
+  (`undeclared_rule_domain`, `invalid_column_type`, `unknown_column`,
+  `invalid_predicate`, `invalid_policy`, `missing_action`); the section
+  is skip-serialized when absent, so every pre-rule document's
+  `model_hash` is pinned unchanged (the hash-stability guard);
+  `KNOWN_MINOR` raised 1→2 per convention; ct-schema-v1.json +
+  regenerated TS types carry the syntactic surface. The semantics land
+  first as a self-checking hand-computed oracle
+  (`prototype/rule_lens_sim.py`: effective regions, gap/overlap/shadow/
+  derivable, equivalence with witness) plus four golden fixtures
+  (`fixtures/rule_lens/`, one per bug class, mapped in its README onto
+  the existing finding taxonomy — no new variants). Analysis/findings
+  producers, CLI surface, and the pre-registered validation katas are
+  later phases.
+
 - Δ∘Δ′ non-invertibility proof (P7, `catherine-alr` task 6): element-
   pair return identity per the migration spec scenario — a kept source
   (object, row) whose candidate-inverse return differs (or is missing)

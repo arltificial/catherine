@@ -2,6 +2,7 @@
 //! gate, objects, arrows, equations). Split out of `parse.rs` verbatim
 //! during the mechanical lint refactor; no behavior change.
 
+use super::rule_presentation::RawRulePresentation;
 use super::schema_map::RawSchemaMap;
 use super::spans::Spans;
 use crate::error::ErrorCode;
@@ -22,6 +23,8 @@ pub(super) struct RawDoc {
     pub(super) instance: Option<RawInstance>,
     #[serde(default)]
     pub(super) schema_map: Option<RawSchemaMap>,
+    #[serde(default)]
+    pub(super) rule_presentation: Option<RawRulePresentation>,
 }
 
 #[derive(Deserialize)]
@@ -63,8 +66,9 @@ pub(super) struct RawInstance {
 /// above it must be rejected, not silently parsed: a future 1.x with
 /// semantics this build doesn't understand must never be misinterpreted
 /// (no-guessed-parse rule). Raise this when new additive semantics land.
-/// 1 = the `schema_map` section (add-delta-migration phase A).
-const KNOWN_MINOR: u64 = 1;
+/// 1 = the `schema_map` section (add-delta-migration phase A);
+/// 2 = the `rule_presentation` section (add-rule-lens phase A).
+const KNOWN_MINOR: u64 = 2;
 
 /// The version gate: `MAJOR.MINOR`, present, well-formed, known major, minor within `KNOWN_MINOR`.
 pub(super) fn check_version(

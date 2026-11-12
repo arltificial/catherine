@@ -93,6 +93,7 @@ fn cycle_model(n: usize) -> Model {
             values: table("f", n, |i| Some(RowId((i + 1) % n))),
         },
         schema_map: None,
+        rule_presentation: None,
     }
 }
 
@@ -118,6 +119,7 @@ fn involution_model(n: usize) -> Model {
             },
         },
         schema_map: None,
+        rule_presentation: None,
     }
 }
 
@@ -137,6 +139,7 @@ fn twins_model(n: usize) -> Model {
             values: table("f", n, |i| Some(RowId(i / 2))),
         },
         schema_map: None,
+        rule_presentation: None,
     }
 }
 
@@ -155,6 +158,7 @@ fn collapse_model(n: usize) -> Model {
             values: table("f", n, |_| Some(RowId(0))),
         },
         schema_map: None,
+        rule_presentation: None,
     }
 }
 

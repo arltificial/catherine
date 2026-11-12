@@ -1,7 +1,9 @@
 //! The model as a canonical-shape JSON value. Split out of `canonical.rs`
 //! verbatim (mechanical lint refactor); no behavior change.
 
-use crate::model::{Equation, Model, RowId, Schema, SchemaMap};
+use crate::model::{
+    Equation, Literal, Model, Predicate, RowId, Rule, RulePresentation, Schema, SchemaMap,
+};
 use serde_json::{Map, Value};
 
 use super::writer::write_value;
@@ -32,6 +34,11 @@ pub fn canonical_value(model: &Model) -> Value {
     // keep their pre-map identity (the ledger's content addressing).
     if let Some(map) = &model.schema_map {
         sections.push(("schema_map", schema_map_value(map)));
+    }
+    // The additive 1.2 section is likewise emitted only when present, so
+    // pre-rule documents keep their pre-rule identity.
+    if let Some(presentation) = &model.rule_presentation {
+        sections.push(("rule_presentation", rule_presentation_value(presentation)));
     }
     obj_vec(sections)
 }
@@ -141,6 +148,92 @@ fn schema_map_value(map: &SchemaMap) -> Value {
             ),
         ),
     ])
+}
+
+/// The canonical `rule_presentation` section: columns sorted by name, the
+/// rules in priority order (written order is semantic — never sorted), and
+/// the policy only when declared.
+fn rule_presentation_value(presentation: &RulePresentation) -> Value {
+    let columns: Vec<Value> = presentation
+        .columns
+        .iter()
+        .map(|(name, column_type)| {
+            obj([
+                ("name", string(&name.0)),
+                ("type", string(column_type.as_str())),
+            ])
+        })
+        .collect();
+    let rules: Vec<Value> = presentation.rules.iter().map(rule_value).collect();
+    let mut entries = vec![
+        ("domain", string(&presentation.domain.0)),
+        ("columns", Value::Array(columns)),
+        ("rules", Value::Array(rules)),
+    ];
+    if let Some(policy) = presentation.policy {
+        entries.push(("policy", string(policy.as_str())));
+    }
+    obj_vec(entries)
+}
+
+/// One canonical rule entry.
+fn rule_value(rule: &Rule) -> Value {
+    obj([
+        ("name", string(&rule.name.0)),
+        ("action", string(&rule.action)),
+        ("predicate", predicate_value(&rule.predicate)),
+    ])
+}
+
+/// One canonical predicate node, in the format's kind-tagged shape.
+fn predicate_value(predicate: &Predicate) -> Value {
+    match predicate {
+        Predicate::Cmp { column, op, value } => obj([
+            ("kind", string("cmp")),
+            ("column", string(&column.0)),
+            ("op", string(op.as_str())),
+            ("value", literal_value(value)),
+        ]),
+        Predicate::Mod {
+            column,
+            modulus,
+            equals,
+        } => obj([
+            ("kind", string("mod")),
+            ("column", string(&column.0)),
+            ("modulus", number(*modulus)),
+            ("equals", number(*equals)),
+        ]),
+        Predicate::And(args) => boolean_combination("and", args),
+        Predicate::Or(args) => boolean_combination("or", args),
+        Predicate::Not(arg) => obj([("kind", string("not")), ("arg", predicate_value(arg))]),
+    }
+}
+
+/// A canonical `and`/`or` node: the kind plus its operand array in written
+/// order.
+fn boolean_combination(kind: &str, args: &[Predicate]) -> Value {
+    obj([
+        ("kind", string(kind)),
+        (
+            "args",
+            Value::Array(args.iter().map(predicate_value).collect()),
+        ),
+    ])
+}
+
+/// One canonical comparison literal.
+fn literal_value(literal: &Literal) -> Value {
+    match literal {
+        Literal::Int(value) => number(*value),
+        Literal::Bool(value) => Value::Bool(*value),
+        Literal::String(value) => string(value),
+    }
+}
+
+/// A canonical integer: base-ten, no exponent or fraction.
+fn number(value: i64) -> Value {
+    Value::Number(value.into())
 }
 
 /// One canonical equation entry.
