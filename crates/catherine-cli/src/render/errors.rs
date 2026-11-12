@@ -81,7 +81,7 @@ impl LabeledError {
     }
 }
 
-/// The remediation hints, keyed by the closed six-code enum.
+/// The remediation hints, keyed by the closed error-code enum.
 fn hint_for_code(code: ErrorCode) -> &'static str {
     match code {
         ErrorCode::DuplicateIdent => {
@@ -94,7 +94,10 @@ fn hint_for_code(code: ErrorCode) -> &'static str {
         ErrorCode::InvalidIdent => "idents match [A-Za-z_][A-Za-z0-9_]*",
         ErrorCode::InvalidStatus => "status is one of: accepted, proposed",
         ErrorCode::UnsupportedVersion => {
-            "set format_version to \"1.0\" — the known version is 1.0; raise KNOWN_MINOR when new additive semantics land"
+            "set format_version to \"1.1\" — the known version is 1.1; raise KNOWN_MINOR when new additive semantics land"
+        }
+        ErrorCode::PartialSchemaMap => {
+            "a schema map must be total: assign every declared source object and arrow — map it to the target, or to null to drop it explicitly"
         }
     }
 }

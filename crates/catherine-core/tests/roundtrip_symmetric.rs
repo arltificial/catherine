@@ -92,6 +92,7 @@ fn cycle_model(n: usize) -> Model {
             rows: dense_rows(&[("a", n)]),
             values: table("f", n, |i| Some(RowId((i + 1) % n))),
         },
+        schema_map: None,
     }
 }
 
@@ -116,6 +117,7 @@ fn involution_model(n: usize) -> Model {
                 values
             },
         },
+        schema_map: None,
     }
 }
 
@@ -134,6 +136,7 @@ fn twins_model(n: usize) -> Model {
             rows: dense_rows(&[("a", n)]),
             values: table("f", n, |i| Some(RowId(i / 2))),
         },
+        schema_map: None,
     }
 }
 
@@ -151,6 +154,7 @@ fn collapse_model(n: usize) -> Model {
             rows: dense_rows(&[("a", n)]),
             values: table("f", n, |_| Some(RowId(0))),
         },
+        schema_map: None,
     }
 }
 

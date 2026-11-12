@@ -92,6 +92,7 @@ fn build_model(
             equations,
         },
         instance: Instance { rows, values },
+        schema_map: None,
     }
 }
 

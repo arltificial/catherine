@@ -1,0 +1,33 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": ["Wide", "Narrow"],
+    "arrows": [
+      {"name": "wide_id", "src": "Wide", "tgt": "Wide"},
+      {"name": "narrow_id", "src": "Narrow", "tgt": "Narrow"},
+      {"name": "collapse", "src": "Wide", "tgt": "Narrow"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Wide": ["_0", "_1"], "Narrow": ["_0"]},
+    "tables": {
+      "wide_id": {"_0": "_0", "_1": "_1"},
+      "narrow_id": {"_0": "_0"},
+      "collapse": {"_0": "_0", "_1": "_0"}
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["Narrow"],
+      "arrows": [{"name": "narrow_id", "src": "Narrow", "tgt": "Narrow"}],
+      "equations": []
+    },
+    "objects": {"Wide": "Narrow", "Narrow": "Narrow"},
+    "arrows": {
+      "wide_id": ["narrow_id"],
+      "narrow_id": ["narrow_id"],
+      "collapse": ["narrow_id"]
+    }
+  }
+}

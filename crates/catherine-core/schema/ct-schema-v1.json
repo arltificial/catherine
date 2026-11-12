@@ -81,6 +81,77 @@
           }
         }
       }
+    },
+    "schema_map": {
+      "type": "object",
+      "description": "Additive 1.1 (Δ migration axis, add-delta-migration phase A): the total map of the document schema into a target schema. Totality and assignment-target declaredness are kernel-side (partial_schema_map); this artifact covers only the syntactic surface.",
+      "required": ["target_schema", "objects", "arrows"],
+      "additionalProperties": false,
+      "properties": {
+        "target_schema": {
+          "type": "object",
+          "required": ["objects", "arrows", "equations"],
+          "properties": {
+            "objects": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/ident" },
+              "uniqueItems": true
+            },
+            "arrows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "src", "tgt"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "$ref": "#/$defs/ident" },
+                  "src": { "$ref": "#/$defs/ident" },
+                  "tgt": { "$ref": "#/$defs/ident" }
+                }
+              }
+            },
+            "equations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["lhs", "rhs"],
+                "additionalProperties": false,
+                "properties": {
+                  "lhs": { "$ref": "#/$defs/path" },
+                  "rhs": { "$ref": "#/$defs/path" },
+                  "rationale": { "type": "string" },
+                  "status": { "enum": ["proposed", "accepted"] }
+                }
+              }
+            }
+          }
+        },
+        "objects": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/ident" },
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "null", "description": "Explicit drop — the element is discarded, loudly, never silently." },
+              { "$ref": "#/$defs/ident" }
+            ]
+          }
+        },
+        "arrows": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/ident" },
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "null", "description": "Explicit drop." },
+              {
+                "type": "array",
+                "items": { "$ref": "#/$defs/ident" },
+                "minItems": 1,
+                "description": "The composable target path, spelled arrow by arrow."
+              }
+            ]
+          }
+        }
+      }
     }
   },
   "$defs": {

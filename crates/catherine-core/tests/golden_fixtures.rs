@@ -100,7 +100,7 @@ const CASES: &[Case] = &[
         code: ErrorCode::UnsupportedVersion,
         line: 2,
         column: 21,
-        message_contains: &["unsupported `format_version` `1.1`", "known version is 1.0"],
+        message_contains: &["unsupported `format_version` `1.9`", "known version is 1.1"],
     },
 ];
 

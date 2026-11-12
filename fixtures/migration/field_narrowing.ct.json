@@ -1,0 +1,27 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": ["Entry"],
+    "arrows": [
+      {"name": "id", "src": "Entry", "tgt": "Entry"},
+      {"name": "annotation", "src": "Entry", "tgt": "Entry"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Entry": ["_0", "_1"]},
+    "tables": {
+      "id": {"_0": "_0", "_1": "_1"},
+      "annotation": {"_0": "_1", "_1": "_0"}
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["Entry"],
+      "arrows": [{"name": "id", "src": "Entry", "tgt": "Entry"}],
+      "equations": []
+    },
+    "objects": {"Entry": "Entry"},
+    "arrows": {"id": ["id"], "annotation": null}
+  }
+}

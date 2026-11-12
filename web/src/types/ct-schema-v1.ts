@@ -26,4 +26,22 @@ export type CtSchemaV1Document = {
   "rows": Record<string, Array<Ident>>;
   "tables": Record<string, Record<string, (null) | (Ident)>>;
 };
+  "schema_map"?: {
+  "target_schema": {
+  "objects": Array<Ident>;
+  "arrows": Array<{
+  "name": Ident;
+  "src": Ident;
+  "tgt": Ident;
+}>;
+  "equations": Array<{
+  "lhs": Path;
+  "rhs": Path;
+  "rationale"?: string;
+  "status"?: "proposed" | "accepted";
+}>;
+};
+  "objects": Record<string, (null) | (Ident)>;
+  "arrows": Record<string, (null) | (Array<Ident>)>;
+};
 };

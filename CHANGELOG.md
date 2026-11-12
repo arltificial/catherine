@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Δ migration axis phase A (P7, `catherine-alr`): total schema maps as
+  the additive `format_version` 1.1 section (`crates/catherine-core`) —
+  a partial map is the labeled `partial_schema_map` build error naming
+  the unmapped element; the section is skip-serialized when absent, so
+  every pre-map document's `model_hash` is pinned unchanged (the
+  hash-stability guard); `partial_schema_map` joins the closed error
+  codes with its CLI remediation hint; ct-schema-v1.json + regenerated
+  TS types carry the syntactic surface; three RED migration fixtures
+  (dropped object, field narrowing, non-invertible round-trip) pin the
+  phase-B lost-data expectations. KNOWN_MINOR raised 0→1 per
+  convention. Execution (pullback reindex, lost-data findings, `catherine
+  migrate`) is phase B/C.
 - kata validation ledger (P6, `catherine-9vv`) — THE PROJECT STOP
   CONDITION, executed: `crates/catherine-ledger` (content-addressed
   entries via the P0 hash port, validator refusing bad science —

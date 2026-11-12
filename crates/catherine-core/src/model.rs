@@ -127,12 +127,34 @@ pub struct Instance {
     pub values: BTreeMap<Ident, Vec<Option<RowId>>>,
 }
 
+/// A declared schema map (Δ migration axis, openspec change
+/// `add-delta-migration` phase A): the total assignment of the document
+/// schema's objects and arrows into the target schema. `target` is the
+/// migration's destination schema, validated by the same passes as the
+/// document schema; `objects` maps each declared source object to its
+/// target object or `None` — an explicit drop, never a silent one;
+/// `arrows` maps each declared source arrow to a composable target path
+/// or `None`. Totality is checked at parse: every declared source object
+/// and arrow carries an entry, and a missing entry is a labeled
+/// `partial_schema_map` build error. The map is declared data only —
+/// pullback/reindex execution is phase B, so no functoriality (path
+/// endpoints against mapped endpoints) is enforced here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SchemaMap {
+    pub target: Schema,
+    pub objects: BTreeMap<Ident, Option<Ident>>,
+    pub arrows: BTreeMap<Ident, Option<Path>>,
+}
+
 /// A parsed `.ct.json` model document: version, schema, and instance.
+/// `schema_map` is the additive 1.1 section — absent (`None`) in every
+/// pre-map document, and skip-serialized (so hash-neutral) when absent.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Model {
     pub format_version: Version,
     pub schema: Schema,
     pub instance: Instance,
+    pub schema_map: Option<SchemaMap>,
 }
 
 impl Model {

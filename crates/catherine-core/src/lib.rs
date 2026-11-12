@@ -20,5 +20,6 @@ pub mod error;
 pub mod findings;
 pub mod hash;
 pub mod instance;
+pub mod migrate;
 pub mod model;
 pub mod parse;

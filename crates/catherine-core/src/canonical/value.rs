@@ -1,7 +1,7 @@
 //! The model as a canonical-shape JSON value. Split out of `canonical.rs`
 //! verbatim (mechanical lint refactor); no behavior change.
 
-use crate::model::{Equation, Model, RowId};
+use crate::model::{Equation, Model, RowId, Schema, SchemaMap};
 use serde_json::{Map, Value};
 
 use super::writer::write_value;
@@ -16,7 +16,7 @@ pub fn serialize(model: &Model) -> String {
 /// The model as a JSON value in canonical shape: sorted enumerations,
 /// dense per-object row names, total per-arrow tables.
 pub fn canonical_value(model: &Model) -> Value {
-    obj([
+    let mut sections: Vec<(&str, Value)> = vec![
         (
             "format_version",
             string(&format!(
@@ -26,7 +26,14 @@ pub fn canonical_value(model: &Model) -> Value {
         ),
         ("instance", instance_value(model)),
         ("schema", schema_value(model)),
-    ])
+    ];
+    // The additive 1.1 section is emitted only when present: absent
+    // sections are invisible to canonical bytes, so pre-map documents
+    // keep their pre-map identity (the ledger's content addressing).
+    if let Some(map) = &model.schema_map {
+        sections.push(("schema_map", schema_map_value(map)));
+    }
+    obj_vec(sections)
 }
 
 /// The canonical `instance` section: dense per-object row names and total
@@ -66,10 +73,17 @@ fn table_value(cells: &[Option<RowId>]) -> Value {
 /// stores them sorted, but constructed values must serialize the same
 /// way, specodelic's `schema_export` discipline).
 fn schema_value(model: &Model) -> Value {
-    let mut equations: Vec<&Equation> = model.schema.equations.iter().collect();
+    schema_section(&model.schema)
+}
+
+/// The canonical `schema` section: sorted objects, arrows, and equations
+/// (equations sorted by their canonical sort key — the parser already
+/// stores them sorted, but constructed values must serialize the same
+/// way, specodelic's `schema_export` discipline).
+fn schema_section(schema: &Schema) -> Value {
+    let mut equations: Vec<&Equation> = schema.equations.iter().collect();
     equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-    let arrows: Vec<Value> = model
-        .schema
+    let arrows: Vec<Value> = schema
         .arrows
         .iter()
         .map(|(name, arrow)| {
@@ -84,10 +98,48 @@ fn schema_value(model: &Model) -> Value {
     obj([
         (
             "objects",
-            Value::Array(model.schema.objects.keys().map(|o| string(&o.0)).collect()),
+            Value::Array(schema.objects.keys().map(|o| string(&o.0)).collect()),
         ),
         ("arrows", Value::Array(arrows)),
         ("equations", Value::Array(equation_values)),
+    ])
+}
+
+/// The canonical `schema_map` section: the validated target schema plus
+/// the object/arrow assignments (dropped elements as `null`).
+fn schema_map_value(map: &SchemaMap) -> Value {
+    obj_vec(vec![
+        ("target_schema", schema_section(&map.target)),
+        (
+            "objects",
+            Value::Object(
+                map.objects
+                    .iter()
+                    .map(|(object, assignment)| {
+                        let value = match assignment {
+                            Some(target) => string(&target.0),
+                            None => Value::Null,
+                        };
+                        (object.0.clone(), value)
+                    })
+                    .collect(),
+            ),
+        ),
+        (
+            "arrows",
+            Value::Object(
+                map.arrows
+                    .iter()
+                    .map(|(arrow, assignment)| {
+                        let value = match assignment {
+                            Some(assignment_path) => path(assignment_path),
+                            None => Value::Null,
+                        };
+                        (arrow.0.clone(), value)
+                    })
+                    .collect(),
+            ),
+        ),
     ])
 }
 
@@ -102,6 +154,10 @@ fn equation_value(equation: &Equation) -> Value {
 }
 
 fn obj<const N: usize>(entries: [(&str, Value); N]) -> Value {
+    obj_vec(entries.into_iter().collect())
+}
+
+fn obj_vec(entries: Vec<(&str, Value)>) -> Value {
     Value::Object(
         entries
             .into_iter()

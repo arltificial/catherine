@@ -23,10 +23,11 @@
 //! predictable, never order-dependent on the walk.
 
 mod schema;
+mod schema_map;
 mod spans;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
-use crate::model::{Arrow, Equation, Ident, Instance, Model, RowId, Schema, Version};
+use crate::model::{Arrow, Equation, Ident, Instance, Model, RowId, Schema, SchemaMap, Version};
 use schema::{check_arrows, check_equations, check_ident, check_objects, check_version, RawDoc};
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
@@ -71,12 +72,32 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<Model, ParseError> {
     // 7. Instance tables: repeated keys, declared arrows, declared src
     // rows, and values that are declared target rows or `null`.
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
-    // 8. The normalized model: dense rows per declared object, total
+    // 8. The schema map (additive 1.1): declared data only — totality
+    // over the declared source objects and arrows, targets declared in
+    // the target schema. Absent in every pre-map document (hash-neutral).
+    let schema_map = declared_schema_map(&doc.schema_map, &objects, &arrows, spans)?;
+    // 9. The normalized model: dense rows per declared object, total
     // value vectors, canonical equation order. Presentation names never
     // reach it.
     Ok(build_model(
-        version, objects, arrows, equations, row_index, values,
+        version, objects, arrows, equations, row_index, values, schema_map,
     ))
+}
+
+/// The document's declared schema map, validated (additive 1.1) —
+/// `None` for every pre-map document (hash-neutral).
+fn declared_schema_map(
+    doc_schema_map: &Option<schema_map::RawSchemaMap>,
+    objects: &BTreeMap<Ident, ()>,
+    arrows: &BTreeMap<Ident, Arrow>,
+    spans: &Spans,
+) -> Result<Option<SchemaMap>, ParseError> {
+    match doc_schema_map {
+        Some(raw) => Ok(Some(schema_map::build_schema_map(
+            raw, objects, arrows, spans,
+        )?)),
+        None => Ok(None),
+    }
 }
 
 /// Instance rows: declared object keys, per-list ident and duplicate
@@ -256,6 +277,7 @@ fn build_model(
     equations: Vec<Equation>,
     row_index: BTreeMap<String, BTreeMap<String, RowId>>,
     values: BTreeMap<Ident, Vec<Option<RowId>>>,
+    schema_map: Option<SchemaMap>,
 ) -> Model {
     let rows_out = objects
         .keys()
@@ -276,6 +298,7 @@ fn build_model(
             rows: rows_out,
             values,
         },
+        schema_map,
     }
 }
 
