@@ -199,6 +199,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "catherine-ledger"
+version = "0.1.0"
+dependencies = [
+ "catherine-core",
+ "proptest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "catherine-wasm"
 version = "0.1.0"
 dependencies = [

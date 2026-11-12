@@ -5,4 +5,5 @@ members = [
     "crates/catherine-analysis",
     "crates/catherine-cli",
     "crates/catherine-wasm",
+    "crates/catherine-ledger",
 ]
