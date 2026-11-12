@@ -1,0 +1,71 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "tier",
+        "type": "string"
+      },
+      {
+        "name": "member",
+        "type": "bool"
+      }
+    ],
+    "rules": [
+      {
+        "name": "member",
+        "predicate": {
+          "kind": "or",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "gold"
+            }
+          ]
+        },
+        "action": "member"
+      },
+      {
+        "name": "gold",
+        "predicate": {
+          "kind": "cmp",
+          "column": "tier",
+          "op": "eq",
+          "value": "gold"
+        },
+        "action": "gold"
+      },
+      {
+        "name": "basic",
+        "predicate": {
+          "kind": "cmp",
+          "column": "tier",
+          "op": "eq",
+          "value": "basic"
+        },
+        "action": "basic"
+      }
+    ],
+    "policy": "FirstMatch"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "tier",
+        "type": "string"
+      },
+      {
+        "name": "member",
+        "type": "bool"
+      }
+    ],
+    "rules": [
+      {
+        "name": "gold",
+        "predicate": {
+          "kind": "cmp",
+          "column": "tier",
+          "op": "eq",
+          "value": "gold"
+        },
+        "action": "gold"
+      },
+      {
+        "name": "member",
+        "predicate": {
+          "kind": "cmp",
+          "column": "member",
+          "op": "eq",
+          "value": true
+        },
+        "action": "member"
+      }
+    ],
+    "policy": "FirstMatch"
+  }
+}

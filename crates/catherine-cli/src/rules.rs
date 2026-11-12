@@ -43,7 +43,7 @@ pub fn run_rules(
     max_candidates: usize,
     json: bool,
     quiet: bool,
-    warnings: Vec<Warning>,
+    mut warnings: Vec<Warning>,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
@@ -52,23 +52,57 @@ pub fn run_rules(
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
     let Some(presentation) = model.rule_presentation.as_ref() else {
-        return emit_error(
-            &no_rule_presentation(model_path),
-            json,
-            warnings,
-            stdout,
-            stderr,
-        );
+        return no_presentation(model_path, json, warnings, stdout, stderr);
     };
-    let domain = match bind_domain(presentation, values) {
-        Ok(domain) => domain,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+    let Some(domain) = bind_or_emit(presentation, values, json, &mut warnings, stdout, stderr)
+    else {
+        return 1;
     };
     let caps = ScopeCaps {
         max_candidates,
         ..default_scope_caps()
     };
-    match rule_lens(presentation, &domain, &caps) {
+    report_outcome(
+        rule_lens(presentation, &domain, &caps),
+        presentation,
+        json,
+        quiet,
+        warnings,
+        stdout,
+        stderr,
+    )
+}
+
+/// Emit the labeled `no_rule_presentation` error (a document without
+/// the additive 1.2 section is never a silent empty analysis).
+fn no_presentation(
+    model_path: &str,
+    json: bool,
+    warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> i32 {
+    emit_error(
+        &no_rule_presentation(model_path),
+        json,
+        warnings,
+        stdout,
+        stderr,
+    )
+}
+
+/// Render one analysis outcome: findings envelope/human lines, or the
+/// bounded UNKNOWN payload.
+fn report_outcome(
+    outcome: RuleLensOutcome,
+    presentation: &catherine_core::model::RulePresentation,
+    json: bool,
+    quiet: bool,
+    warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> i32 {
+    match outcome {
         RuleLensOutcome::Findings(findings) => report_findings(
             &findings,
             presentation,
@@ -80,6 +114,24 @@ pub fn run_rules(
         ),
         RuleLensOutcome::Unknown { scope } => {
             report_unknown(&scope, json, quiet, warnings, stdout, stderr)
+        }
+    }
+}
+
+/// Bind the `--values` domain, emitting the labeled error on failure.
+fn bind_or_emit(
+    presentation: &catherine_core::model::RulePresentation,
+    values: &[String],
+    json: bool,
+    warnings: &mut Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> Option<RuleDomain> {
+    match bind_domain(presentation, values) {
+        Ok(domain) => Some(domain),
+        Err(labeled) => {
+            emit_error(&labeled, json, std::mem::take(warnings), stdout, stderr);
+            None
         }
     }
 }

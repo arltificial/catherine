@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rule lens pre-registered validation (P8, `catherine-nq5`) — **verdict:
+  survived-scoped**. 12-fault matrix on a 240-input above-floor kata
+  (16 compound rules, PriorityOrder): conventional 45-assertion
+  baseline 7/12, lens 12/12, **5 unique detections — all
+  behavior-preserving structural redundancy** (shadowed/derivable
+  rules; the caveat is recorded in the ledger entry, never rounded into
+  a behavioral win). Near-floor control self-negated (killed, 0/3
+  unique). Rule-lens ledger `ledger/rule-lens/` (control → kata →
+  derived rollup) green; durable derivation test added.
 - Rule lens phase C (P8, `catherine-nq5`, HYPOTHESIZED): discovery
   support and the CLI surface. `catherine-analysis::rule_lens::discover`
   checks a candidate table against declared input→output examples —

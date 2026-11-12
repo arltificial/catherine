@@ -123,6 +123,11 @@ fn dispatch(
     stderr: &mut impl Write,
 ) -> i32 {
     let ctx = &mut Ctx::new(json, quiet, warnings, stdout, stderr);
+    dispatch_command(command, ctx)
+}
+
+/// The command match: one arm per surface, each on the shared path.
+fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
     use cli::Commands as C;
     match command {
         C::Check { model } => check_command(run::Surface::Check, model, ctx),

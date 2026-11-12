@@ -48,13 +48,38 @@ killable per design.md Decision 4.
 
 ## VALIDATION (pre-registered)
 
-- [ ] 9. Above-floor kata: 10–20 compound rules + priority policy;
-      unique-detection audit vs conventional suite
-- [ ] 10. Near-floor negative control; ledger entries per protocol
-- [ ] 11. Killed ⇒ document negative result, stop rule-lens scope;
-      survived ⇒ record evidence
+- [x] 9. Above-floor kata: 10–20 compound rules + priority policy;
+      unique-detection audit vs conventional suite. Evidence:
+      `fixtures/rule_lens/kata/pricing-gold.ct.json` (16 compound rules,
+      PriorityOrder, 240-input domain, clean: 0 findings) and the frozen
+      conventional baseline `prototype/rule_lens_baseline.py` (45
+      behavior-only assertions). Twelve injected faults under
+      `fixtures/rule_lens/kata/faults/` (3 gap, 3 shadow, 4 derivable,
+      2 overlap-under-DeclaredDisjoint): conventional catches 7/12,
+      `catherine rules` catches 12/12, unique detections 5/12
+      (04, 05, 07, 09, 10 — all behavior-preserving structural
+      redundancy, witnessed). Ledger entry
+      `ledger/rule-lens/0002-4ef797a1.json`.
+- [x] 10. Near-floor negative control; ledger entries per protocol.
+      Evidence: `fixtures/rule_lens/kata/negative-control/near-floor.ct.json`
+      (3 rules, 4 inputs) plus 3 behavior-changing faults; the 4-row
+      conventional check catches 3/3 and the lens catches 3/3 — zero
+      unique detections. Control entry
+      `ledger/rule-lens/0001-65162a79.json` (verdict `killed`, empty
+      `unique_detections`). Entries live in `ledger/rule-lens/` because
+      the P6 ledger is sealed by its seq-5 rollup (the validator requires
+      a rollup to be last; appending #6+ after it would be refused).
+- [x] 11. Killed ⇒ document negative result, stop rule-lens scope;
+      survived ⇒ record evidence. The committed procedure derives
+      `survived` (scoped): five unique detections, all structural
+      redundancy; every behavior-changing injected fault was caught by
+      the conventional suite. Rollup `ledger/rule-lens/0003-0eee8ef3.json`;
+      `ledger-check ledger/rule-lens` → `ok: 3 entries (2 kata),
+      rollup verdict: survived`. `crates/catherine-ledger/tests/rule_lens_ledger.rs`
+      recomputes the fixture hashes and the derived rollup. The bead flip
+      is orchestrator-reserved.
 
 ## REFACTOR + close
 
-- [ ] 12. Dedupe predicate evaluation; `openspec validate add-rule-lens
+- [x] 12. Dedupe predicate evaluation; `openspec validate add-rule-lens
       --strict`; `bd close catherine-nq5` + fresh export

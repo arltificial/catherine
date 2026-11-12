@@ -1,0 +1,363 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "age",
+        "type": "int"
+      },
+      {
+        "name": "income",
+        "type": "int"
+      },
+      {
+        "name": "member",
+        "type": "bool"
+      },
+      {
+        "name": "tier",
+        "type": "string"
+      },
+      {
+        "name": "region",
+        "type": "string"
+      }
+    ],
+    "rules": [
+      {
+        "name": "staff",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "gold"
+            },
+            {
+              "kind": "cmp",
+              "column": "region",
+              "op": "eq",
+              "value": "eu"
+            },
+            {
+              "kind": "cmp",
+              "column": "income",
+              "op": "ge",
+              "value": 100000
+            }
+          ]
+        },
+        "action": "staff_40"
+      },
+      {
+        "name": "partner",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "gold"
+            },
+            {
+              "kind": "cmp",
+              "column": "region",
+              "op": "eq",
+              "value": "us"
+            },
+            {
+              "kind": "or",
+              "args": [
+                {
+                  "kind": "cmp",
+                  "column": "age",
+                  "op": "lt",
+                  "value": 40
+                },
+                {
+                  "kind": "cmp",
+                  "column": "income",
+                  "op": "ge",
+                  "value": 60000
+                }
+              ]
+            }
+          ]
+        },
+        "action": "partner_35"
+      },
+      {
+        "name": "hardship",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "income",
+              "op": "lt",
+              "value": 20000
+            },
+            {
+              "kind": "cmp",
+              "column": "age",
+              "op": "ge",
+              "value": 65
+            }
+          ]
+        },
+        "action": "hardship_30"
+      },
+      {
+        "name": "senior_gold_eu",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "age",
+              "op": "ge",
+              "value": 65
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "gold"
+            },
+            {
+              "kind": "cmp",
+              "column": "region",
+              "op": "eq",
+              "value": "eu"
+            }
+          ]
+        },
+        "action": "senior_gold_25"
+      },
+      {
+        "name": "senior",
+        "predicate": {
+          "kind": "cmp",
+          "column": "age",
+          "op": "ge",
+          "value": 65
+        },
+        "action": "senior_20"
+      },
+      {
+        "name": "youth",
+        "predicate": {
+          "kind": "cmp",
+          "column": "age",
+          "op": "lt",
+          "value": 18
+        },
+        "action": "youth_15"
+      },
+      {
+        "name": "high_value",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "income",
+              "op": "ge",
+              "value": 100000
+            },
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            }
+          ]
+        },
+        "action": "high_value_20"
+      },
+      {
+        "name": "milestone",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "mod",
+              "column": "age",
+              "modulus": 10,
+              "equals": 0
+            },
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            }
+          ]
+        },
+        "action": "milestone_8"
+      },
+      {
+        "name": "loyalty_gold",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "gold"
+            }
+          ]
+        },
+        "action": "loyalty_gold_15"
+      },
+      {
+        "name": "loyalty_silver",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "silver"
+            }
+          ]
+        },
+        "action": "loyalty_silver_10"
+      },
+      {
+        "name": "regional_eu",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "region",
+              "op": "eq",
+              "value": "eu"
+            },
+            {
+              "kind": "cmp",
+              "column": "income",
+              "op": "lt",
+              "value": 40000
+            }
+          ]
+        },
+        "action": "regional_eu_10"
+      },
+      {
+        "name": "member_basic",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "member",
+              "op": "eq",
+              "value": true
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "basic"
+            }
+          ]
+        },
+        "action": "member_basic_5"
+      },
+      {
+        "name": "nonmember_basic",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "not",
+              "arg": {
+                "kind": "cmp",
+                "column": "member",
+                "op": "eq",
+                "value": true
+              }
+            },
+            {
+              "kind": "cmp",
+              "column": "tier",
+              "op": "eq",
+              "value": "basic"
+            },
+            {
+              "kind": "cmp",
+              "column": "region",
+              "op": "eq",
+              "value": "us"
+            }
+          ]
+        },
+        "action": "nonmember_basic_8"
+      },
+      {
+        "name": "tier_gold",
+        "predicate": {
+          "kind": "cmp",
+          "column": "tier",
+          "op": "eq",
+          "value": "gold"
+        },
+        "action": "tier_gold_10"
+      },
+      {
+        "name": "tier_silver",
+        "predicate": {
+          "kind": "cmp",
+          "column": "tier",
+          "op": "eq",
+          "value": "silver"
+        },
+        "action": "tier_silver_5"
+      }
+    ],
+    "policy": "PriorityOrder"
+  }
+}

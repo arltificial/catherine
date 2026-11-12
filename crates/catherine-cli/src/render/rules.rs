@@ -194,7 +194,23 @@ mod tests {
 
     #[test]
     fn each_finding_renders_on_one_line() {
-        let findings = vec![
+        let findings = sample_findings();
+        let lines = render_rules(&findings, &table());
+        assert_eq!(lines.len(), 3, "exactly one line per finding");
+        assert_eq!(
+            lines[0],
+            "underconstraint: uncovered inputs age = 70 (examples 3) (hypothesized)"
+        );
+        assert_eq!(
+            lines[1],
+            "violation: rules `small` and `large` disagree on input #1"
+        );
+        assert_eq!(lines[2], "redundant: even derives from all");
+    }
+
+    /// One finding per rendered shape (the test's fixtures).
+    fn sample_findings() -> Vec<Finding> {
+        vec![
             Finding {
                 label: EpistemicLabel::Hypothesized,
                 kind: FindingKind::Underconstraint(
@@ -223,18 +239,7 @@ mod tests {
                     reducing: Path(vec![Ident("all".to_string())]),
                 }),
             },
-        ];
-        let lines = render_rules(&findings, &table());
-        assert_eq!(lines.len(), 3, "exactly one line per finding");
-        assert_eq!(
-            lines[0],
-            "underconstraint: uncovered inputs age = 70 (examples 3) (hypothesized)"
-        );
-        assert_eq!(
-            lines[1],
-            "violation: rules `small` and `large` disagree on input #1"
-        );
-        assert_eq!(lines[2], "redundant: even derives from all");
+        ]
     }
 
     #[test]
