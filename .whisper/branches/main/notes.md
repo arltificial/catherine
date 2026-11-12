@@ -70,3 +70,123 @@
   Unresolved: none blocking P0. DESIGN §8 open questions (naming catherine-* vs short bin; scaffolds spec-only lean) unchanged, non-gating. Review items accepted-not-fixed: DRAFT-001 (no change index; openspec list suffices), SCOPE-002 (P2 preparatory taxonomy — justified API stabilization).
   
   Refs: openspec/changes/*/proposal.md + design.md (P0, P6, P8); docs/DESIGN.md §5 kata roster table; review reports in session 01a1ca76 transcript.
+- 2026-11-11T18:52:56Z [id:a7406fee8a17d21ba14ebb7e6928da7e54dbd4fc7494a464f0b961f2751e5623] (#resume-catherine-methodology-docs) Format: 1
+  UTC: 2026-11-11T15:55:00Z
+  Repo: at/arltificial/catherine (~/para/areas/dev/gh/at/catherine)
+  Branch: main · HEAD 2206ddd · pushed
+  Session: pi 01a1caee-7be2-77b1-9137-b19e99139bbe
+  Previous entry: none
+  
+  OBJECTIVE: corpus-grounded CT methodology docs for catherine + expansion triage.
+  PHASE: commit (docs pushed; nothing in flight).
+  
+  STATE (all committed/pushed to origin/main):
+  - docs/USING.md — agent recipes, human flow, enablement (E-licensed), honest boundary; Johnson fixes landed (sketch-cone boundary, kata-8 "echoed" wording, view-update line). Examples ILLUSTRATED until P3 captures runs.
+  - docs/ref/ct_methodology_playbook.md — tool-free drills by problem type (§1–§7), NEW §8 reverse-engineering (top-down+bottom-up reconciliation: phantom requirements / undocumented behavior / inconsistencies), §9 when-not, §10 stopping; bias/amnesia review fixes (negative-result license, cost in header, dispute protocol, four-region drill naming, monoid gloss).
+  - PDF: ~/Downloads/ct_methodology_playbook.pdf (6pp A4, pandoc+weasyprint).
+  - Beads: catherine-dvx (P10 schema-diff, blocked-by alr+9vv, E4-licensed, ≤400 LOC), catherine-ga7 (bogart emits .ct.json, blocked-by hc6, external_repo at/bogart); memories expansion-licensing + program-boundary; hc6 closure-semantics note; alr/nq5 re-anchored.
+  - NOT filed (rejected): P12 property-oracle (unlicensed per E4), P13 claims ledger (persistence OOS + bajan boundary).
+  - P3 CLI (catherine-86i) implemented by orchestrator subagent — committed+pushed as feat(cli) 2206ddd (not validated by this session).
+  
+  NEXT ACTIONS (unblock-time, none urgent):
+  1. When P6+P7 land: scaffold openspec change add-schema-diff for catherine-dvx.
+  2. Before catherine-ga7 starts: add quantified Must gate to seeded-defect validation (e.g. N/N injected mismatches detected with witnesses) + file-headers on new bogart files.
+  3. Vendor Johnson papers/DOI links under docs/ref/ (EDGE-001, open).
+  4. USING.md: flip ILLUSTRATED banner to captured runs once P3 CLI is verified.
+  5. Open LOW polish: J&D "useful redundancy" nuance; "relational schema with executable semantics" framing.
+  
+  VALIDATION: docs reviewed via rule-of-5 (USING vs Johnson: NEEDS_REVISION→fixed; playbook bias/amnesia: fixes applied); git push OK 3fe1b62..2206ddd. P3 code NOT validated here.
+  
+  CONSTRAINTS: corpus ~/cotorreo read-only (AGENTS.md contract; cite conv IDs, never mtimes); catherine emits verdicts only (program-boundary memory); expansion tickets need cited E-license + P6 gate.
+  
+  UNKNOWN: whether P3 run left tasks.md checkboxes accurate; whether ~/Downloads PDF regeneration wanted after future doc edits.
+- 2026-11-11T22:09:14Z [id:69456a7f5efdd142faa33df8f9c60244182868274d0023fa803f525216ea955a] (#resume-catherine-design) Format: 1
+  Timestamp: 2026-11-11T22:08:52Z
+  Repo: arltificial/catherine (private, github, host alias git@at)
+  Branch: main
+  HEAD: 00ecf43 (feat(analysis) P4 + export refresh)
+  Session: unknown (omp orchestrator session; full per-ticket trails in .wai/projects/catherine/)
+  Task: catherine — CT modeling workbench: P0-P4 implemented and gate-shipped; chain 5/10
+  Previous entry: 467fe93dd1e21f328878949e11814612a06d8de33a3fba709c5603a1b1b5f148
+  
+  Objective: build catherine (browser-runnable CT modeling kernel, executed checks, finding-typed output) per docs/DESIGN.md. This session orchestrated P0-P4 end-to-end via epic-orchestrator (wai pipeline) with tdd-ro5 discipline embedded in committed per-ticket briefs.
+  
+  Current phase: between runs (P4 ship-complete; STOP boundary honored). Implementation THROUGH P4 done; P5-P9 + hc6 pilot not started.
+  
+  Current state:
+  - Shipped: P0 kernel (f2c27a8), P1 executed checks (809be72), P2 findings taxonomy (dc4c95e), P3 CLI (b427810 user commit + 0a5ec98 review closure), P4 bounded analysis + gate remediation union (e324f30) + export (00ecf43). Beads closed: bpz/0gk/1x7/86i/1ay; export fresh at 00ecf43.
+  - Working CLI: cargo run -p catherine-cli -- check|findings|search|redundant|underconstraint|distinguish|query; exit codes 0/1/2/3/4/5/6/7 (min-over-class; exit table byte-pinned by test).
+  - pretender.toml switched mode=gate (user decision): every future commit gated on lint-pattern compliance (abc/lines/cyclomatic/cognitive/nesting/file_lines); 73 violation sites remediated to green this session.
+  - rename-invariance now a proven property: canonical/label.rs tie-break fixed (order-free), persisted proptest regression kept; P0 CORR-001 documented-risk closed; parse/ assigns RowIds sorted-name order (kept deliberately).
+  - models.yml cap: ~/.omp/agent/models.yml caps openrouter z-ai/glm-5.3-flash maxTokens at 12288 (credit-survival). Cap binds at SESSION CREATION — resume-after-change keeps stale 131072 window; spawn FRESH agents after config changes. Raise/remove cap after real OpenRouter top-up.
+  - OpenRouter credits exhausted 3x this session; balance was ~12k affordable at last check. Top up before next run.
+  
+  Exact next action: fresh `wai pipeline start epic-orchestrator` for P5 (catherine-9b5: wasm + minimal web UI; only main-chain ready ticket). hc6 (bogart pilot models 1-3, gates P3+P4) ALSO armed — user picks order at STOP pacing (user says continue per ticket). Orchestration pattern per ticket: claim bd + pipeline start + gates baseline + planner task writes brief (committed) + ONE serial implementor spawn per brief + lead-side verify (REVIEW_REQUIRED) + ship checkpoint (user approval) + bd close + export + STOP.
+  
+  Key constraints: user approves every commit (ship checkpoint); push never without explicit instruction; bd close+export orchestrator-reserved (export: `bd export > .beads/issues.jsonl` then `git add -f` — global gitignore covers .beads); kernel crates genesis-free (genesis-vibes in catherine-cli only); findings never without witnesses; UNKNOWN{scope} never collapsed; proptest not snapshots; model roles all glm-5.3-flash parent default (user dropped deepseek routing; qwencloud unreachable in omp).
+  
+  Ticket ownership: 9b5 + hc6 ready/unassigned (single-author sasha); user filed P10 catherine-dvx + catherine-ga7 adjunct (out of chain scope, unassigned).
+  
+  Validation: at 00ecf43 all green — fmt 0, clippy 0, workspace tests 0 (95+), pretender gate 0, openspec validate --strict 10/10, just ci 0, DESIGN §5 walkthrough byte-identical (exit 3/0), scope-honesty probes (contradiction exit 5 only after real exhaustion; budget-2 -> UNKNOWN+scope exit 0; zero rows -> UNKNOWN empty scope).
+  
+  Unresolved/blockers: OpenRouter balance low (top up before P5; cap makes refill last ~10x). /tmp tmpfs near quota — just ci needs TMPDIR=$PWD/target/tmp. CHANGELOG Unreleased started at P3 (keep ticking per ticket). pretender gate will bite any future unremediated code.
+  
+  Refs: .wai/projects/catherine/runs/{catherine-bpz,0gk,1x7,86i,1ay}.state (checkpoint trails); briefs in .wai/projects/catherine/briefs/; docs/DESIGN.md §6 phases + §5 walkthrough; openspec/changes/* (P5=add-wasm-web-view, P6=add-kata-validation-ledger STOP CONDITION, P8=add-rule-lens HYPOTHESIZED).
+- 2026-11-11T22:16:31Z [id:8b97052adcb6f53b849b213385b7abfe08c86ecf4a4a4c884d829aace11652c6] (#failure-taxonomy) catherine review failure taxonomy (5 classes, gates filed): A fail-open boundaries at layer seams (silent drop/reinterpret -> labeled error or warning; gate: negative-matrix test catherine-348) | B prose-code contract drift (docstring claims untested; gate: ah scenarios for module claims catherine-za6) | C documented distinctions without fixture coverage (gate: variant-coverage ratchet catherine-3zs) | D un-mechanized soundness assumptions (gate: property ratchets catherine-1ml) | E toolchain regeneration erodes invariants (gate: self-defending hook check catherine-u6y). Meta-pattern: all bugs lived where new layers met the kernel; kernel itself fail-closed. Rule: never bare-edit generated files — pair with doctor check or upstream.
+- 2026-11-12T00:51:25Z [id:84ea7114ac118c4834e730e7f702783aa6133205e61aaaa00ca478a0f236922a] (#resume-catherine-design) Format: 1
+  Timestamp: 2026-11-12T00:51:25Z
+  Repo: arltificial/catherine (private, github, host alias git@at)
+  Branch: main
+  HEAD: 268c142 (ci: pinned toolchain workflow + standard-conformance gate)
+  Session: omp orchestrator (this conversation; waves delegated to task agents)
+  Task: catherine — CT modeling workbench: P0 bug wave + P1 prevention/gates + uh0 + CI all closed and committed
+  Previous entry: 69456a7f5efdd142faa33df8f9c60244182868274d0023fa803f525216ea955a
+  
+  Objective: continue the catherine build per docs/DESIGN.md; this session closed every bug ticket born from the P0/P1 fix reviews and landed the CI gate.
+  Current phase: commit (all landed; nothing in flight).
+  
+  Current state:
+  - Session commits: 9baca0e 51v KNOWN_MINOR gate + spec amend; 8f3fbcc 18t schema_mismatch + 0kw rows warning; 18c37a4 u3k is_clean accepted-only; a748895 u6y hook-swallow-guard + pre-push ah check --run-tests + .espectacular/state gitignored; ef25028 348 negative_matrix (25 rows, 7 surfaces) + query --follow warning (new bug found+fixed); 518ffef za6 docs-as-contracts scenarios/downgrades; 2c4e6a5 uh0 stale version hint + human-mode warnings (print_run_warnings); 7213481 fmt drift rewrap; 268c142 6p5 CI.
+  - Tickets CLOSED: 18t u3k 0kw 51v u6y 348 za6 uh0 6p5. biv CLOSED by decision reversal (SemVer stays for crates.io; wild shadow-checks only via re-file — do NOT implement without new ticket).
+  - Gates now: lefthook pre-commit = bd + ah check + pretender (40/400 line caps) + spk-lint + hook-swallow-guard (fails commits if bd init regen strips _lh_exit capture in .beads/hooks/* — remediation text printed by the gate); pre-push adds ah check --run-tests. CI: .github/workflows/ci.yml → scripts/ci-install.sh (pins read from versions.ddl.toml; bd sha256-verified) + just ci-full (fmt/clippy -D warnings/tests + openspec validate --strict + ah check). Standard-conformance test pins pin-syntax + issues.jsonl integrity (bd has no no-db validation — documented fallback).
+  - Conventions established: unknown_rows_warning/unknown_follow_warning on warnings channel + print_run_warnings human mode; KNOWN_MINOR=0 in parse/schema.rs (raise when additive semantics land); docs-as-contracts practice in .wai/resources/reflections/module-header-claims-are-contracts.md; negative-matrix rule in docs/ro5u-checklist.md (new flag/surface without a matrix row is incomplete).
+  - Remaining open: 9b5 (P1, wasm+web UI feature), P2: hc6 pilot, 7e8 transitive underconstraint, mrq rewrite docs, 1ml WL ratchet, 3zs prevention-C, w6z vampiro adoption. Concurrent omp session exists: it lands beads-export chore commits (7a7a61f, fb2f21c pattern) — leave .beads/issues.jsonl dirty to it; export refreshed at 27 issues.
+  
+  Ticket ownership: all open tickets unassigned, single-author (sasha); no third-party custody.
+  
+  Validation: cargo test --workspace green; ah check 0/0; just ci-full green; lefthook validate clean; actionlint clean; all commits passed full pre-commit gate.
+  
+  Unresolved/blockers: ci.yml never ran on a real runner — first push to main is its first live run; runner-specific failures fix in scripts/ci-install.sh. Upstream beads issue (bd init regen swallows exit codes) drafted, NOT filed.
+  
+  Exact next action: user decides lane — push main (first live CI run) and/or start 9b5 or a P2 ticket. Push requires explicit user authorization.
+  
+  Refs: docs/DESIGN.md §6 phases; openspec/changes/*; docs/ro5u-checklist.md; .wai/resources/reflections/; scripts/ci-install.sh; .espectacular/changes/add-bounded-analysis/.
+- 2026-11-12T02:32:43Z [id:6b4f65bedb40a546686cfa837247e0f2ad4c52ad80dbb54e01245f30bc989681] (#resume-catherine-design) Format: 1
+  Timestamp: 2026-11-12T02:35:00Z
+  Repo: arltificial/catherine (private, github, host alias git@at)
+  Branch: main
+  HEAD: 59a6072 (fix(ci): ensure wasm32 target for the pinned toolchain inside check-wasm)
+  Session: omp orchestrator (renew + orchestrate; user directive: push + implement all remaining tickets, tdd-ro5u, commit per ticket)
+  Task: catherine — pushed main; closed mrq, 7e8, 9b5 (wasm+web), 1ml; CI lane hardened; hc6 partial
+  Previous entry: 84ea7114ac118c4834e730e7f702783aa6133205e61aaaa00ca478a0f236922a
+  
+  Objective: implement ALL remaining tickets per tdd-ro5u with a commit after each; push lane first.
+  
+  Current phase: between tickets — BLOCKED on OpenRouter credits for subagent orchestration; context past the 40% repo line (recommend wai close + /clear resume, which this entry enables).
+  
+  Current state:
+  - Closed+committed: mrq b1493e4 (leftmost-outermost wording; ro5u at .wai/projects/catherine/reviews/catherine-mrq-ro5u.md), 7e8 dc3f130 (direct-only related() documented+pinning test; wai design artifact), 9b5 c81a31c (wasm boundary + web; headless smoke PASS w/ screenshot; ro5u at openspec/changes/add-wasm-web-view/ro5u-review.md; boundary outcome discriminator added; browser glue web/main.mjs + just web-build; wasm-bindgen CLI 0.2.130 sha-verified in target/tools), 1ml bc6fc18 (symmetric-structure ratchet split into tests/roundtrip_symmetric.rs, explicit 32-case envelope sizes 2..=4 — 256-case draft was 428s; ro5u at reviews/catherine-1ml-ro5u.md; CFI generator deferred LOW). Beads export swept into the amended feature commits (c81a31c, bc6fc18) — 19 closed / 8 open.
+  - CI lane: three runner failures diagnosed+fixed — openspec 127 (PATH: ci-install.sh now writes GITHUB_PATH, fe802c4), rustfmt version skew on rolling stable (pinned rust-toolchain.toml 1.98.1, 4b71ef8), wasm32 E0463 (check-wasm now runs rustup target add, 59a6072). The 59a6072 CI run was IN FLIGHT at handoff — verify green before pinning any newer rev into bogart CI.
+  - Pretender/clippy gates bite test files too: file_lines 400, fn caps 40/abc/cyclomatic 3/nesting 2 — roundtrip split + builder-table refactor were forced by them; expect the same on 3zs/w6z additions.
+  - ro5u artifact convention deviation: change-dir artifacts when the change exists, else .wai/projects/catherine/reviews/<id>-ro5u.md.
+  - Briefs READY (untracked, commit with their tickets): 3zs, w6z, 9vv (grounded in ak/matadero/series/ct-catlab SERIES.md — NOTE: proposal says Vending 6/6, series ledger says F2/F3/F5 caught + F6 refuted; ledger is ground truth), hc6.
+  - hc6 PARTIAL: subagent died at ~40% on OpenRouter 402 (affordable 831 tokens vs stale 131072 window). Transcript history://BogartHc6Implement. Evidence so far: RED fixture fired (exit 3); live census 2 ambiguous + 67 gap selectors; bogart tree state UNKNOWN/uncommitted — inspect ../bogart git status + .wai research file before resuming. models 4/5 are P7/P8-gated adjuncts, out of scope.
+  - BLOCKER: OpenRouter credits exhausted — fresh agent spawns 402. Tickets 3zs, w6z, hc6 (resume), then chain 9vv (STOP CONDITION — killed verdict stops the project; P7 alr, P8 nq5, dvx, ga7 gated on verdict) need subagents (user top-up) or explicit inline order.
+  
+  Exact next action: user tops up OpenRouter credits (models.yml cap 12288 makes refill last ~10x; fresh agents then spawn correctly) OR directs inline continuation; then resume at 3zs (brief ready), w6z (vampiro 0.5.0 installed; pin + lefthook pre-push + feedback dry-run saved), then 9vv, then hc6 resume; verify the 59a6072 CI run green first.
+  
+  Ticket ownership: all open tickets unassigned, single-author (sasha); 1ml/9b5/mrq/7e8 claimed+closed by this session.
+  
+  Validation: just ci green locally at bc6fc18 pre-justfile-fix (only delta = idempotent rustup line); boundary/parity/vitest/tsc green; wasm smoke screenshot archived; export fresh at bc6fc18 content.
+  
+  Constraints: push authorized for the CI-fix lane + ticket commits (done); bogart work NEVER pushed; user ship-checkpoint replaced by per-ticket commit directive; P6 verdict procedure + stop condition stand; no claims of detection-rate wins; kernel crates genesis-free.
