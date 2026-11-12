@@ -155,8 +155,18 @@ pub(crate) fn transitive_chain_schema() -> Schema {
         &["a", "c"],
         &[("p", "a", "c"), ("q", "a", "c"), ("r", "a", "c")],
         vec![
-            equation(&["p"], &["q"], "p and q declared equal", ConstraintStatus::Accepted),
-            equation(&["q"], &["r"], "q and r declared equal", ConstraintStatus::Accepted),
+            equation(
+                &["p"],
+                &["q"],
+                "p and q declared equal",
+                ConstraintStatus::Accepted,
+            ),
+            equation(
+                &["q"],
+                &["r"],
+                "q and r declared equal",
+                ConstraintStatus::Accepted,
+            ),
         ],
     )
 }

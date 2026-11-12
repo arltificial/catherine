@@ -222,8 +222,14 @@ fn transitive_equation_chain_does_not_suppress_the_end_pair_question() {
         "only the directly-unrelated (p,r) pair is raised"
     );
     let serialized = serde_json::to_value(&findings[0]).expect("findings serialize");
-    assert_eq!(serialized["witness"]["detail"]["lhs"], serde_json::json!(["p"]));
-    assert_eq!(serialized["witness"]["detail"]["rhs"], serde_json::json!(["r"]));
+    assert_eq!(
+        serialized["witness"]["detail"]["lhs"],
+        serde_json::json!(["p"])
+    );
+    assert_eq!(
+        serialized["witness"]["detail"]["rhs"],
+        serde_json::json!(["r"])
+    );
     assert_eq!(serialized["witness"]["question"], "should these agree?");
 }
 
