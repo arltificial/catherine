@@ -22,6 +22,7 @@ mod cli;
 mod config;
 mod migrate;
 mod render;
+mod rules;
 mod run;
 mod runners;
 
@@ -54,6 +55,7 @@ fn did_you_mean(err: &clap::error::Error) -> Option<String> {
             "distinguish".to_string(),
             "query".to_string(),
             "migrate".to_string(),
+            "rules".to_string(),
         ],
     );
     SuggestionEngine::new()
@@ -147,6 +149,11 @@ fn dispatch(
             direction,
         } => query_command(model, seed, follow, direction, ctx),
         C::Migrate { model } => migrate_command(model, ctx),
+        C::Rules {
+            model,
+            values,
+            max_candidates,
+        } => rules_command(model, values, *max_candidates, ctx),
     }
 }
 
@@ -289,6 +296,25 @@ fn check_command<O: Write, E: Write>(
 fn migrate_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -> i32 {
     migrate::run_migrate(
         model,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// Forward [`rules::run_rules`] on the shared execution path.
+fn rules_command<O: Write, E: Write>(
+    model: &str,
+    values: &[String],
+    max_candidates: usize,
+    ctx: &mut Ctx<'_, O, E>,
+) -> i32 {
+    rules::run_rules(
+        model,
+        values,
+        max_candidates,
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),

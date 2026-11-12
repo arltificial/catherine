@@ -11,12 +11,14 @@
 //! exit-0-without-warning, no silently-ignored input).
 //!
 //! Surfaces × classes: every CLI surface (check, findings, search,
-//! redundant, underconstraint, distinguish, query, migrate) gets a row
-//! for every malformed-input class that applies to it — undeclared
+//! redundant, underconstraint, distinguish, query, migrate, rules) gets
+//! a row for every malformed-input class that applies to it — undeclared
 //! object/arrow names in flags, second-doc schema mismatch, out-of-range
 //! `format_version`, unknown seed, uncomposable observation, partial or
-//! absent schema map, garbage instance rows, bad flag syntax (unknown
-//! flag → clap exit 2; malformed flag value → `bad_argument` exit 1).
+//! absent schema map, absent rule presentation, unknown predicate
+//! column, invalid policy, garbage rules, garbage instance rows, bad flag
+//! syntax (unknown flag → clap exit 2; malformed flag value →
+//! `bad_argument` exit 1).
 //! Behavior is probed live against the real binary
 //! (`CARGO_BIN_EXE_catherine`); assertions are structural
 //! (`serde_json::Value`) and numeric (exit codes), never snapshots.
@@ -91,6 +93,33 @@ const MIGRATE_GARBAGE_ROWS: &str = concat!(
 );
 /// A pre-map document (parses; carries no `schema_map`).
 const MIGRATE_NO_MAP: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/bowling.ct.json"
+);
+/// The rule lens's clean fixture (`fixtures/rule_lens/`) and the
+/// rules-only malformed-input fixtures.
+const RULE_LENS_GAP: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/rule_lens/gap.ct.json"
+);
+const RULES_CLEAN: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/rules_clean.ct.json"
+);
+const RULES_UNKNOWN_COLUMN: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/rules_unknown_column.ct.json"
+);
+const RULES_BAD_POLICY: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/rules_bad_policy.ct.json"
+);
+const RULES_GARBAGE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/rules_garbage.ct.json"
+);
+/// A pre-1.2 document (parses; carries no `rule_presentation`).
+const RULES_NO_SECTION: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/bowling.ct.json"
 );
@@ -262,6 +291,35 @@ const MATRIX: &[Row] = &[
           expect: Expect::Error { code: "unsupported_version" } },
     Row { name: "migrate × bad flag syntax (unknown flag)",
           args: &["migrate", MIGRATION_DROP_OBJECT, "--bogus", "--json"],
+          expect: Expect::Usage },
+
+    // ── rules ──────────────────────────────────────────────────────
+    Row { name: "rules × document without a rule_presentation (no silent empty analysis)",
+          args: &["rules", RULES_NO_SECTION, "--json"],
+          expect: Expect::Error { code: "no_rule_presentation" } },
+    Row { name: "rules × unknown column in a predicate",
+          args: &["rules", RULES_UNKNOWN_COLUMN, "--values", "n=1", "--json"],
+          expect: Expect::Error { code: "unknown_column" } },
+    Row { name: "rules × invalid policy spelling",
+          args: &["rules", RULES_BAD_POLICY, "--values", "n=1", "--json"],
+          expect: Expect::Error { code: "invalid_policy" } },
+    Row { name: "rules × garbage rules section (non-object rule)",
+          args: &["rules", RULES_GARBAGE, "--values", "n=1", "--json"],
+          expect: Expect::Error { code: "syntax" } },
+    Row { name: "rules × declared column with no supplied values",
+          args: &["rules", RULES_CLEAN, "--json"],
+          expect: Expect::Error { code: "bad_argument" } },
+    Row { name: "rules × undeclared --values column",
+          args: &["rules", RULE_LENS_GAP, "--values", "nope=1", "--json"],
+          expect: Expect::Error { code: "bad_argument" } },
+    Row { name: "rules × malformed --values token (non-int)",
+          args: &["rules", RULE_LENS_GAP, "--values", "age=ten", "--json"],
+          expect: Expect::Error { code: "bad_argument" } },
+    Row { name: "rules × out-of-range format_version",
+          args: &["rules", BAD_VERSION, "--values", "n=1", "--json"],
+          expect: Expect::Error { code: "unsupported_version" } },
+    Row { name: "rules × bad flag syntax (unknown flag)",
+          args: &["rules", RULE_LENS_GAP, "--values", "age=1", "--bogus", "--json"],
           expect: Expect::Usage },
 ];
 

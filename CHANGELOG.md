@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rule lens phase C (P8, `catherine-nq5`, HYPOTHESIZED): discovery
+  support and the CLI surface. `catherine-analysis::rule_lens::discover`
+  checks a candidate table against declared input→output examples —
+  strict per-example vocabulary validation, then a sample-scoped report
+  (`examples_checked`; never an exhaustiveness claim): uncovered examples
+  aggregate into one `underconstraint`/`hypothesized` `UncoveredInputs`
+  finding (dense example indices), while examples whose induced action
+  differs (or is ambiguous under an undeclared policy) become
+  `violation`/`executed` findings witnessed by the example. No new
+  finding variants. `catherine rules <doc> --values column=v1,v2,...
+  [--max-candidates N]` runs the structural producer over the declared
+  finite domain: the genesis findings envelope (`data.findings` verbatim;
+  budget expiry is `outcome: "unknown"` + the exact scope, exit 0), one
+  human line per finding, and the existing class exits (clean 0, gap 6,
+  overlap under `DeclaredDisjoint` 3, redundancy 7, min over multiples);
+  a document without `rule_presentation` is the labeled
+  `no_rule_presentation` error (exit 1). `tests/cli_rules.rs` and the
+  negative matrix carry the surface's acceptance rows.
+
 - Rule lens phase B (P8, `catherine-nq5`, HYPOTHESIZED): the semantic
   kernel in `catherine-core::rule_lens` — a validated finite `RuleDomain`
   over the declared typed columns, predicate evaluation (`mod` as a
@@ -24,9 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`hypothesized`, the reserved `UncoveredInputs` arm), overlap under
   `DeclaredDisjoint` → violation (`executed`), shadow/derivable →
   redundant (`executed`) — with no new finding variants; priority
-  policies and absent policies emit no overlap finding. Equivalence
-  discovery support, CLI surface, and the pre-registered validation
-  katas remain later phases.
+  policies and absent policies emit no overlap finding. The
+  pre-registered validation katas remain later phases.
 
 - Rule lens phase A (P8, `catherine-nq5`, HYPOTHESIZED): the additive
   `format_version` 1.2 `rule_presentation` section in `catherine-core` —

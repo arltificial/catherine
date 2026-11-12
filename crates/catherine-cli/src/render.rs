@@ -33,6 +33,7 @@ mod analysis;
 mod envelope;
 mod errors;
 mod migrate;
+mod rules;
 
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::analysis::{
@@ -48,6 +49,8 @@ pub use crate::render::envelope::{
 pub use crate::render::errors::LabeledError;
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::migrate::{migrate_envelope, render_migrate, MigrateData};
+#[allow(unused_imports)] // pub surface kept stable at `render::`
+pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, RulesData};
 
 use catherine_core::findings::{
     DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind,

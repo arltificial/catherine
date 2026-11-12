@@ -30,9 +30,21 @@ killable per design.md Decision 4.
       `UncoveredInputs`; overlap under DeclaredDisjoint → violation;
       shadow/derivable → redundant), `tests/rule_lens_findings.rs`
       pins all four plus `UNKNOWN { scope }` on budget expiry.
-- [ ] 7. Equivalence checking + discovery support (examples in, gap
-      findings out)
-- [ ] 8. CLI surface for rule-lens analysis
+- [x] 7. Equivalence checking + discovery support (examples in, gap
+      findings out). Evidence: `core::rule_lens::equivalence` proves
+      equivalence by witness; `analysis::rule_lens::discover` checks a
+      candidate table against declared input→output examples, mapping
+      uncovered examples to `underconstraint`/`UncoveredInputs` and
+      differing actions to `violation`/`EquationWitness`, scoped over the
+      sample (`tests/rule_lens_discovery.rs`: covered-clean, uncovered-gap,
+      differing-violation).
+- [x] 8. CLI surface for rule-lens analysis. Evidence: `catherine rules
+      <doc> --values column=v1,v2,... [--max-candidates N]` emits the
+      findings envelope (`data.findings` verbatim; budget expiry is
+      `outcome: "unknown"` + the exact scope) and one human line per
+      finding. `tests/cli_rules.rs` pins clean (0), gap (6), shadow (7),
+      short-budget UNKNOWN (0), and `no_rule_presentation` (1); the
+      negative matrix carries the new rules rows.
 
 ## VALIDATION (pre-registered)
 

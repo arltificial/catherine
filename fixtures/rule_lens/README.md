@@ -12,7 +12,8 @@ expectations below are asserted by `crates/catherine-core/tests/rule_lens.rs`
 (structure), by `crates/catherine-core/tests/rule_lens_{parity,fixtures}.rs`
 (semantics, bounded enumeration), and by
 `crates/catherine-analysis/tests/rule_lens_findings.rs` (taxonomy
-mapping) as well as by the sim.
+mapping) and `crates/catherine-cli/tests/cli_rules.rs` (the `rules`
+surface) as well as by the sim.
 
 ## Input domain and policy
 

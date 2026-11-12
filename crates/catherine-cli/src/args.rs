@@ -1,6 +1,6 @@
 //! Purpose: the CLI's flag-value parsing — `--rows`, `--observe`,
-//! `--seed`, and `--direction` — the only places CLI-level input errors
-//! are minted.
+//! `--seed`, `--direction`, and the rule lens's `--values` — the only
+//! places CLI-level input errors are minted.
 //!
 //! Responsibilities: parse each flag's syntax; for observations also
 //! validate against the schema and the first instance's row space; every
@@ -14,7 +14,7 @@
 use crate::render::LabeledError;
 use catherine_analysis::distinguish::Observation;
 use catherine_analysis::query::{Direction, NodeRef};
-use catherine_core::model::{Ident, Path, RowId, Schema};
+use catherine_core::model::{ColumnType, Ident, Literal, Path, RowId, Schema};
 use std::collections::BTreeMap;
 
 /// A CLI-level input error: malformed flag values or semantically empty
@@ -202,5 +202,71 @@ pub fn parse_direction(direction: &str) -> Result<Direction, LabeledError> {
             format!("--direction is forward or backward, got `{other}`"),
             "forward follows src→tgt; backward follows tgt→src",
         )),
+    }
+}
+
+/// Parse the `--values` specs of the rule lens: `column=v1,v2,...`,
+/// repeatable (later spellings win per column). Every token is parsed
+/// against the column's declared type; missing columns are left to
+/// `RuleDomain::from_presentation`, which names the omission — the CLI
+/// never invents a value list.
+pub fn parse_domain_values(
+    specs: &[String],
+    columns: &BTreeMap<Ident, ColumnType>,
+) -> Result<BTreeMap<Ident, Vec<Literal>>, LabeledError> {
+    let mut supplied = BTreeMap::new();
+    for spec in specs {
+        let Some((name, list)) = spec.split_once('=') else {
+            return Err(bad_arg(
+                format!("--values expects column=value[,value...], got `{spec}`"),
+                "spell the values as column=v1,v2,..., e.g. --values age=10,20,30",
+            ));
+        };
+        let column = Ident(name.to_string());
+        let Some(column_type) = columns.get(&column) else {
+            return Err(bad_arg(
+                format!("--values names `{name}`, which the rule presentation does not declare"),
+                "use a column declared in rule_presentation.columns",
+            ));
+        };
+        if list.is_empty() {
+            return Err(bad_arg(
+                format!("--values gives no values for column `{name}`"),
+                "an empty value list would make the analysis vacuous; supply at least one value",
+            ));
+        }
+        let values = list
+            .split(',')
+            .map(|token| parse_literal(token, *column_type, name, spec))
+            .collect::<Result<Vec<_>, _>>()?;
+        supplied.insert(column, values);
+    }
+    Ok(supplied)
+}
+
+/// One typed value of a `--values` spec; strings stay verbatim (commas
+/// are the list separator, so a string value cannot contain one).
+fn parse_literal(
+    token: &str,
+    column_type: ColumnType,
+    column: &str,
+    spec: &str,
+) -> Result<Literal, LabeledError> {
+    match column_type {
+        ColumnType::Int => token.parse::<i64>().map(Literal::Int).map_err(|_| {
+            bad_arg(
+                format!("`{token}` in `{spec}` is not an int for column `{column}`"),
+                "int columns take decimal i64 values",
+            )
+        }),
+        ColumnType::Bool => match token {
+            "true" => Ok(Literal::Bool(true)),
+            "false" => Ok(Literal::Bool(false)),
+            _ => Err(bad_arg(
+                format!("`{token}` in `{spec}` is not a bool for column `{column}`"),
+                "bool columns take `true` or `false`",
+            )),
+        },
+        ColumnType::String => Ok(Literal::String(token.to_string())),
     }
 }

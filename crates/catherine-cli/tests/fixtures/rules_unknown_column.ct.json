@@ -1,0 +1,20 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Input"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [{"name": "n", "type": "int"}],
+    "rules": [
+      {"name": "all", "predicate": {"kind": "cmp", "column": "nope", "op": "ge", "value": 1}, "action": "a"}
+    ],
+    "policy": "PriorityOrder"
+  }
+}

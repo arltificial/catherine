@@ -30,6 +30,14 @@
 //! analysis (`RuleClass::Overlap`) but maps to no finding — Decision 1
 //! pins overlap only under `DeclaredDisjoint`, and Decision 3 forbids
 //! implying precedence that was never declared.
+//!
+//! Phase C's [`discover`] checks a candidate table against declared
+//! input→output examples and reports the uncovered and differing ones
+//! under the same taxonomy mapping, scoped over the supplied sample.
+
+mod discovery;
+
+pub use discovery::{discover, DiscoveryError, DiscoveryReport, RuleExample};
 
 use crate::bounds::{redundant_finding, uncovered_inputs_finding, ScopeCaps};
 use catherine_core::findings::{EpistemicLabel, EquationWitness, Finding, FindingKind};

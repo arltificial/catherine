@@ -1,0 +1,18 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Input"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [{"name": "n", "type": "int"}],
+    "rules": [42],
+    "policy": "PriorityOrder"
+  }
+}

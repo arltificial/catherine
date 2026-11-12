@@ -1,0 +1,21 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Input"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [{"name": "n", "type": "int"}],
+    "rules": [
+      {"name": "small", "predicate": {"kind": "cmp", "column": "n", "op": "lt", "value": 10}, "action": "small"},
+      {"name": "large", "predicate": {"kind": "cmp", "column": "n", "op": "ge", "value": 10}, "action": "large"}
+    ],
+    "policy": "PriorityOrder"
+  }
+}
