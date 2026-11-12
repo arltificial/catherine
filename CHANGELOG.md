@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- variant-coverage ratchet (P2, `catherine-3zs`): a workspace test
+  driving the real `catherine` binary over the fixture corpus asserting
+  every variant of the contract enums (`EpistemicLabel`, `FindingKind`,
+  `DomainQuestion`, `ConstraintStatus`, `SearchOutcome`) is constructed
+  by at least one executed fixture — exhaustive match functions make a
+  new variant break the ratchet until it is accounted for; the two
+  producer-less variants (`UncoveredInputs` P8-reserved,
+  `Unknown` render-reserved) are covered by cited direct construction.
+  Advisory diff-coverage block added to lefthook pre-push
+  (report-only; the ~80% gate is a later phase).
 - symmetric-structure property ratchet (P2, `catherine-1ml`): the
   WL-pruning assumption behind the canonicalizer's refined-partition
   branch skip now carries executable evidence — a proptest strategy

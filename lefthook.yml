@@ -55,3 +55,13 @@ pre-push:
     # catherine-za6: full ah check with tests on push; static check stays pre-commit
     ah-check-run-tests:
       run: ah check --run-tests
+    # catherine-3zs: advisory diff-coverage, report-only this phase (the
+    # ~80% changed-lines gate is a later, deliberate phase). A missing
+    # cargo-llvm-cov degrades to an advisory line, never a failure.
+    diff-coverage-advisory:
+      run: |
+        if command -v cargo-llvm-cov >/dev/null 2>&1; then
+          cargo llvm-cov --workspace --summary-only 2>&1 | tail -5 || true
+        else
+          echo "diff-coverage-advisory: cargo-llvm-cov not installed — advisory skipped (install: cargo install cargo-llvm-cov)"
+        fi

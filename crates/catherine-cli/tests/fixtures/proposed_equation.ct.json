@@ -1,0 +1,17 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["a", "b"],
+    "arrows": [
+      {"name": "f", "src": "a", "tgt": "b"},
+      {"name": "g", "src": "a", "tgt": "b"}
+    ],
+    "equations": [
+      {"lhs": ["f"], "rhs": ["g"], "rationale": "the paths agree", "status": "proposed"}
+    ]
+  },
+  "instance": {
+    "rows": {"a": ["x"], "b": ["y"]},
+    "tables": {"f": {"x": "y"}, "g": {"x": "y"}}
+  }
+}
