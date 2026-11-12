@@ -1,0 +1,9 @@
+# Pinned toolchain (Standardization §4 discipline: installs are pinned,
+# never `latest` — a rustfmt/clippy style drift on a rolling `stable`
+# runner must not fail the gate on code the pinned toolchain accepts).
+# Aligned to the development toolchain; fmt/clippy behavior is part of
+# the gate's definition.
+[toolchain]
+channel = "1.98.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
