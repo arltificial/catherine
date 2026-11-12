@@ -60,6 +60,12 @@ NPM_PREFIX="$HOME/.npm-global"
 mkdir -p "$NPM_PREFIX"
 npm install --global --prefix "$NPM_PREFIX" "@fission-ai/openspec@$OPENSPEC"
 export PATH="$NPM_PREFIX/bin:$PATH"
+# Each Actions `run:` step is a fresh shell — the export above dies with
+# this script, so hand the prefix to GITHUB_PATH for the later gate steps
+# (unset locally; the export already covers direct local runs).
+if [[ -n "${GITHUB_PATH:-}" ]]; then
+	echo "$NPM_PREFIX/bin" >> "$GITHUB_PATH"
+fi
 
 # bd: pinned GitHub release download, checksum-verified.
 case "$(uname -s)-$(uname -m)" in
