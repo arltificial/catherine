@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- vampiro seam-composition gate (P2, `catherine-w6z`): `vampiro check
+  -p crates --mode gate --severity-threshold high` wired into lefthook
+  pre-push (complementary drift gate; does not replace
+  catherine-348/za6/3zs), tool pinned `0.5.0` in `versions.ddl.toml`;
+  the B2 law-axis false-negative (shape-valid cross-origin
+  `TypedInstance::build` join, catherine-18t) documented and filed
+  upstream as feedback (body + repro hash preserved under
+  `.wai/projects/catherine/research/` — upstream slug unresolvable by
+  `gh`, manual filing URL recorded).
 - variant-coverage ratchet (P2, `catherine-3zs`): a workspace test
   driving the real `catherine` binary over the fixture corpus asserting
   every variant of the contract enums (`EpistemicLabel`, `FindingKind`,

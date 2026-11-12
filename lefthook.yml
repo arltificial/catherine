@@ -55,6 +55,11 @@ pre-push:
     # catherine-za6: full ah check with tests on push; static check stays pre-commit
     ah-check-run-tests:
       run: ah check --run-tests
+    # catherine-w6z: seam-composition gate (complementary to catherine-348/za6/3zs,
+    # does NOT replace them). Gate mode exits non-zero on findings at/above the
+    # high threshold — that is intended.
+    vampiro-seam-gate:
+      run: vampiro check -p crates --mode gate --severity-threshold high
     # catherine-3zs: advisory diff-coverage, report-only this phase (the
     # ~80% changed-lines gate is a later, deliberate phase). A missing
     # cargo-llvm-cov degrades to an advisory line, never a failure.
