@@ -77,6 +77,38 @@ function saveFile(): void {
   URL.revokeObjectURL(url);
 }
 
+/** The ledger's kata fixtures, as loadable presets (tasks.md task 6).
+ * Relative to the served page (`web/`), so the site works when served
+ * from the repository root — no server, no framework. */
+const KATA_PRESETS: readonly { readonly name: string; readonly path: string }[] = [
+  { name: "FizzBuzz (negative control, kata-6)", path: "../fixtures/katas/fizzbuzz.ct.json" },
+  { name: "Bowling (kata-1)", path: "../fixtures/katas/bowling.ct.json" },
+  { name: "Gilded Rose (kata-2)", path: "../fixtures/katas/gilded-rose.ct.json" },
+  { name: "Vending Machine (kata-3)", path: "../fixtures/katas/vending.ct.json" },
+];
+
+/** Populate the preset select: a placeholder plus one kata fixture. */
+function renderKataPresets(): void {
+  const select = byId<HTMLSelectElement>("kata-preset");
+  clear(select);
+  select.append(el("option", { value: "" }, [text("load a kata fixture…")]));
+  for (const [index, preset] of KATA_PRESETS.entries()) {
+    select.append(el("option", { value: String(index) }, [text(preset.name)]));
+  }
+}
+
+/** Fetch a kata fixture into the textarea through the same load path
+ * as the file input: set the document, re-render every panel. */
+async function loadKataPreset(preset: { readonly path: string }): Promise<void> {
+  const response = await fetch(preset.path);
+  if (!response.ok) {
+    showError(`kata fixture unavailable at ${preset.path} — serve the site from the repository root`);
+    return;
+  }
+  byId<HTMLTextAreaElement>("doc").value = await response.text();
+  renderAll();
+}
+
 /** Wire the static page: every control, once. */
 export function start(): void {
   byId<HTMLButtonElement>("check-btn").addEventListener("click", renderAll);
@@ -85,6 +117,14 @@ export function start(): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file !== undefined) {
       loadFile(file);
+    }
+  });
+  renderKataPresets();
+  byId<HTMLSelectElement>("kata-preset").addEventListener("change", (event) => {
+    const index = Number((event.target as HTMLSelectElement).value);
+    const preset = KATA_PRESETS[index];
+    if (preset !== undefined) {
+      void loadKataPreset(preset);
     }
   });
   renderAll();

@@ -1,0 +1,47 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Game", "Frame", "TenthFrame", "FrameRoll", "TenthRoll", "Pins"],
+    "arrows": [
+      {"name": "of_game", "src": "Frame", "tgt": "Game"},
+      {"name": "of_game10", "src": "TenthFrame", "tgt": "Game"},
+      {"name": "of_frame", "src": "FrameRoll", "tgt": "Frame"},
+      {"name": "first", "src": "Frame", "tgt": "FrameRoll"},
+      {"name": "second", "src": "Frame", "tgt": "FrameRoll"},
+      {"name": "of_frame10", "src": "TenthRoll", "tgt": "TenthFrame"},
+      {"name": "tfirst", "src": "TenthFrame", "tgt": "TenthRoll"},
+      {"name": "tsecond", "src": "TenthFrame", "tgt": "TenthRoll"},
+      {"name": "tbonus", "src": "TenthFrame", "tgt": "TenthRoll"},
+      {"name": "fpins", "src": "FrameRoll", "tgt": "Pins"},
+      {"name": "tpins", "src": "TenthRoll", "tgt": "Pins"}
+    ],
+    "equations": [
+      {"lhs": ["first", "of_frame"], "rhs": ["second", "of_frame"], "rationale": "frame membership: a frame's two slot rolls belong to that frame (the frame/roll accounting the series caught structurally)", "status": "accepted"},
+      {"lhs": ["tfirst", "of_frame10"], "rhs": ["tsecond", "of_frame10"], "rationale": "tenth membership: the tenth's first two slot rolls belong to the tenth", "status": "accepted"},
+      {"lhs": ["tfirst", "of_frame10"], "rhs": ["tbonus", "of_frame10"], "rationale": "tenth membership: the explicit bonus-slot roll belongs to the tenth - the schema forces the bonus slot to exist (design-discovery pressure), though not its fill condition", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Game": ["g"],
+      "Frame": ["f1_open", "f2_spare", "f3_post_game"],
+      "TenthFrame": ["t1_strike"],
+      "FrameRoll": ["a1", "a2", "a3", "a4", "a5", "a6"],
+      "TenthRoll": ["b1", "b2", "b3"],
+      "Pins": ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10"]
+    },
+    "tables": {
+      "of_game": {"f1_open": "g", "f2_spare": "g", "f3_post_game": "g"},
+      "of_game10": {"t1_strike": "g"},
+      "of_frame": {"a1": "f1_open", "a2": "f1_open", "a3": "f2_spare", "a4": "f2_spare", "a5": "f3_post_game", "a6": "f3_post_game"},
+      "first": {"f1_open": "a1", "f2_spare": "a3", "f3_post_game": "a5"},
+      "second": {"f1_open": "a2", "f2_spare": "a4", "f3_post_game": "a6"},
+      "of_frame10": {"b1": "t1_strike", "b2": "t1_strike", "b3": "t1_strike"},
+      "tfirst": {"t1_strike": "b1"},
+      "tsecond": {"t1_strike": "b2"},
+      "tbonus": {"t1_strike": "b3"},
+      "fpins": {"a1": "p3", "a2": "p4", "a3": "p5", "a4": "p5", "a5": "p4", "a6": "p2"},
+      "tpins": {"b1": "p10", "b2": "p3", "b3": "p4"}
+    }
+  }
+}

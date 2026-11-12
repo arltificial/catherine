@@ -1,0 +1,109 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": [
+      "Sulfuras",
+      "Pass",
+      "ExpiredPass",
+      "Quality",
+      "Day"
+    ],
+    "arrows": [
+      {
+        "name": "sq",
+        "src": "Sulfuras",
+        "tgt": "Quality"
+      },
+      {
+        "name": "frozen",
+        "src": "Sulfuras",
+        "tgt": "Quality"
+      },
+      {
+        "name": "sellin",
+        "src": "Sulfuras",
+        "tgt": "Day"
+      },
+      {
+        "name": "pq",
+        "src": "Pass",
+        "tgt": "Quality"
+      },
+      {
+        "name": "eq",
+        "src": "ExpiredPass",
+        "tgt": "Quality"
+      },
+      {
+        "name": "floor",
+        "src": "ExpiredPass",
+        "tgt": "Quality"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "sq"
+        ],
+        "rhs": [
+          "frozen"
+        ],
+        "rationale": "frozen quality: the legendary item's quality is pinned to its declared frozen value - the series' inv_frozen_quality (Sulfuras == 80) as a path equation",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "eq"
+        ],
+        "rhs": [
+          "floor"
+        ],
+        "rationale": "post-concert pass: a pass in the declared expired state has its quality pinned to the concert floor - the series' inv_pass_concert (after sellIn < 0 the pass must be 0)",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Sulfuras": [
+        "s1"
+      ],
+      "Pass": [
+        "p1"
+      ],
+      "ExpiredPass": [
+        "e1"
+      ],
+      "Quality": [
+        "q80",
+        "q10",
+        "q0",
+        "q7"
+      ],
+      "Day": [
+        "d_canon",
+        "d_decayed"
+      ]
+    },
+    "tables": {
+      "sq": {
+        "s1": "q80"
+      },
+      "frozen": {
+        "s1": "q80"
+      },
+      "sellin": {
+        "s1": "d_canon"
+      },
+      "pq": {
+        "p1": "q10"
+      },
+      "eq": {
+        "e1": "q0"
+      },
+      "floor": {
+        "e1": "q0"
+      }
+    }
+  }
+}

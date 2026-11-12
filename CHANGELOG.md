@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- kata validation ledger (P6, `catherine-9vv`) — THE PROJECT STOP
+  CONDITION, executed: `crates/catherine-ledger` (content-addressed
+  entries via the P0 hash port, validator refusing bad science —
+  control-first ordering, closed verdict vocabulary, model-hash
+  references, append-only supersession — recorded-procedure rollup,
+  pre-registered per-kata expectation catalog, fixture harness,
+  `ledger-check`/`ledger-record` bins), 4 kata fixtures with executed
+  runs (`fixtures/katas/`), ledger entries #1–#4 + derived rollup #5:
+  **project verdict survived (scoped)** — FizzBuzz control self-negated
+  (killed, zero unique detections), Bowling/Gilded Rose/Vending
+  survived with named expressibility gaps and the Vending "6/6"
+  proposal-vs-series discrepancy recorded; kata presets wired into the
+  web view (load→check→render verified headless); P7/P8 unblock per
+  the derived verdict.
 - bogart pilot corpus (P9, `catherine-hc6`): models 1–3 + RED fixture
   landed in `at/bogart` (FTS-anchor equation/totality, identity-domain
   disjointness — vacuous-by-design until P8, capture-selector

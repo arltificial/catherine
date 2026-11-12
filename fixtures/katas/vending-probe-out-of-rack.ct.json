@@ -1,0 +1,167 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": [
+      "Slot",
+      "Row",
+      "ColIdx",
+      "Head",
+      "Cmd",
+      "Occ",
+      "Drop"
+    ],
+    "arrows": [
+      {
+        "name": "srow",
+        "src": "Slot",
+        "tgt": "Row"
+      },
+      {
+        "name": "scol",
+        "src": "Slot",
+        "tgt": "ColIdx"
+      },
+      {
+        "name": "hat",
+        "src": "Head",
+        "tgt": "Slot"
+      },
+      {
+        "name": "hx",
+        "src": "Head",
+        "tgt": "Row"
+      },
+      {
+        "name": "hy",
+        "src": "Head",
+        "tgt": "ColIdx"
+      },
+      {
+        "name": "pending",
+        "src": "Head",
+        "tgt": "Cmd"
+      },
+      {
+        "name": "occ",
+        "src": "Slot",
+        "tgt": "Occ"
+      },
+      {
+        "name": "dt",
+        "src": "Drop",
+        "tgt": "Slot"
+      },
+      {
+        "name": "dexpect",
+        "src": "Drop",
+        "tgt": "Occ"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "hat",
+          "srow"
+        ],
+        "rhs": [
+          "hx"
+        ],
+        "rationale": "selection bounds: the selection head's slot row and its decoded row coordinate must agree (the axis cross-check that catches an out-of-bounds or swapped decode structurally)",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "hat",
+          "scol"
+        ],
+        "rhs": [
+          "hy"
+        ],
+        "rationale": "selection bounds: column half of the head's slot/coordinate agreement",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "dt",
+          "occ"
+        ],
+        "rhs": [
+          "dexpect"
+        ],
+        "rationale": "collision: a drop may only target a slot whose occupancy state is the declared free state - the series' collision invariant as a path equation",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Slot": [
+        "a1",
+        "a2",
+        "b1",
+        "b2"
+      ],
+      "Row": [
+        "rA",
+        "rB"
+      ],
+      "ColIdx": [
+        "c1",
+        "c2"
+      ],
+      "Head": [
+        "h"
+      ],
+      "Cmd": [
+        "bA",
+        "bB",
+        "bCoinReturn"
+      ],
+      "Occ": [
+        "free",
+        "stocked"
+      ],
+      "Drop": [
+        "d"
+      ]
+    },
+    "tables": {
+      "srow": {
+        "a1": "rA",
+        "a2": "rA",
+        "b1": "rB",
+        "b2": "rB"
+      },
+      "scol": {
+        "a1": "c1",
+        "a2": "c2",
+        "b1": "c1",
+        "b2": "c2"
+      },
+      "hat": {
+        "h": "a3"
+      },
+      "hx": {
+        "h": "rA"
+      },
+      "hy": {
+        "h": "c1"
+      },
+      "pending": {
+        "h": "bA"
+      },
+      "occ": {
+        "a1": "free",
+        "a2": "free",
+        "b1": "free",
+        "b2": "free"
+      },
+      "dt": {
+        "d": "a1"
+      },
+      "dexpect": {
+        "d": "free"
+      }
+    }
+  }
+}

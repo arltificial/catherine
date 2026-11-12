@@ -1,0 +1,24 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Rule", "Divisor", "Output"],
+    "arrows": [
+      {"name": "divisor", "src": "Rule", "tgt": "Divisor"},
+      {"name": "output", "src": "Rule", "tgt": "Output"}
+    ],
+    "equations": [
+      {"lhs": ["output"], "rhs": ["output"], "rationale": "negative control (kata-6): the only equation the path surface can state over the FizzBuzz rule table is this tautology - divisibility, coverage, and rule precedence have no equation form", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Rule": ["fizz", "buzz", "fizzbuzz"],
+      "Divisor": ["d3", "d5", "d30"],
+      "Output": ["Fizz", "Buzz", "FizzBuzz"]
+    },
+    "tables": {
+      "divisor": {"fizz": "d3", "buzz": "d5", "fizzbuzz": "d30"},
+      "output": {"fizz": "Fizz", "buzz": "Buzz", "fizzbuzz": "FizzBuzz"}
+    }
+  }
+}
