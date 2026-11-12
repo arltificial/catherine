@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- symmetric-structure property ratchet (P2, `catherine-1ml`): the
+  WL-pruning assumption behind the canonicalizer's refined-partition
+  branch skip now carries executable evidence — a proptest strategy
+  biased toward automorphism-rich models (rotation cycles, identity-pair
+  involutions, twin rows, full collapse) asserting `model_hash`
+  invariance under row-presentation permutation.
 - wasm boundary + minimal web view (P5, `catherine-9b5`): `crates/catherine-wasm`
   (`check`/`analyze` JSON in/out over the kernel's own findings encoding,
   512 KiB document cap enforced before the kernel is invoked with a typed
