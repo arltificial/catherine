@@ -28,12 +28,8 @@ use std::process::Command;
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/");
 /// The committed migration fixtures (shared with the kernel suites) —
 /// both `MigrationFindingKind` variants fire across these two maps.
-const MIGRATION_FIXTURES: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/migration/");
-const MIGRATION_COVERAGE_RUNS: [&str; 2] = [
-    "drop_object.ct.json",
-    "bogart_rehearsal.ct.json",
-];
+const MIGRATION_FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/migration/");
+const MIGRATION_COVERAGE_RUNS: [&str; 2] = ["drop_object.ct.json", "bogart_rehearsal.ct.json"];
 const ALL_KINDS: [&str; 5] = [
     "violation",
     "dangling",
@@ -331,7 +327,11 @@ fn every_contract_enum_variant_is_constructed_by_an_executed_fixture() {
     );
 
     assert_all_covered("FindingKind", &ALL_KINDS, &kinds);
-    assert_all_covered("MigrationFindingKind", &ALL_MIGRATION_KINDS, &migration_kinds);
+    assert_all_covered(
+        "MigrationFindingKind",
+        &ALL_MIGRATION_KINDS,
+        &migration_kinds,
+    );
     assert_all_covered("EpistemicLabel", &ALL_LABELS, &labels);
     assert_all_covered("DomainQuestion", &ALL_QUESTIONS, &questions);
     assert_all_covered("SearchOutcome", &ALL_OUTCOMES, &outcomes);

@@ -83,7 +83,11 @@ fn parse_json(text: &str) -> serde_json::Value {
 fn migrate_lost_data_envelope_is_exit_8_with_kernel_findings_verbatim() {
     let out = run(&["migrate", DROP_OBJECT, "--json"]);
     assert_eq!(code(&out), 8, "lost data is a finding-bearing run");
-    assert_eq!(stderr(&out), "", "the error stream stays empty on a finding run");
+    assert_eq!(
+        stderr(&out),
+        "",
+        "the error stream stays empty on a finding run"
+    );
 
     let v = parse_json(&stdout(&out));
     assert_eq!(v["ok"], true, "the migration report is a success envelope");
@@ -163,7 +167,10 @@ fn migrate_without_schema_map_is_the_no_schema_map_error() {
     assert_eq!(v["envelope_kind"], "error");
     assert_eq!(v["data"]["code"], "no_schema_map");
     assert!(
-        !v["data"]["remediation"].as_array().expect("remediation").is_empty(),
+        !v["data"]["remediation"]
+            .as_array()
+            .expect("remediation")
+            .is_empty(),
         "remediation is non-empty"
     );
 }
@@ -211,7 +218,10 @@ fn migrate_human_lines_name_every_lost_element() {
         "the summary head counts honestly: {first}",
         first = lines[0]
     );
-    assert_eq!(lines[1], "lost-row: Scratch#0", "witness lines are countable");
+    assert_eq!(
+        lines[1], "lost-row: Scratch#0",
+        "witness lines are countable"
+    );
     assert_eq!(lines[4], "lost-cell: scratch_note at Scratch#0");
 }
 
@@ -232,10 +242,7 @@ fn bogart_rehearsal_emits_the_documented_ten_findings_and_exits_8() {
     let lost = v["data"]["lost"].as_array().expect("data.lost array");
     assert_eq!(lost.len(), 10, "4 dropped rows + 6 valued dropped cells");
 
-    let lost_rows: Vec<_> = lost
-        .iter()
-        .filter(|f| f["kind"] == "lost_row")
-        .collect();
+    let lost_rows: Vec<_> = lost.iter().filter(|f| f["kind"] == "lost_row").collect();
     assert_eq!(lost_rows.len(), 4, "every RawCapture row is named");
     for (i, finding) in lost_rows.iter().enumerate() {
         assert_eq!(finding["witness"]["object"], "RawCapture");

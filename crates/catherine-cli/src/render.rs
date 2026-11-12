@@ -45,9 +45,9 @@ pub use crate::render::envelope::{
     config_warning, error_envelope, findings_envelope, unknown_follow_warning,
     unknown_rows_warning, FindingsData,
 };
+pub use crate::render::errors::LabeledError;
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::migrate::{migrate_envelope, render_migrate, MigrateData};
-pub use crate::render::errors::LabeledError;
 
 use catherine_core::findings::{
     DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind,
