@@ -40,6 +40,14 @@ Every analysis answer is either **a proof within stated bounds** or
   *over*-report it — every `redundant` finding carries a witnessed
   derivation. A derivation that hits the rewrite-step cap is not a proof
   and emits nothing.
+- **Underconstraint relating is direct-only.** A declared equation
+  relates a parallel pair iff one of its sides *is* each path, in
+  either orientation; transitive chains are not followed. The accepted
+  chain `p=q, q=r` still raises the `(p,r)` question even though the
+  rewriter can derive `p=r` — the question-raiser prefers noise over
+  silence (DESIGN §4.2), and congruence closure over the accepted set
+  is a future capability, not v1. Pinned by
+  `transitive_equation_chain_does_not_suppress_the_end_pair_question`.
 - **Search witness contract.** A witness is a *fully resolved* instance:
   every arrow value resolves and every accepted equation holds on every
   applicable row (the satisfaction predicate is the kernel's own

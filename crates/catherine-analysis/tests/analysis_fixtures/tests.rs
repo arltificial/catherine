@@ -11,6 +11,7 @@ use catherine_core::model::RowId;
 
 use super::builders::{
     contradiction_schema, distinguish_pair, parallel_schema, path, rewrite_schema, rows,
+    transitive_chain_schema,
 };
 use crate::common::ident;
 
@@ -206,6 +207,24 @@ fn task3_zero_cap_enumerates_no_paths() {
         },
     );
     assert!(findings.is_empty(), "cap 0 enumerates nothing");
+}
+
+#[test]
+fn transitive_equation_chain_does_not_suppress_the_end_pair_question() {
+    // catherine-7e8, documented limit: `related` is direct-only — the
+    // accepted chain p=q, q=r proves p=r by rewriting, but does not
+    // suppress the (p,r) domain question. Question-raiser v1 semantics:
+    // noise over silence; congruence closure is future capability.
+    let findings = underconstraint(&transitive_chain_schema(), &ScopeCaps::default());
+    assert_eq!(
+        findings.len(),
+        1,
+        "only the directly-unrelated (p,r) pair is raised"
+    );
+    let serialized = serde_json::to_value(&findings[0]).expect("findings serialize");
+    assert_eq!(serialized["witness"]["detail"]["lhs"], serde_json::json!(["p"]));
+    assert_eq!(serialized["witness"]["detail"]["rhs"], serde_json::json!(["r"]));
+    assert_eq!(serialized["witness"]["question"], "should these agree?");
 }
 
 // ── RED task 4: path derivable under the declared equations ─────────

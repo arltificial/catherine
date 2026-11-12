@@ -146,6 +146,21 @@ pub(crate) fn rewrite_schema() -> Schema {
     )
 }
 
+/// catherine-7e8 fixture: three parallel arrows `p,q,r: a→c`; the
+/// accepted equations `p=q` and `q=r` relate the outer pair only
+/// transitively — rewriting can derive `p=r`, yet the (p,r) question
+/// stays raised (documented direct-only limit).
+pub(crate) fn transitive_chain_schema() -> Schema {
+    schema(
+        &["a", "c"],
+        &[("p", "a", "c"), ("q", "a", "c"), ("r", "a", "c")],
+        vec![
+            equation(&["p"], &["q"], "p and q declared equal", ConstraintStatus::Accepted),
+            equation(&["q"], &["r"], "q and r declared equal", ConstraintStatus::Accepted),
+        ],
+    )
+}
+
 /// RED task 5 fixture: one schema, two arrow tables; the two instances
 /// differ only in where `f` sends the single `a` row.
 pub(crate) fn distinguish_schema() -> Schema {

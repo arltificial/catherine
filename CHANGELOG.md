@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - License: MIT → Apache-2.0 (matches code donors specodelic/wild/genesis;
   switched before any code landed).
+- underconstraint: the direct-only `related()` limit — transitive accepted
+  chains do not suppress the pair question — is documented (module header +
+  analysis README) and pinned by a fixture test (`catherine-7e8`; adjudicated:
+  v1 question-raiser semantics kept, congruence closure deferred as future
+  capability).
 
 ### Fixed
 

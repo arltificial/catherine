@@ -11,6 +11,14 @@
 //! equation relates — either orientation counts as relating. Never a
 //! violation, never a failure: a question.
 //!
+//! Documented limit (catherine-7e8): relating is direct-only — an
+//! equation relates a pair iff one of its sides *is* each path, either
+//! orientation. An accepted chain p=q, q=r does not suppress the (p,r)
+//! question even though rewriting can derive p=r; the question-raiser
+//! prefers noise over silence, and congruence closure over the accepted
+//! equation set is future capability, not v1 (the README's limits
+//! section carries the same statement, pinned by a fixture test).
+//!
 //! Rationale: the enumeration is bounded by the caller-supplied path
 //! cap (a cyclic schema generates infinitely many paths — the cap is
 //! what keeps the op total and deterministic, and its default lives in
@@ -147,8 +155,11 @@ fn unrelated_pairs(
 }
 
 /// Whether any declared equation relates the two paths — in either
-/// orientation. A related pair is *constrained*; the hypothesis is only
-/// for pairs the schema never forces to agree.
+/// orientation, direct-only: no transitivity (catherine-7e8). A related
+/// pair is *constrained*; the hypothesis is only for pairs the schema
+/// never forces to agree. The accepted chain p=q, q=r therefore still
+/// raises the (p,r) question — a documented v1 limit, not a bug; see
+/// the module docs and the README limits section.
 fn related(equations: &[catherine_core::model::Equation], lhs: &Path, rhs: &Path) -> bool {
     equations.iter().any(|equation| {
         (&equation.lhs == lhs && &equation.rhs == rhs)
