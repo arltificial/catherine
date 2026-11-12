@@ -24,13 +24,15 @@
 //! stays minimal — P4's producers own the richer domain wording.
 //!
 //! Layout: the §5 finding renderer lives here; the labeled-error type
-//! is [`errors`], the envelope constructors are [`envelope`], and the
-//! analysis view structs/renderers are [`analysis`]. The re-exports
-//! keep the `render::` paths stable for the callers.
+//! is [`errors`], the envelope constructors are [`envelope`], the
+//! analysis view structs/renderers are [`analysis`], and the migration
+//! payload is [`migrate`]. The re-exports keep the `render::` paths
+//! stable for the callers.
 
 mod analysis;
 mod envelope;
 mod errors;
+mod migrate;
 
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::analysis::{
@@ -43,6 +45,8 @@ pub use crate::render::envelope::{
     config_warning, error_envelope, findings_envelope, unknown_follow_warning,
     unknown_rows_warning, FindingsData,
 };
+#[allow(unused_imports)] // pub surface kept stable at `render::`
+pub use crate::render::migrate::{migrate_envelope, render_migrate, MigrateData};
 pub use crate::render::errors::LabeledError;
 
 use catherine_core::findings::{

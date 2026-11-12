@@ -20,6 +20,7 @@
 mod args;
 mod cli;
 mod config;
+mod migrate;
 mod render;
 mod run;
 mod runners;
@@ -52,6 +53,7 @@ fn did_you_mean(err: &clap::error::Error) -> Option<String> {
             "underconstraint".to_string(),
             "distinguish".to_string(),
             "query".to_string(),
+            "migrate".to_string(),
         ],
     );
     SuggestionEngine::new()
@@ -144,6 +146,7 @@ fn dispatch(
             follow,
             direction,
         } => query_command(model, seed, follow, direction, ctx),
+        C::Migrate { model } => migrate_command(model, ctx),
     }
 }
 
@@ -273,6 +276,18 @@ fn check_command<O: Write, E: Write>(
 ) -> i32 {
     run::run(
         surface,
+        model,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// Forward [`migrate::run_migrate`] on the shared execution path.
+fn migrate_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -> i32 {
+    migrate::run_migrate(
         model,
         ctx.json,
         ctx.quiet,

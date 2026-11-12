@@ -1,15 +1,16 @@
 //! Purpose: the clap wiring — the `check`/`findings` subcommands over a
 //! positional model path plus P4's one-subcommand-per-analysis-op set
-//! (`search`, `redundant`, `underconstraint`, `distinguish`, `query`),
-//! the genesis guide's verbosity/format structs, and the exit-code table
-//! the help text carries verbatim.
+//! (`search`, `redundant`, `underconstraint`, `distinguish`, `query`)
+//! and P7's `migrate`, the genesis guide's verbosity/format structs,
+//! and the exit-code table the help text carries verbatim.
 //!
 //! Responsibilities: define [`Cli`] (genesis `CliVerbosity` + `CliFormat`
 //! flattened, so `-v`/`-q` and `--json`/`--human` behave exactly as in
-//! every suite tool) and [`Commands`] (`check`, `findings`, and the five
-//! analysis commands; positional model paths); publish
-//! [`EXIT_CODE_TABLE`] — the adjudicated exit-code contract, verbatim
-//! unchanged — in the root and every subcommand's help.
+//! every suite tool) and [`Commands`] (`check`, `findings`, the five
+//! analysis commands, and `migrate`; positional model paths); publish
+//! [`EXIT_CODE_TABLE`] — the adjudicated exit-code contract, its shipped
+//! numerals unchanged — in the root and every subcommand's help, plus
+//! [`LOST_DATA_EXIT_CODE`] for the one `add-delta-migration` class.
 //!
 //! Rationale: genesis's `CliFormat` auto-detects JSON when stdout is not
 //! a TTY, but the cli spec mandates human-by-default ("human-readable by
@@ -22,13 +23,24 @@
 //! existing min-over-class-codes decision (5/6/7 — numerals stable once
 //! shipped), while a search/distinguish run completing within its bounds
 //! is a successful tool execution (exit 0) with the outcome in the
-//! payload.
+//! payload. `migrate` follows the same convention one class over: lost
+//! data is a finding-bearing run (exit 8), a lossless migration is
+//! clean (exit 0) — the loss report lives in the payload either way.
 
 use clap::{Parser, Subcommand};
 use genesis::guide::{CliFormat, CliVerbosity};
 
-/// The exit-code contract, verbatim from the change's adjudicated table
-/// (`openspec/changes/add-check-cli`): numerals are stable once shipped.
+/// The lost-data exit numeral (openspec change `add-delta-migration`):
+/// the one class `migrate` can emit, and the table's lowest severity.
+/// Migration findings are the kernel's `MigrationFinding` taxonomy, not
+/// the check taxonomy — the numeral is defined beside the table so the
+/// table, the help text, and the runner cannot drift apart.
+pub const LOST_DATA_EXIT_CODE: i32 = 8;
+
+/// The exit-code contract: `add-check-cli`'s adjudicated table, whose
+/// numerals are stable once shipped, extended once by
+/// `add-delta-migration` with the lost-data class (8) — an additive
+/// numeral, every shipped code unchanged.
 pub const EXIT_CODE_TABLE: &str = "\
 exit codes:
   0  clean — zero findings
@@ -38,7 +50,8 @@ exit codes:
   4  dangling
   5  contradiction
   6  underconstraint
-  7  redundant (lowest severity)
+  7  redundant
+  8  lost data (lowest severity; migrate only)
 multi-class runs exit with the minimum present class code.";
 
 #[derive(Debug, Parser)]
@@ -155,6 +168,17 @@ pub enum Commands {
         #[arg(long = "direction", default_value = "forward")]
         direction: String,
     },
+    /// Δ migration: reindex the document's instance along its declared
+    /// (total) schema map — the migrated instance summary, the row
+    /// correspondence, and the loud lost-data enumeration (one finding
+    /// per dropped row or valued dropped cell, labeled `executed`). A
+    /// document without a `schema_map` is a labeled error, never an
+    /// empty migration; lost data is a finding-bearing run (exit 8).
+    #[command(after_help = EXIT_CODE_TABLE)]
+    Migrate {
+        /// Path to the .ct.json model document carrying `schema_map`.
+        model: String,
+    },
 }
 
 /// The analysis scope-cap defaults, sourced from the analysis crate's
@@ -167,11 +191,12 @@ pub fn default_scope_caps() -> catherine_analysis::bounds::ScopeCaps {
 mod tests {
     use super::*;
 
-    /// The exit-code contract is frozen: the analysis commands route
-    /// findings-bearing results through the same numerals (5/6/7) and
-    /// never drift the table.
+    /// The exit-code contract is pinned verbatim: shipped numerals are
+    /// stable, and the one extension (lost data, 8) is additive — the
+    /// analysis commands route findings-bearing results through the same
+    /// numerals (5/6/7) and never drift the table.
     #[test]
-    fn exit_code_table_is_verbatim_unchanged() {
+    fn exit_code_table_is_pinned_verbatim() {
         assert_eq!(
             EXIT_CODE_TABLE,
             "\
@@ -183,8 +208,17 @@ exit codes:
   4  dangling
   5  contradiction
   6  underconstraint
-  7  redundant (lowest severity)
+  7  redundant
+  8  lost data (lowest severity; migrate only)
 multi-class runs exit with the minimum present class code."
         );
+    }
+
+    /// The lost-data numeral is the table's 8: the constant and the
+    /// table are one contract, asserted together so neither can drift.
+    #[test]
+    fn lost_data_exit_matches_the_table_numeral() {
+        assert_eq!(LOST_DATA_EXIT_CODE, 8);
+        assert!(EXIT_CODE_TABLE.contains("8  lost data"));
     }
 }

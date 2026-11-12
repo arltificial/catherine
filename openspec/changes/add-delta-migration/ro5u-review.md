@@ -57,3 +57,45 @@ Findings + dispositions:
   documented in the section description).
 
 max_critical = 0. Verdict: PASS.
+
+---
+
+# Phase C addendum (tasks 7–9, orchestrator review)
+
+Diff: `crates/catherine-cli` (`migrate` subcommand via main.rs dispatch +
+`src/migrate.rs` runner + render envelope extension), negative_matrix.rs
+rows for the new surface, variant_coverage.rs (the migrate surface joins
+the executed-coverage corpus), `fixtures/migration/bogart_rehearsal.ct.json`
++ README rehearsal row, ticked tasks 7–9.
+
+Orchestrator verification (live): `catherine migrate
+bogart_rehearsal.ct.json --json` → envelope `data.lost` = **10 findings
+(4 lost_row RawCapture + 6 lost_cell)**, exit 8; drop_object/field_narrowing
+exits 8; lossless exit 0; exit decision consistent across human/JSON
+modes (`migration_exit`); full `just ci` EXIT=0; pretender green.
+
+Phase-C passes:
+
+1. Correctness: the subcommand drives the frozen phase-B engine on the
+   shared execution path; exit decision (lost data → 8, lossless → 0)
+   consistent in both render modes.
+2. Contract drift: negative-matrix rows added for the new surface (348
+   discipline); the cli version-policy test updated to the raised
+   KNOWN_MINOR (the deliberate contract change this phase series made).
+3. Tests: cli suite green (23+11+11+7+7+1); rehearsal findings match the
+   documented expectation exactly (4+6, deterministic order).
+4. Negative matrix: covered (new surface rows present).
+5. Regression risk: additive subcommand; exit table extended at the
+   lowest severity (8) — existing class exits untouched.
+
+Findings + dispositions:
+
+- [RECORDED] task 6 (round-trip analysis) remains OPEN — the Δ∘Δ′
+  return-identity design decision is documented in the ignored
+  round-trip test (migration.rs) and blocks alr closure, not phase C.
+  alr stays OPEN after this phase.
+- [NOTE] envelope `data.rows` reports per-target-object row counts; the
+  full `row_map` is not serialized (per-target counts + lost findings
+  are the operator-facing contract).
+
+max_critical = 0. Phase C verdict: PASS.

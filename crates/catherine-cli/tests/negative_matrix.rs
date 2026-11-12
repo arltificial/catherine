@@ -11,13 +11,14 @@
 //! exit-0-without-warning, no silently-ignored input).
 //!
 //! Surfaces × classes: every CLI surface (check, findings, search,
-//! redundant, underconstraint, distinguish, query) gets a row for every
-//! malformed-input class that applies to it — undeclared object/arrow
-//! names in flags, second-doc schema mismatch, out-of-range
-//! `format_version`, unknown seed, uncomposable observation, bad flag
-//! syntax (unknown flag → clap exit 2; malformed flag value →
-//! `bad_argument` exit 1). Behavior is probed live against the real
-//! binary (`CARGO_BIN_EXE_catherine`); assertions are structural
+//! redundant, underconstraint, distinguish, query, migrate) gets a row
+//! for every malformed-input class that applies to it — undeclared
+//! object/arrow names in flags, second-doc schema mismatch, out-of-range
+//! `format_version`, unknown seed, uncomposable observation, partial or
+//! absent schema map, garbage instance rows, bad flag syntax (unknown
+//! flag → clap exit 2; malformed flag value → `bad_argument` exit 1).
+//! Behavior is probed live against the real binary
+//! (`CARGO_BIN_EXE_catherine`); assertions are structural
 //! (`serde_json::Value`) and numeric (exit codes), never snapshots.
 //!
 //! `deny_unknown_fields` audit (catherine-348 item 2), adjudicated
@@ -72,6 +73,26 @@ const ANALYSIS_DIST_REVSCHEMA: &str = concat!(
 const ANALYSIS_QUERY: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/analysis_query.ct.json"
+);
+/// The migration fixtures: the committed RED fixture with lost data
+/// (`fixtures/migration/`, shared with the kernel suites) and the two
+/// migrate-only malformed-input fixtures.
+const MIGRATION_DROP_OBJECT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/migration/drop_object.ct.json"
+);
+const MIGRATE_PARTIAL_MAP: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/migrate_partial_map.ct.json"
+);
+const MIGRATE_GARBAGE_ROWS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/migrate_garbage_rows.ct.json"
+);
+/// A pre-map document (parses; carries no `schema_map`).
+const MIGRATE_NO_MAP: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/bowling.ct.json"
 );
 
 /// Spawn the `catherine` binary with the given arguments (same helper
@@ -224,6 +245,23 @@ const MATRIX: &[Row] = &[
           expect: Expect::Error { code: "unsupported_version" } },
     Row { name: "query × bad flag syntax (unknown flag)",
           args: &["query", ANALYSIS_QUERY, "--seed", "p#0", "--follow", "f", "--bogus", "--json"],
+          expect: Expect::Usage },
+
+    // ── migrate ─────────────────────────────────────────────────────
+    Row { name: "migrate × partial schema map (unassigned arrow named)",
+          args: &["migrate", MIGRATE_PARTIAL_MAP, "--json"],
+          expect: Expect::Error { code: "partial_schema_map" } },
+    Row { name: "migrate × document without a schema_map (no silent empty migration)",
+          args: &["migrate", MIGRATE_NO_MAP, "--json"],
+          expect: Expect::Error { code: "no_schema_map" } },
+    Row { name: "migrate × garbage instance rows (table cell references an undeclared row)",
+          args: &["migrate", MIGRATE_GARBAGE_ROWS, "--json"],
+          expect: Expect::Error { code: "syntax" } },
+    Row { name: "migrate × out-of-range format_version",
+          args: &["migrate", BAD_VERSION, "--json"],
+          expect: Expect::Error { code: "unsupported_version" } },
+    Row { name: "migrate × bad flag syntax (unknown flag)",
+          args: &["migrate", MIGRATION_DROP_OBJECT, "--bogus", "--json"],
           expect: Expect::Usage },
 ];
 

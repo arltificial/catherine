@@ -1,0 +1,43 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": ["RawDocument", "RawPage", "RawCapture"],
+    "arrows": [
+      {"name": "page_of", "src": "RawPage", "tgt": "RawDocument"},
+      {"name": "prev_page", "src": "RawPage", "tgt": "RawPage"},
+      {"name": "captured_page", "src": "RawCapture", "tgt": "RawPage"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "RawDocument": ["_0", "_1"],
+      "RawPage": ["_0", "_1", "_2"],
+      "RawCapture": ["_0", "_1", "_2", "_3"]
+    },
+    "tables": {
+      "page_of": {"_0": "_0", "_1": "_0", "_2": "_1"},
+      "prev_page": {"_0": null, "_1": "_0", "_2": "_1"},
+      "captured_page": {"_0": "_0", "_1": "_1", "_2": "_2", "_3": "_0"}
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["ServingDocument", "ServingPage"],
+      "arrows": [
+        {"name": "serving_page_of", "src": "ServingPage", "tgt": "ServingDocument"}
+      ],
+      "equations": []
+    },
+    "objects": {
+      "RawDocument": "ServingDocument",
+      "RawPage": "ServingPage",
+      "RawCapture": null
+    },
+    "arrows": {
+      "page_of": ["serving_page_of"],
+      "prev_page": null,
+      "captured_page": null
+    }
+  }
+}

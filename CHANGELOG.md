@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `catherine migrate` subcommand (P7 phase C, `catherine-alr`): envelope
+  output with the migrated-instance row counts, the loud lost-data
+  findings (`executed`), and the row correspondence; exit 8 on lost
+  data / 0 lossless, consistent across human and JSON modes;
+  negative-matrix rows for the new surface; bogart raw→serving
+  rehearsal fixture (10 findings, verified live) as the P9 dry run.
 - Δ migration axis phase A (P7, `catherine-alr`): total schema maps as
   the additive `format_version` 1.1 section (`crates/catherine-core`) —
   a partial map is the labeled `partial_schema_map` build error naming
@@ -35,6 +41,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   proposal-vs-series discrepancy recorded; kata presets wired into the
   web view (load→check→render verified headless); P7/P8 unblock per
   the derived verdict.
+- Δ migration CLI + rehearsal fixture (P7 phase C, `catherine-alr`
+  tasks 7–8): `catherine migrate <doc.ct.json>` reindexes along the
+  document's total schema map and emits the genesis-vibes success
+  envelope with `data.rows` (target rows per object), `data.lost` (the
+  kernel `MigrationFinding` encoding verbatim) and `data.row_map` (the
+  kernel correspondence verbatim); lost data is a finding-bearing run
+  through the exit table's one additive extension — class 8, lost data
+  (lowest severity, `migrate` only; shipped numerals unchanged) — a
+  lossless migration exits 0, and a document without a `schema_map` is
+  the labeled `no_schema_map` error (never an empty migration);
+  negative-matrix rows cover the new surface (partial map →
+  `partial_schema_map`, absent map, garbage instance rows, bad
+  version, unknown flag) and the variant-coverage ratchet extends to
+  `MigrationFindingKind`; bogart rehearsal fixture
+  (`fixtures/migration/bogart_rehearsal.ct.json`): raw corpus →
+  serving projection with deliberate drops (4 lost rows + 6 lost
+  cells, documented in `fixtures/migration/README.md`) — the P9 dry
+  run. Kernel `migrate.rs` logic unchanged this phase (task 9: the
+  shared schema-map validation is the parser's alone and the finding
+  taxonomies share `EpistemicLabel` only — no shape worth unifying).
 - bogart pilot corpus (P9, `catherine-hc6`): models 1–3 + RED fixture
   landed in `at/bogart` (FTS-anchor equation/totality, identity-domain
   disjointness — vacuous-by-design until P8, capture-selector

@@ -1,0 +1,27 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": ["Doc", "Scratch"],
+    "arrows": [
+      {"name": "doc_id", "src": "Doc", "tgt": "Doc"},
+      {"name": "scratch_note", "src": "Scratch", "tgt": "Scratch"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Doc": ["_0", "_1"], "Scratch": ["_0", "_1", "_2"]},
+    "tables": {
+      "doc_id": {"_0": "_0", "_1": "_1"},
+      "scratch_note": {"_0": "_1", "_1": "_2", "_2": "_0"}
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["Doc"],
+      "arrows": [{"name": "doc_id", "src": "Doc", "tgt": "Doc"}],
+      "equations": []
+    },
+    "objects": {"Doc": "Doc", "Scratch": null},
+    "arrows": {"doc_id": ["doc_id"]}
+  }
+}

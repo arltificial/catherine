@@ -16,10 +16,11 @@
 //! exit 1 — distinct from any finding; usage errors stay clap's own 2
 //! (never handled here). `check` and `findings` are the same surface
 //! under two names: same execution, same presentation, same exit — a
-//! divergence between them would be a re-run-semantics bug, which the
+//! divergence between the surfaces would be a re-run-semantics bug, which the
 //! proposal binds away ("same execution, different presentation" names
 //! the entry point, not a second pipeline). The analysis runners live
-//! in [`crate::runners`], the flag parsers in [`crate::args`].
+//! in [`crate::runners`], the migrate runner in [`crate::migrate`], the
+//! flag parsers in [`crate::args`].
 
 use crate::render::{self, LabeledError};
 use catherine_core::checks;

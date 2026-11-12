@@ -1,0 +1,21 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": ["Doc"],
+    "arrows": [{"name": "doc_id", "src": "Doc", "tgt": "Doc"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Doc": ["_0", "_1"]},
+    "tables": {"doc_id": {"_0": "_0", "_1": "_9"}}
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["Doc"],
+      "arrows": [{"name": "doc_id", "src": "Doc", "tgt": "Doc"}],
+      "equations": []
+    },
+    "objects": {"Doc": "Doc"},
+    "arrows": {"doc_id": ["doc_id"]}
+  }
+}

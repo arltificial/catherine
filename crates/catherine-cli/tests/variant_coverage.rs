@@ -19,12 +19,21 @@
 //! variant existing without pretending a producer exists.
 
 use catherine_core::findings::{DomainQuestion, EpistemicLabel, FindingKind};
+use catherine_core::migrate::MigrationFindingKind;
 use catherine_core::model::ConstraintStatus;
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::process::Command;
 
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/");
+/// The committed migration fixtures (shared with the kernel suites) —
+/// both `MigrationFindingKind` variants fire across these two maps.
+const MIGRATION_FIXTURES: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/migration/");
+const MIGRATION_COVERAGE_RUNS: [&str; 2] = [
+    "drop_object.ct.json",
+    "bogart_rehearsal.ct.json",
+];
 const ALL_KINDS: [&str; 5] = [
     "violation",
     "dangling",
@@ -32,6 +41,7 @@ const ALL_KINDS: [&str; 5] = [
     "contradiction",
     "underconstraint",
 ];
+const ALL_MIGRATION_KINDS: [&str; 2] = ["lost_row", "lost_cell"];
 const ALL_LABELS: [&str; 3] = ["executed", "hypothesized", "unknown"];
 const ALL_QUESTIONS: [&str; 2] = ["parallel_paths", "uncovered_inputs"];
 const ALL_OUTCOMES: [&str; 3] = ["witness", "contradiction", "unknown"];
@@ -54,6 +64,16 @@ fn kind_name(kind: &FindingKind) -> &'static str {
         FindingKind::Redundant(_) => "redundant",
         FindingKind::Contradiction(_) => "contradiction",
         FindingKind::Underconstraint(_) => "underconstraint",
+    }
+}
+
+/// The migration taxonomy's compile-time ratchet (task 7's surface):
+/// a new `MigrationFindingKind` variant breaks this match until the
+/// inventory grows.
+fn migration_kind_name(kind: &MigrationFindingKind) -> &'static str {
+    match kind {
+        MigrationFindingKind::LostRow { .. } => "lost_row",
+        MigrationFindingKind::LostCell { .. } => "lost_cell",
     }
 }
 
@@ -149,6 +169,28 @@ fn outcome_of(output: &str) -> String {
         .ok()
         .and_then(|value| value["data"]["outcome"].as_str().map(String::from))
         .unwrap_or_default()
+}
+
+/// The `migrate` envelope's `data.lost` over the committed migration
+/// fixtures, each finding deserialized into the contract
+/// `MigrationFinding` — a lost finding that does not deserialize is
+/// contract drift and fails loudly (the same ratchet rule as `Finding`).
+fn harvest_migration(kinds: &mut BTreeSet<String>) {
+    for name in MIGRATION_COVERAGE_RUNS {
+        let output = run(&["migrate", &format!("{MIGRATION_FIXTURES}{name}"), "--json"]);
+        let value = serde_json::from_str::<Value>(&output).expect("migrate envelope parses");
+        let lost = value["data"]["lost"].as_array().expect("data.lost array");
+        assert!(
+            !lost.is_empty(),
+            "`migrate {name}` produced no lost findings — coverage would be vacuous"
+        );
+        for finding in lost {
+            let finding: catherine_core::migrate::MigrationFinding =
+                serde_json::from_value(finding.clone())
+                    .expect("a lost finding deserializes into the contract MigrationFinding");
+            kinds.insert(migration_kind_name(&finding.kind).to_string());
+        }
+    }
 }
 
 /// One `search` invocation with explicit per-object row bounds.
@@ -280,12 +322,16 @@ fn every_contract_enum_variant_is_constructed_by_an_executed_fixture() {
     questions.insert(question_name(&uncovered).to_string());
     labels.insert(label_name(&unknown_label).to_string());
 
+    let mut migration_kinds: BTreeSet<String> = BTreeSet::new();
+    harvest_migration(&mut migration_kinds);
+
     assert!(
         !kinds.is_empty(),
         "the corpus run produced no findings — coverage would be vacuous"
     );
 
     assert_all_covered("FindingKind", &ALL_KINDS, &kinds);
+    assert_all_covered("MigrationFindingKind", &ALL_MIGRATION_KINDS, &migration_kinds);
     assert_all_covered("EpistemicLabel", &ALL_LABELS, &labels);
     assert_all_covered("DomainQuestion", &ALL_QUESTIONS, &questions);
     assert_all_covered("SearchOutcome", &ALL_OUTCOMES, &outcomes);
