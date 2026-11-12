@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- bogart pilot corpus (P9, `catherine-hc6`): models 1–3 + RED fixture
+  landed in `at/bogart` (FTS-anchor equation/totality, identity-domain
+  disjointness — vacuous-by-design until P8, capture-selector
+  relation), bogart CI gating on `catherine check` at pinned rev
+  `268c142` with class exit codes, live-corpus run triaged 69/69 (2
+  real defects filed as bogart `bogart-4wt`; 67 noise accounted —
+  planner-intent granularity, not suppressed), pilot report + evidence
+  in bogart docs. Catherine kernel unchanged.
 - vampiro seam-composition gate (P2, `catherine-w6z`): `vampiro check
   -p crates --mode gate --severity-threshold high` wired into lefthook
   pre-push (complementary drift gate; does not replace
