@@ -4,7 +4,7 @@
 //!
 //! Responsibilities: for each declared accepted equation, rewrite both of
 //! its sides under the *other* accepted equations (oriented lhs→rhs,
-//! leftmost-innermost scan in canonical order) and report a `redundant`
+//! leftmost-outermost scan in canonical order) and report a `redundant`
 //! finding — witness `derivable` = the equation's declared side,
 //! `reducing` = the common normal form — exactly when both sides reach
 //! the same normal form. Absent a proof, no redundancy claim is emitted.
@@ -16,7 +16,7 @@
 //! oriented lhs→rhs; an equation whose rhs contains its lhs as a
 //! contiguous subpath is skipped (its orientation cannot terminate —
 //! conservatively, no proof is drawn from it). The scan is
-//! deterministic (canonical equation order, leftmost-innermost, restart
+//! deterministic (canonical equation order, leftmost-outermost, restart
 //! after each rewrite) so identical inputs always produce identical
 //! normal forms; the engine is NOT a confluence procedure — no critical-
 //! pair completion, no Knuth–Bendix — so a normal form may depend on the
@@ -65,7 +65,7 @@ fn contains(haystack: &[Ident], needle: &[Ident]) -> bool {
             .any(|window| window == needle)
 }
 
-/// One leftmost-innermost rewrite step: the first position where any
+/// One leftmost-outermost rewrite step: the first position where any
 /// rule (canonical order) applies, its lhs spliced out and its rhs
 /// spliced in. `None` = the path is already in normal form.
 fn rewrite_step(path: &[Ident], rules: &[Rule]) -> Option<Vec<Ident>> {

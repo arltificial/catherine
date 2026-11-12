@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - License: MIT → Apache-2.0 (matches code donors specodelic/wild/genesis;
   switched before any code landed).
 
+### Fixed
+
+- rewrite.rs scan-order docstring corrected: the position-then-rule scan is
+  leftmost-outermost, not leftmost-innermost (`catherine-mrq`; docs-only,
+  behavior unchanged).
+
 ### Added (initial baseline)
 
 - ddl-managed tooling baseline: lefthook gates (pre-commit: `ah check`,
