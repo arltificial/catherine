@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Δ∘Δ′ non-invertibility proof (P7, `catherine-alr` task 6): element-
+  pair return identity per the migration spec scenario — a kept source
+  (object, row) whose candidate-inverse return differs (or is missing)
+  is the exhibited offender, with the sibling sharing its forward image
+  named; per-object forward images avoid cross-object row-id collisions;
+  identity round-trips prove clean (`None`). The ignored round-trip test
+  is un-ignored and passing alongside its new negative regression.
 - grounded-instance harness (P9 adjunct, `catherine-ga7`, bogart-side):
   spec-driven corpus→`.ct.json` extraction with a provenance sidecar
   (byte-identical parity with the hc6 pilot model), a quantified

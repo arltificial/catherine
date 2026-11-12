@@ -99,3 +99,27 @@ Findings + dispositions:
   are the operator-facing contract).
 
 max_critical = 0. Phase C verdict: PASS.
+
+---
+
+# Task-6 completion addendum (round-trip proof, orchestrator review)
+
+The Δ∘Δ′ return-identity design decision is SETTLED and implemented: a
+round-trip element is a source (object, row) pair the forward map keeps;
+its forward image is computed per SOURCE OBJECT (`transport::placed_row`
+— never read from the merged positional row_map, whose keys can collide
+across preimage objects); its return is the (object, row) the candidate
+inverse yields; identity holds iff both fields match. Missing return
+place, different object, or different row are all non-identities;
+offender = smallest (object, position), sibling named in the detail.
+The ignored test is UN-IGNORED and passing (pins offender Wide/0,
+detail naming rows 0 and 1 returning Narrow row 0); a new
+identity-round-trip negative regression proves clean maps yield None.
+`NonInvertibilityProof` shape unchanged.
+
+Orchestrator verification: `cargo test -p catherine-core --test
+migration` → 5/5 green; `just ci` EXIT=0; pretender green; openspec
+validate valid. No README or test weakening (the pinned expectation is
+entailed and stricter: smallest offender + sibling named).
+
+Findings: none ≥ MEDIUM. max_critical = 0. Task-6 verdict: PASS.

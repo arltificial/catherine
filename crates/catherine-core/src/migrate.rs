@@ -11,8 +11,9 @@
 //! valued dropped cell (dropped arrow on a surviving object) — findings
 //! labeled [`EpistemicLabel::Executed`], never a parse error and never a
 //! silent drop; [`round_trip`] composes a forward map with a candidate
-//! inverse and, when rows collapse, proves non-invertibility by naming
-//! the offending source row no candidate inverse recovers.
+//! inverse and, when an element's return differs, proves
+//! non-invertibility by naming the offending `(object, row)` element no
+//! candidate inverse returns to itself.
 //!
 //! Rationale: Spivak functorial migration, Σ/Π deliberately out of scope
 //! until Δ is validated (proposal C3/E4). Row semantics: a target object
@@ -36,7 +37,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 mod transport;
-use transport::{build_instance, build_row_map, lost_cells_of};
+use transport::{build_instance, build_row_map, lost_cells_of, placed_row};
 
 /// Why a finding was raised by the migration engine — the kind names the
 /// shape, the label (`executed`) names the weight, mirroring the P2
@@ -97,14 +98,16 @@ impl MigrationFinding {
 }
 
 /// Why the candidate inverse fails — the proof names the offending
-/// element (the collapsed source row) rather than failing at runtime.
+/// source element, an `(object, row)` pair, rather than failing at
+/// runtime.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NonInvertibilityProof {
-    /// The source object that loses rows under Δ∘Δ′.
+    /// The source object whose element does not return to itself.
     pub object: Ident,
     /// The offending row: not recoverable by the candidate inverse.
     pub row: RowId,
-    /// The proof text, naming the sibling row it collapses onto.
+    /// The proof text, naming the forward image and the sibling row
+    /// sharing it.
     pub detail: String,
 }
 
@@ -177,11 +180,15 @@ pub fn lost_data(model: &Model) -> Option<Vec<MigrationFinding>> {
 }
 
 /// The Δ∘Δ′ analysis: reindex the source along `forward`, then the
-/// middle instance along `inverse`. When a source object maps through
-/// the forward map and the candidate inverse back onto itself with fewer
-/// rows than it started with, the smallest non-recovered row is the
-/// offending element and the proof names the sibling row it collapses
-/// onto. `None` = no collapse observed.
+/// middle instance along `inverse`, and compare element-wise returns.
+/// An analyzed element is a source `(object, row)` pair the forward map
+/// keeps (a row Δ itself loses is already lost data, not a round-trip
+/// element); its return is the source element the candidate inverse
+/// yields for the pair's forward image. The smallest element whose
+/// return is missing or differs — another object or another row — is
+/// the offending element, and the proof names it with the sibling row
+/// sharing its forward image. `None` = every kept element returns to
+/// itself.
 pub fn round_trip(
     source: &Model,
     forward: &SchemaMap,
@@ -190,53 +197,151 @@ pub fn round_trip(
     let middle = reindex(source)?;
     let mut middle_model = Model::empty();
     middle_model.schema = forward.target.clone();
-    middle_model.instance = middle.instance.clone();
+    middle_model.instance = middle.instance;
     middle_model.schema_map = Some(inverse.clone());
     let back = reindex(&middle_model)?;
-    collapse_proof(source, &middle.row_map, &back.row_map, inverse)
+    collapse_proof(source, forward, inverse, &back.row_map)
 }
 
-/// The proof scan: for each source object that the candidate inverse
-/// maps back onto itself with FEWER rows than it started with, the
-/// smallest non-recovered row is the offending element and the proof
-/// names the sibling row it collapses onto.
+/// One forward-image group's proof context: the source object being
+/// analyzed, its rows, and the middle object its rows are placed on.
+struct Group<'a> {
+    source: &'a Model,
+    forward: &'a SchemaMap,
+    object: &'a Ident,
+    rows: &'a [RowId],
+    target: &'a Ident,
+}
+
+/// The proof scan: every source element the forward map keeps is carried
+/// to its forward image and back through the candidate inverse; the
+/// return is compared as an `(object, row)` pair, never as a bare row
+/// id, so per-object dense row spaces cannot be confused. Objects are
+/// walked in name order and each object's rows by position, so the
+/// smallest offender is deterministic.
 fn collapse_proof(
     source: &Model,
-    middle_row_map: &BTreeMap<Ident, BTreeMap<RowId, RowId>>,
-    back_row_map: &BTreeMap<Ident, BTreeMap<RowId, RowId>>,
+    forward: &SchemaMap,
     inverse: &SchemaMap,
+    back_row_map: &BTreeMap<Ident, BTreeMap<RowId, RowId>>,
 ) -> Option<NonInvertibilityProof> {
-    for (object, images) in middle_row_map {
-        if inverse.objects.get(object) != Some(&Some((*object).clone())) {
-            continue;
+    for (object, rows) in &source.instance.rows {
+        if let Some(proof) = object_proof(source, forward, inverse, back_row_map, object, rows) {
+            return Some(proof);
         }
-        let recovered: Vec<RowId> = back_row_map
-            .get(object)
-            .into_iter()
-            .flat_map(|placed| placed.values().copied())
-            .collect();
-        let source_rows = &source.instance.rows[object];
-        if recovered.len() >= source_rows.len() {
-            continue;
-        }
-        let offending = source_rows
-            .iter()
-            .copied()
-            .find(|row| !recovered.contains(row))?;
-        let target = images[&offending];
-        let sibling = *images
-            .iter()
-            .find(|(row, place)| **row != offending && **place == target)
-            .map(|(row, _)| row)?;
-        return Some(NonInvertibilityProof {
-            object: (*object).clone(),
-            row: offending,
-            detail: format!(
-                "rows {} and {} of {} collapse onto one target row; \
-                 {} is not recoverable under the candidate inverse",
-                sibling.0, offending.0, object.0, offending.0
-            ),
-        });
     }
     None
+}
+
+/// One source object's element scan: the first row whose return is
+/// missing or differs is that group's offender. A missing return place,
+/// a return to another object, and a return to another row are all
+/// non-identities.
+fn object_proof(
+    source: &Model,
+    forward: &SchemaMap,
+    inverse: &SchemaMap,
+    back_row_map: &BTreeMap<Ident, BTreeMap<RowId, RowId>>,
+    object: &Ident,
+    rows: &[RowId],
+) -> Option<NonInvertibilityProof> {
+    let target = forward.objects.get(object).and_then(|a| a.as_ref())?;
+    let group = Group {
+        source,
+        forward,
+        object,
+        rows,
+        target,
+    };
+    for (index, &row) in rows.iter().enumerate() {
+        let Some(image) = placed_row(source, forward, object, index) else {
+            continue;
+        };
+        let returned = element_return(inverse, back_row_map, target, image);
+        if returned != Some((object, row)) {
+            return Some(offending(&group, row, image, returned));
+        }
+    }
+    None
+}
+
+/// The element the candidate inverse returns for a middle element: the
+/// object it maps `target` onto and the back row it places `image` at.
+/// `None` = no return place (the inverse does not map `target` back, or
+/// the middle row has no place in the returned object).
+fn element_return<'a>(
+    inverse: &'a SchemaMap,
+    back_row_map: &'a BTreeMap<Ident, BTreeMap<RowId, RowId>>,
+    target: &Ident,
+    image: RowId,
+) -> Option<(&'a Ident, RowId)> {
+    let back = inverse.objects.get(target)?.as_ref()?;
+    let row = *back_row_map.get(back)?.get(&image)?;
+    Some((back, row))
+}
+
+/// The proof for one offending element, with the sibling source row
+/// sharing its forward image (when the group has one) named in the
+/// detail.
+fn offending(
+    group: &Group<'_>,
+    row: RowId,
+    image: RowId,
+    returned: Option<(&Ident, RowId)>,
+) -> NonInvertibilityProof {
+    let sibling = group
+        .rows
+        .iter()
+        .enumerate()
+        .find(|(index, other)| {
+            **other != row
+                && placed_row(group.source, group.forward, group.object, *index) == Some(image)
+        })
+        .map(|(_, other)| *other);
+    NonInvertibilityProof {
+        object: group.object.clone(),
+        row,
+        detail: proof_detail(group.object, row, image, group.target, sibling, returned),
+    }
+}
+
+/// The proof text: the element's forward image (and the sibling sharing
+/// it), what the candidate inverse actually returns, and the
+/// non-recovery verdict.
+fn proof_detail(
+    object: &Ident,
+    row: RowId,
+    image: RowId,
+    target: &Ident,
+    sibling: Option<RowId>,
+    returned: Option<(&Ident, RowId)>,
+) -> String {
+    let pair = sibling.map(|sibling| {
+        if sibling.0 <= row.0 {
+            (sibling, row)
+        } else {
+            (row, sibling)
+        }
+    });
+    let element = match pair {
+        Some((low, high)) => format!(
+            "rows {} and {} of {} share the forward image {} row {}",
+            low.0, high.0, object.0, target.0, image.0
+        ),
+        None => format!(
+            "row {} of {} has the forward image {} row {}",
+            row.0, object.0, target.0, image.0
+        ),
+    };
+    let outcome = match returned {
+        Some((back, back_row)) => format!(
+            "the candidate inverse returns {} row {}",
+            back.0, back_row.0
+        ),
+        None => "the candidate inverse returns no place".to_string(),
+    };
+    format!(
+        "{element}; {outcome}, so row {} is not recoverable under the candidate inverse",
+        row.0
+    )
 }

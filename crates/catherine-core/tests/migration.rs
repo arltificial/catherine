@@ -2,7 +2,8 @@
 //! phase B) — the committed RED fixtures' README-documented expectations,
 //! executed: lost data is enumerated row-by-row/cell-by-cell with
 //! witnesses, the reindex invents nothing, and the collapsing round-trip
-//! proves non-invertibility by naming the offending row.
+//! proves non-invertibility by naming the offending `(object, row)`
+//! element and the sibling sharing its forward image.
 
 use catherine_core::findings::EpistemicLabel;
 use catherine_core::migrate::{lost_data, reindex, round_trip, MigrationFindingKind};
@@ -124,7 +125,6 @@ fn reindex_invents_nothing_and_carries_kept_rows_verbatim() {
 }
 
 #[test]
-#[ignore = "phase B engine gap (catherine-alr open): Δ∘Δ′ return-identity semantics — the spec scenario pins 'the element whose return differs', but the comparison needs a design decision on return identity across per-object dense row spaces (Wide_0 vs Narrow_0 are both RowId(0)); the engine's proof loop compares row counts, not return identities"]
 fn the_collapsing_round_trip_proves_non_invertibility_with_the_offending_row() {
     let source = fixture("non_invertible_round_trip.ct.json");
     let forward = source
@@ -135,7 +135,7 @@ fn the_collapsing_round_trip_proves_non_invertibility_with_the_offending_row() {
     // The candidate inverse: Narrow straight back to the source shape —
     // the map that would have to recover both Wide rows from one Narrow
     // row, and provably cannot. (round_trip builds the middle model and
-    // composes forward∘inverse internally.)
+    // composes Δ′∘Δ — the inverse applied after the forward map.)
     let inverse = identity_map(&middle_schema, &source.schema);
     let proof = round_trip(&source, &forward, &inverse)
         .expect("two Wide rows collapse onto one Narrow row: not invertible");
@@ -145,4 +145,34 @@ fn the_collapsing_round_trip_proves_non_invertibility_with_the_offending_row() {
         proof.detail
     );
     assert_eq!(proof.object.0, "Wide");
+    assert_eq!(proof.row.0, 0, "the smallest offending element is chosen");
+    assert!(
+        proof.detail.contains("rows 0 and 1 of Wide"),
+        "the proof exhibits the collapsing sibling pair: {}",
+        proof.detail
+    );
+    assert!(
+        proof.detail.contains("returns Narrow row 0"),
+        "the proof names the element the inverse yields instead: {}",
+        proof.detail
+    );
+}
+
+#[test]
+fn an_identity_round_trip_over_a_kept_object_yields_no_proof() {
+    let source = fixture("drop_object.ct.json");
+    let forward = source
+        .schema_map
+        .clone()
+        .expect("the fixture carries its forward map");
+    // Δ keeps Doc unchanged; a straight-back identity inverse over the
+    // middle schema returns every Doc row to itself. Scratch is out of
+    // the analyzed scope — Δ already dropped it (lost data, not a
+    // round-trip element).
+    let inverse = identity_map(&forward.target, &source.schema);
+    assert_eq!(
+        round_trip(&source, &forward, &inverse),
+        None,
+        "an identity round-trip raises no non-invertibility proof"
+    );
 }

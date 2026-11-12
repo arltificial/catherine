@@ -16,7 +16,7 @@ One red→green→refactor cycle (beads `catherine-alr`).
       JSON Schema update); totality validated (partial map → labeled
       error naming the unmapped element)
 - [x] 5. Pullback reindex implementation; no-invention property test
-- [ ] 6. Lost-data enumeration + round-trip analysis; findings labeled
+- [x] 6. Lost-data enumeration + round-trip analysis; findings labeled
       `executed`
 - [x] 7. CLI subcommand (`catherine migrate`) with envelope output
       — shared path (`crates/catherine-cli/src/migrate.rs` +
@@ -46,5 +46,5 @@ One red→green→refactor cycle (beads `catherine-alr`).
 
 ## Validation
 
-- [ ] 10. `just ci` green; `openspec validate add-delta-migration
+- [x] 10. `just ci` green; `openspec validate add-delta-migration
       --strict`; `bd close catherine-alr` + fresh export

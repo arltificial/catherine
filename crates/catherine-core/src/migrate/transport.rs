@@ -224,3 +224,40 @@ fn preimages_of(map: &SchemaMap) -> Vec<(Ident, Vec<Ident>)> {
     }
     grouped.into_iter().collect()
 }
+
+/// The source objects placed into `target`, in sorted (deterministic)
+/// order — the preimage group [`place_group`] lays out.
+fn preimages_of_target(map: &SchemaMap, target: &Ident) -> Vec<Ident> {
+    map.objects
+        .iter()
+        .filter(|(_, assignment)| assignment.as_ref() == Some(target))
+        .map(|(source, _)| source.clone())
+        .collect()
+}
+
+/// The target row the map places `object`'s row at `index` on — the
+/// element-wise forward image of ONE source element, read per object so
+/// sibling preimages' coincident row ids never leak across objects.
+/// Mirrors [`place_group`] for a single source object: the base preimage
+/// transfers by position, a collapsing preimage's row lands on the base
+/// row its declared arrow into the base points at. `None` when the map
+/// does not keep the object or the row has no place (that row's loss is
+/// already enumerated by the reindex).
+pub(super) fn placed_row(
+    model: &Model,
+    map: &SchemaMap,
+    object: &Ident,
+    index: usize,
+) -> Option<RowId> {
+    let target = map.objects.get(object)?.as_ref()?;
+    let preimages = preimages_of_target(map, target);
+    let base = preimages.first()?;
+    if object == base {
+        return Some(RowId(index));
+    }
+    let base_row = collapse_row(model, object, base, index)?;
+    let position = model.instance.rows[base]
+        .iter()
+        .position(|row| *row == base_row)?;
+    Some(RowId(position))
+}
