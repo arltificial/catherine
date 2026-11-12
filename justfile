@@ -7,8 +7,12 @@ ci:
 
 # wasm32 compile-only gate (openspec change `add-wasm-web-view`, task 4):
 # the kernel crates stay wasm-optional — compilation is the gate, no
-# browser harness is required to run it.
+# browser harness is required to run it. The rustup line is idempotent:
+# with rust-toolchain.toml pinning the toolchain, the target must be
+# present for THAT toolchain, and CI's first gate runs before the
+# workflow's dedicated target step.
 check-wasm:
+    rustup target add wasm32-unknown-unknown
     cargo check -p catherine-wasm --target wasm32-unknown-unknown
 
 # Everything .github/workflows/ci.yml runs, for local pre-push parity. The
