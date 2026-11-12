@@ -23,6 +23,7 @@ tells you when modeling is a waste of time.
 | Discovery questions | parallel paths without equations surface as domain questions (spec-ambiguity mechanism) |
 | Redundancy & equivalence | derivable paths flagged; models compared via `distinguish` with witness inputs |
 | Migration safety (P7) | Δ reindexing with loud lost-data counterexamples — no conventional counterpart exists |
+| Schema diff (P10) | v1→v2 edits classified accreted / weakened-with-witness (an instance v2 accepts and v1 rejects) / equivalent-in-scope / cosmetic (silent) |
 | Rule lens (P8, hypothesized) | rules as subobjects + policy: gap/overlap/shadow/derivable; simplifications proven compliant |
 | Epistemic labels | PROVED / EXECUTED / HYPOTHESIZED / UNKNOWN on every answer |
 

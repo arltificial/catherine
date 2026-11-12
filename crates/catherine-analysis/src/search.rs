@@ -81,6 +81,53 @@ pub enum SearchOutcome {
 /// Search for a fully resolved instance satisfying every accepted
 /// equation within the bounds. See the module docs for the contract.
 pub fn search(schema: &Schema, bound: &SearchBounds) -> SearchReport {
+    // The enforced equation set: the accepted equations' canonical
+    // indices, in order — the contradiction witness's scope.
+    let accepted = accepted_indices(schema);
+    match enumerate(schema, bound, |instance| {
+        is_clean(schema, instance).then(|| instance.clone())
+    }) {
+        Enumeration::Found(instance) => witness_report(bound.clone(), instance),
+        Enumeration::Exhausted { .. } => contradiction_report(bound.clone(), accepted),
+        Enumeration::Unknown { scope } => SearchReport {
+            bound: bound.clone(),
+            outcome: SearchOutcome::Unknown { scope },
+        },
+    }
+}
+
+/// The bounded enumeration's outcome: a found candidate, a completed
+/// exhaustion with its scope, or an expired budget with its scope —
+/// exhaustion and expiry are never conflated.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Enumeration<T> {
+    /// The probe accepted a candidate; enumeration stopped there.
+    Found(T),
+    /// The counter wrapped: the whole bounded shape was enumerated and
+    /// no candidate was accepted. The scope restates what was exhausted.
+    Exhausted {
+        /// The exact scope exhausted.
+        scope: SearchScope,
+    },
+    /// The budget expired before exhaustion: `UNKNOWN { scope }`.
+    Unknown {
+        /// The exact scope explored.
+        scope: SearchScope,
+    },
+}
+
+/// Enumerate candidate instances over `schema`'s bounded shape in the
+/// shared deterministic smallest-first order, handing each candidate to
+/// `probe` until it returns `Some`. Exhaustion and budget expiry are
+/// reported apart — an expired budget is never an exhausted space.
+///
+/// This is the engine behind [`search`] and the schema-diff
+/// classification: one ordering, one budget rule, one scope vocabulary.
+pub fn enumerate<T>(
+    schema: &Schema,
+    bound: &SearchBounds,
+    mut probe: impl FnMut(&Instance) -> Option<T>,
+) -> Enumeration<T> {
     // Effective row counts: per schema object, the bound's value or zero.
     let counts = effective_counts(schema, bound);
     // Zero-size bound: nothing anywhere to search — UNKNOWN with the
@@ -88,11 +135,13 @@ pub fn search(schema: &Schema, bound: &SearchBounds) -> SearchReport {
     // ticket anti_goal).
     let explored_rows = nonempty_counts(&counts);
     if explored_rows.is_empty() {
-        return unknown_report(bound.clone(), BTreeMap::new(), 0);
+        return Enumeration::Unknown {
+            scope: SearchScope {
+                rows: BTreeMap::new(),
+                candidates_explored: 0,
+            },
+        };
     }
-    // The enforced equation set: the accepted equations' canonical
-    // indices, in order — the contradiction witness's scope.
-    let accepted = accepted_indices(schema);
     // Cell plan and its mixed-radix counter: big-endian (the first
     // cell varies slowest), so candidate k is the k-th smallest
     // assignment. Exhaustion is the counter wrapping — no space size is
@@ -104,18 +153,26 @@ pub fn search(schema: &Schema, bound: &SearchBounds) -> SearchReport {
         // Budget check first: the budget expired before exhaustion is
         // UNKNOWN with the exact explored scope — never a contradiction.
         if explored == bound.max_candidates {
-            return unknown_report(bound.clone(), explored_rows, explored);
+            return Enumeration::Unknown {
+                scope: SearchScope {
+                    rows: explored_rows,
+                    candidates_explored: explored,
+                },
+            };
         }
         // Materialize the candidate at the current counter position.
         let instance = materialize(&cells, &digits, &counts);
         explored += 1;
-        if is_clean(schema, &instance) {
-            return witness_report(bound.clone(), instance);
+        if let Some(found) = probe(&instance) {
+            return Enumeration::Found(found);
         }
         if !increment(&mut digits, &radices) {
-            // The counter wrapped: exhaustion completed within the
-            // bounds with no witness — the proof is real.
-            return contradiction_report(bound.clone(), accepted);
+            return Enumeration::Exhausted {
+                scope: SearchScope {
+                    rows: explored_rows,
+                    candidates_explored: explored,
+                },
+            };
         }
     }
 }
@@ -160,24 +217,6 @@ fn nonempty_counts(counts: &BTreeMap<Ident, usize>) -> BTreeMap<Ident, usize> {
         .filter(|(_, &count)| count > 0)
         .map(|(object, &count)| (object.clone(), count))
         .collect()
-}
-
-/// The UNKNOWN report: the bound restated verbatim, the exact scope
-/// explored.
-fn unknown_report(
-    bound: SearchBounds,
-    rows: BTreeMap<Ident, usize>,
-    candidates: usize,
-) -> SearchReport {
-    SearchReport {
-        bound,
-        outcome: SearchOutcome::Unknown {
-            scope: SearchScope {
-                rows,
-                candidates_explored: candidates,
-            },
-        },
-    }
 }
 
 /// The accepted equations' canonical indices, in declaration order.
@@ -245,8 +284,14 @@ fn materialize(
 /// review, not satisfiability constraints — so a `hypothesized`
 /// violation never blocks a witness.
 fn is_clean(schema: &Schema, instance: &Instance) -> bool {
-    let typed = TypedInstance::build(schema, instance);
-    checks::check(schema, &typed).into_iter().all(|finding| {
+    is_clean_typed(schema, &TypedInstance::build(schema, instance))
+}
+
+/// The same satisfaction predicate over an already-built typed instance,
+/// shared with the schema-diff classification (which evaluates one set of
+/// tables under two schemas).
+pub(crate) fn is_clean_typed(schema: &Schema, typed: &TypedInstance) -> bool {
+    checks::check(schema, typed).into_iter().all(|finding| {
         match finding.kind {
             // Dangling short-circuits prove nothing: never clean.
             FindingKind::Dangling(_) => false,

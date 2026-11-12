@@ -8,7 +8,10 @@
 //! explicit observation set), the query traversals (reachability,
 //! blast radius, fan-in/fan-out) ported from specodelic behind the parity
 //! gate, and the rule lens (P8: effective regions and the four rule-table
-//! bug classes over a declared finite domain, mapped onto the taxonomy).
+//! bug classes over a declared finite domain, mapped onto the taxonomy),
+//! and the schema diff (P10: accreted / weakened-with-witness /
+//! refactor-equivalent classification of a v1→v2 edit over the same
+//! bounded machinery).
 //!
 //! Responsibilities: expose the analysis operations over the kernel's
 //! public surfaces (`Schema`, `Instance`, `TypedInstance`, `check`) —
@@ -34,4 +37,5 @@ pub mod parallel;
 pub mod query;
 pub mod rewrite;
 pub mod rule_lens;
+pub mod schema_diff;
 pub mod search;

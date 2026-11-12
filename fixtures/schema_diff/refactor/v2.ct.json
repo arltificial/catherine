@@ -1,0 +1,27 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A", "B", "C"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "B"},
+      {"name": "g", "src": "B", "tgt": "C"},
+      {"name": "h", "src": "A", "tgt": "C"}
+    ],
+    "equations": [
+      {
+        "lhs": ["h"],
+        "rhs": ["f", "g"],
+        "rationale": "the route through B equals the direct arrow",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a0"], "B": ["b0"], "C": ["c0"]},
+    "tables": {
+      "f": {"a0": "b0"},
+      "g": {"b0": "c0"},
+      "h": {"a0": "c0"}
+    }
+  }
+}

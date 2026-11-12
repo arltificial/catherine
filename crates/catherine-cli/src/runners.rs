@@ -29,7 +29,7 @@ use std::io::Write;
 /// the same `warning: <message>` line `main.rs` prints for config
 /// warnings; JSON mode keeps them on the envelope only (pinned by
 /// `negative_matrix.rs`).
-fn print_run_warnings(json: bool, warnings: &[Warning], stderr: &mut impl Write) {
+pub(crate) fn print_run_warnings(json: bool, warnings: &[Warning], stderr: &mut impl Write) {
     if json {
         return;
     }
@@ -88,7 +88,7 @@ pub fn run_search(
 /// dropped downstream (zero rows → UNKNOWN with empty scope); name each
 /// ignored object on the warnings channel and drop it from the bound.
 /// Exit semantics unchanged.
-fn prune_undeclared_rows(
+pub(crate) fn prune_undeclared_rows(
     schema: &Schema,
     max_rows: &mut BTreeMap<Ident, usize>,
     warnings: &mut Vec<Warning>,

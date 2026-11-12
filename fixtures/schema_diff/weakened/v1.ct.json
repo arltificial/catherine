@@ -1,0 +1,23 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Node"],
+    "arrows": [
+      {"name": "next", "src": "Node", "tgt": "Node"}
+    ],
+    "equations": [
+      {
+        "lhs": ["next", "next"],
+        "rhs": ["next"],
+        "rationale": "cursor idempotence: advancing twice is advancing once",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {"Node": ["n0", "n1"]},
+    "tables": {
+      "next": {"n0": "n1", "n1": "n0"}
+    }
+  }
+}

@@ -217,6 +217,12 @@ Rules:
 - `distinguish`: bounded behavioral distinguishability of two models over an
   explicit observation set (not schema equivalence — that is undecidable in
   general and out of scope).
+- Schema diff: bounded classification of a v1→v2 edit over the enforced
+  path equations — *accreted* (constraints only added), *weakened* (with a
+  witness instance the new schema accepts and the old rejects),
+  *refactor-equivalent* (no separating instance within the declared
+  bounds), *cosmetic* (presentation-only: zero findings). "Equivalent" is
+  always in scope; a budget expiry is `UNKNOWN`.
 
 ### 4.3 Inquiry (the thinking layer)
 
@@ -224,7 +230,7 @@ The **epistemic layer** (E5): every result carries not just a value but a
 *justification status* — what was proved, what was executed within a scope,
 what is merely hypothesized. Deterministic operations in v1:
 `parallelPaths`, `consequences`, `counterexample`, `redundancy`,
-`distinguish`, `impact`. The heuristic scaffolds (`alternatives`,
+`distinguish`, `schemaDiff`, `impact`. The heuristic scaffolds (`alternatives`,
 `questions`, `compare`) emit *hypotheses with rationale*, never deductions
 (E5: "LLMs should propose; deterministic tools evaluate") — they stay
 spec-only until P6 validates the deterministic ops (open question §8.2).

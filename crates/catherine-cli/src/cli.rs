@@ -151,6 +151,30 @@ pub enum Commands {
         #[arg(long = "observe", value_name = "PATH@OBJECT#ROW", required = true)]
         observe: Vec<String>,
     },
+    /// Schema diff: classify a v1→v2 schema edit on the *enforced*
+    /// constraints — cosmetic (presentation only: zero findings),
+    /// accreted (constraints only added), weakened (a constraint is no
+    /// longer enforced: one violation finding with a witness instance v2
+    /// accepts and v1 rejects), equivalent-in-scope (no separating
+    /// instance within the bounds), or unknown (the budget expired).
+    /// Weakened exits through the finding-class table (3); every other
+    /// completed classification exits 0 with the outcome in the payload.
+    #[command(after_help = EXIT_CODE_TABLE)]
+    Diff {
+        /// Path to the first (old, v1) model document.
+        model: String,
+        /// Path to the second (new, v2) model document.
+        second: String,
+        /// Per-object row counts of the searched shape, `object=count`
+        /// (repeatable; both schemas share the shape — an omitted object
+        /// reads as 0 rows).
+        #[arg(long = "rows", value_name = "OBJECT=COUNT")]
+        rows: Vec<String>,
+        /// Maximum candidates the scan may enumerate before the
+        /// outcome is UNKNOWN with the explored scope.
+        #[arg(long = "max-candidates", default_value_t = default_scope_caps().max_candidates)]
+        max_candidates: usize,
+    },
     /// Reachability over the typed instance: the closure from seeds
     /// along the named morphisms, forward or backward (the ported
     /// specodelic query primitive). Dangling values are never followed.

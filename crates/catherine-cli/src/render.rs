@@ -30,6 +30,7 @@
 //! stable for the callers.
 
 mod analysis;
+mod diff;
 mod envelope;
 mod errors;
 mod migrate;
@@ -41,6 +42,8 @@ pub use crate::render::analysis::{
     search_envelope, BoundView, DifferenceView, DistinguishData, InstanceView, NodeView,
     ObservationView, QueryData, ScopeView, SearchData,
 };
+#[allow(unused_imports)] // pub surface kept stable at `render::`
+pub use crate::render::diff::{diff_envelope, render_diff, ConstraintView, DiffData};
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::envelope::{
     config_warning, error_envelope, findings_envelope, unknown_follow_warning,

@@ -55,13 +55,16 @@ equations, extract a small instance of what the code actually produces (rows
 in a fixture, a table dump), and check. A `violation` finding is a bug with
 a witness row — take the row to the code, not a vibe.
 
-### Recipe C — check a refactor before trusting it (P7, later P10)
+### Recipe C — check a refactor before trusting it (P7 + P10)
 
 Refactoring schemas? Run the Δ migration check: it emits **loud lost-data
 counterexamples** and unsupported-inverse proofs — the one capability axis
-conventional tooling has no counterpart for (E4, kata-10). Post-P10, schema
-diffs classify as accreted / weakened (with a witness instance the new schema
-accepts and the old rejects) / refactor-equivalent (proven via `distinguish`).
+conventional tooling has no counterpart for (E4, kata-10). Schema diffs
+classify the edit: `catherine diff old.ct.json new.ct.json --rows Object=4`
+reports *accreted* (constraints only added), *weakened* (with a witness
+instance the new schema accepts and the old rejects), *equivalent-in-scope*
+(no separating instance within the bounds), or *cosmetic* (presentation
+only, zero findings). A weakened edit is a finding-bearing run (exit 3).
 
 ### Reading the findings
 

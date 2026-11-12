@@ -11,8 +11,8 @@
 //! exit-0-without-warning, no silently-ignored input).
 //!
 //! Surfaces × classes: every CLI surface (check, findings, search,
-//! redundant, underconstraint, distinguish, query, migrate, rules) gets
-//! a row for every malformed-input class that applies to it — undeclared
+//! redundant, underconstraint, distinguish, diff, query, migrate, rules)
+//! gets a row for every malformed-input class that applies to it — undeclared
 //! object/arrow names in flags, second-doc schema mismatch, out-of-range
 //! `format_version`, unknown seed, uncomposable observation, partial or
 //! absent schema map, absent rule presentation, unknown predicate
@@ -75,6 +75,10 @@ const ANALYSIS_DIST_REVSCHEMA: &str = concat!(
 const ANALYSIS_QUERY: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/analysis_query.ct.json"
+);
+const SCHEMA_DIFF_WEAKENED: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/schema_diff/weakened/v1.ct.json"
 );
 /// The migration fixtures: the committed RED fixture with lost data
 /// (`fixtures/migration/`, shared with the kernel suites) and the two
@@ -251,6 +255,17 @@ const MATRIX: &[Row] = &[
           args: &["distinguish", ANALYSIS_DIST_A, ANALYSIS_DIST_B,
                   "--observe", "f@a#0", "--bogus", "--json"],
           expect: Expect::Usage },
+
+    // ── diff ─────────────────────────────────────────────────────────
+    Row { name: "diff × vocabulary difference (objects/arrows differ)",
+          args: &["diff", SCHEMA_DIFF_WEAKENED, MIGRATION_DROP_OBJECT, "--json"],
+          expect: Expect::Error { code: "schema_incomparable" } },
+    Row { name: "diff × second-doc out-of-range format_version",
+          args: &["diff", SCHEMA_DIFF_WEAKENED, BAD_VERSION, "--json"],
+          expect: Expect::Error { code: "unsupported_version" } },
+    Row { name: "diff × bad flag syntax (malformed --rows value)",
+          args: &["diff", SCHEMA_DIFF_WEAKENED, SCHEMA_DIFF_WEAKENED, "--rows", "Node", "--json"],
+          expect: Expect::Error { code: "bad_argument" } },
 
     // ── query ────────────────────────────────────────────────────────
     Row { name: "query × unknown seed (row outside the object's space)",

@@ -1,0 +1,16 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Node"],
+    "arrows": [
+      {"name": "next", "src": "Node", "tgt": "Node"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Node": ["n0", "n1"]},
+    "tables": {
+      "next": {"n0": "n1", "n1": "n0"}
+    }
+  }
+}

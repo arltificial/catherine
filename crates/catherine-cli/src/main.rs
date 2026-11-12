@@ -20,6 +20,7 @@
 mod args;
 mod cli;
 mod config;
+mod diff;
 mod migrate;
 mod render;
 mod rules;
@@ -147,6 +148,12 @@ fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl 
             second,
             observe,
         } => distinguish_command(model, second, observe, ctx),
+        C::Diff {
+            model,
+            second,
+            rows,
+            max_candidates,
+        } => diff_command(model, second, rows, *max_candidates, ctx),
         C::Query {
             model,
             seed,
@@ -251,6 +258,27 @@ fn distinguish_command<O: Write, E: Write>(
         model,
         second,
         observe,
+        ctx.json,
+        ctx.quiet,
+        std::mem::take(&mut ctx.warnings),
+        ctx.stdout,
+        ctx.stderr,
+    )
+}
+
+/// Forward [`diff::run_diff`] on the shared execution path.
+fn diff_command<O: Write, E: Write>(
+    model: &str,
+    second: &str,
+    rows: &[String],
+    max_candidates: usize,
+    ctx: &mut Ctx<'_, O, E>,
+) -> i32 {
+    diff::run_diff(
+        model,
+        second,
+        rows,
+        max_candidates,
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),

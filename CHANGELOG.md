@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Schema diff (P10, `catherine-dvx`, LICENSED E4): the
+  `catherine-analysis::schema_diff` classification of a v1→v2 model
+  schema edit over the **enforced** equations (accepted `(lhs, rhs)`
+  pairs; rationale, document order, and proposed equations are
+  presentation). `cosmetic` (presentation-only) and `accreted`
+  (constraints only added) emit zero findings; `weakened` emits exactly
+  one existing-taxonomy `violation`/`executed` finding with a witness
+  instance v2 accepts and v1 rejects; `equivalent-in-scope` is proven
+  only when the bounded enumeration exhausts with no separating instance
+  (scope echoed); an expired budget is `unknown`, and differing
+  objects/arrows are `incomparable` (needs a declared schema map, never
+  a guess). The bounded enumeration is the new shared
+  `search::enumerate` engine (found / exhausted-with-scope /
+  unknown-with-scope) that also backs `search`, so candidate order and
+  budget semantics cannot drift. CLI: `catherine diff <v1> <v2>
+  [--rows OBJECT=COUNT] [--max-candidates N]` — weakened exits 3 through
+  the existing class table, completed classifications exit 0 with the
+  outcome in the payload, incomparable is the labeled
+  `schema_incomparable` error. Fixtures `fixtures/schema_diff/`
+  (weakened/refactor/cosmetic pairs), tests `tests/schema_diff.rs` and
+  `tests/cli_diff.rs`, and the pre-registered validation record in
+  `openspec/changes/add-schema-diff/tasks.md` (weakening caught with
+  witness, refactor proven, cosmetic silent, budget expiry `unknown`).
+  No kernel change — kernel delta 0 LOC.
+
 - Rule lens pre-registered validation (P8, `catherine-nq5`) — **verdict:
   survived-scoped**. 12-fault matrix on a 240-input above-floor kata
   (16 compound rules, PriorityOrder): conventional 45-assertion

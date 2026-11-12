@@ -1,0 +1,31 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["A"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "A"},
+      {"name": "g", "src": "A", "tgt": "A"}
+    ],
+    "equations": [
+      {
+        "lhs": ["f", "g"],
+        "rhs": ["g"],
+        "rationale": "g absorbs f (rationale reworded only)",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["f", "f"],
+        "rhs": ["f"],
+        "rationale": "f is idempotent (rationale reworded only)",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a0"]},
+    "tables": {
+      "f": {"a0": "a0"},
+      "g": {"a0": "a0"}
+    }
+  }
+}

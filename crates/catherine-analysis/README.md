@@ -62,6 +62,22 @@ Every analysis answer is either **a proof within stated bounds** or
   (unresolved cells first, then row ids ascending), which folds the
   counterexample-minimality discipline into the enumeration — the
   returned witness is the first satisfying candidate in that order.
+- **Schema diff (P10).** `schema_diff::diff` classifies a v1→v2 edit on
+  the *enforced* equations — accepted `(lhs, rhs)` pairs; rationale,
+  document order, and proposed equations are presentation and never
+  classify an edit. `cosmetic` (presentation-only) and `accreted`
+  (constraints only added) are structural and emit zero findings;
+  `weakened` emits exactly one `violation`/`executed` finding with a
+  witness instance v2 accepts and v1 rejects; `equivalent-in-scope` is
+  reported only after the bounded enumeration of fully resolved
+  instances exhausts with no separating instance, with the explored
+  scope echoed; a budget hit is `unknown`, never equivalence; differing
+  objects/arrows are `incomparable` (instance spaces across vocabularies
+  need a declared schema map, not a guess). A mixed edit with no
+  weakening witness but a witnessed strengthening is
+  `strengthened-in-scope` — never rounded into `accreted`. The shared
+  `search::enumerate` engine owns the candidate order and the budget
+  rule for both `search` and the diff.
 - **Findings emit into the P2 taxonomy.** The analysis kinds with their
   pinned witness shapes and labels: `contradiction`/`redundant` carry
   `executed` (deterministic proofs the kernel computed);
@@ -125,14 +141,18 @@ against an independent BFS reference on generated instances and re-pin
 - `bounds.rs` — shared bound/scope types (`SearchBounds`, `SearchScope`),
   the engines' `ScopeCaps`, and the deduplicated witness builders (one
   construction site per P2 analysis finding shape).
-- `search.rs` — bounded instance search (task 6).
+- `search.rs` — bounded instance search (task 6) and the shared
+  `enumerate` engine (found / exhausted-with-scope / unknown-with-scope)
+  behind both search and schema diff.
 - `rewrite.rs` — normal-form rewriting / redundancy (task 7).
 - `parallel.rs` — parallel-path detection (task 8).
 - `query.rs` — the ported traversals (task 9).
 - `distinguish.rs` — bounded distinguishability over explicit
   observation sets (task 10).
+- `schema_diff.rs` — v1→v2 edit classification (P10): cosmetic /
+  accreted / weakened-with-witness / equivalent-in-scope.
 
 Build: part of the workspace; `cargo test -p catherine-analysis` runs
-the five fixture suites, the parity/property gate, and the determinism
-assertions (repeated runs serialize byte-identically; assertions are
-structural — no snapshots).
+the fixture suites (including `tests/schema_diff.rs`), the
+parity/property gate, and the determinism assertions (repeated runs
+serialize byte-identically; assertions are structural — no snapshots).
