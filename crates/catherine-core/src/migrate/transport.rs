@@ -149,9 +149,7 @@ fn reindex_arrow(
     let Some(decl) = model.schema.arrows.get(arrow) else {
         return;
     };
-    let src_image = map.objects.get(&decl.src).and_then(|a| a.as_ref());
-    let tgt_image = map.objects.get(&decl.tgt).and_then(|a| a.as_ref());
-    let (Some(src_image), Some(tgt_image)) = (src_image, tgt_image) else {
+    let Some((src_image, tgt_image)) = source_and_target_images(map, decl) else {
         // The source object is dropped (its rows are already findings)
         // or the target object is dropped: each valued cell is lost.
         if map.objects.get(&decl.tgt) == Some(&None) {
@@ -159,15 +157,12 @@ fn reindex_arrow(
         }
         return;
     };
-    if path_endpoint(&map.target, path) != Some(tgt_image) {
-        lost_cells_of(model, arrow, lost);
-        return;
-    }
-    if path.0.len() > 1 {
-        // Phase-B limit, stated where it bites: a multi-arrow target
-        // path composes over tables the engine does not build yet, so
-        // each valued source cell is recorded as lost and the target
-        // cells stay `None` — loud, never invented.
+    // Transportable = single-arrow path ending at the mapped target
+    // object. Everything else is a recorded phase-B limit: each valued
+    // source cell is enumerated as lost (loud) and the target cells
+    // stay `None` — never invented.
+    let transportable = path_endpoint(&map.target, path) == Some(tgt_image) && path.0.len() == 1;
+    if !transportable {
         lost_cells_of(model, arrow, lost);
         return;
     }
@@ -175,17 +170,40 @@ fn reindex_arrow(
         let Some(&target_row) = row_map.get(src_image).and_then(|placed| placed.get(&row)) else {
             continue;
         };
-        let value = model.instance.values[arrow]
-            .get(index)
-            .and_then(|cell| *cell)
-            .and_then(|v| {
-                row_map
-                    .get(tgt_image)
-                    .and_then(|placed| placed.get(&v))
-                    .copied()
-            });
+        let value = cell_value(model, arrow, index, tgt_image, row_map);
         write_cell(tables, &path.0[0], target_row, value);
     }
+}
+
+/// The mapped source/target object images of one declared arrow, when
+/// both sides are kept.
+fn source_and_target_images<'a>(
+    map: &'a SchemaMap,
+    decl: &crate::model::Arrow,
+) -> Option<(&'a Ident, &'a Ident)> {
+    let src = map.objects.get(&decl.src).and_then(|a| a.as_ref())?;
+    let tgt = map.objects.get(&decl.tgt).and_then(|a| a.as_ref())?;
+    Some((src, tgt))
+}
+
+/// One source cell's transported value: its declared target row mapped
+/// through the target object's row correspondence.
+fn cell_value(
+    model: &Model,
+    arrow: &Ident,
+    index: usize,
+    tgt_image: &Ident,
+    row_map: &BTreeMap<Ident, BTreeMap<RowId, RowId>>,
+) -> Option<RowId> {
+    model.instance.values[arrow]
+        .get(index)
+        .and_then(|cell| *cell)
+        .and_then(|v| {
+            row_map
+                .get(tgt_image)
+                .and_then(|placed| placed.get(&v))
+                .copied()
+        })
 }
 
 /// Write one cell into a table, resizing as needed.
