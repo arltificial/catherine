@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- grounded-instance harness (P9 adjunct, `catherine-ga7`, bogart-side):
+  spec-driven corpus→`.ct.json` extraction with a provenance sidecar
+  (byte-identical parity with the hc6 pilot model), a quantified
+  seeded-defect must-gate (7/7 finding-bearing detections with corpus
+  witnesses, 2/2 negative controls clean), a real-data
+  contradiction-with-data demo (row `pg_70953`, exit 3), and the
+  extraction contract in bogart's README. Zero catherine kernel delta —
+  provenance stays bogart-side.
 - `catherine migrate` subcommand (P7 phase C, `catherine-alr`): envelope
   output with the migrated-instance row counts, the loud lost-data
   findings (`executed`), and the row correspondence; exit 8 on lost
