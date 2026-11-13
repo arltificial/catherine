@@ -1,0 +1,28 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Frame", "Roll"],
+    "arrows": [
+      {"name": "roll_frame", "src": "Roll", "tgt": "Frame"},
+      {"name": "first_roll", "src": "Frame", "tgt": "Roll"}
+    ],
+    "equations": [
+      {
+        "lhs": ["roll_frame"],
+        "rhs": ["roll_frame", "first_roll", "roll_frame"],
+        "rationale": "seam agreement: a roll's frame must be the frame of that frame's first roll. Every single-path reference resolves (no dangling cell), so a per-column FK/relationships existence test passes; only the composed-path agreement fails. dbt relationship tests check one path at a time and have no operator for this.",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Frame": ["f0", "f1"],
+      "Roll": ["r0", "r1", "r2"]
+    },
+    "tables": {
+      "roll_frame": {"r0": "f0", "r1": "f0", "r2": "f1"},
+      "first_roll": {"f0": "r0", "f1": "r0"}
+    }
+  }
+}

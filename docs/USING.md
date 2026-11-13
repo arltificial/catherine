@@ -98,6 +98,31 @@ including what the lens adds over a sampled conventional review, is the
 probe ledger (`../fixtures/probes/rule_lens/README.md`, entries under
 `ledger/probes/rule-lens-extracted/`).
 
+### Recipe D — the seam agreement dbt cannot express
+
+dbt's `relationships` test checks that one column's values exist in
+another table (a single-path existence check). It cannot state that two
+*composed* paths must agree. catherine can: declare both paths as an
+equation and get the offending row.
+
+`crates/catherine-cli/tests/fixtures/seam_multi_path_agreement.ct.json`:
+a roll's frame must equal the frame of that frame's first roll
+(`roll_frame ≡ roll_frame∘first_roll∘roll_frame`). Every single-path
+reference resolves — a per-column FK check passes clean — but the
+composed paths disagree at one row:
+
+```text
+$ catherine check crates/catherine-cli/tests/fixtures/seam_multi_path_agreement.ct.json --json
+{"ok":true,...,"data":{"findings":[{"label":"executed","kind":"violation",
+ "witness":{"equation":0,"row":2,"lhs":1,"rhs":0}}]},"warnings":[]}}
+```
+
+Honest boundary: parity with FK/relationships testing on single-path
+existence (both detect the missing reference); unique on composed-path
+agreement, where dbt has no operator. This is a modelling check on a
+declarative document, not a drop-in warehouse test — extraction from the
+warehouse is your adapter's job (`catherine` does not connect to SQL).
+
 ## For humans
 
 - **Review models like code.** `.ct.json` files live in the repo; they diff
