@@ -7,19 +7,28 @@
 //!
 //! Responsibilities: [`validate_dir`] reads a ledger directory through
 //! small phase checks — per-entry integrity, control self-negation,
-//! control-first ordering, rollup placement/coverage — and refuses the
-//! ledger when any phase reports. The Green shape is control-first,
-//! contiguous seqs, sealed ids, and a trailing rollup.
+//! control-first ordering, baseline-arm claims, rollup placement/coverage
+//! — and refuses the ledger when any phase reports. The Green shape is
+//! control-first, contiguous seqs, sealed ids, and a trailing rollup.
 //!
 //! Rationale: ct-catlab's own failure mode was verdict/record
 //! contradictions (REPORT methodology §1) — the validator exists so the
 //! tool cannot quietly do that to itself. Rejections are total (any
-//! violation fails the ledger): partial ledgers never pass.
+//! violation fails the ledger): partial ledgers never pass. The
+//! baseline-arm refusals ([`Violation::UniqueWithoutBaseline`],
+//! [`Violation::CitedBaselineCannotSurvive`]) are wired: a uniqueness
+//! claim needs an executed, committed baseline arm, and a cited-only arm
+//! caps the verdict at inconclusive. Supersession is the correction path
+//! (a new entry whose `supersedes` names the old id, never an edit), so
+//! claim-bearing rules run on the EFFECTIVE entries while the integrity
+//! pins (id, seq, model hashes, verdict vocabulary, supersession
+//! targets) run on all of them.
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use crate::entry::{entry_id, Entry, EntryContent};
+use crate::entry::{entry_id, BaselineMode, Entry, EntryContent};
 
 /// The closed verdict vocabulary, as the stable spellings.
 const VERDICTS: [&str; 4] = ["killed", "survived", "inconclusive", "invalid-run"];
@@ -40,15 +49,20 @@ pub enum Violation {
     InvalidVerdict { seq: u32, verdict: String },
     /// A kata entry with no negative control at a smaller seq.
     NegativeControlMissing { seq: u32 },
-    /// The control entry exists but did not self-negate (and was not
-    /// superseded by a control that did).
+    /// The effective control entry did not self-negate.
     ControlDidNotSelfNegate { seq: u32, reason: String },
     /// A `supersedes` target that does not exist or is not earlier.
     BadSupersession { seq: u32, target: String },
     /// The rollup is absent, is not last, or precedes kata entries.
     RollupMisplaced { seq: u32, reason: String },
-    /// The rollup does not cover every kata entry.
+    /// The rollup's `kata_entry_ids` are not exactly the effective kata
+    /// entry ids.
     RollupIncomplete { seq: u32 },
+    /// Non-empty `unique_detections` with no baseline arm naming a
+    /// committed artifact.
+    UniqueWithoutBaseline { seq: u32 },
+    /// A `survived` verdict whose baseline arm is cited-only.
+    CitedBaselineCannotSurvive { seq: u32 },
 }
 
 /// A ledger that passed validation.
@@ -58,17 +72,26 @@ pub struct ValidLedger {
 }
 
 impl ValidLedger {
-    /// The kata entries, in seq order.
+    /// The effective entries, in seq order: superseded entries dropped.
+    pub fn effective_entries(&self) -> Vec<&Entry> {
+        effective_entries(&self.entries)
+    }
+
+    /// The effective kata entries, in seq order: a superseded kata
+    /// record is a correction, not a second claim.
     pub fn kata_entries(&self) -> Vec<&Entry> {
-        self.entries
-            .iter()
+        self.effective_entries()
+            .into_iter()
             .filter(|e| e.content.kind == "kata")
             .collect()
     }
 
-    /// The rollup entry, when present.
+    /// The effective (last) rollup entry, when present.
     pub fn rollup(&self) -> Option<&Entry> {
-        self.entries.iter().find(|e| e.content.kind == "rollup")
+        self.effective_entries()
+            .into_iter()
+            .filter(|e| e.content.kind == "rollup")
+            .last()
     }
 }
 
@@ -124,6 +147,24 @@ fn is_control(entry: &Entry) -> bool {
     entry.content.kata.as_ref().is_some_and(|kata| kata.control)
 }
 
+/// The effective entries: drop any entry whose id appears in a later
+/// entry's `supersedes`. Supersession is the ledger's correction path —
+/// a corrected claim is a new entry, never an edit — so claim-bearing
+/// rules evaluate only the last word on each claim. Integrity rules
+/// still run over every entry, superseded ones included.
+fn effective_entries(entries: &[Entry]) -> Vec<&Entry> {
+    entries
+        .iter()
+        .enumerate()
+        .filter(|(index, entry)| {
+            !entries[*index + 1..]
+                .iter()
+                .any(|later| later.content.supersedes.as_deref() == Some(entry.id.as_str()))
+        })
+        .map(|(_, entry)| entry)
+        .collect()
+}
+
 /// Per-entry integrity pins: contiguous seq from 1, model hashes
 /// present, closed verdict vocabulary, supersession targets real and
 /// earlier.
@@ -165,10 +206,11 @@ fn integrity_violations(entries: &[Entry]) -> Vec<Violation> {
     violations
 }
 
-/// The control did not self-negate: a control entry whose verdict is
-/// not `killed`, unless a LATER control entry with verdict `killed`
-/// supersedes it (the recorded correction path).
-fn control_self_negation_violations(entries: &[Entry]) -> Vec<Violation> {
+/// The control did not self-negate: an effective control entry whose
+/// verdict is not `killed`. A corrected control is appended as a
+/// superseding entry, so the old one is not effective and never reaches
+/// this check — there is no separate correction branch to reconcile.
+fn control_self_negation_violations(entries: &[&Entry]) -> Vec<Violation> {
     let mut violations = Vec::new();
     for entry in entries {
         if !is_control(entry) {
@@ -183,29 +225,17 @@ fn control_self_negation_violations(entries: &[Entry]) -> Vec<Violation> {
         if verdict == "killed" {
             continue;
         }
-        let corrected = entries.iter().any(|later| {
-            later.content.seq > entry.content.seq
-                && is_control(later)
-                && later.content.supersedes.as_deref() == Some(entry.id.as_str())
-                && later
-                    .content
-                    .kata
-                    .as_ref()
-                    .is_some_and(|kata| kata.verdict.as_str() == "killed")
+        violations.push(Violation::ControlDidNotSelfNegate {
+            seq: entry.content.seq,
+            reason: format!("control verdict `{verdict}`, expected killed"),
         });
-        if !corrected {
-            violations.push(Violation::ControlDidNotSelfNegate {
-                seq: entry.content.seq,
-                reason: format!("control verdict `{verdict}`, expected killed"),
-            });
-        }
     }
     violations
 }
 
-/// Negative control first: every positive kata needs an earlier
-/// self-negated control.
-fn control_first_violations(entries: &[Entry]) -> Vec<Violation> {
+/// Negative control first: every effective positive kata needs an
+/// earlier effective self-negated control.
+fn control_first_violations(entries: &[&Entry]) -> Vec<Violation> {
     let mut violations = Vec::new();
     for entry in entries {
         let Some(kata) = &entry.content.kata else {
@@ -232,35 +262,84 @@ fn control_first_violations(entries: &[Entry]) -> Vec<Violation> {
     violations
 }
 
-/// The rollup, when present: last entry, covering every kata entry. A
-/// ledger WITHOUT a rollup is a valid append-only intermediate state —
-/// entries land before the rollup is derived.
-fn rollup_violations(entries: &[Entry]) -> Vec<Violation> {
+/// The baseline-arm refusals, over effective kata records with a
+/// non-empty `unique_detections`: the claim is arithmetic (probe
+/// detections minus baseline detections), so it needs an arm naming a
+/// committed artifact, and a cited-only arm cannot support `survived`.
+/// An empty unique set is the parity ceiling and needs no arm.
+fn baseline_violations(entries: &[&Entry]) -> Vec<Violation> {
     let mut violations = Vec::new();
-    let Some(rollup) = entries.iter().find(|e| e.content.kind == "rollup") else {
+    for entry in entries {
+        let Some(kata) = &entry.content.kata else {
+            continue;
+        };
+        if kata.comparison.unique_detections.is_empty() {
+            continue;
+        }
+        let seq = entry.content.seq;
+        let Some(baseline) = &kata.comparison.baseline else {
+            violations.push(Violation::UniqueWithoutBaseline { seq });
+            continue;
+        };
+        if baseline.artifact.trim().is_empty() {
+            violations.push(Violation::UniqueWithoutBaseline { seq });
+            continue;
+        }
+        if baseline.mode == BaselineMode::Cited && kata.verdict == "survived" {
+            violations.push(Violation::CitedBaselineCannotSurvive { seq });
+        }
+    }
+    violations
+}
+
+/// The effective rollup, when present: last entry, covering exactly the
+/// effective kata entries (set equality between `kata_entry_ids` and
+/// the effective kata ids). A ledger WITHOUT a rollup is a valid
+/// append-only intermediate state — entries land before the rollup is
+/// derived. A stale rollup that was not superseded is misplaced.
+fn rollup_violations(entries: &[&Entry]) -> Vec<Violation> {
+    let mut violations = Vec::new();
+    let rollups: Vec<&Entry> = entries
+        .iter()
+        .copied()
+        .filter(|entry| entry.content.kind == "rollup")
+        .collect();
+    let Some(rollup) = rollups.last().copied() else {
         return violations;
     };
     let last_seq = entries.last().map(|last| last.content.seq);
-    if last_seq != Some(rollup.content.seq) {
-        violations.push(Violation::RollupMisplaced {
-            seq: rollup.content.seq,
-            reason: "the rollup must be the last entry".into(),
-        });
-    }
-    let kata_count = entries.iter().filter(|e| e.content.kind == "kata").count();
-    if let Some(record) = &rollup.content.rollup {
-        if record.per_kata.len() != kata_count {
-            violations.push(Violation::RollupIncomplete {
-                seq: rollup.content.seq,
+    for candidate in &rollups {
+        if last_seq != Some(candidate.content.seq) {
+            violations.push(Violation::RollupMisplaced {
+                seq: candidate.content.seq,
+                reason: "the rollup must be the last entry".into(),
             });
         }
+    }
+    let recorded: BTreeSet<&str> = rollup
+        .content
+        .rollup
+        .as_ref()
+        .map(|record| record.kata_entry_ids.iter().map(String::as_str).collect())
+        .unwrap_or_default();
+    let actual: BTreeSet<&str> = entries
+        .iter()
+        .filter(|entry| entry.content.kind == "kata")
+        .map(|entry| entry.id.as_str())
+        .collect();
+    if recorded != actual {
+        violations.push(Violation::RollupIncomplete {
+            seq: rollup.content.seq,
+        });
     }
     violations
 }
 
 /// Validate the ledger directory through the phase checks: file-level
 /// integrity, per-entry pins, control self-negation, control-first
-/// ordering, and rollup placement/coverage.
+/// ordering, baseline-arm claims, and rollup placement/coverage. The
+/// integrity phases see every entry; the claim-bearing phases see only
+/// the effective entries (superseded ones are corrections, not claims).
 pub fn validate_dir(dir: &Path) -> Result<ValidLedger, Vec<Violation>> {
     let files = match ledger_files(dir) {
         Ok(files) => files,
@@ -274,9 +353,11 @@ pub fn validate_dir(dir: &Path) -> Result<ValidLedger, Vec<Violation>> {
         .collect();
     let entries: Vec<Entry> = read.iter().flatten().cloned().collect();
     violations.extend(integrity_violations(&entries));
-    violations.extend(control_self_negation_violations(&entries));
-    violations.extend(control_first_violations(&entries));
-    violations.extend(rollup_violations(&entries));
+    let effective = effective_entries(&entries);
+    violations.extend(baseline_violations(&effective));
+    violations.extend(control_self_negation_violations(&effective));
+    violations.extend(control_first_violations(&effective));
+    violations.extend(rollup_violations(&effective));
     if violations.is_empty() {
         Ok(ValidLedger { entries })
     } else {

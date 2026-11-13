@@ -1,0 +1,9 @@
+id = "killed-probe-records-the-null-result"
+description = "When the baseline arm detects everything the probe fired, or the probe fires nothing on faults the catalog predicted, the entry records `killed` with the comparison attached: the null result is the deliverable, never suppressed."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = []

@@ -1,0 +1,12 @@
+id = "probe-series-without-a-self-negating-floor-control-is-refused"
+description = "A probe ledger sequence that records a non-control entry with no prior control entry that self-negated is refused by the ledger validator with the existing named violations (NegativeControlMissing / ControlDidNotSelfNegate)."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "probe_sequence_without_self_negating_floor_control_is_refused" },
+    { flags = "floor_control_that_did_not_self_negate_is_refused" },
+]

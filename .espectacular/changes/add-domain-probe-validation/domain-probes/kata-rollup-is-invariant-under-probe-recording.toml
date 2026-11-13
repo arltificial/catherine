@@ -1,0 +1,9 @@
+id = "kata-rollup-is-invariant-under-probe-recording"
+description = "Probe entries recorded after the kata rollup was sealed leave `ledger-check` over the kata ledger passing with the original rollup id and verdict, byte-identical."
+archetype = "NR"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = []

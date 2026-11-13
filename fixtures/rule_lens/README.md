@@ -88,6 +88,10 @@ The near-floor control is `kata/negative-control/near-floor.ct.json`
 (`kata/negative-control/faults/`): the 4-row conventional check catches
 3/3 and the lens catches 3/3, so the lens earns zero unique detections
 and the control self-negates (`killed`). The katas live in
-`ledger/rule-lens/` (the P6 ledger is sealed by its rollup; the validator
-requires a rollup to be last and would refuse appended entries). The
-derived rule-lens verdict is `survived`, scoped to structural redundancy.
+`ledger/rule-lens/`. The above-floor entry was later corrected by
+append-only supersession — `0004` carries the executed
+`prototype/rule_lens_baseline.py` arm with the seven faults it caught,
+`0005` is the replacement rollup — so the directory holds five files: the
+control, the superseded prose-only record, its correction, the superseded
+rollup, and the effective rollup. The derived rule-lens verdict is
+`survived`, scoped to structural redundancy.

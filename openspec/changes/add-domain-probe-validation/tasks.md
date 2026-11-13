@@ -9,7 +9,7 @@ existing `ledger-check <ledger-dir>` surface, never a bespoke re-run.
 
 ## RED — the ledger refuses baseline-less uniqueness
 
-- [ ] 1. Validator rejects, with named violations: any entry (probe or
+- [x] 1. Validator rejects, with named violations: any entry (probe or
       kata) with non-empty `unique_detections` and no baseline arm
       naming a committed baseline artifact; a `survived` verdict on an
       entry whose baseline arm is labeled cited-only (inconclusive is
@@ -24,7 +24,7 @@ existing `ledger-check <ledger-dir>` surface, never a bespoke re-run.
 
 ## GREEN — probe ledger directories + baseline-arm rule
 
-- [ ] 2. Baseline-arm fields on the comparison shape: baseline artifact
+- [x] 2. Baseline-arm fields on the comparison shape: baseline artifact
       identity (in-tree path + hash, or tool name + pinned revision),
       execution mode (`executed | cited`), detections on the same fault
       set; validator rules from task 1 wired to the real fields;

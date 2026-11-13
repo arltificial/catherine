@@ -1,0 +1,11 @@
+id = "parity-verdict-without-a-baseline-is-recorded-honestly"
+description = "When a probe fired findings but no baseline arm was run, the entry records the detections, an empty unique set, and the missing baseline as a named gap, never as a unique-detection claim."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "accepts_parity_verdict_without_baseline" },
+]

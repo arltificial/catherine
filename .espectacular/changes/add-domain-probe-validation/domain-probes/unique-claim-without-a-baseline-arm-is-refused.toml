@@ -1,0 +1,11 @@
+id = "unique-claim-without-a-baseline-arm-is-refused"
+description = "An entry recording a non-empty `unique_detections` with no baseline arm naming a committed baseline artifact is refused by the validator."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "rejects_unique_detections_without_baseline_arm" },
+]

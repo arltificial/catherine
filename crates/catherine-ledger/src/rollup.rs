@@ -82,7 +82,10 @@ fn per_kata(katas: &[&Entry]) -> Vec<(String, String, Verdict)> {
 /// Derive the project verdict from validated kata entries, step by step
 /// through [`PROCEDURE`]: control gate first (step 2), invalid-run
 /// propagation (step 3), all-positives-survived (step 4), any-positive-
-/// killed stop condition (step 5), otherwise inconclusive (step 6).
+/// killed stop condition (step 5), otherwise inconclusive (step 6). The
+/// caller must pass the validated EFFECTIVE kata entries
+/// (`ValidLedger::kata_entries` already drops superseded records); a
+/// superseded kata is a correction, not a second verdict line.
 pub fn derive(entries: &[&Entry]) -> Result<Rollup, String> {
     let katas: Vec<&Entry> = entries
         .iter()

@@ -1,0 +1,11 @@
+id = "unregistered-probe-cannot-run"
+description = "A probe id with no committed catalog rows leaves the harness recording the empty-expectation state and refusing to derive a verdict from it, the same discipline an unknown kata id gets."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "unregistered_probe_id_yields_empty_expectations_and_no_derivable_verdict" },
+]

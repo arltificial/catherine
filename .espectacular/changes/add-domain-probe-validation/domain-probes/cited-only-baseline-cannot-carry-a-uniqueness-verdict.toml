@@ -1,0 +1,11 @@
+id = "cited-only-baseline-cannot-carry-a-uniqueness-verdict"
+description = "An entry whose baseline arm is labeled cited (not executed) cannot carry a `survived` verdict on uniqueness: `inconclusive`, with the missing execution recorded as a named gap, is the ceiling."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "rejects_survived_with_cited_only_baseline" },
+]

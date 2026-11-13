@@ -119,6 +119,30 @@ pub struct Fired {
     pub expectation: String,
 }
 
+/// Execution mode of a baseline arm (open vocabulary until the GREEN task
+/// closes it): `executed` = the artifact ran before the probe run; `cited` =
+/// quoted from literature only and therefore cannot carry a uniqueness claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BaselineMode {
+    Executed,
+    Cited,
+}
+
+/// The baseline arm (design Decision 3, `add-domain-probe-validation`): the
+/// committed, version-pinned artifact run on the same fault set, so that
+/// `unique_detections` is derived arithmetically (probe detections minus
+/// baseline detections) instead of asserted.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BaselineArm {
+    /// In-tree path + hash, or tool name + pinned revision.
+    pub artifact: String,
+    /// Whether the artifact was executed before the run.
+    pub mode: BaselineMode,
+    /// The baseline's detections on the same fault set.
+    pub detections: Vec<String>,
+}
+
 /// The mechanical comparison the verdict derives from (the procedure is
 /// recorded in [`KataRecord::procedure`]).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -130,6 +154,10 @@ pub struct Comparison {
     /// Findings catching faults the conventional baseline missed — must
     /// be empty for the negative control to self-negate.
     pub unique_detections: Vec<String>,
+    /// The committed baseline arm the unique detections were derived
+    /// against; absent = no baseline arm (the parity ceiling).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baseline: Option<BaselineArm>,
 }
 
 /// One named expressibility gap (design Decision 5): a validated

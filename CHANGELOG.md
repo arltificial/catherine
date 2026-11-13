@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Ledger science hardening (P11, `catherine-1od`, task 2): any ledger
+  entry — kata or probe — that records non-empty `unique_detections`
+  must carry `comparison.baseline` naming a committed artifact with
+  `mode: executed`; a cited-only arm cannot support `survived` (the
+  ceiling is `inconclusive`), refused as `UniqueWithoutBaseline` /
+  `CitedBaselineCannotSurvive`, and `ledger-record` refuses the same
+  shapes at write time. Supersession is now a usable correction path
+  after a rollup: superseded entries stop being effective, claim-bearing
+  rules evaluate effective entries only, and the effective rollup (last
+  entry) must equal the effective kata id set. `ledger/rule-lens/0002`
+  was corrected by appended entries `0004`/`0005`, so its five unique
+  detections are backed by the executed
+  `prototype/rule_lens_baseline.py` arm (7/12 faults caught) rather than
+  prose.
+
 - Schema diff (P10, `catherine-dvx`, LICENSED E4): the
   `catherine-analysis::schema_diff` classification of a v1→v2 model
   schema edit over the **enforced** equations (accepted `(lhs, rhs)`

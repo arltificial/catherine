@@ -1,0 +1,9 @@
+id = "expectations-cannot-be-retrofitted"
+description = "Editing a recorded probe's catalog file or entry after its content hash was sealed makes the id/hash unresolvable and fails ledger validation, forcing a superseding entry instead of a silent edit."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = []

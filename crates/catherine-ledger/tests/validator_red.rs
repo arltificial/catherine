@@ -75,6 +75,7 @@ fn kata(seq: u32, kata_id: &str, control: bool, verdict: &str) -> EntryContent {
                 conventional_baseline: "3/3 behavioral".into(),
                 fired: vec![],
                 unique_detections: vec![],
+                baseline: None,
             },
             expressibility_gap: vec![],
             discrepancies: vec![],
@@ -122,14 +123,23 @@ fn rollup(seq: u32, per_kata: &[(&str, &str, &str)]) -> EntryContent {
 }
 
 /// GREEN shape: control first, then a positive kata, then the rollup —
-/// the ledger the validator accepts.
+/// the ledger the validator accepts. The rollup's `kata_entry_ids` are
+/// the real sealed ids (coverage is set equality against the effective
+/// kata entries, not a placeholder line count).
 fn green_contents() -> Vec<EntryContent> {
+    let control = kata(1, "kata-6", true, "killed");
+    let positive = kata(2, "kata-1", false, "survived");
+    let control_id = seal(control.clone()).expect("control seals").id;
+    let positive_id = seal(positive.clone()).expect("positive seals").id;
     vec![
-        kata(1, "kata-6", true, "killed"),
-        kata(2, "kata-1", false, "survived"),
+        control,
+        positive,
         rollup(
             3,
-            &[("kata-6", "e1", "killed"), ("kata-1", "e2", "survived")],
+            &[
+                ("kata-6", control_id.as_str(), "killed"),
+                ("kata-1", positive_id.as_str(), "survived"),
+            ],
         ),
     ]
 }

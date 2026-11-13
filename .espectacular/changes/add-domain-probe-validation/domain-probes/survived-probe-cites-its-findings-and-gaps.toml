@@ -1,0 +1,9 @@
+id = "survived-probe-cites-its-findings-and-gaps"
+description = "A probe whose expectations are met by executed findings records `survived`, cites each fired finding by id, maps each detection to its pre-registered expectation, and lists every expectation the run could not reach as a gap."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = []
