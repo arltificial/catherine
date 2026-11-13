@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rule-table projection bridge (step 1 of the post-granularity capability
+  gaps, `catherine-x94`): `catherine rules <model> --project <Object>
+  --columns <arrow,...> [--action <arrow>] [--values ...]` synthesizes a
+  `rule_presentation` from an object's instance rows — one rule per row in
+  dense order, string-equality column predicates over the arrows' target
+  row names, identity or `--action` actions, fixed `DeclaredDisjoint` — and
+  analyzes it with the shipped rule lens (no new finding kind, no format
+  change, `KNOWN_MINOR` stays 2). The domain is the distinct observed
+  column tuples, optionally unioned with a `--values` product declaration;
+  a combination no row has stays silent unless it is declared (a declared
+  one is a genuine `underconstraint` gap). Refusals are labeled:
+  `bad_argument` (the document already carries a `rule_presentation`, an
+  unknown or not-sourced arrow, a malformed column list),
+  `projection_incomplete` (a null projected cell, naming the row and the
+  arrow), `empty_projection`. The projected claim is outside the model hash
+  and the ledger — evidence about a projection, never sealed model
+  evidence.
+
 - Ledger science hardening (P11, `catherine-1od`, task 2): any ledger
   entry — kata or probe — that records non-empty `unique_detections`
   must carry `comparison.baseline` naming a committed artifact with

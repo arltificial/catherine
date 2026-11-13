@@ -22,6 +22,7 @@ mod cli;
 mod config;
 mod diff;
 mod migrate;
+mod projection;
 mod render;
 mod rules;
 mod run;
@@ -165,7 +166,18 @@ fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl 
             model,
             values,
             max_candidates,
-        } => rules_command(model, values, *max_candidates, ctx),
+            project,
+            columns,
+            action,
+        } => rules_command(
+            model,
+            values,
+            *max_candidates,
+            project.as_deref(),
+            columns.as_deref(),
+            action.as_deref(),
+            ctx,
+        ),
     }
 }
 
@@ -342,12 +354,18 @@ fn rules_command<O: Write, E: Write>(
     model: &str,
     values: &[String],
     max_candidates: usize,
+    project: Option<&str>,
+    columns: Option<&str>,
+    action: Option<&str>,
     ctx: &mut Ctx<'_, O, E>,
 ) -> i32 {
     rules::run_rules(
         model,
         values,
         max_candidates,
+        project,
+        columns,
+        action,
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),

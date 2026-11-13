@@ -1,9 +1,10 @@
 //! Purpose: the clap wiring — the `check`/`findings` subcommands over a
 //! positional model path plus P4's one-subcommand-per-analysis-op set
 //! (`search`, `redundant`, `underconstraint`, `distinguish`, `query`),
-//! P7's `migrate`, and P8's `rules` (the rule lens), the genesis guide's
-//! verbosity/format structs, and the exit-code table the help text
-//! carries verbatim.
+//! P7's `migrate`, and P8's `rules` (the rule lens, plus the
+//! `add-rules-projection` bridge's `--project`/`--columns`/`--action`
+//! flags), the genesis guide's verbosity/format structs, and the
+//! exit-code table the help text carries verbatim.
 //!
 //! Responsibilities: define [`Cli`] (genesis `CliVerbosity` + `CliFormat`
 //! flattened, so `-v`/`-q` and `--json`/`--human` behave exactly as in
@@ -12,7 +13,10 @@
 //! publish
 //! [`EXIT_CODE_TABLE`] — the adjudicated exit-code contract, its shipped
 //! numerals unchanged — in the root and every subcommand's help, plus
-//! [`LOST_DATA_EXIT_CODE`] for the one `add-delta-migration` class.
+//! [`LOST_DATA_EXIT_CODE`] for the one `add-delta-migration` class. The
+//! projection help states its outside-the-hash/ledger boundary and the
+//! product-declaration caveat, because a projection run is evidence about
+//! a projection, never a sealed model claim.
 //!
 //! Rationale: genesis's `CliFormat` auto-detects JSON when stdout is not
 //! a TTY, but the cli spec mandates human-by-default ("human-readable by
@@ -212,20 +216,49 @@ pub enum Commands {
     /// budget that expires is `outcome: "unknown"` with the exact scope
     /// (exit 0: a completed bounded run, never "clean"); a document
     /// without a `rule_presentation` is a labeled error.
+    ///
+    /// With `--project`, one rule per instance row of the named object is
+    /// synthesized instead (predicate = the conjunction of the projected
+    /// columns equal to their target row names, action = the row's own
+    /// name or `--action`'s target, policy `DeclaredDisjoint`), and the
+    /// input domain is the observed column tuples, optionally unioned
+    /// with a `--values` product declaration. The projected claim is
+    /// outside the model hash and the ledger — it is not sealed evidence:
+    /// it reads *on this snapshot of rows, projected this way*. A product
+    /// `--values` declaration can name combinations no row has: such an
+    /// input is a genuine gap, and the gap reports the declared scope,
+    /// not the data.
     #[command(after_help = EXIT_CODE_TABLE)]
     Rules {
         /// Path to the .ct.json model document carrying
-        /// `rule_presentation`.
+        /// `rule_presentation`, or — with `--project` — the document
+        /// whose instance rows are projected.
         model: String,
         /// Finite values per declared column, `column=v1,v2,...`
         /// (repeatable; every declared column needs one — the domain X
-        /// is declared data, never inferred from instance rows).
+        /// is declared data, never inferred from instance rows). For a
+        /// projection the declared product is unioned with the observed
+        /// column tuples; an input no row covers is reported as a gap.
         #[arg(long = "values", value_name = "COLUMN=V1,V2,...")]
         values: Vec<String>,
         /// Maximum candidates the enumeration may materialize before
         /// the outcome is UNKNOWN with the explored scope.
         #[arg(long = "max-candidates", default_value_t = default_scope_caps().max_candidates)]
         max_candidates: usize,
+        /// Project the named object's instance rows onto a rule table
+        /// instead of reading the document's `rule_presentation` (the two
+        /// are refused together). The claim is not part of the model hash
+        /// or the ledger.
+        #[arg(long = "project", value_name = "OBJECT")]
+        project: Option<String>,
+        /// Projected columns: arrows sourced at the `--project` object,
+        /// comma-separated (each becomes a string-equality predicate on
+        /// the arrow's target row name).
+        #[arg(long = "columns", value_name = "ARROW,...")]
+        columns: Option<String>,
+        /// The projected action arrow (default: each row's own name).
+        #[arg(long = "action", value_name = "ARROW")]
+        action: Option<String>,
     },
 }
 

@@ -15,6 +15,7 @@ use catherine_core::error::{ErrorCode, ParseError};
 /// A labeled CLI-level error: the stable code, the position when the
 /// kernel or the filesystem pins one, the kernel's message verbatim,
 /// and a remediation hint. Never a stack trace.
+#[derive(Debug)]
 pub struct LabeledError {
     /// The stable code: one of the kernel's closed semantic codes spelled
     /// as the fixtures pin it, or `syntax` for JSON-structural

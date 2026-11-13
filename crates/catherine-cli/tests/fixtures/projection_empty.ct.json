@@ -1,0 +1,45 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "capture",
+      "edition",
+      "source"
+    ],
+    "arrows": [
+      {
+        "name": "capture_source",
+        "src": "capture",
+        "tgt": "source"
+      },
+      {
+        "name": "capture_edition",
+        "src": "capture",
+        "tgt": "edition"
+      },
+      {
+        "name": "source_edition",
+        "src": "source",
+        "tgt": "edition"
+      }
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "capture": [],
+      "source": [
+        "src_a",
+        "src_b"
+      ],
+      "edition": [
+        "ed_1",
+        "ed_2"
+      ]
+    },
+    "tables": {
+      "capture_source": {},
+      "capture_edition": {}
+    }
+  }
+}

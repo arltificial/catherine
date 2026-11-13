@@ -135,6 +135,16 @@ pub(crate) fn emit_error(
 /// `read_error` for an unreadable path, the kernel's codes for a parse
 /// failure.
 pub(crate) fn load_model(model_path: &str) -> Result<Model, LabeledError> {
+    load_model_with_rows(model_path).map(|(model, _)| model)
+}
+
+/// [`load_model`], additionally returning the parser's name side table
+/// (presentation row names indexed by dense `RowId`) — the seam the
+/// `rules --project` bridge needs to spell projected values. The model is
+/// the same value either way: names never enter it.
+pub(crate) fn load_model_with_rows(
+    model_path: &str,
+) -> Result<(Model, catherine_core::parse::RowNames), LabeledError> {
     let text = std::fs::read_to_string(model_path).map_err(|error| LabeledError {
         code: "read_error".to_string(),
         line: None,
@@ -142,7 +152,7 @@ pub(crate) fn load_model(model_path: &str) -> Result<Model, LabeledError> {
         message: format!("cannot read model document `{model_path}`: {error}"),
         hint: "pass a readable .ct.json model document path",
     })?;
-    catherine_core::parse::parse(&text).map_err(|error| LabeledError::from_parse(&error))
+    catherine_core::parse::parse_with_rows(&text).map_err(|error| LabeledError::from_parse(&error))
 }
 
 /// Write a success envelope as one JSON line to stdout; a serialization

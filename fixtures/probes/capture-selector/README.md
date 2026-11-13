@@ -48,10 +48,14 @@ semantics; partitions contribute the zero-match rows.
 
 | # | Expectation | Falsified by |
 |---|---|---|
-| A1 | exactly **3** `violation` findings, one per ambiguous selector, each carrying both capture rows as the witness pair (overlap under `DeclaredDisjoint`) | any other count, or a witness pair that is not the two captures behind an ambiguous selector |
+| A1 | exactly **3** `violation` findings, one per ambiguous selector, each witness's two rule indices resolving (through dense row order) to the two captures behind that selector (overlap under `DeclaredDisjoint`) | any other count, or a witness pair that is not the two captures behind an ambiguous selector |
 | A2 | **no** finding on the 30 slice zero-match selectors — the projection's domain is the observed tuple set, so a selector with no capture row is not an input | a `gap`/`underconstraint` finding on this run |
-| A3 | declaring an extra input explicitly (`--values source=nacional/primera edition_date=2026-11-07`, a real zero-match selector) yields a `gap` finding naming it | no finding, or a finding for an undeclared input |
+| A3 | declaring an extra input explicitly (`--values capture_source=src_nacional_primera --values capture_edition_date=ed_2026_11_07`, a real zero-match selector) yields a `gap` finding naming it | no finding, or a finding for an undeclared input |
 | A4 | exit code 3 on the A1 run (violation outranks any underconstraint) | any other exit code |
+
+Column names are the arrow names (`capture_source`, `capture_edition_date`) and
+column values are the *target row names* (`src_nacional_primera`,
+`ed_2026_11_07`), not the raw database text — the model addresses rows by ident.
 
 The claim lives outside the document hash and the ledger: this run is evidence
 about a *projection*, not a sealed model claim. State that wherever the result

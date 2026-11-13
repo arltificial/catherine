@@ -12,7 +12,9 @@
 //! and the exact scope in the payload — never collapsed into clean); the
 //! labeled `no_rule_presentation` error for a document without the
 //! additive section; `--values` parsing/validation errors are labeled
-//! `bad_argument`.
+//! `bad_argument`; and the `--project` branch, which swaps the document's
+//! presentation for the one [`crate::projection`] synthesizes from
+//! instance rows (its refusals arrive pre-labeled from that module).
 //!
 //! Rationale: no second pipeline — the same loader, envelope
 //! constructors, warning channel, and exit decision as every other
@@ -20,51 +22,59 @@
 //! carry (the fixtures' README says bounded search supplies it), so
 //! `--values` is the explicit bound-in flag; the CLI never invents a
 //! value list or guesses a type, and a missing column is a labeled error
-//! rather than a vacuous clean run.
+//! rather than a vacuous clean run. A projection substitutes its own
+//! presentation and exact-tuple domain but then takes this very path —
+//! the same analyzer, envelope, and exit decision: no second pipeline.
 
-use crate::args::parse_domain_values;
+use crate::args::{bad_arg, parse_domain_values};
 use crate::cli::default_scope_caps;
+use crate::projection::{self, Projection};
 use crate::render::{self, LabeledError};
-use crate::run::{emit_error, exit_code, load_model, write_envelope};
+use crate::run::{emit_error, exit_code, load_model_with_rows, write_envelope};
 use catherine_analysis::bounds::ScopeCaps;
 use catherine_analysis::rule_lens::{rule_lens, RuleLensOutcome};
+use catherine_core::model::{Model, RulePresentation};
+use catherine_core::parse::RowNames;
 use catherine_core::rule_lens::{RuleDomain, RuleDomainError};
 use genesis::envelope::Warning;
+use std::borrow::Cow;
 use std::io::Write;
 
-/// Execute the rule lens over `model_path`'s `rule_presentation` and
-/// render. Returns the process exit code. `quiet` suppresses the human
-/// finding lines (never the exit decision, never errors, never the
-/// machine envelope).
+/// Execute the rule lens over `model_path`'s `rule_presentation` — or,
+/// with `project`, over a rule table synthesized from that object's
+/// instance rows (see [`crate::projection`]) — and render. Returns the
+/// process exit code. `quiet` suppresses the human finding lines (never
+/// the exit decision, never errors, never the machine envelope).
 #[allow(clippy::too_many_arguments)]
 pub fn run_rules(
     model_path: &str,
     values: &[String],
     max_candidates: usize,
+    project: Option<&str>,
+    columns: Option<&str>,
+    action: Option<&str>,
     json: bool,
     quiet: bool,
-    mut warnings: Vec<Warning>,
+    warnings: Vec<Warning>,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
-    let model = match load_model(model_path) {
-        Ok(model) => model,
+    let (model, rows) = match load_model_with_rows(model_path) {
+        Ok(loaded) => loaded,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
-    let Some(presentation) = model.rule_presentation.as_ref() else {
-        return no_presentation(model_path, json, warnings, stdout, stderr);
-    };
-    let Some(domain) = bind_or_emit(presentation, values, json, &mut warnings, stdout, stderr)
-    else {
-        return 1;
-    };
+    let (presentation, domain) =
+        match bind_presentation(model_path, &model, &rows, project, columns, action, values) {
+            Ok(bound) => bound,
+            Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        };
     let caps = ScopeCaps {
         max_candidates,
         ..default_scope_caps()
     };
     report_outcome(
-        rule_lens(presentation, &domain, &caps),
-        presentation,
+        rule_lens(presentation.as_ref(), &domain, &caps),
+        presentation.as_ref(),
         json,
         quiet,
         warnings,
@@ -73,22 +83,38 @@ pub fn run_rules(
     )
 }
 
-/// Emit the labeled `no_rule_presentation` error (a document without
-/// the additive 1.2 section is never a silent empty analysis).
-fn no_presentation(
+/// Choose the presentation and domain: the document's declared table
+/// bound through `--values`, or the synthetic projection. Every refusal is
+/// a labeled error (the caller emits it on the error stream).
+fn bind_presentation<'a>(
     model_path: &str,
-    json: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    emit_error(
-        &no_rule_presentation(model_path),
-        json,
-        warnings,
-        stdout,
-        stderr,
-    )
+    model: &'a Model,
+    rows: &RowNames,
+    project: Option<&str>,
+    columns: Option<&str>,
+    action: Option<&str>,
+    values: &[String],
+) -> Result<(Cow<'a, RulePresentation>, RuleDomain), LabeledError> {
+    if project.is_none() && (columns.is_some() || action.is_some()) {
+        return Err(bad_arg(
+            "`--columns`/`--action` require `--project <Object>`".to_string(),
+            "project an object's instance rows with `--project <Object>`, or analyze the document's `rule_presentation` with `--values`",
+        ));
+    }
+    if let Some(object) = project {
+        let request = Projection {
+            object,
+            columns,
+            action,
+        };
+        let (presentation, domain) = projection::project(model, rows, &request, values)?;
+        return Ok((Cow::Owned(presentation), domain));
+    }
+    let Some(presentation) = model.rule_presentation.as_ref() else {
+        return Err(no_rule_presentation(model_path));
+    };
+    let domain = bind_domain(presentation, values)?;
+    Ok((Cow::Borrowed(presentation), domain))
 }
 
 /// Render one analysis outcome: findings envelope/human lines, or the
@@ -114,24 +140,6 @@ fn report_outcome(
         ),
         RuleLensOutcome::Unknown { scope } => {
             report_unknown(&scope, json, quiet, warnings, stdout, stderr)
-        }
-    }
-}
-
-/// Bind the `--values` domain, emitting the labeled error on failure.
-fn bind_or_emit(
-    presentation: &catherine_core::model::RulePresentation,
-    values: &[String],
-    json: bool,
-    warnings: &mut Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> Option<RuleDomain> {
-    match bind_domain(presentation, values) {
-        Ok(domain) => Some(domain),
-        Err(labeled) => {
-            emit_error(&labeled, json, std::mem::take(warnings), stdout, stderr);
-            None
         }
     }
 }
@@ -210,8 +218,9 @@ fn no_rule_presentation(model_path: &str) -> LabeledError {
 
 /// The domain binder's rejection as a labeled CLI input error: the
 /// document parsed, but the supplied finite values do not name its
-/// declared columns with their declared types.
-fn bad_values(error: &RuleDomainError) -> LabeledError {
+/// declared columns with their declared types. Shared with the projection
+/// bridge, whose `--values` product declaration binds the same way.
+pub(crate) fn bad_values(error: &RuleDomainError) -> LabeledError {
     LabeledError {
         code: "bad_argument".to_string(),
         line: None,

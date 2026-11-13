@@ -49,8 +49,9 @@ an overlap under `DeclaredDisjoint`.
   (`empty_projection`), a document that already carries a `rule_presentation`
   while `--project` is given (`bad_argument`), and malformed
   `--columns`/`--action` (`bad_argument`).
-- The run's payload gains `data.projection` (object, columns, action, rule and
-  domain counts) so an acceptance run is checkable without parsing findings.
+- The envelope shape is unchanged: findings and warnings only. The projection
+  is visible in the invocation and in each rule's name (the row name), so an
+  acceptance run needs no new payload field.
 - **Boundary, stated wherever the result is cited**: the projected claim lives
   outside the document hash and the ledger. It is evidence about a projection,
   not a sealed model claim.

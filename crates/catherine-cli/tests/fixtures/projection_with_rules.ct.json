@@ -1,0 +1,76 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "capture",
+      "edition",
+      "source"
+    ],
+    "arrows": [
+      {
+        "name": "capture_source",
+        "src": "capture",
+        "tgt": "source"
+      },
+      {
+        "name": "capture_edition",
+        "src": "capture",
+        "tgt": "edition"
+      },
+      {
+        "name": "source_edition",
+        "src": "source",
+        "tgt": "edition"
+      }
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "capture": [
+        "cap_a",
+        "cap_b"
+      ],
+      "source": [
+        "src_a",
+        "src_b"
+      ],
+      "edition": [
+        "ed_1",
+        "ed_2"
+      ]
+    },
+    "tables": {
+      "capture_source": {
+        "cap_a": "src_a",
+        "cap_b": "src_b"
+      },
+      "capture_edition": {
+        "cap_a": "ed_1",
+        "cap_b": "ed_2"
+      }
+    }
+  },
+  "rule_presentation": {
+    "domain": "capture",
+    "columns": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "rules": [
+      {
+        "name": "one",
+        "predicate": {
+          "kind": "cmp",
+          "column": "n",
+          "op": "eq",
+          "value": 1
+        },
+        "action": "one"
+      }
+    ],
+    "policy": "DeclaredDisjoint"
+  }
+}

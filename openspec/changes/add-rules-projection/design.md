@@ -3,16 +3,33 @@
 One red→green→refactor cycle, beads `catherine-x94`. No format change, so no
 `KNOWN_MINOR` bump and no sealed artifact is disturbed.
 
-## Decision 1 — the bridge lives in the CLI crate
+## Decision 1 — the bridge lives in the CLI crate; two kernel seams open
 
 `catherine-core` types (`RulePresentation`, `Rule`, `Predicate`, `Literal`,
-`ColumnType`) are already public and constructible; the rule-lens analysis is
-`catherine_analysis::rule_lens::rule_lens`. The projection is therefore a pure
+`ColumnType`) are public and constructible; the rule-lens analysis is
+`catherine_analysis::rule_lens::rule_lens`. The projection is a pure
 translation `Model -> RulePresentation`, plus a domain, and it belongs in
 `catherine-cli` beside the runner that already owns `--values` binding.
 
-Consequence to accept: the kernel never learns the word "projection". A future
-`*.extract.json` (step 4) can reuse the same CLI-side seam.
+Two kernel seams are missing and are added additively:
+
+1. **Row names.** The parser validates row names and then keeps only dense
+   `RowId`s (`Instance.rows`), so a projection cannot spell a column value or
+   an action. `parse::parse_with_rows` returns `(Model, RowNames)` beside the
+   unchanged `parse`; `RowNames` is `BTreeMap<Ident, Vec<Ident>>` indexed by
+   row id. Names stay outside `Model` deliberately: `Instance` equality,
+   canonical serialization, and the hash are untouched (the canonical writer
+   already synthesizes `_<i>` labels), and "presentation names never reach the
+   parsed model" stays true as written.
+2. **Exact-input domain.** `RuleDomain` enumerates the Cartesian product of
+   per-column value lists — right for a hand-authored table, wrong for
+   observed tuples. `RuleDomain::from_tuples(presentation, inputs)` validates
+   tuple width and literal types and stores the exact input set; the product
+   constructor, `column_sizes`, and the evaluation path are unchanged, so the
+   analysis (`analyze_with_bounds`) is untouched.
+
+Consequence to accept: the kernel learns "an exact input set" but never the
+word "projection". A future `*.extract.json` (step 4) reuses the same seam.
 
 ## Decision 2 — the domain is the observed tuple set
 
@@ -26,8 +43,10 @@ finding would name them as real uncovered classes.
 So for a projection:
 
 - the domain is the set of **distinct column tuples present in the projected
-  rows** — no invented input, gap impossible by construction;
-- `--values` remains available and is **unioned** in: an explicitly declared
+  rows** (`RuleDomain::from_tuples`) — no invented input, gap impossible by
+  construction;
+- `--values` remains available and is **unioned** in (product tuples and
+  observed tuples deduplicated and canonically sorted): an explicitly declared
   input that no row covers is a genuine gap, reported as `underconstraint`
   with the declared class as the witness. The help text states that a product
   declaration can contain combinations no selector has; that is the declared
@@ -109,6 +128,12 @@ prevent.
 - The acceptance is a *snapshot* (live corpus, 2026-11-13). The fixture is
   committed with its census, so the evidence is reproducible from the artifact,
   not from the live database.
+- The JSON witness stays index-based (`EquationWitness{lhs,rhs}` are rule
+  indices) because the envelope carries no rule table; the human renderer names
+  the two rules. A consumer maps indices through dense row order (row ids are
+  assigned in sorted-name order). Adding a name map to the payload is
+  deliberately out of scope — it would change the shipped `rules` envelope for
+  every caller.
 - Rule count 1:1 with rows means a large projection is a large rule list;
   budget and enumeration stay proportional to the domain (rows), not to rules,
   so this is a size concern for payloads, not an algorithmic one. State the
