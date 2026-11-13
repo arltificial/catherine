@@ -207,3 +207,42 @@ honestly useless for rule-based ones — and the tool says which is which.
   mechanically supports (freeze baseline → semantic graph → parallel paths
   → justified constraints → derive & attack → evolve → stop). Catherine is
   the "derive & attack" step made executable.
+
+## 7. CQL / functorial data model: head-to-head and patent exposure
+
+The formalism catherine implements **is** the functorial data model: schemas
+as categories (multigraphs with path equations), instances as functors to
+Set, migration as Δ. CQL (Conexus AI) is the mature implementation of that
+formalism; it is prior art, not a dependency.
+
+| Capability | CQL / functorial data model | catherine |
+|---|---|---|
+| Schema + path equations | Yes (the schema is a category) | Yes — JSON documents, format 1.0–1.2 |
+| Equation enforcement | Yes, inside its query engine/DSL | Yes, on a finite instance, per row |
+| Witnesses | Query results | Named witness per finding (`equation`, `row`, `lhs`, `rhs`; lost row/cell; rule name) |
+| Underconstraint / ambiguity | Not an output | Domain question with the parallel path and the missing equation |
+| Bounded search | N/A | Smallest counterexample, or `UNKNOWN {scope}` — never a naked "no violation found" |
+| Epistemic labels | N/A | PROVED / EXECUTED / HYPOTHESIZED / UNKNOWN on every answer |
+| Migration | Δ, Σ, Π | Δ only, with loud lost-data enumeration and non-invertibility proofs |
+| Packaging | Standalone database/DSL (JVM toolchain) | Fixed-scope Rust kernel + CLI + wasm, JSON envelopes, no DB/server |
+| Agent use | Via its own tooling | One command mid-conversation; the same path the browser view runs |
+
+Parity is narrow and stated: both enforce declared equations and both can
+migrate along a Δ. The differences are witness typing, ambiguity-as-output,
+bounded honesty, and packaging — not a claim of greater modeling power.
+
+**Patent exposure (assessment, not legal advice).** Conexus AI holds granted
+US patents on a "data migration and integration system" — US 11,256,672 B1
+(granted 2022-02-22) and US 11,720,535 B2 (granted 2023-08-08) — with a
+further application US 2024/0119034 A1 published, all naming Daimler and
+Wisnesky among the inventors. Catherine contains no CQL code, API, or
+configuration; it is an independent Apache-2.0 implementation of published
+mathematics (Spivak's functorial data migration). That does **not** settle
+patent risk: method claims can read on independent implementations, and the
+repo carries no patent grant from Conexus. Required posture: (1) no public
+novelty claim about functorial migration without citing this section; (2)
+any distribution beyond internal/engineering use — commercial, hosted, or
+binary redistribution — must be cleared by counsel against the claims above
+before it happens; (3) if counsel's answer is non-obvious or negative, the
+feature ships as documentation/recipe and the claim is withdrawn. Escalate
+to the human owner; do not self-clear.
