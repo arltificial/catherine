@@ -1,0 +1,26 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Record", "Request", "Store"],
+    "arrows": [
+      {"name": "created", "src": "Request", "tgt": "Record"},
+      {"name": "read_back", "src": "Request", "tgt": "Record"},
+      {"name": "stored_in", "src": "Record", "tgt": "Store"},
+      {"name": "target", "src": "Request", "tgt": "Store"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Record": ["r1", "r2"],
+      "Request": ["q1", "q2"],
+      "Store": ["s1"]
+    },
+    "tables": {
+      "created": {"q1": "r1", "q2": "r2"},
+      "read_back": {"q1": "r1", "q2": "r1"},
+      "stored_in": {"r1": "s1", "r2": "s1"},
+      "target": {"q1": "s1", "q2": "s1"}
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Money", "Product"],
+    "arrows": [
+      {"name": "charged", "src": "Product", "tgt": "Money"},
+      {"name": "discount", "src": "Money", "tgt": "Money"},
+      {"name": "list", "src": "Product", "tgt": "Money"}
+    ],
+    "equations": [
+      {
+        "lhs": ["charged"],
+        "rhs": ["list", "discount"],
+        "rationale": "the charge is the list price after the declared discount; charged and list are meant to differ, so only the transformation is asserted",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Money": ["list100", "list120", "disc90", "disc100"],
+      "Product": ["p1", "p2"]
+    },
+    "tables": {
+      "charged": {"p1": "disc90", "p2": "disc100"},
+      "discount": {"list100": "disc90", "list120": "disc100", "disc90": "disc90", "disc100": "disc100"},
+      "list": {"p1": "list100", "p2": "list120"}
+    }
+  }
+}

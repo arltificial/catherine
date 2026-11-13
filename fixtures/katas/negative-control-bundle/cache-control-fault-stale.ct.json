@@ -1,0 +1,31 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Cache", "Source", "Value"],
+    "arrows": [
+      {"name": "cached", "src": "Cache", "tgt": "Value"},
+      {"name": "current", "src": "Source", "tgt": "Value"},
+      {"name": "source", "src": "Cache", "tgt": "Source"}
+    ],
+    "equations": [
+      {
+        "lhs": ["source", "current"],
+        "rhs": ["cached"],
+        "rationale": "honesty-gate floor: the cache holds its source's current value; one cache entry, one declared equality",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Cache": ["c1"],
+      "Source": ["s1"],
+      "Value": ["v1", "v2"]
+    },
+    "tables": {
+      "cached": {"c1": "v2"},
+      "current": {"s1": "v1"},
+      "source": {"c1": "s1"}
+    }
+  }
+}

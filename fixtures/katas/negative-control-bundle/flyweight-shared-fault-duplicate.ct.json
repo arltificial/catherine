@@ -1,0 +1,43 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Client", "Flyweight", "Handle", "Intrinsic", "Key"],
+    "arrows": [
+      {"name": "factory", "src": "Key", "tgt": "Flyweight"},
+      {"name": "flyweight", "src": "Client", "tgt": "Flyweight"},
+      {"name": "handle", "src": "Flyweight", "tgt": "Handle"},
+      {"name": "intrinsic", "src": "Flyweight", "tgt": "Intrinsic"},
+      {"name": "key", "src": "Client", "tgt": "Key"}
+    ],
+    "equations": [
+      {
+        "lhs": ["flyweight", "handle"],
+        "rhs": ["key", "factory", "handle"],
+        "rationale": "the client reaches a flyweight carrying the same data identity as the factory-resolved instance; value equality, not row identity",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["flyweight", "intrinsic"],
+        "rhs": ["key", "factory", "intrinsic"],
+        "rationale": "the client's flyweight carries the same intrinsic value as the factory-resolved instance; again value equality",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Client": ["c1", "c2"],
+      "Flyweight": ["f1", "f2"],
+      "Handle": ["h1"],
+      "Intrinsic": ["t1"],
+      "Key": ["k1", "k2"]
+    },
+    "tables": {
+      "factory": {"k1": "f1", "k2": "f1"},
+      "flyweight": {"c1": "f1", "c2": "f2"},
+      "handle": {"f1": "h1", "f2": "h1"},
+      "intrinsic": {"f1": "t1", "f2": "t1"},
+      "key": {"c1": "k1", "c2": "k2"}
+    }
+  }
+}

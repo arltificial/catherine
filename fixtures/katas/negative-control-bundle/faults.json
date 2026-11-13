@@ -1,0 +1,105 @@
+{
+  "kata": "negative-control-bundle",
+  "hypothesis": "The kernel is honest only if it also stays silent: a pattern whose lens the surface cannot express (Flyweight identity), a procedurally-shaped CRUD model with no pattern and no equations, and a pattern-lookalike with a legitimately differing path must not produce fabricated findings, while a scripted conventional test still catches the seeded defect. The near-floor control proves the apparatus can see a real violation and name it identically to the conventional arm.",
+  "comparison_rule": "unique = probe_elements - baseline_elements; an element is the named witness listed per fault. Both arms name elements in the same vocabulary; a finding counts only when its mapped element is in the pre-registered set. A probe finding outside the set is a fabricated finding and fails the bundle.",
+  "lens_claims": {
+    "control": {
+      "lens": "source x current = cached (the cache holds its source's current value)",
+      "expressible": true,
+      "gap": "one declared value equality only; cache population, eviction, expiry, and concurrent refresh have no representation"
+    },
+    "flyweight": {
+      "lens": "client -> key -> factory and client -> flyweight name one shared instance; handle and intrinsic values are equal data",
+      "expressible": false,
+      "gap": "object identity / share count has no predicate in the kernel surface; the duplicate row carries equal handle and intrinsic values, so every expressible value equation passes and the duplicate is invisible (0 findings)"
+    },
+    "crud": {
+      "lens": "none — a procedurally-shaped CRUD snapshot with no pattern and no equations",
+      "expressible": false,
+      "gap": "read-after-write consistency is procedural/temporal and has no path-equation form; with no equations there is nothing for check to evaluate, so silence is correct, not a missed check"
+    },
+    "lookalike": {
+      "lens": "charged = list x discount (the declared transformation); the naive decorator delegation lens charged = list is the over-reporting claim",
+      "expressible": true,
+      "gap": "the kernel cannot distinguish an intended difference from a defect except through declared arrows and equations; check has no underconstraint detector, so a wrongly omitted equation is invisible"
+    }
+  },
+  "faults": [
+    {
+      "id": "control-stale-cache",
+      "pattern": "control",
+      "control": true,
+      "base_fixture": "cache-control.ct.json",
+      "fixture": "cache-control-fault-stale.ct.json",
+      "lens_expressible": true,
+      "element": "cache:source.current!=cached@Cache#0",
+      "probe_expected": ["cache:source.current!=cached@Cache#0"],
+      "clean_expected": [],
+      "baseline_expected": ["cache:source.current!=cached@Cache#0"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "flyweight-duplicate-instance",
+      "pattern": "flyweight",
+      "control": false,
+      "base_fixture": "flyweight-shared.ct.json",
+      "fixture": "flyweight-shared-fault-duplicate.ct.json",
+      "lens_expressible": false,
+      "element": "flyweight:duplicate-instance@Client#1",
+      "probe_expected": [],
+      "clean_expected": [],
+      "baseline_expected": ["flyweight:duplicate-instance@Client#1"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "crud-stale-read",
+      "pattern": "crud",
+      "control": false,
+      "base_fixture": "crud-procedural.ct.json",
+      "fixture": "crud-procedural-fault-stale-read.ct.json",
+      "lens_expressible": false,
+      "element": "crud:read_back!=created@Request#1",
+      "probe_expected": [],
+      "clean_expected": [],
+      "baseline_expected": ["crud:read_back!=created@Request#1"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "lookalike-undiscounted-charge",
+      "pattern": "lookalike",
+      "control": false,
+      "base_fixture": "decorator-lookalike.ct.json",
+      "fixture": "decorator-lookalike-fault-undiscounted-charge.ct.json",
+      "lens_expressible": true,
+      "element": "lookalike:charged!=list.discount@Product#1",
+      "probe_expected": ["lookalike:charged!=list.discount@Product#1"],
+      "clean_expected": [],
+      "baseline_expected": ["lookalike:charged!=list.discount@Product#1"],
+      "naive_lens_expected": [
+        "lookalike:charged!=list@Product#0",
+        "lookalike:charged!=list@Product#1"
+      ],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    }
+  ],
+  "expected_probe_findings": {
+    "cache-control-fault-stale.ct.json": [
+      {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 0, "lhs": 0, "rhs": 1}}
+    ],
+    "flyweight-shared-fault-duplicate.ct.json": [],
+    "crud-procedural-fault-stale-read.ct.json": [],
+    "decorator-lookalike-fault-undiscounted-charge.ct.json": [
+      {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 1, "lhs": 1, "rhs": 0}}
+    ]
+  },
+  "expected_clean_findings": {
+    "cache-control.ct.json": [],
+    "flyweight-shared.ct.json": [],
+    "crud-procedural.ct.json": [],
+    "decorator-lookalike.ct.json": []
+  }
+}
