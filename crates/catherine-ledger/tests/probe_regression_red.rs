@@ -143,7 +143,7 @@ fn unregistered_probe_id_yields_empty_expectations_and_no_derivable_verdict() {
     let entry = seal(content).expect("entry seals");
 
     let ledger = TempLedger::new("probe-unregistered");
-    ledger.write(&[entry.content.clone()]);
+    ledger.write(std::slice::from_ref(&entry.content));
     let violations = validate_dir(&ledger.0).expect_err("an uncontrolled probe entry is refused");
     assert!(
         violations

@@ -97,8 +97,7 @@ impl ValidLedger {
     pub fn rollup(&self) -> Option<&Entry> {
         self.effective_entries()
             .into_iter()
-            .filter(|e| e.content.kind == "rollup")
-            .last()
+            .rfind(|e| e.content.kind == "rollup")
     }
 }
 

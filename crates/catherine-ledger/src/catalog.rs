@@ -175,6 +175,22 @@ fn probe_migration() -> Vec<Expectation> {
 /// the near-floor table where the scripted conventional review catches
 /// every injected fault.
 fn probe_rule_lens_extracted() -> Vec<Expectation> {
+    let mut rows = probe_rule_lens_witnesses();
+    rows.push(Expectation {
+        fault: "floor-near-trivial".into(),
+        series_class: "behavioral".into(),
+        catherine_class: "finding".into(),
+        detail: "floor control — at the near-floor table the conventional \
+                 scripted review catches every injected fault; the probe must \
+                 show zero unique detections here (design Decision 2 / rule-lens \
+                 precedent)"
+            .into(),
+    });
+    rows
+}
+
+/// The four witness classes the extracted-table lens must name.
+fn probe_rule_lens_witnesses() -> Vec<Expectation> {
     vec![
         Expectation {
             fault: "gap".into(),
@@ -210,16 +226,6 @@ fn probe_rule_lens_extracted() -> Vec<Expectation> {
             detail: "a derivable rule in an extracted table outside DMN-analyzer \
                      ingest; the rule-lens witness class is a named derivable finding \
                      under the extracted-table scope"
-                .into(),
-        },
-        Expectation {
-            fault: "floor-near-trivial".into(),
-            series_class: "behavioral".into(),
-            catherine_class: "finding".into(),
-            detail: "floor control — at the near-floor table the conventional \
-                     scripted review catches every injected fault; the probe must \
-                     show zero unique detections here (design Decision 2 / rule-lens \
-                     precedent)"
                 .into(),
         },
     ]
