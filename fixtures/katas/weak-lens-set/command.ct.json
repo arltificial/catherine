@@ -1,0 +1,38 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Command", "State"],
+    "arrows": [
+      {"name": "after", "src": "Command", "tgt": "State"},
+      {"name": "before", "src": "Command", "tgt": "State"},
+      {"name": "redo", "src": "State", "tgt": "State"},
+      {"name": "undo", "src": "State", "tgt": "State"}
+    ],
+    "equations": [
+      {
+        "lhs": ["after", "undo"],
+        "rhs": ["before"],
+        "rationale": "Command weak lens: undo law - undoing the post-state of a command returns its pre-state",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["before", "redo"],
+        "rhs": ["after"],
+        "rationale": "Command weak lens: redo law - redoing the pre-state of a command returns its post-state",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Command": ["c1", "c2"],
+      "State": ["s0", "s1", "s2"]
+    },
+    "tables": {
+      "after": {"c1": "s1", "c2": "s2"},
+      "before": {"c1": "s0", "c2": "s1"},
+      "redo": {"s0": "s1", "s1": "s2", "s2": "s2"},
+      "undo": {"s0": "s0", "s1": "s0", "s2": "s1"}
+    }
+  }
+}

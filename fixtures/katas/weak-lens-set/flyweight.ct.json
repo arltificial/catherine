@@ -1,0 +1,27 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Client", "Flyweight", "Intrinsic", "Key"],
+    "arrows": [
+      {"name": "factory", "src": "Key", "tgt": "Flyweight"},
+      {"name": "flyweight", "src": "Client", "tgt": "Flyweight"},
+      {"name": "intrinsic", "src": "Flyweight", "tgt": "Intrinsic"},
+      {"name": "key", "src": "Client", "tgt": "Key"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Client": ["c1", "c2"],
+      "Flyweight": ["f1"],
+      "Intrinsic": ["t1"],
+      "Key": ["k1", "k2"]
+    },
+    "tables": {
+      "factory": {"k1": "f1", "k2": "f1"},
+      "flyweight": {"c1": "f1", "c2": "f1"},
+      "intrinsic": {"f1": "t1"},
+      "key": {"c1": "k1", "c2": "k2"}
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Copy", "Intrinsic", "Proto"],
+    "arrows": [
+      {"name": "clone", "src": "Copy", "tgt": "Proto"},
+      {"name": "intrinsic", "src": "Proto", "tgt": "Intrinsic"},
+      {"name": "source", "src": "Copy", "tgt": "Proto"}
+    ],
+    "equations": [
+      {
+        "lhs": ["clone", "intrinsic"],
+        "rhs": ["source", "intrinsic"],
+        "rationale": "Prototype weak lens: clone image - the clone's intrinsic value equals the source's intrinsic value",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Copy": ["c1", "c2"],
+      "Intrinsic": ["t1", "t2"],
+      "Proto": ["p1", "p2", "p3"]
+    },
+    "tables": {
+      "clone": {"c1": "p2", "c2": "p3"},
+      "intrinsic": {"p1": "t1", "p2": "t1", "p3": "t2"},
+      "source": {"c1": "p1", "c2": "p3"}
+    }
+  }
+}

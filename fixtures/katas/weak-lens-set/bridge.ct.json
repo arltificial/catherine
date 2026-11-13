@@ -1,0 +1,31 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Abstraction", "Implementor", "Result"],
+    "arrows": [
+      {"name": "impl", "src": "Abstraction", "tgt": "Implementor"},
+      {"name": "impl_op", "src": "Implementor", "tgt": "Result"},
+      {"name": "op", "src": "Abstraction", "tgt": "Result"}
+    ],
+    "equations": [
+      {
+        "lhs": ["impl", "impl_op"],
+        "rhs": ["op"],
+        "rationale": "Bridge weak lens: delegation coherence - the abstraction's operation result is its implementor's operation result along the bridge arrow",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Abstraction": ["a1", "a2"],
+      "Implementor": ["i1", "i2"],
+      "Result": ["r1", "r2", "r3"]
+    },
+    "tables": {
+      "impl": {"a1": "i1", "a2": "i2"},
+      "impl_op": {"i1": "r1", "i2": "r2"},
+      "op": {"a1": "r1", "a2": "r2"}
+    }
+  }
+}

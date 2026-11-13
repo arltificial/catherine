@@ -1,0 +1,31 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Event", "Observer", "Subject"],
+    "arrows": [
+      {"name": "event", "src": "Subject", "tgt": "Event"},
+      {"name": "seen", "src": "Observer", "tgt": "Event"},
+      {"name": "subject", "src": "Observer", "tgt": "Subject"}
+    ],
+    "equations": [
+      {
+        "lhs": ["subject", "event"],
+        "rhs": ["seen"],
+        "rationale": "Observer weak lens: notification coherence - every observer's delivered event equals the current event of the subject it is registered to",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Event": ["e1", "e2"],
+      "Observer": ["o1", "o2", "o3"],
+      "Subject": ["s1", "s2"]
+    },
+    "tables": {
+      "event": {"s1": "e1", "s2": "e2"},
+      "seen": {"o1": "e1", "o2": "e1", "o3": "e2"},
+      "subject": {"o1": "s1", "o2": "s1", "o3": "s2"}
+    }
+  }
+}

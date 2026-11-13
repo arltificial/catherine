@@ -1,0 +1,138 @@
+{
+  "kata": "weak-lens-set",
+  "hypothesis": "Five patterns without a proven equivalence in docs/ref/ploeh-grounding.md section 6 (Observer, Bridge, Flyweight, Command, Prototype) can be modeled with the kernel's existing arrows and path equations, but each candidate weak lens buys zero unique detections over a scripted conventional test; parity or a null result is the expected deliverable.",
+  "comparison_rule": "unique = probe_elements - baseline_elements; an element is the named witness listed per fault. Both arms name elements in the same vocabulary; a finding counts only when its mapped element is in the pre-registered set.",
+  "lens_claims": {
+    "observer": {
+      "lens": "subject x event = seen (delivered event is the subject's current event)",
+      "expressible": true,
+      "gap": "notification totality over dynamically registered observers is not expressible: the model names the observer rows and their subject edges up front, so registration changes are outside the check"
+    },
+    "bridge": {
+      "lens": "impl x impl_op = op (the abstraction delegates its result to the implementor)",
+      "expressible": true,
+      "gap": "independent variation of the abstraction and implementation hierarchies is not expressible; only one declared delegation path is checked"
+    },
+    "flyweight": {
+      "lens": "client -> key -> factory and client -> flyweight name one shared instance",
+      "expressible": false,
+      "gap": "object identity / share count has no predicate in the kernel surface; two flyweight rows with equal intrinsic values are indistinguishable from one shared row, so the duplicate fixture emits zero findings"
+    },
+    "command": {
+      "lens": "after x undo = before and before x redo = after (the command's inverse pair)",
+      "expressible": true,
+      "gap": "command history, queue order, and receiver dispatch are temporal/behavioral and not expressible; the model pre-declares the before/after states, so a missing undo registration cannot be discovered"
+    },
+    "prototype": {
+      "lens": "clone x intrinsic = source x intrinsic (the clone image preserves intrinsic value)",
+      "expressible": true,
+      "gap": "aliasing and mutation independence (deep vs shallow copy) are not expressible by static path equality; the check sees declared values, never later mutation"
+    }
+  },
+  "faults": [
+    {
+      "id": "floor-stale-seen",
+      "pattern": "control",
+      "control": true,
+      "base_fixture": "control-floor.ct.json",
+      "fixture": "control-floor-fault-stale-seen.ct.json",
+      "lens_expressible": true,
+      "element": "observer-control:seen!=subject.event@Observer#0",
+      "probe_expected": ["observer-control:seen!=subject.event@Observer#0"],
+      "baseline_expected": ["observer-control:seen!=subject.event@Observer#0"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "observer-stale-delivery",
+      "pattern": "observer",
+      "control": false,
+      "base_fixture": "observer.ct.json",
+      "fixture": "observer-fault-stale-delivery.ct.json",
+      "lens_expressible": true,
+      "element": "observer:seen!=subject.event@Observer#1",
+      "probe_expected": ["observer:seen!=subject.event@Observer#1"],
+      "baseline_expected": ["observer:seen!=subject.event@Observer#1"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "bridge-divergent-op",
+      "pattern": "bridge",
+      "control": false,
+      "base_fixture": "bridge.ct.json",
+      "fixture": "bridge-fault-divergent-op.ct.json",
+      "lens_expressible": true,
+      "element": "bridge:op!=impl_op.impl@Abstraction#1",
+      "probe_expected": ["bridge:op!=impl_op.impl@Abstraction#1"],
+      "baseline_expected": ["bridge:op!=impl_op.impl@Abstraction#1"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "flyweight-duplicate-instance",
+      "pattern": "flyweight",
+      "control": false,
+      "base_fixture": "flyweight.ct.json",
+      "fixture": "flyweight-fault-duplicate-instance.ct.json",
+      "lens_expressible": false,
+      "element": "flyweight:duplicate-instance@Client#1",
+      "probe_expected": [],
+      "baseline_expected": ["flyweight:duplicate-instance@Client#1"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "command-undo-drift",
+      "pattern": "command",
+      "control": false,
+      "base_fixture": "command.ct.json",
+      "fixture": "command-fault-undo-drift.ct.json",
+      "lens_expressible": true,
+      "element": "command:after.undo!=before@Command#1",
+      "probe_expected": ["command:after.undo!=before@Command#1"],
+      "baseline_expected": ["command:after.undo!=before@Command#1"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "prototype-clone-drift",
+      "pattern": "prototype",
+      "control": false,
+      "base_fixture": "prototype.ct.json",
+      "fixture": "prototype-fault-clone-drift.ct.json",
+      "lens_expressible": true,
+      "element": "prototype:clone.intrinsic!=source.intrinsic@Copy#0",
+      "probe_expected": ["prototype:clone.intrinsic!=source.intrinsic@Copy#0"],
+      "baseline_expected": ["prototype:clone.intrinsic!=source.intrinsic@Copy#0"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    }
+  ],
+  "expected_probe_findings": {
+    "control-floor-fault-stale-seen.ct.json": [
+      {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 0, "lhs": 0, "rhs": 1}}
+    ],
+    "observer-fault-stale-delivery.ct.json": [
+      {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 1, "lhs": 0, "rhs": 1}}
+    ],
+    "bridge-fault-divergent-op.ct.json": [
+      {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 1, "lhs": 1, "rhs": 2}}
+    ],
+    "flyweight-fault-duplicate-instance.ct.json": [],
+    "command-fault-undo-drift.ct.json": [
+      {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 1, "lhs": 2, "rhs": 1}}
+    ],
+    "prototype-fault-clone-drift.ct.json": [
+      {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 0, "lhs": 1, "rhs": 0}}
+    ]
+  },
+  "expected_clean_findings": {
+    "control-floor.ct.json": [],
+    "observer.ct.json": [],
+    "bridge.ct.json": [],
+    "flyweight.ct.json": [],
+    "command.ct.json": [],
+    "prototype.ct.json": []
+  }
+}
