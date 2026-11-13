@@ -1,7 +1,9 @@
 # Granularity rule — PROPOSED, pilot calibration, and the re-model protocol
 
-Date: 2026-11-13 · Ticket: `catherine-kq1` · Status: rule PROPOSED, one
-domain of evidence (bogart), second-domain test **not executed**.
+Date: 2026-11-13 · Tickets: `catherine-kq1` (rule + pilot calibration),
+`catherine-8v9` (second-domain re-model) · Status: rule PROPOSED and
+**re-scoped** — second-domain test EXECUTED 2026-11-13, validating nothing;
+see "Second-domain re-model" below.
 
 ## The rule
 
@@ -53,7 +55,7 @@ SQL was executed to prove each mapping, and the pilot models were designed
 for identity domains, not storage granularity. This is calibration, not
 validation.
 
-## The second-domain re-model protocol (not executed here)
+## The second-domain re-model protocol (executed — result in the last section)
 
 1. Pick one bogart subdomain with a small, stable DDL surface (the FTS
    anchor: `pages`, `versions`, `documents`, `edition_date`).
@@ -72,5 +74,45 @@ validation.
    pilot, the rule is refuted for this domain and the docs label stays
    PROPOSED with the negative result attached.
 
-This protocol is filed as its own follow-up ticket (`catherine-...`), since
+This protocol is filed as its own follow-up ticket (`catherine-8v9`), since
 it is bogart-side work and the dossier lives in pinky.
+
+## Second-domain re-model — EXECUTED 2026-11-13 (catherine-8v9)
+
+Protocol step 2 executed literally, against bogart's serving projection
+(`serving.sqlite`, sha256 `30ec1947…413c34`) — the real stored shape, not the
+legacy DDL quoted above. Full pre-registration, provenance and triage:
+`fixtures/probes/granularity-bogart/README.md`; harness:
+`prototype/bogart_storage_granularity.py`; slice fixture:
+`fixtures/probes/granularity-bogart/fts-anchor-slice.ct.json`.
+
+| Run | Instance | Findings | Real | Noise | Exit |
+|---|---|---|---|---|---|
+| slice | 3 docs / 289 pages / 1 edition | 0 | 0 | 0 | 0 |
+| full | 924 docs / 74,257 pages / 210 editions | 0 | 0 | 0 | 0 |
+
+Arrows admitted by the rule: `document` (pages→documents, storing columns
+`pages.document_id` + `pages.version`, a composite FK) and `edition_date`
+(documents→edition, storing column `documents.edition_date`). Equations: none
+— both sides of the pilot's equation collapse onto the same stored column, and
+serving stores no per-hit edition anchor.
+
+**Outcome: not validated; falsifier not met; label stays PROPOSED.** The ratio
+is undefined (0 findings), not better than 2/69. Both pilot classes vanish
+structurally: the 67 `planned`-partition noise findings *and* the 2 real
+`bogart-4wt` ambiguity defects. The live selector census (1,441 selectors;
+`>=2-match` 3 — the pilot's `nacional/primera 2026-11-03` and
+`pba/JUDICIAL 2026-11-03` plus a new `nacional/segunda 2026-11-13`; 0-match 67)
+shows the real defects persist while the storage model reports nothing: no
+table stores a selector→capture column.
+
+**What this changes.** The rule as written is rejected for global use and
+re-scoped: it governs *structural* claims (references, totality) where a
+storing column exists; derivation/selection claims must be declared as such
+and checked by the rule-lens / policy machinery (P8), which is exactly where
+the pilot's only real defects came from. The pre-build one-third test remains
+a smell test, not a gate — passing it (0/2 here) says nothing about whether the
+model can see intent-level defects. No probe entry recorded: a probe needs an
+executed baseline arm and a landed outcome, and the outcome is a negative
+result, which lives in this file and the fixture README per the falsifier
+branch of step 5.

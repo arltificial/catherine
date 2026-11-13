@@ -109,7 +109,7 @@ block → edition` plus totality of `block → document`. Hand-chase on a
 denormalized row that drifted: both sides computed, mismatch = violation
 with witness — the same finding a checker would emit, derived by hand.
 
-**Granularity rule (PROPOSED — not yet validated on a second domain).** Model
+**Granularity rule (PROPOSED — re-scoped by an executed negative test).** Model
 one arrow per relation that exists as a **stored, independently writable
 reference**; do not encode relations that exist only in prose, plans, or
 derived views. Pre-build test: for every arrow you intend to declare, name
@@ -117,8 +117,17 @@ the storing column (or table) it reads. If more than a third of the arrows
 have no storing column, you are modeling the plan, not the system — stop and
 re-scope before spending the check budget. The one-third threshold is
 arbitrary, calibrated against the bogart pilot's 2/69 finding triage; treat
-it as a smell threshold, never as a validated cutoff. The rule is
-**PROPOSED**: it has not been tested on a second domain.
+it as a smell threshold, never as a validated cutoff. **Scope limit (executed,
+2026-11-13):** the rule is a *structural-claim* discipline, not a global
+arrow filter. Re-modeling bogart's FTS anchor at storage granularity gave 0
+findings over 74,257 pages — it excluded the pilot's 67 noise findings *and*
+its 2 real selector-ambiguity defects, which no stored column can express
+(`bogart-4wt`). The rule still passes its pre-build test on such a model
+(0/2 arrows without a storing column) while the model is blind to
+intent-level defects: declaring a derivation or selection model explicitly
+(rule lens, P8) is the correct move, not dropping it. Status remains
+**PROPOSED**; evidence in
+`.wai/projects/catherine/research/2026-11-13-granularity-rule-calibration.md`.
 
 ## 3. State-shape invariants — what must be true whenever the system is running
 

@@ -72,7 +72,8 @@ def documents(c: sqlite3.Connection, edition: str | None):
     return c.execute(sql, (edition,) if edition else ()).fetchall()
 
 
-def build(edition: str | None) -> dict:
+def load(edition: str | None):
+    """Documents and pages for the whole corpus (edition=None) or one slice."""
     c = ro(SERVING)
     docs = documents(c, edition)
     pairs = {(d, v) for d, v, _ed in docs}
@@ -83,21 +84,23 @@ def build(edition: str | None) -> dict:
         pages = c.execute(
             "SELECT id, document_id, version FROM backfill_read_pages ORDER BY id").fetchall()
     else:
-        # Slice: pages on slice pairs only. Pages on other editions reference
-        # documents outside the instance by construction — that is the slice
-        # boundary, not a finding (same discipline as the pilot's slice).
+        # Slice: pages on slice documents only. Pages on other editions
+        # reference documents outside the instance by construction — that is
+        # the slice boundary, not a finding (same discipline as the pilot).
         docs_in = sorted({d for d, _v, _e in docs})
         marks = ",".join("?" * len(docs_in)) or "NULL"
         pages = c.execute(
             f"SELECT id, document_id, version FROM backfill_read_pages "
             f"WHERE document_id IN ({marks}) ORDER BY id", docs_in).fetchall()
+        pages = [p for p in pages if (p[1], p[2]) in pairs]
     c.close()
+    return docs, pairs, pages
 
+
+def assemble(docs, pairs, pages) -> dict:
+    """Rows and per-arrow tables; `None` = an unresolved reference."""
     rows = {"read_pages": set(), "read_documents": set(), "edition_date": set()}
     tables = {"document": {}, "edition_date": {}}
-    if edition is not None:
-        # Slice boundary: keep only pages whose pair is a slice pair.
-        pages = [p for p in pages if (p[1], p[2]) in pairs]
     for d, v, ed in docs:
         name = document_row(d, v)
         rows["read_documents"].add(name)
@@ -107,12 +110,9 @@ def build(edition: str | None) -> dict:
         name = ident("pg_", str(pid))
         rows["read_pages"].add(name)
         tables["document"][name] = document_row(d, v) if (d, v) in pairs else None
-
     for obj, names in rows.items():
-        dupes = len(names) - len(set(names))
-        if dupes:
-            sys.exit(f"{dupes} duplicate row names for object {obj}")
-
+        if len(names) != len(set(names)):
+            sys.exit(f"duplicate row names for object {obj}")
     return {
         "format_version": "1.0",
         "schema": {
@@ -131,6 +131,10 @@ def build(edition: str | None) -> dict:
             "tables": {arrow: dict(sorted(t.items())) for arrow, t in tables.items()},
         },
     }
+
+
+def build(edition: str | None) -> dict:
+    return assemble(*load(edition))
 
 
 def write(path: Path, model: dict) -> None:
