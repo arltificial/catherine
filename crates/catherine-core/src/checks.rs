@@ -26,6 +26,13 @@
 //! in canonical id order, label last as tiebreak; `check` sorts before
 //! returning, so repeated checks of the same model serialize
 //! byte-identically (findings spec: repeated runs are diff-stable).
+//! The result is algebraically a monoid: per-equation batches of the
+//! same model add additively once sorted — each finding belongs to
+//! exactly one equation or dangling cell, and the sort normalizes walk
+//! order to canonical form. Sub-model checks do NOT compose the same
+//! way: a combined model can carry cross-object equations no sub-model
+//! sees, so the additivity is over batches of one model, never over
+//! schema fragments.
 
 use crate::findings::{DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind};
 use crate::instance::TypedInstance;

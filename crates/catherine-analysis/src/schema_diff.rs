@@ -1,11 +1,14 @@
 //! Purpose: schema-diff classification of a model-document schema edit
 //! v1 → v2 (openspec change `add-schema-diff`, beads `catherine-dvx`):
-//! `accreted` (constraints only added), `weakened` (a path equation is
-//! no longer enforced — the agent-drift detector, with a witness
-//! instance v2 accepts and v1 rejects), `equivalent-in-scope` (no
-//! separating instance within the bounds), `cosmetic` (no
-//! enforced-constraint change — the negative-control silence), or
-//! `unknown` (the candidate budget expired).
+//! `accreted` (constraints only added — covariant strengthening of the
+//! enforced contract), `weakened` (a path equation is no longer
+//! enforced — the contravariant obligation test, exhibited by a
+//! witness instance v2 accepts and v1 rejects; the agent-drift
+//! detector), `strengthened-in-scope` (a mixed edit whose bounded scan
+//! witnessed strengthening but found no weakening witness),
+//! `equivalent-in-scope` (no separating instance within the bounds),
+//! `cosmetic` (no enforced-constraint change — the negative-control
+//! silence), or `unknown` (the candidate budget expired).
 //!
 //! Responsibilities: diff the *enforced* equation sets — the accepted
 //! equations' `(lhs, rhs)` pairs. Rationale, document order, and

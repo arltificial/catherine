@@ -26,7 +26,10 @@
 //! of [`FindingKind`]), then witness ids (canonical id order inside each
 //! witness), with the label as the final tiebreak — `check` sorts its
 //! result under this order, so repeated checks of the same model
-//! serialize byte-identically. Serialization is derived serde JSON with
+//! serialize byte-identically. Sorted findings make accumulation
+//! order-free: per-equation batches of the same model concatenate as a
+//! monoid (see `checks.rs` for the sub-model boundary). Serialization is
+//! derived serde JSON with
 //! stable field order (declaration order) and ordered data only (no
 //! `HashMap` in any serialized type): P3 prints this JSON verbatim and
 //! the wasm boundary (P5) consumes it — the encoding is a promise, not an

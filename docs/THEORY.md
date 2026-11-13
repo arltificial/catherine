@@ -238,6 +238,11 @@ generator.
 6. **Patterson, Lynch & Fairbanks — Categorical Data Structures for
    Technical Computing.** ACsets: the efficient in-memory implementation
    catherine's instance tables descend from.
+7. **Seemann — *From design patterns to category theory* series**
+   (blog.ploeh.dk, 2017–2025): the *design-level* mirror of this thesis
+   — law-governed universal abstractions replacing ambiguous design
+   patterns at the API level; mapped to this codebase in
+   `docs/ref/ploeh-grounding.md`.
 
 How the threads relate: **Johnson** supplies the design methodology
 (sketches + universal properties as thinking tools); **Spivak** supplies the
