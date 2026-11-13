@@ -1,0 +1,87 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["State", "Event", "Transition", "Cell"],
+    "arrows": [
+      {"name": "from", "src": "Transition", "tgt": "State"},
+      {"name": "to", "src": "Transition", "tgt": "State"},
+      {"name": "on", "src": "Transition", "tgt": "Event"},
+      {"name": "cell_state", "src": "Cell", "tgt": "State"},
+      {"name": "cell_event", "src": "Cell", "tgt": "Event"},
+      {"name": "cell_target", "src": "Cell", "tgt": "State"},
+      {"name": "cell_transition", "src": "Cell", "tgt": "Transition"}
+    ],
+    "equations": [
+      {
+        "lhs": ["cell_transition", "from"],
+        "rhs": ["cell_state"],
+        "rationale": "the documented transition starts in the cell's state",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["cell_transition", "on"],
+        "rhs": ["cell_event"],
+        "rationale": "the documented transition fires on the cell's event",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["cell_transition", "to"],
+        "rhs": ["cell_target"],
+        "rationale": "the documented transition ends in the cell's declared target",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "State": ["Off", "On"],
+      "Event": ["start", "stop"],
+      "Transition": ["t_off_start", "t_off_stop", "t_on_start", "t_on_stop"],
+      "Cell": ["c_off_start", "c_off_stop", "c_on_start", "c_on_stop"]
+    },
+    "tables": {
+      "from": {
+        "t_off_start": "Off",
+        "t_off_stop": "Off",
+        "t_on_start": "On",
+        "t_on_stop": "On"
+      },
+      "to": {
+        "t_off_start": "On",
+        "t_off_stop": "Off",
+        "t_on_start": "On",
+        "t_on_stop": "Off"
+      },
+      "on": {
+        "t_off_start": "start",
+        "t_off_stop": "stop",
+        "t_on_start": "start",
+        "t_on_stop": "stop"
+      },
+      "cell_state": {
+        "c_off_start": "Off",
+        "c_off_stop": "Off",
+        "c_on_start": "On",
+        "c_on_stop": "On"
+      },
+      "cell_event": {
+        "c_off_start": "start",
+        "c_off_stop": "stop",
+        "c_on_start": "start",
+        "c_on_stop": "stop"
+      },
+      "cell_target": {
+        "c_off_start": "On",
+        "c_off_stop": "Off",
+        "c_on_start": "On",
+        "c_on_stop": "Off"
+      },
+      "cell_transition": {
+        "c_off_start": "t_off_start",
+        "c_off_stop": "t_off_stop",
+        "c_on_start": "t_on_start",
+        "c_on_stop": "t_on_stop"
+      }
+    }
+  }
+}

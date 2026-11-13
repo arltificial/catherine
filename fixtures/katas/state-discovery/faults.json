@@ -1,0 +1,112 @@
+{
+  "kata": "state-discovery",
+  "comparison_rule": "an element is one declared transition-table cell, spelled cell:<State>/<Event>; the baseline identifies an element only when one of its pre-registered sample assertions fails on that cell; the probe identifies an element when a check finding's witness (dangling arrow+row, or equation+row) resolves to that cell; unique = executed probe elements minus baseline-identified elements. Hypothesized underconstraint findings are discovery questions, recorded verbatim, never counted as detections; an executed construction rejection is recorded as a probe but never counted in unique.",
+  "entries": [
+    {
+      "id": "near-floor",
+      "control": true,
+      "primary_fixture": "near-floor.ct.json",
+      "runs": [
+        {
+          "fixture": "near-floor.ct.json",
+          "sample": [["Off", "start"], ["Off", "stop"], ["On", "start"], ["On", "stop"]],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": []
+        },
+        {
+          "fixture": "near-floor-fault-retarget.ct.json",
+          "sample": [["Off", "start"], ["Off", "stop"], ["On", "start"], ["On", "stop"]],
+          "baseline_expected": ["sample:On/stop:target-mismatch"],
+          "baseline_identified": ["cell:On/stop"],
+          "probe_expected": ["cell:On/stop"],
+          "unique_expected": []
+        },
+        {
+          "fixture": "near-floor-fault-missing-exit.ct.json",
+          "sample": [["Off", "start"], ["Off", "stop"], ["On", "start"], ["On", "stop"]],
+          "baseline_expected": ["sample:Off/start:transition-missing"],
+          "baseline_identified": ["cell:Off/start"],
+          "probe_expected": ["cell:Off/start"],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "dangling-target",
+      "control": false,
+      "primary_fixture": "dangling-target.ct.json",
+      "runs": [
+        {
+          "fixture": "dangling-target.ct.json",
+          "sample": [["Idle", "start"], ["Paused", "resume"], ["Playing", "pause"], ["Playing", "stop"], ["Stopped", "start"]],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["cell:Paused/stop"],
+          "unique_expected": ["cell:Paused/stop"]
+        }
+      ]
+    },
+    {
+      "id": "missing-exit",
+      "control": false,
+      "primary_fixture": "missing-exit.ct.json",
+      "runs": [
+        {
+          "fixture": "missing-exit.ct.json",
+          "sample": [["Idle", "start"], ["Paused", "resume"], ["Paused", "stop"], ["Playing", "pause"], ["Playing", "stop"], ["Stopped", "start"]],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["cell:Stopped/stop"],
+          "unique_expected": ["cell:Stopped/stop"],
+          "underconstraint": true,
+          "hypotheses_expected": ["parallel_paths:cell_state=cell_target", "parallel_paths:from=to"]
+        }
+      ]
+    },
+    {
+      "id": "drift-and-undeclared",
+      "control": false,
+      "primary_fixture": "drift-target.ct.json",
+      "runs": [
+        {
+          "fixture": "drift-target.ct.json",
+          "sample": [["Idle", "start"], ["Paused", "resume"], ["Paused", "stop"], ["Playing", "stop"], ["Stopped", "start"]],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["cell:Playing/pause"],
+          "unique_expected": ["cell:Playing/pause"]
+        },
+        {
+          "fixture": "unknown-target.ct.json",
+          "sample": [["Idle", "start"], ["Paused", "resume"], ["Paused", "stop"], ["Playing", "pause"], ["Stopped", "start"]],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": [],
+          "construction": {"code": "syntax", "cell": "cell:Playing/stop"}
+        }
+      ]
+    },
+    {
+      "id": "unreachable",
+      "control": false,
+      "primary_fixture": "unreachable.ct.json",
+      "runs": [
+        {
+          "fixture": "unreachable.ct.json",
+          "sample": [["Buffering", "ready"], ["Idle", "start"], ["Paused", "resume"], ["Paused", "stop"], ["Playing", "pause"], ["Playing", "stop"], ["Stopped", "start"]],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": [],
+          "underconstraint": true,
+          "hypotheses_expected": ["parallel_paths:cell_state=cell_target", "parallel_paths:from=to"],
+          "initial_state": "Idle",
+          "unreachable_expected": ["Buffering"]
+        }
+      ]
+    }
+  ]
+}

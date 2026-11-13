@@ -1,0 +1,115 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["State", "Event", "Transition", "Cell"],
+    "arrows": [
+      {"name": "from", "src": "Transition", "tgt": "State"},
+      {"name": "to", "src": "Transition", "tgt": "State"},
+      {"name": "on", "src": "Transition", "tgt": "Event"},
+      {"name": "cell_state", "src": "Cell", "tgt": "State"},
+      {"name": "cell_event", "src": "Cell", "tgt": "Event"},
+      {"name": "cell_target", "src": "Cell", "tgt": "State"},
+      {"name": "cell_transition", "src": "Cell", "tgt": "Transition"}
+    ],
+    "equations": [
+      {
+        "lhs": ["cell_transition", "from"],
+        "rhs": ["cell_state"],
+        "rationale": "the documented transition starts in the cell's state",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["cell_transition", "on"],
+        "rhs": ["cell_event"],
+        "rationale": "the documented transition fires on the cell's event",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["cell_transition", "to"],
+        "rhs": ["cell_target"],
+        "rationale": "the documented transition ends in the cell's declared target",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "State": ["Idle", "Paused", "Playing", "Stopped"],
+      "Event": ["pause", "resume", "start", "stop"],
+      "Transition": [
+        "t_idle_start",
+        "t_paused_resume",
+        "t_paused_stop",
+        "t_playing_pause",
+        "t_playing_stop",
+        "t_stopped_start"
+      ],
+      "Cell": [
+        "c_idle_start",
+        "c_paused_resume",
+        "c_paused_stop",
+        "c_playing_pause",
+        "c_playing_stop",
+        "c_stopped_start"
+      ]
+    },
+    "tables": {
+      "from": {
+        "t_idle_start": "Idle",
+        "t_paused_resume": "Paused",
+        "t_paused_stop": "Paused",
+        "t_playing_pause": "Playing",
+        "t_playing_stop": "Playing",
+        "t_stopped_start": "Stopped"
+      },
+      "to": {
+        "t_idle_start": "Playing",
+        "t_paused_resume": "Playing",
+        "t_paused_stop": null,
+        "t_playing_pause": "Paused",
+        "t_playing_stop": "Stopped",
+        "t_stopped_start": "Idle"
+      },
+      "on": {
+        "t_idle_start": "start",
+        "t_paused_resume": "resume",
+        "t_paused_stop": "stop",
+        "t_playing_pause": "pause",
+        "t_playing_stop": "stop",
+        "t_stopped_start": "start"
+      },
+      "cell_state": {
+        "c_idle_start": "Idle",
+        "c_paused_resume": "Paused",
+        "c_paused_stop": "Paused",
+        "c_playing_pause": "Playing",
+        "c_playing_stop": "Playing",
+        "c_stopped_start": "Stopped"
+      },
+      "cell_event": {
+        "c_idle_start": "start",
+        "c_paused_resume": "resume",
+        "c_paused_stop": "stop",
+        "c_playing_pause": "pause",
+        "c_playing_stop": "stop",
+        "c_stopped_start": "start"
+      },
+      "cell_target": {
+        "c_idle_start": "Playing",
+        "c_paused_resume": "Playing",
+        "c_paused_stop": "Stopped",
+        "c_playing_pause": "Paused",
+        "c_playing_stop": "Stopped",
+        "c_stopped_start": "Idle"
+      },
+      "cell_transition": {
+        "c_idle_start": "t_idle_start",
+        "c_paused_resume": "t_paused_resume",
+        "c_paused_stop": "t_paused_stop",
+        "c_playing_pause": "t_playing_pause",
+        "c_playing_stop": "t_playing_stop",
+        "c_stopped_start": "t_stopped_start"
+      }
+    }
+  }
+}
