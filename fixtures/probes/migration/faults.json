@@ -1,0 +1,97 @@
+{
+  "probe": "probe-migration",
+  "comparison_rule": "unique = probe elements minus baseline-identified elements; an element is lost_row:<object>#<row>, lost_cell:<arrow>#<row>, or round_trip:<object>#<row>; an arm identifies an element only by naming it (a dropped table identifies all its rows; a dropped column, row-count delta, or table-merge names no elements)",
+  "faults": [
+    {
+      "id": "floor-visible-loss",
+      "fixture": "floor-visible-loss.ct.json",
+      "catalog_fault": "floor-visible-loss",
+      "control": true,
+      "probe_expected": {
+        "lost_rows": {
+          "RawCapture": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "lost_cells": {},
+        "round_trip": []
+      },
+      "baseline_expected": [
+        "dry-run:row-count-delta:RawCapture:6->0",
+        "lint:drop-column:capture_note",
+        "lint:drop-column:captured_page",
+        "lint:drop-table:RawCapture"
+      ],
+      "baseline_identified": {
+        "lost_row:RawCapture": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "lost-data",
+      "fixture": "lost-data-cells.ct.json",
+      "catalog_fault": "lost-data",
+      "control": false,
+      "probe_expected": {
+        "lost_rows": {},
+        "lost_cells": {
+          "capture_note": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "captured_page": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "round_trip": []
+      },
+      "baseline_expected": [
+        "lint:drop-column:capture_note",
+        "lint:drop-column:captured_page"
+      ],
+      "baseline_identified": {},
+      "unique_expected": 10,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "non-invertibility",
+      "fixture": "non-invertible-collapse.ct.json",
+      "catalog_fault": "non-invertibility",
+      "control": false,
+      "probe_expected": {
+        "lost_rows": {},
+        "lost_cells": {},
+        "round_trip": [
+          "round_trip:RawPageCapture#0"
+        ]
+      },
+      "baseline_expected": [
+        "dry-run:row-count-delta:ServingPage:22->16",
+        "lint:table-merge:ServingPage<-RawPage,RawPageCapture"
+      ],
+      "baseline_identified": {},
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    }
+  ]
+}

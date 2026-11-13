@@ -1,0 +1,206 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": [
+      "RawDocument",
+      "RawEdition",
+      "RawPage",
+      "RawPageCapture"
+    ],
+    "arrows": [
+      {
+        "name": "doc_edition",
+        "src": "RawDocument",
+        "tgt": "RawEdition"
+      },
+      {
+        "name": "page_of",
+        "src": "RawPage",
+        "tgt": "RawDocument"
+      },
+      {
+        "name": "next_page",
+        "src": "RawPage",
+        "tgt": "RawPage"
+      },
+      {
+        "name": "capture_of",
+        "src": "RawPageCapture",
+        "tgt": "RawPage"
+      },
+      {
+        "name": "capture_note",
+        "src": "RawPageCapture",
+        "tgt": "RawPageCapture"
+      }
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "RawDocument": [
+        "doc_000",
+        "doc_001",
+        "doc_002",
+        "doc_003",
+        "doc_004",
+        "doc_005",
+        "doc_006",
+        "doc_007"
+      ],
+      "RawEdition": [
+        "ed_000",
+        "ed_001",
+        "ed_002",
+        "ed_003"
+      ],
+      "RawPage": [
+        "pg_000",
+        "pg_001",
+        "pg_002",
+        "pg_003",
+        "pg_004",
+        "pg_005",
+        "pg_006",
+        "pg_007",
+        "pg_008",
+        "pg_009",
+        "pg_010",
+        "pg_011",
+        "pg_012",
+        "pg_013",
+        "pg_014",
+        "pg_015"
+      ],
+      "RawPageCapture": [
+        "cap_000",
+        "cap_001",
+        "cap_002",
+        "cap_003",
+        "cap_004",
+        "cap_005"
+      ]
+    },
+    "tables": {
+      "doc_edition": {
+        "doc_000": "ed_000",
+        "doc_001": "ed_001",
+        "doc_002": "ed_002",
+        "doc_003": "ed_003",
+        "doc_004": "ed_000",
+        "doc_005": "ed_001",
+        "doc_006": "ed_002",
+        "doc_007": "ed_003"
+      },
+      "page_of": {
+        "pg_000": "doc_000",
+        "pg_001": "doc_001",
+        "pg_002": "doc_002",
+        "pg_003": "doc_003",
+        "pg_004": "doc_004",
+        "pg_005": "doc_005",
+        "pg_006": "doc_006",
+        "pg_007": "doc_007",
+        "pg_008": "doc_000",
+        "pg_009": "doc_001",
+        "pg_010": "doc_002",
+        "pg_011": "doc_003",
+        "pg_012": "doc_004",
+        "pg_013": "doc_005",
+        "pg_014": "doc_006",
+        "pg_015": "doc_007"
+      },
+      "next_page": {
+        "pg_000": "pg_001",
+        "pg_001": "pg_002",
+        "pg_002": "pg_003",
+        "pg_003": "pg_004",
+        "pg_004": "pg_005",
+        "pg_005": "pg_006",
+        "pg_006": "pg_007",
+        "pg_007": "pg_008",
+        "pg_008": "pg_009",
+        "pg_009": "pg_010",
+        "pg_010": "pg_011",
+        "pg_011": "pg_012",
+        "pg_012": "pg_013",
+        "pg_013": "pg_014",
+        "pg_014": "pg_015"
+      },
+      "capture_of": {
+        "cap_000": "pg_000",
+        "cap_001": "pg_002",
+        "cap_002": "pg_004",
+        "cap_003": "pg_006",
+        "cap_004": "pg_008",
+        "cap_005": "pg_010"
+      },
+      "capture_note": {
+        "cap_000": "cap_000",
+        "cap_001": "cap_001",
+        "cap_002": "cap_002",
+        "cap_003": "cap_003"
+      }
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": [
+        "ServingDocument",
+        "ServingEdition",
+        "ServingPage"
+      ],
+      "arrows": [
+        {
+          "name": "serving_doc_edition",
+          "src": "ServingDocument",
+          "tgt": "ServingEdition"
+        },
+        {
+          "name": "serving_page_of",
+          "src": "ServingPage",
+          "tgt": "ServingDocument"
+        },
+        {
+          "name": "serving_next_page",
+          "src": "ServingPage",
+          "tgt": "ServingPage"
+        },
+        {
+          "name": "serving_capture_of",
+          "src": "ServingPage",
+          "tgt": "ServingPage"
+        },
+        {
+          "name": "serving_capture_note",
+          "src": "ServingPage",
+          "tgt": "ServingPage"
+        }
+      ],
+      "equations": []
+    },
+    "objects": {
+      "RawDocument": "ServingDocument",
+      "RawEdition": "ServingEdition",
+      "RawPage": "ServingPage",
+      "RawPageCapture": "ServingPage"
+    },
+    "arrows": {
+      "doc_edition": [
+        "serving_doc_edition"
+      ],
+      "page_of": [
+        "serving_page_of"
+      ],
+      "next_page": [
+        "serving_next_page"
+      ],
+      "capture_of": [
+        "serving_capture_of"
+      ],
+      "capture_note": [
+        "serving_capture_note"
+      ]
+    }
+  }
+}
