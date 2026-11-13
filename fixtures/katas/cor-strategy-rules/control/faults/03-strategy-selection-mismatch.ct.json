@@ -1,0 +1,53 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "kind",
+        "type": "string"
+      },
+      {
+        "name": "amount",
+        "type": "int"
+      }
+    ],
+    "rules": [
+      {
+        "name": "card_guard",
+        "predicate": {
+          "kind": "cmp",
+          "column": "kind",
+          "op": "eq",
+          "value": "card"
+        },
+        "action": "charge/cash"
+      },
+      {
+        "name": "cash_fallback",
+        "predicate": {
+          "kind": "not",
+          "arg": {
+            "kind": "cmp",
+            "column": "kind",
+            "op": "eq",
+            "value": "card"
+          }
+        },
+        "action": "charge/cash"
+      }
+    ],
+    "policy": "DeclaredDisjoint"
+  }
+}

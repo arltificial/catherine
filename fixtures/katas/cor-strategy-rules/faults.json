@@ -1,0 +1,164 @@
+{
+  "kata": "cor-strategy-rules",
+  "above_floor": {
+    "clean": "fixtures/katas/cor-strategy-rules/dispatch.ct.json",
+    "values": {
+      "kind": ["fraud", "refund", "payout", "payment", "admin"],
+      "amount": ["0", "50", "5000"],
+      "channel": ["web", "batch"]
+    },
+    "sample": [
+      {"case": {"kind": "fraud", "amount": 50, "channel": "web"}, "action": "fraud_review/manual"},
+      {"case": {"kind": "refund", "amount": 50, "channel": "web"}, "action": "refund/auto_credit"},
+      {"case": {"kind": "payout", "amount": 50, "channel": "web"}, "action": "payout/bank_transfer"},
+      {"case": {"kind": "payment", "amount": 5000, "channel": "web"}, "action": "manual_review/queue"},
+      {"case": {"kind": "payment", "amount": 0, "channel": "web"}, "action": "capture/card_strategy"},
+      {"case": {"kind": "payment", "amount": 0, "channel": "batch"}, "action": "capture/ach_strategy"},
+      {"case": {"kind": "admin", "amount": 0, "channel": "web"}, "action": "support/escalate"}
+    ],
+    "clean_findings": [],
+    "faults": [
+      {
+        "id": "01-chain-gap-remove-fallback",
+        "fixture": "fixtures/katas/cor-strategy-rules/faults/01-chain-gap-remove-fallback.ct.json",
+        "class": "gap",
+        "injected": "the terminal `else_fallback` handler is deleted; the chain now ends at `capture_ach`",
+        "uncovered_inputs": 4,
+        "baseline_catches": true,
+        "baseline_detections": ["sample:kind=admin,amount=0,channel=web:missing"],
+        "lens_findings": [["underconstraint", "hypothesized", 1]],
+        "unique_expected": 0
+      },
+      {
+        "id": "02-chain-gap-fallback-narrow",
+        "fixture": "fixtures/katas/cor-strategy-rules/faults/02-chain-gap-fallback-narrow.ct.json",
+        "class": "gap",
+        "injected": "the `else_fallback` guard is narrowed to `kind == admin && channel == web`, so its batch half never matches",
+        "uncovered_inputs": 2,
+        "baseline_catches": false,
+        "baseline_detections": [],
+        "lens_findings": [["underconstraint", "hypothesized", 1]],
+        "unique_expected": 1
+      },
+      {
+        "id": "03-shadow-duplicate-payout",
+        "fixture": "fixtures/katas/cor-strategy-rules/faults/03-shadow-duplicate-payout.ct.json",
+        "class": "shadow",
+        "injected": "`payout_guard_repeat`, a byte-identical duplicate of `payout_guard`, is inserted directly after it",
+        "uncovered_inputs": 0,
+        "baseline_catches": false,
+        "baseline_detections": [],
+        "lens_findings": [["redundant", "executed", 1]],
+        "unique_expected": 1
+      },
+      {
+        "id": "04-shadow-widen-payout",
+        "fixture": "fixtures/katas/cor-strategy-rules/faults/04-shadow-widen-payout.ct.json",
+        "class": "shadow",
+        "injected": "`payout_guard` is widened to `kind == payout || kind == payment`, deadening both payment strategy branches",
+        "uncovered_inputs": 0,
+        "baseline_catches": true,
+        "baseline_detections": [
+          "sample:kind=payment,amount=0,channel=batch:wrong-action:payout/bank_transfer",
+          "sample:kind=payment,amount=0,channel=web:wrong-action:payout/bank_transfer",
+          "sample:kind=payment,amount=5000,channel=web:wrong-action:payout/bank_transfer"
+        ],
+        "lens_findings": [["redundant", "executed", 2]],
+        "unique_expected": 0
+      },
+      {
+        "id": "05-derivable-strategy-branch",
+        "fixture": "fixtures/katas/cor-strategy-rules/faults/05-derivable-strategy-branch.ct.json",
+        "class": "derivable",
+        "injected": "`payout_high_value` (`kind == payout && amount >= 5000`, action `payout/bank_transfer`) is inserted before `payout_guard`; its region is exactly `payout_guard ∩ large_amount`",
+        "uncovered_inputs": 0,
+        "baseline_catches": false,
+        "baseline_detections": [],
+        "lens_findings": [["redundant", "executed", 1]],
+        "unique_expected": 1
+      },
+      {
+        "id": "06-overlap-declared-disjoint",
+        "fixture": "fixtures/katas/cor-strategy-rules/faults/06-overlap-declared-disjoint.ct.json",
+        "class": "overlap",
+        "injected": "the table declares `policy: DeclaredDisjoint` while `large_amount` still intersects four kind-covering handlers",
+        "uncovered_inputs": 0,
+        "baseline_catches": true,
+        "baseline_detections": ["sample:kind=payment,amount=5000,channel=web:ambiguous"],
+        "lens_findings": [["violation", "executed", 10]],
+        "unique_expected": 0
+      },
+      {
+        "id": "07-strategy-selection-mismatch",
+        "fixture": "fixtures/katas/cor-strategy-rules/faults/07-strategy-selection-mismatch.ct.json",
+        "class": "strategy-mismatch",
+        "injected": "`capture_card` selects the ACH strategy (`capture/ach_strategy`); the table's regions are untouched",
+        "uncovered_inputs": 0,
+        "baseline_catches": true,
+        "baseline_detections": [
+          "sample:kind=payment,amount=0,channel=web:wrong-action:capture/ach_strategy"
+        ],
+        "lens_findings": [],
+        "unique_expected": 0
+      }
+    ],
+    "unique_expected": 3
+  },
+  "control": {
+    "clean": "fixtures/katas/cor-strategy-rules/control/two-handler.ct.json",
+    "values": {"kind": ["card", "cash"], "amount": ["0", "100"]},
+    "sample": [
+      {"case": {"kind": "card", "amount": 0}, "action": "charge/card"},
+      {"case": {"kind": "card", "amount": 100}, "action": "charge/card"},
+      {"case": {"kind": "cash", "amount": 0}, "action": "charge/cash"},
+      {"case": {"kind": "cash", "amount": 100}, "action": "charge/cash"}
+    ],
+    "clean_findings": [],
+    "faults": [
+      {
+        "id": "floor-01-gap-remove-fallback",
+        "fixture": "fixtures/katas/cor-strategy-rules/control/faults/01-gap-remove-fallback.ct.json",
+        "class": "gap",
+        "injected": "the `cash_fallback` handler is deleted from the two-handler chain",
+        "uncovered_inputs": 2,
+        "baseline_catches": true,
+        "baseline_detections": [
+          "sample:kind=cash,amount=0:missing",
+          "sample:kind=cash,amount=100:missing"
+        ],
+        "lens_findings": [["underconstraint", "hypothesized", 1]],
+        "unique_expected": 0
+      },
+      {
+        "id": "floor-02-overlap-total-fallback",
+        "fixture": "fixtures/katas/cor-strategy-rules/control/faults/02-overlap-total-fallback.ct.json",
+        "class": "overlap",
+        "injected": "`cash_fallback`'s guard is widened to `amount >= 0` under `DeclaredDisjoint`",
+        "uncovered_inputs": 0,
+        "baseline_catches": true,
+        "baseline_detections": [
+          "sample:kind=card,amount=0:ambiguous",
+          "sample:kind=card,amount=100:ambiguous"
+        ],
+        "lens_findings": [["violation", "executed", 2]],
+        "unique_expected": 0
+      },
+      {
+        "id": "floor-03-strategy-selection-mismatch",
+        "fixture": "fixtures/katas/cor-strategy-rules/control/faults/03-strategy-selection-mismatch.ct.json",
+        "class": "strategy-mismatch",
+        "injected": "`card_guard` selects `charge/cash`; the regions are untouched",
+        "uncovered_inputs": 0,
+        "baseline_catches": true,
+        "baseline_detections": [
+          "sample:kind=card,amount=0:wrong-action:charge/cash",
+          "sample:kind=card,amount=100:wrong-action:charge/cash"
+        ],
+        "lens_findings": [],
+        "unique_expected": 0
+      }
+    ],
+    "unique_expected": 0,
+    "verdict_expected": "killed"
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "kind",
+        "type": "string"
+      },
+      {
+        "name": "amount",
+        "type": "int"
+      },
+      {
+        "name": "channel",
+        "type": "string"
+      }
+    ],
+    "rules": [
+      {
+        "name": "fraud_guard",
+        "predicate": {
+          "kind": "cmp",
+          "column": "kind",
+          "op": "eq",
+          "value": "fraud"
+        },
+        "action": "fraud_review/manual"
+      },
+      {
+        "name": "refund_guard",
+        "predicate": {
+          "kind": "cmp",
+          "column": "kind",
+          "op": "eq",
+          "value": "refund"
+        },
+        "action": "refund/auto_credit"
+      },
+      {
+        "name": "payout_guard",
+        "predicate": {
+          "kind": "or",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "kind",
+              "op": "eq",
+              "value": "payout"
+            },
+            {
+              "kind": "cmp",
+              "column": "kind",
+              "op": "eq",
+              "value": "payment"
+            }
+          ]
+        },
+        "action": "payout/bank_transfer"
+      },
+      {
+        "name": "large_amount",
+        "predicate": {
+          "kind": "cmp",
+          "column": "amount",
+          "op": "ge",
+          "value": 5000
+        },
+        "action": "manual_review/queue"
+      },
+      {
+        "name": "capture_card",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "kind",
+              "op": "eq",
+              "value": "payment"
+            },
+            {
+              "kind": "cmp",
+              "column": "channel",
+              "op": "eq",
+              "value": "web"
+            }
+          ]
+        },
+        "action": "capture/card_strategy"
+      },
+      {
+        "name": "capture_ach",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "kind",
+              "op": "eq",
+              "value": "payment"
+            },
+            {
+              "kind": "cmp",
+              "column": "channel",
+              "op": "eq",
+              "value": "batch"
+            }
+          ]
+        },
+        "action": "capture/ach_strategy"
+      },
+      {
+        "name": "else_fallback",
+        "predicate": {
+          "kind": "not",
+          "arg": {
+            "kind": "or",
+            "args": [
+              {
+                "kind": "cmp",
+                "column": "kind",
+                "op": "eq",
+                "value": "fraud"
+              },
+              {
+                "kind": "cmp",
+                "column": "kind",
+                "op": "eq",
+                "value": "refund"
+              },
+              {
+                "kind": "cmp",
+                "column": "kind",
+                "op": "eq",
+                "value": "payout"
+              },
+              {
+                "kind": "cmp",
+                "column": "kind",
+                "op": "eq",
+                "value": "payment"
+              }
+            ]
+          }
+        },
+        "action": "support/escalate"
+      }
+    ],
+    "policy": "PriorityOrder"
+  }
+}
