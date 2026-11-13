@@ -2,9 +2,10 @@
 
 ## Purpose
 The `catherine` command surface that agents and CI drive: `check`,
-`findings`, `search`, `diff`, `migrate`, and `rules`, each speaking JSON
-and exiting with stable class codes so a propose → execute → refine loop
-completes offline in seconds.
+`findings`, `search`, `redundant`, `underconstraint`, `distinguish`,
+`diff`, `query`, `migrate`, and `rules`, each speaking JSON and exiting
+with stable class codes so a propose → execute → refine loop completes
+offline in seconds.
 
 ## Requirements
 

@@ -17,7 +17,8 @@ mutation of v1 (wild accretion-laws discipline).
 #### Scenario: Current major parses
 - **WHEN** a `.ct.json` document with `format_version` of the current
   major is parsed and its minor is one this build knows
-  (minor <= KNOWN_MINOR, currently 0)
+  (minor <= `KNOWN_MINOR`, currently 2: 1.1 adds `schema_map`, 1.2 adds
+  `rule_presentation`)
 - **THEN** parsing succeeds and the document's schema and instance are
   fully represented
 
