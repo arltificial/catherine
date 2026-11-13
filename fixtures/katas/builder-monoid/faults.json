@@ -1,0 +1,245 @@
+{
+  "kata": "builder-monoid",
+  "ticket": "catherine-lgl.2",
+  "baseline_script": "prototype/builder_monoid_baseline.py",
+  "baseline_protocol": "scripted accumulation diff over sampled steps (runtime trace only; the schema map is not inspected)",
+  "trace": [
+    {
+      "step": "s1_0",
+      "emits": "q1_0",
+      "product": "p1"
+    },
+    {
+      "step": "s1_1",
+      "emits": "q1_1",
+      "product": "p1"
+    },
+    {
+      "step": "s1_2",
+      "emits": "q1_2",
+      "product": "p1"
+    },
+    {
+      "step": "s2_0",
+      "emits": "q2_0",
+      "product": "p2"
+    },
+    {
+      "step": "s2_1",
+      "emits": "q2_1",
+      "product": "p2"
+    }
+  ],
+  "faults": [
+    {
+      "id": "floor-dropped-step",
+      "control": true,
+      "floor_group": "near-floor",
+      "fixture": "floor/faults/01-dropped-step.ct.json",
+      "floor_fixture": "floor/single-step-builder.ct.json",
+      "surfaces": [
+        "check"
+      ],
+      "sample": [
+        0
+      ],
+      "baseline_expected": [
+        "sample:step#0:missing"
+      ],
+      "baseline_element_map": {
+        "sample:step#0:missing": "dropped_step:Step#0"
+      },
+      "probe_expected": [
+        "dangling:part_step@row0"
+      ],
+      "probe_element_map": {
+        "dangling:part_step@row0": "dropped_step:Step#0"
+      },
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "floor-duplicated-step",
+      "control": true,
+      "floor_group": "near-floor",
+      "fixture": "floor/faults/02-duplicated-step.ct.json",
+      "floor_fixture": "floor/single-step-builder.ct.json",
+      "surfaces": [
+        "check"
+      ],
+      "sample": [
+        0,
+        1
+      ],
+      "trace": [
+        {
+          "step": "s",
+          "emits": "q",
+          "product": "p"
+        }
+      ],
+      "baseline_expected": [
+        "sample:step#1:unexpected=s_dup"
+      ],
+      "baseline_element_map": {
+        "sample:step#1:unexpected=s_dup": "duplicate_step:Step#1"
+      },
+      "probe_expected": [],
+      "probe_element_map": {},
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "dropped-step",
+      "control": false,
+      "fixture": "faults/01-dropped-step.ct.json",
+      "surfaces": [
+        "migrate"
+      ],
+      "sample": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "baseline_expected": [],
+      "baseline_element_map": {},
+      "probe_expected": [
+        "lost_row:Step#0",
+        "lost_row:Step#1",
+        "lost_row:Step#2",
+        "lost_row:Step#3",
+        "lost_row:Step#4",
+        "lost_cell:emits#0",
+        "lost_cell:emits#1",
+        "lost_cell:emits#2",
+        "lost_cell:emits#3",
+        "lost_cell:emits#4",
+        "lost_cell:part_step#0",
+        "lost_cell:part_step#1",
+        "lost_cell:part_step#2",
+        "lost_cell:part_step#3",
+        "lost_cell:part_step#4",
+        "lost_cell:step_prev#0",
+        "lost_cell:step_prev#1",
+        "lost_cell:step_prev#2",
+        "lost_cell:step_prev#3",
+        "lost_cell:step_prev#4",
+        "lost_cell:step_product#0",
+        "lost_cell:step_product#1",
+        "lost_cell:step_product#2",
+        "lost_cell:step_product#3",
+        "lost_cell:step_product#4"
+      ],
+      "probe_element_map": {
+        "lost_row:Step#0": "dropped_step:Step#0",
+        "lost_row:Step#1": "dropped_step:Step#1",
+        "lost_row:Step#2": "dropped_step:Step#2",
+        "lost_row:Step#3": "dropped_step:Step#3",
+        "lost_row:Step#4": "dropped_step:Step#4",
+        "lost_cell:emits#0": "dropped_step_cell:emits#0",
+        "lost_cell:emits#1": "dropped_step_cell:emits#1",
+        "lost_cell:emits#2": "dropped_step_cell:emits#2",
+        "lost_cell:emits#3": "dropped_step_cell:emits#3",
+        "lost_cell:emits#4": "dropped_step_cell:emits#4",
+        "lost_cell:part_step#0": "dropped_step_cell:part_step#0",
+        "lost_cell:part_step#1": "dropped_step_cell:part_step#1",
+        "lost_cell:part_step#2": "dropped_step_cell:part_step#2",
+        "lost_cell:part_step#3": "dropped_step_cell:part_step#3",
+        "lost_cell:part_step#4": "dropped_step_cell:part_step#4",
+        "lost_cell:step_prev#0": "dropped_step_cell:step_prev#0",
+        "lost_cell:step_prev#1": "dropped_step_cell:step_prev#1",
+        "lost_cell:step_prev#2": "dropped_step_cell:step_prev#2",
+        "lost_cell:step_prev#3": "dropped_step_cell:step_prev#3",
+        "lost_cell:step_prev#4": "dropped_step_cell:step_prev#4",
+        "lost_cell:step_product#0": "dropped_step_cell:step_product#0",
+        "lost_cell:step_product#1": "dropped_step_cell:step_product#1",
+        "lost_cell:step_product#2": "dropped_step_cell:step_product#2",
+        "lost_cell:step_product#3": "dropped_step_cell:step_product#3",
+        "lost_cell:step_product#4": "dropped_step_cell:step_product#4"
+      },
+      "unique_expected": 25,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "duplicated-step",
+      "control": false,
+      "fixture": "faults/02-duplicated-step.ct.json",
+      "surfaces": [
+        "check",
+        "redundant"
+      ],
+      "sample": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "baseline_expected": [
+        "sample:step#3:unexpected=s1_dup"
+      ],
+      "baseline_element_map": {
+        "sample:step#3:unexpected=s1_dup": "duplicate_step:Step#3"
+      },
+      "probe_expected": [
+        "redundant:part_step;step_product"
+      ],
+      "probe_element_map": {
+        "redundant:part_step;step_product": "duplicate_step:Step#3"
+      },
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "out-of-order-step",
+      "control": false,
+      "fixture": "faults/03-out-of-order-step.ct.json",
+      "surfaces": [
+        "check"
+      ],
+      "sample": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "baseline_expected": [],
+      "baseline_element_map": {},
+      "probe_expected": [
+        "violation:eq2@row2"
+      ],
+      "probe_element_map": {
+        "violation:eq2@row2": "misordered_step:Step#2"
+      },
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "optional-part-dropped",
+      "control": false,
+      "fixture": "faults/04-optional-part-dropped.ct.json",
+      "surfaces": [
+        "migrate"
+      ],
+      "sample": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "baseline_expected": [],
+      "baseline_element_map": {},
+      "probe_expected": [
+        "lost_cell:optional_part#0"
+      ],
+      "probe_element_map": {
+        "lost_cell:optional_part#0": "dropped_optional_part:Part#3"
+      },
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    }
+  ]
+}

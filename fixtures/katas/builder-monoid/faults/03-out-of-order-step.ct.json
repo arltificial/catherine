@@ -1,0 +1,131 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": [
+      "Product",
+      "Step",
+      "Part"
+    ],
+    "arrows": [
+      {
+        "name": "step_product",
+        "src": "Step",
+        "tgt": "Product"
+      },
+      {
+        "name": "step_prev",
+        "src": "Step",
+        "tgt": "Step"
+      },
+      {
+        "name": "emits",
+        "src": "Step",
+        "tgt": "Part"
+      },
+      {
+        "name": "part_product",
+        "src": "Part",
+        "tgt": "Product"
+      },
+      {
+        "name": "part_step",
+        "src": "Part",
+        "tgt": "Step"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "part_step",
+          "step_product"
+        ],
+        "rhs": [
+          "part_product"
+        ],
+        "rationale": "every emitted product part traces to a declared accumulation step of the same product (the builder-monoid trace law)",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "step_prev",
+          "step_product"
+        ],
+        "rhs": [
+          "step_product"
+        ],
+        "rationale": "the accumulation chain stays inside one product (order is a product-local fold)",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "emits",
+          "part_product"
+        ],
+        "rhs": [
+          "step_product"
+        ],
+        "rationale": "the step's emitted part belongs to the step's product (emission is product-local)",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Product": [
+        "p1",
+        "p2"
+      ],
+      "Step": [
+        "s1_0",
+        "s1_1",
+        "s1_2",
+        "s2_0",
+        "s2_1"
+      ],
+      "Part": [
+        "q1_0",
+        "q1_1",
+        "q1_2",
+        "q2_0",
+        "q2_1"
+      ]
+    },
+    "tables": {
+      "step_product": {
+        "s1_0": "p1",
+        "s1_1": "p1",
+        "s1_2": "p1",
+        "s2_0": "p2",
+        "s2_1": "p2"
+      },
+      "step_prev": {
+        "s1_0": "s1_0",
+        "s1_1": "s1_0",
+        "s1_2": "s2_0",
+        "s2_0": "s2_0",
+        "s2_1": "s2_0"
+      },
+      "emits": {
+        "s1_0": "q1_0",
+        "s1_1": "q1_1",
+        "s1_2": "q1_2",
+        "s2_0": "q2_0",
+        "s2_1": "q2_1"
+      },
+      "part_product": {
+        "q1_0": "p1",
+        "q1_1": "p1",
+        "q1_2": "p1",
+        "q2_0": "p2",
+        "q2_1": "p2"
+      },
+      "part_step": {
+        "q1_0": "s1_0",
+        "q1_1": "s1_1",
+        "q1_2": "s1_2",
+        "q2_0": "s2_0",
+        "q2_1": "s2_1"
+      }
+    }
+  }
+}
