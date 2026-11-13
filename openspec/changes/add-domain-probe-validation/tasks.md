@@ -11,7 +11,10 @@ change). Validation runs use the committed harness path
       non-empty `unique_detections` without a baseline arm; a `probe`
       entry inside the kata ledger sequence; any recomputation or
       supersession of the sealed kata rollup triggered by probe
-      recording — pinned by crate tests before any probe support exists
+      recording — pinned by crate tests before any probe support
+      exists; spectacular contract stubs generated alongside
+      (`ah scenario new add-domain-probe-validation domain-probes …`
+      for all 8 scenarios, test entries pointing at the RED tests)
 
 ## GREEN — probe entry kind + validator support
 
@@ -64,6 +67,8 @@ change). Validation runs use the committed harness path
 ## REFACTOR
 
 - [ ] 11. Tidy: shared expectation/catalog types between kata and probe
-      paths where duplication appeared; spectacular contract TOMLs under
-      `.espectacular/domain-probes/` for every new scenario; `ah check`
-      green; separate commit from feature work
+      paths where duplication appeared; contract TOMLs under
+      `.espectacular/domain-probes/` complete (every stub from task 1
+      populated, no `no-toml` findings remain); `ah check --changes
+      add-domain-probe-validation` green; separate commit from feature
+      work
