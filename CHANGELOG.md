@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Declarative keys (step 2 of the post-granularity capability gaps,
+  `catherine-2s6`, format 1.3): `schema.keys` declares
+  `{"object": O, "arrows": [a, ...], "status": "accepted" | "proposed"}` —
+  the arrows' value tuple is injective over `O`'s rows. Accepted keys are
+  executed by `check` as constraints (one `violation`/`executed` per
+  colliding pair; proposed keys `hypothesized`; rows with a dangling key cell
+  are excluded), the `violation` witness becomes an untagged
+  equation/key union (`KeyWitness {key, rows}`; the equation encoding is
+  byte-identical), and `diff` treats accepted keys as enforced constraints
+  (added → `accreted`, dropped → `weakened` with the key witness). Absent or
+  empty `keys` is omitted from canonical bytes, so every pre-1.3 document
+  keeps its hash and sealed ledger entries stay valid; `KNOWN_MINOR` is 3.
+  Keys range over arrows only: a column-level FD needs the value-object
+  convention or `rules --project` until attribute columns arrive (format
+  1.4). New parse code `invalid_key`.
+
 - Rule-table projection bridge (step 1 of the post-granularity capability
   gaps, `catherine-x94`): `catherine rules <model> --project <Object>
   --columns <arrow,...> [--action <arrow>] [--values ...]` synthesizes a

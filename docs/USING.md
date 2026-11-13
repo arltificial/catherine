@@ -79,7 +79,7 @@ only, zero findings). A weakened edit is a finding-bearing run (exit 3).
 
 | Finding | Meaning | What to do |
 |---|---|---|
-| `violation` | a declared equation is false at a concrete row | fix the data or the declaration; the witness row tells you which |
+| `violation` | a declared equation is false at a concrete row, or a declared key (`schema.keys`, 1.3) repeats a tuple | fix the data or the declaration; the witness names the row/equation or the two colliding rows |
 | `dangling` | an arrow points at a row that does not exist | the claim references something absent — missing FK, dead reference |
 | `contradiction` | no instance can satisfy the constraints (bounded search) | the *spec* is impossible as declared; negotiate which constraint yields |
 | `underconstraint` | parallel paths exist with no declared equation *(hypothesis)* | a domain question: must they agree, might they, or should they differ? Declare an equation only if the domain says so |

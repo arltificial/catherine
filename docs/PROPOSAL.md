@@ -217,7 +217,7 @@ formalism; it is prior art, not a dependency.
 
 | Capability | CQL / functorial data model | catherine |
 |---|---|---|
-| Schema + path equations | Yes (the schema is a category) | Yes — JSON documents, format 1.0–1.2 |
+| Schema + path equations | Yes (the schema is a category) | Yes — JSON documents, format 1.0–1.3 |
 | Equation enforcement | Yes, inside its query engine/DSL | Yes, on a finite instance, per row |
 | Witnesses | Query results | Named witness per finding (`equation`, `row`, `lhs`, `rhs`; lost row/cell; rule name) |
 | Underconstraint / ambiguity | Not an output | Domain question with the parallel path and the missing equation |

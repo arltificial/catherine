@@ -17,7 +17,8 @@ Implemented per openspec changes `add-model-document-kernel` (beads
   "schema": {
     "objects": ["A", "B"],
     "arrows":   [{"name": "f", "src": "A", "tgt": "B"}],
-    "equations": [{"lhs": ["f"], "rhs": ["f"], "rationale": "why", "status": "accepted"}]
+    "equations": [{"lhs": ["f"], "rhs": ["f"], "rationale": "why", "status": "accepted"}],
+    "keys": [{"object": "A", "arrows": ["f"], "status": "accepted"}]
   },
   "instance": {
     "rows":   {"A": ["a1", "a2"], "B": ["b1"]},
@@ -36,6 +37,18 @@ Implemented per openspec changes `add-model-document-kernel` (beads
   deliberately absent here. Equations are stored in canonical order
   (sorted by `(lhs, rhs, rationale, status)`) — list order in the file is
   presentation.
+- `schema.keys` — the additive **1.3** section: each `{"object": O,
+  "arrows": [a, ...], "status": "accepted" | "proposed"}` declares that the
+  tuple of those arrows' values is **injective over `O`'s rows** (a key).
+  `arrows` is non-empty and duplicate-free; every arrow must be declared
+  and sourced at `O`. Keys are stored in canonical order
+  `(object, arrows, status)` — list order is presentation — and repeated
+  declarations are kept. An absent or empty list is omitted from canonical
+  bytes, so pre-1.3 documents keep their exact hash. **Scope:** keys range
+  over arrows only; a column-level functional dependency is expressed with
+  the value-object convention (one row per distinct value, one arrow per
+  column) or the `catherine rules --project` bridge, until attribute
+  columns land in a later additive minor.
 - `instance.rows` — row names per object. Row names are per-object.
 - `instance.tables` — per-arrow value tables: source row name → target
   row name or `null`. **`null` is a dangling reference — a representable
@@ -62,8 +75,9 @@ Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
 
 - **Additive change = minor version** (new optional fields, new instance
   sections that old parsers may ignore). The parser accepts additive
-  minors of the current major **only up to `KNOWN_MINOR`** (currently 2,
-  i.e. `1.2` — 1.1 added `schema_map`, 1.2 added `rule_presentation`): a
+  minors of the current major **only up to `KNOWN_MINOR`** (currently 3,
+  i.e. `1.3` — 1.1 added `schema_map`, 1.2 added `rule_presentation`, 1.3
+  added `schema.keys`): a
   minor greater than `KNOWN_MINOR` means semantics this
   build doesn't know, so it is rejected with `unsupported_version`
   (no-guessed-parse rule) until the build is updated.
@@ -98,7 +112,8 @@ stable, closed set:
 | `unknown_arrow` | an equation path references an undeclared arrow — the message names the path, the position is the offending element |
 | `ill_typed_equation` | an equation's path endpoints do not match — the message names both paths and their endpoints, the position is the equation node |
 | `invalid_ident` | an identifier violates `[A-Za-z_][A-Za-z0-9_]*` — position at the ident node |
-| `invalid_status` | an equation `status` is outside `{proposed, accepted}` |
+| `invalid_status` | an equation or key `status` is outside `{proposed, accepted}` |
+| `invalid_key` | a key (`schema.keys`, 1.3) names an undeclared object or arrow, names an arrow not sourced at the key's object, or carries an empty or duplicate `arrows` list — the message names the exact defect at the offending node |
 | `unsupported_version` | `format_version` absent, malformed, or of an unknown major |
 | `partial_schema_map` | a schema map (1.1) fails to assign every declared source object or arrow, or assigns an undeclared element — the message names the unmapped element |
 | `undeclared_rule_domain` | a rule presentation (1.2) names a `domain` that is not a declared schema object |
@@ -112,7 +127,7 @@ Structural malformations outside this set (missing required fields, JSON
 type mismatches, references to undeclared objects/rows, empty equation
 paths) are `Syntax` errors with a human message and a position; the codes
 above are the stable semantic contract. Check order is the document
-order: version → objects → arrows → equations → rows → tables →
+order: version → objects → arrows → equations → keys → rows → tables →
 schema map → rule presentation.
 
 ## Rule-lens semantics (1.2)
@@ -141,7 +156,9 @@ by design:
 - `serialize(model)` — a valid `.ct.json` v1 document (row names `_<id>`
   in id order) that re-parses to the same model. Byte-identical for any
   two files that parse to the same model: key order, equation order, and
-  declaration order never reach the bytes.
+  declaration order never reach the bytes. An absent or empty `keys`
+  section is omitted entirely, so every pre-1.3 document keeps its exact
+  canonical bytes and hash.
 - `canonical_bytes(model)` — `serialize` of the model **re-labeled with
   canonical row ids**: dense per-object ids derived from the model's
   *structure* by name-free canonical labeling (iterative refinement over
@@ -171,9 +188,11 @@ equal, and any structural difference changes the hash.
 
 `schema/ct-schema-v1.json` publishes the format's syntactic surface for
 editors/agents (JSON Schema draft 2020-12): required fields, JSON types,
-the `status` enum, ident patterns, and duplicate array-identifiers. It
-deliberately does **not** decide semantic, cross-referential questions —
-unknown arrows in equations, ill-typed equation endpoints, and whether a
+the `status` enum, ident patterns, duplicate array-identifiers, and a
+key's non-empty duplicate-free `arrows` list. It deliberately does **not**
+decide semantic, cross-referential questions —
+unknown arrows in equations, ill-typed equation endpoints, key
+declaredness/source typing, and whether a
 `format_version` major is known remain kernel-side. The artifact's
 `description` documents this division.
 
