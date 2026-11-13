@@ -1,0 +1,194 @@
+{
+  "kata": "wrapper-laws",
+  "comparison_rule": "unique = probe elements minus baseline-identified elements; an element is dangling:<arrow>#<row> or violation:eq<index>@row<row>, both citing the kernel's dense row id; a baseline assertion identifies only the element its pre-registered (wrapper, field, row) cell maps to, and only when that assertion disagrees. Equation indices are the parsed (sort-key) order, not the declaration order.",
+  "surface": {
+    "above_floor": {
+      "Adapter": {
+        "link": "adapts",
+        "fields": {
+          "adapter_note": {"target": "note", "law": 1},
+          "adapter_key": {"target": "key", "law": 0},
+          "adapter_result": {"target": "result", "law": 2}
+        }
+      },
+      "Proxy": {
+        "link": "proxies",
+        "fields": {
+          "proxy_result": {"target": "result", "law": 5},
+          "proxy_key": {"target": "key", "law": 4}
+        }
+      },
+      "Decorator": {
+        "link": "decorates",
+        "fields": {
+          "decorator_result": {"target": "result", "law": 3},
+          "decorator_note": {"target": "note", "law": null}
+        }
+      },
+      "Stack": {
+        "link": "stack_of",
+        "fields": {
+          "stack_result": {"target": "decorator_result", "law": 6}
+        }
+      }
+    },
+    "floor": {
+      "Wrapper": {
+        "link": "wraps",
+        "fields": {
+          "wrapper_result": {"target": "result", "law": 2},
+          "wrapper_key": {"target": "key", "law": 0},
+          "wrapper_note": {"target": "note", "law": 1}
+        }
+      }
+    }
+  },
+  "sample": {
+    "above_floor": {
+      "Adapter": {
+        "adapter_result": [0, 1, 2],
+        "adapter_key": [0],
+        "adapter_note": [0]
+      },
+      "Proxy": {
+        "proxy_result": [0, 1, 2],
+        "proxy_key": [0]
+      },
+      "Decorator": {
+        "decorator_result": [0, 1, 2]
+      },
+      "Stack": {
+        "stack_result": [0]
+      }
+    },
+    "floor": {
+      "Wrapper": {
+        "wrapper_result": [0],
+        "wrapper_key": [0],
+        "wrapper_note": [0]
+      }
+    }
+  },
+  "sample_size": {
+    "above_floor": 13,
+    "floor": 3
+  },
+  "clean": [
+    {
+      "table": "above_floor",
+      "fixture": "wrapper-laws.ct.json",
+      "baseline_expected": [],
+      "probe_expected": []
+    },
+    {
+      "table": "floor",
+      "fixture": "floor/identity-wrapper.ct.json",
+      "baseline_expected": [],
+      "probe_expected": []
+    }
+  ],
+  "faults": [
+    {
+      "id": "floor-01-identity-wrapper-swaps-result",
+      "table": "floor",
+      "fixture": "floor/faults/01-identity-wrapper-swaps-result.ct.json",
+      "catalog_fault": "C1",
+      "control": true,
+      "series_class": "behavioral",
+      "injected": "the identity wrapper returns `r_beta` where the wrapped store returns `r_alpha`; the delegation law fires at row 0",
+      "baseline_expected": ["delegation:Wrapper:wrapper_result#0:r_beta!=r_alpha"],
+      "baseline_identified": ["violation:eq2@row0"],
+      "probe_expected": ["violation:eq2@row0"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "floor-02-identity-wrapper-rewires-key",
+      "table": "floor",
+      "fixture": "floor/faults/02-identity-wrapper-rewires-key.ct.json",
+      "catalog_fault": "C2",
+      "control": true,
+      "series_class": "structural",
+      "injected": "the identity wrapper reports `k_cart` where the wrapped store's key is `k_acct`; the identity law fires at row 0",
+      "baseline_expected": ["delegation:Wrapper:wrapper_key#0:k_cart!=k_acct"],
+      "baseline_identified": ["violation:eq0@row0"],
+      "probe_expected": ["violation:eq0@row0"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "floor-03-identity-wrapper-loses-note",
+      "table": "floor",
+      "fixture": "floor/faults/03-identity-wrapper-loses-note.ct.json",
+      "catalog_fault": "C3",
+      "control": true,
+      "series_class": "structural",
+      "injected": "the identity wrapper's auxiliary field cell is dropped; the kernel's totality reports the dangling cell, and the one assertion covers it",
+      "baseline_expected": ["delegation:Wrapper:wrapper_note#0:missing"],
+      "baseline_identified": ["dangling:wrapper_note#0"],
+      "probe_expected": ["dangling:wrapper_note#0"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "01-adapter-drops-field",
+      "table": "above_floor",
+      "fixture": "faults/01-adapter-drops-field.ct.json",
+      "catalog_fault": "W1",
+      "control": false,
+      "series_class": "structural",
+      "injected": "the adapter drops the translated auxiliary field for all three rows (the migration lost-cell shape: rows kept, values gone); the sampled row 0 assertion catches row 0, the kernel names all three cells",
+      "baseline_expected": ["delegation:Adapter:adapter_note#0:missing"],
+      "baseline_identified": ["dangling:adapter_note#0"],
+      "probe_expected": [
+        "dangling:adapter_note#0",
+        "dangling:adapter_note#1",
+        "dangling:adapter_note#2"
+      ],
+      "unique_expected": 2,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "02-proxy-rewires-identity",
+      "table": "above_floor",
+      "fixture": "faults/02-proxy-rewires-identity.ct.json",
+      "catalog_fault": "W2",
+      "control": false,
+      "series_class": "structural",
+      "injected": "proxy row 1 reports `k_acct` while its wrapped store's key is `k_cart`; the proxy identity law fires at row 1 and the result path still agrees, so only the identity law sees it",
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "probe_expected": ["violation:eq4@row1"],
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "03-decorator-order-swaps-result",
+      "table": "above_floor",
+      "fixture": "faults/03-decorator-order-swaps-result.ct.json",
+      "catalog_fault": "W3",
+      "control": false,
+      "series_class": "behavioral",
+      "injected": "the reversed stacking order (`st_ml`) returns `r_beta` instead of the underlying `r_alpha`; the stacking law fires at row 1, which the sampled order (row 0) never exercises",
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "probe_expected": ["violation:eq6@row1"],
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "04-wrapper-loses-optional",
+      "table": "above_floor",
+      "fixture": "faults/04-wrapper-loses-optional.ct.json",
+      "catalog_fault": "W4",
+      "control": false,
+      "series_class": "structural",
+      "injected": "decorator row 1's auxiliary field cell is dropped; no declared law mentions `decorator_note`, so only the kernel's totality sees the loss, and no sampled assertion covers the field",
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "probe_expected": ["dangling:decorator_note#1"],
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    }
+  ]
+}

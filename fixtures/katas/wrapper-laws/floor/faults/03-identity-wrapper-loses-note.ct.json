@@ -1,0 +1,127 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": [
+      "Store",
+      "Wrapper",
+      "Result",
+      "Key",
+      "Note"
+    ],
+    "arrows": [
+      {
+        "name": "key",
+        "src": "Store",
+        "tgt": "Key"
+      },
+      {
+        "name": "note",
+        "src": "Store",
+        "tgt": "Note"
+      },
+      {
+        "name": "result",
+        "src": "Store",
+        "tgt": "Result"
+      },
+      {
+        "name": "wraps",
+        "src": "Wrapper",
+        "tgt": "Store"
+      },
+      {
+        "name": "wrapper_key",
+        "src": "Wrapper",
+        "tgt": "Key"
+      },
+      {
+        "name": "wrapper_note",
+        "src": "Wrapper",
+        "tgt": "Note"
+      },
+      {
+        "name": "wrapper_result",
+        "src": "Wrapper",
+        "tgt": "Result"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "wraps",
+          "result"
+        ],
+        "rhs": [
+          "wrapper_result"
+        ],
+        "rationale": "identity wrapper: the wrapper's call result is the wrapped store's call result - the only law the trivial floor states",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "wraps",
+          "key"
+        ],
+        "rhs": [
+          "wrapper_key"
+        ],
+        "rationale": "identity wrapper: the wrapper reports the wrapped store's identity",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "wraps",
+          "note"
+        ],
+        "rhs": [
+          "wrapper_note"
+        ],
+        "rationale": "identity wrapper: the wrapper's auxiliary field is the wrapped store's field",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Store": [
+        "s0"
+      ],
+      "Wrapper": [
+        "w0"
+      ],
+      "Result": [
+        "r_alpha",
+        "r_beta"
+      ],
+      "Key": [
+        "k_acct",
+        "k_cart"
+      ],
+      "Note": [
+        "n_audit",
+        "n_empty"
+      ]
+    },
+    "tables": {
+      "key": {
+        "s0": "k_acct"
+      },
+      "note": {
+        "s0": "n_audit"
+      },
+      "result": {
+        "s0": "r_alpha"
+      },
+      "wraps": {
+        "w0": "s0"
+      },
+      "wrapper_key": {
+        "w0": "k_acct"
+      },
+      "wrapper_note": {},
+      "wrapper_result": {
+        "w0": "r_alpha"
+      }
+    }
+  }
+}

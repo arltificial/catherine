@@ -1,0 +1,283 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": [
+      "Store",
+      "Adapter",
+      "Proxy",
+      "Decorator",
+      "Stack",
+      "Result",
+      "Key",
+      "Note"
+    ],
+    "arrows": [
+      {
+        "name": "adapts",
+        "src": "Adapter",
+        "tgt": "Store"
+      },
+      {
+        "name": "adapter_key",
+        "src": "Adapter",
+        "tgt": "Key"
+      },
+      {
+        "name": "adapter_note",
+        "src": "Adapter",
+        "tgt": "Note"
+      },
+      {
+        "name": "adapter_result",
+        "src": "Adapter",
+        "tgt": "Result"
+      },
+      {
+        "name": "decorates",
+        "src": "Decorator",
+        "tgt": "Store"
+      },
+      {
+        "name": "decorator_note",
+        "src": "Decorator",
+        "tgt": "Note"
+      },
+      {
+        "name": "decorator_result",
+        "src": "Decorator",
+        "tgt": "Result"
+      },
+      {
+        "name": "key",
+        "src": "Store",
+        "tgt": "Key"
+      },
+      {
+        "name": "note",
+        "src": "Store",
+        "tgt": "Note"
+      },
+      {
+        "name": "proxies",
+        "src": "Proxy",
+        "tgt": "Store"
+      },
+      {
+        "name": "proxy_key",
+        "src": "Proxy",
+        "tgt": "Key"
+      },
+      {
+        "name": "proxy_result",
+        "src": "Proxy",
+        "tgt": "Result"
+      },
+      {
+        "name": "result",
+        "src": "Store",
+        "tgt": "Result"
+      },
+      {
+        "name": "stack_of",
+        "src": "Stack",
+        "tgt": "Decorator"
+      },
+      {
+        "name": "stack_result",
+        "src": "Stack",
+        "tgt": "Result"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "adapts",
+          "result"
+        ],
+        "rhs": [
+          "adapter_result"
+        ],
+        "rationale": "adapter delegation: the adapted call returns the wrapped store's call result - wrapper.call = target.call across the adapter boundary (ploeh Adapter: translation must not change the delegated path)",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "adapts",
+          "key"
+        ],
+        "rhs": [
+          "adapter_key"
+        ],
+        "rationale": "adapter identity translation: the adapter's key is the wrapped store's key - identity survives translation, not just the payload",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "adapts",
+          "note"
+        ],
+        "rhs": [
+          "adapter_note"
+        ],
+        "rationale": "adapter field translation: the translated auxiliary field is the wrapped store's field - a translation may not drop a declared field",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "proxies",
+          "result"
+        ],
+        "rhs": [
+          "proxy_result"
+        ],
+        "rationale": "proxy delegation: the proxied call returns the real call result - the proxy boundary is transparent for the result path",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "proxies",
+          "key"
+        ],
+        "rhs": [
+          "proxy_key"
+        ],
+        "rationale": "proxy identity preservation: the proxy reports the wrapped entity's key - a proxy may not rewire identity",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "decorates",
+          "result"
+        ],
+        "rhs": [
+          "decorator_result"
+        ],
+        "rationale": "decorator transparency: a decorated call returns the underlying call result - the decorator adds behaviour, never changes the answer",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "stack_of",
+          "decorator_result"
+        ],
+        "rhs": [
+          "stack_result"
+        ],
+        "rationale": "decorator stacking: the whole stack returns the outermost layer's result, and two stacks over the same store must agree - stacking order cannot change the underlying result",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Store": [
+        "s0",
+        "s1",
+        "s2"
+      ],
+      "Adapter": [
+        "a0",
+        "a1",
+        "a2"
+      ],
+      "Proxy": [
+        "p0",
+        "p1",
+        "p2"
+      ],
+      "Decorator": [
+        "d0",
+        "d1",
+        "d2"
+      ],
+      "Stack": [
+        "st_lm",
+        "st_ml"
+      ],
+      "Result": [
+        "r_alpha",
+        "r_beta",
+        "r_gamma"
+      ],
+      "Key": [
+        "k_acct",
+        "k_cart"
+      ],
+      "Note": [
+        "n_audit",
+        "n_empty"
+      ]
+    },
+    "tables": {
+      "adapts": {
+        "a0": "s0",
+        "a1": "s1",
+        "a2": "s2"
+      },
+      "adapter_key": {
+        "a0": "k_acct",
+        "a1": "k_cart",
+        "a2": "k_acct"
+      },
+      "adapter_note": {},
+      "adapter_result": {
+        "a0": "r_alpha",
+        "a1": "r_beta",
+        "a2": "r_gamma"
+      },
+      "decorates": {
+        "d0": "s0",
+        "d1": "s0",
+        "d2": "s1"
+      },
+      "decorator_note": {
+        "d0": "n_audit",
+        "d1": "n_audit",
+        "d2": "n_empty"
+      },
+      "decorator_result": {
+        "d0": "r_alpha",
+        "d1": "r_alpha",
+        "d2": "r_beta"
+      },
+      "key": {
+        "s0": "k_acct",
+        "s1": "k_cart",
+        "s2": "k_acct"
+      },
+      "note": {
+        "s0": "n_audit",
+        "s1": "n_empty",
+        "s2": "n_audit"
+      },
+      "proxies": {
+        "p0": "s0",
+        "p1": "s1",
+        "p2": "s2"
+      },
+      "proxy_key": {
+        "p0": "k_acct",
+        "p1": "k_cart",
+        "p2": "k_acct"
+      },
+      "proxy_result": {
+        "p0": "r_alpha",
+        "p1": "r_beta",
+        "p2": "r_gamma"
+      },
+      "result": {
+        "s0": "r_alpha",
+        "s1": "r_beta",
+        "s2": "r_gamma"
+      },
+      "stack_of": {
+        "st_lm": "d1",
+        "st_ml": "d0"
+      },
+      "stack_result": {
+        "st_lm": "r_alpha",
+        "st_ml": "r_alpha"
+      }
+    }
+  }
+}
