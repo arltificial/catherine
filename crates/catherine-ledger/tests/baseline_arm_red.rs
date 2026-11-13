@@ -80,6 +80,7 @@ fn kata(seq: u32, kata_id: &str, control: bool, verdict: &str) -> EntryContent {
             expressibility_gap: vec![],
             discrepancies: vec![],
             procedure: vec![],
+            catalog_hash: None,
             verdict: verdict.into(),
         }),
         rollup: None,

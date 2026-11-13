@@ -7,9 +7,10 @@
 //!
 //! Responsibilities: [`validate_dir`] reads a ledger directory through
 //! small phase checks — per-entry integrity, control self-negation,
-//! control-first ordering, baseline-arm claims, rollup placement/coverage
-//! — and refuses the ledger when any phase reports. The Green shape is
-//! control-first, contiguous seqs, sealed ids, and a trailing rollup.
+//! control-first ordering, baseline-arm claims, catalog hashes, rollup
+//! placement/coverage — and refuses the ledger when any phase reports.
+//! The Green shape is control-first, contiguous seqs, sealed ids, and a
+//! trailing rollup.
 //!
 //! Rationale: ct-catlab's own failure mode was verdict/record
 //! contradictions (REPORT methodology §1) — the validator exists so the
@@ -18,7 +19,9 @@
 //! baseline-arm refusals ([`Violation::UniqueWithoutBaseline`],
 //! [`Violation::CitedBaselineCannotSurvive`]) are wired: a uniqueness
 //! claim needs an executed, committed baseline arm, and a cited-only arm
-//! caps the verdict at inconclusive. Supersession is the correction path
+//! caps the verdict at inconclusive. The catalog-hash rule
+//! ([`Violation::CatalogHashMismatch`]) pins a probe entry to the
+//! pre-registered catalog it ran against. Supersession is the correction path
 //! (a new entry whose `supersedes` names the old id, never an edit), so
 //! claim-bearing rules run on the EFFECTIVE entries while the integrity
 //! pins (id, seq, model hashes, verdict vocabulary, supersession
@@ -28,6 +31,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
+use crate::catalog::{is_probe, probe_catalog_hash};
 use crate::entry::{entry_id, BaselineMode, Entry, EntryContent};
 
 /// The closed verdict vocabulary, as the stable spellings.
@@ -63,6 +67,9 @@ pub enum Violation {
     UniqueWithoutBaseline { seq: u32 },
     /// A `survived` verdict whose baseline arm is cited-only.
     CitedBaselineCannotSurvive { seq: u32 },
+    /// The entry's `catalog_hash` does not match the committed catalog
+    /// for its id, or names an unregistered probe.
+    CatalogHashMismatch { seq: u32 },
 }
 
 /// A ledger that passed validation.
@@ -292,6 +299,29 @@ fn baseline_violations(entries: &[&Entry]) -> Vec<Violation> {
     violations
 }
 
+/// The catalog-hash rule, over effective kata-shaped entries: a
+/// declared `catalog_hash` must be the committed catalog's hash for
+/// the entry's id (an unregistered probe has no catalog to match), and
+/// a registered probe with expectations must carry the pre-registration
+/// it ran against.
+fn catalog_violations(entries: &[&Entry]) -> Vec<Violation> {
+    let mut violations = Vec::new();
+    for entry in entries {
+        let Some(kata) = &entry.content.kata else {
+            continue;
+        };
+        let seq = entry.content.seq;
+        if let Some(hash) = &kata.catalog_hash {
+            if probe_catalog_hash(&kata.kata_id).as_deref() != Some(hash.as_str()) {
+                violations.push(Violation::CatalogHashMismatch { seq });
+            }
+        } else if is_probe(&kata.kata_id) && !kata.expected.is_empty() {
+            violations.push(Violation::CatalogHashMismatch { seq });
+        }
+    }
+    violations
+}
+
 /// The effective rollup, when present: last entry, covering exactly the
 /// effective kata entries (set equality between `kata_entry_ids` and
 /// the effective kata ids). A ledger WITHOUT a rollup is a valid
@@ -337,9 +367,10 @@ fn rollup_violations(entries: &[&Entry]) -> Vec<Violation> {
 
 /// Validate the ledger directory through the phase checks: file-level
 /// integrity, per-entry pins, control self-negation, control-first
-/// ordering, baseline-arm claims, and rollup placement/coverage. The
-/// integrity phases see every entry; the claim-bearing phases see only
-/// the effective entries (superseded ones are corrections, not claims).
+/// ordering, baseline-arm claims, catalog hashes, and rollup
+/// placement/coverage. The integrity phases see every entry; the
+/// claim-bearing phases see only the effective entries (superseded ones
+/// are corrections, not claims).
 pub fn validate_dir(dir: &Path) -> Result<ValidLedger, Vec<Violation>> {
     let files = match ledger_files(dir) {
         Ok(files) => files,
@@ -355,6 +386,7 @@ pub fn validate_dir(dir: &Path) -> Result<ValidLedger, Vec<Violation>> {
     violations.extend(integrity_violations(&entries));
     let effective = effective_entries(&entries);
     violations.extend(baseline_violations(&effective));
+    violations.extend(catalog_violations(&effective));
     violations.extend(control_self_negation_violations(&effective));
     violations.extend(control_first_violations(&effective));
     violations.extend(rollup_violations(&effective));

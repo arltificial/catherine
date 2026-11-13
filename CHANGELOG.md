@@ -24,6 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `prototype/rule_lens_baseline.py` arm (7/12 faults caught) rather than
   prose.
 
+- Domain-probe catalogs (P11, `catherine-1od`, tasks 3–4): probe
+  expectations are pre-registered in `catherine_ledger::catalog`
+  (`probe-migration`: lost-data, non-invertibility, floor-visible-loss;
+  `probe-rule-lens-extracted`: gap, overlap, shadow, derivable,
+  floor-near-trivial) and content-addressed by `probe_catalog_hash`. A
+  kata record carries `catalog_hash`; the validator refuses a mismatch
+  or a registered probe without its pre-registration
+  (`CatalogHashMismatch`), so editing a catalog or entry after sealing
+  forces a superseding entry. `harness::derive_probe_verdict` derives
+  survived / inconclusive / killed from the recorded comparison and
+  returns no verdict for an unregistered probe or an arm-less
+  uniqueness claim. Round-trip tests cover the green fixture probe
+  ledger, the full task-1 rejection matrix on mutated ledgers, and the
+  sealed kata rollup's byte-identity under probe recording.
+
 - Schema diff (P10, `catherine-dvx`, LICENSED E4): the
   `catherine-analysis::schema_diff` classification of a v1→v2 model
   schema edit over the **enforced** equations (accepted `(lhs, rhs)`

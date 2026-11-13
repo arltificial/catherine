@@ -202,6 +202,11 @@ pub struct KataRecord {
     /// The recorded comparison procedure — the steps `comparison` and
     /// `verdict` were derived by, mechanically.
     pub procedure: Vec<String>,
+    /// The hash of the committed expectation catalog the entry ran
+    /// against; `None` for the ct-catlab katas and the rule-lens ledgers
+    /// whose expectations are code-frozen and predate this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalog_hash: Option<String>,
     /// The derived verdict (closed vocabulary).
     pub verdict: String,
 }

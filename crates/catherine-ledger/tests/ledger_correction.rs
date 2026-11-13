@@ -95,6 +95,7 @@ fn kata(seq: u32, kata_id: &str, control: bool, verdict: &str) -> EntryContent {
             expressibility_gap: vec![],
             discrepancies: vec![],
             procedure: vec![],
+            catalog_hash: None,
             verdict: verdict.into(),
         }),
         rollup: None,
@@ -208,51 +209,84 @@ fn superseded_entry_stops_being_effective() {
     assert_eq!(seqs, vec![1, 3], "the control and the correction remain");
 }
 
-#[test]
-fn rollup_after_correction_is_accepted() {
-    let ledger = TempLedger::new("corrected-rollup");
-    let control = seal(kata(1, "kata-6", true, "killed")).expect("control seals");
-    let claim = seal(kata_claiming(
-        2,
-        "kata-1",
-        false,
-        "survived",
-        &["violation:eq0@row3"],
-        Some(executed_arm()),
-    ))
-    .expect("claim seals");
-    let stale_rollup = seal(rollup(
-        3,
-        &[
-            ("kata-6", control.id.as_str(), "killed"),
-            ("kata-1", claim.id.as_str(), "survived"),
-        ],
-    ))
-    .expect("rollup seals");
-    let fix = seal(superseding(
-        kata_claiming(
-            4,
+/// The pre-correction ledger — control, claim, stale rollup — plus the
+/// sealed superseding correction of the claim. The shared setup for the
+/// rollup-replacement cases, so each test states only its own rollup.
+struct CorrectedRollup {
+    control: Entry,
+    claim: Entry,
+    stale_rollup: Entry,
+    fix: Entry,
+}
+
+impl CorrectedRollup {
+    fn seal() -> Self {
+        let control = seal(kata(1, "kata-6", true, "killed")).expect("control seals");
+        let claim = seal(kata_claiming(
+            2,
             "kata-1",
             false,
             "survived",
             &["violation:eq0@row3"],
             Some(executed_arm()),
-        ),
-        &claim,
-    ))
-    .expect("correction seals");
-    let corrected_rollup = seal(superseding(
-        rollup(
-            5,
+        ))
+        .expect("claim seals");
+        let stale_rollup = seal(rollup(
+            3,
             &[
                 ("kata-6", control.id.as_str(), "killed"),
-                ("kata-1", fix.id.as_str(), "survived"),
+                ("kata-1", claim.id.as_str(), "survived"),
             ],
-        ),
-        &stale_rollup,
-    ))
-    .expect("replacement rollup seals");
-    ledger.write(&[control, claim, stale_rollup, fix, corrected_rollup]);
+        ))
+        .expect("rollup seals");
+        let fix = seal(superseding(
+            kata_claiming(
+                4,
+                "kata-1",
+                false,
+                "survived",
+                &["violation:eq0@row3"],
+                Some(executed_arm()),
+            ),
+            &claim,
+        ))
+        .expect("correction seals");
+        Self {
+            control,
+            claim,
+            stale_rollup,
+            fix,
+        }
+    }
+
+    /// The replacement rollup at seq 5, superseding the stale one, over
+    /// the given (kata_id, entry_id, verdict) lines.
+    fn replacement(&self, per_kata: &[(&str, &str, &str)]) -> Entry {
+        seal(superseding(rollup(5, per_kata), &self.stale_rollup))
+            .expect("replacement rollup seals")
+    }
+
+    /// The five entries in seq order, with `replacement` last.
+    fn entries(&self, replacement: Entry) -> [Entry; 5] {
+        [
+            self.control.clone(),
+            self.claim.clone(),
+            self.stale_rollup.clone(),
+            self.fix.clone(),
+            replacement,
+        ]
+    }
+}
+
+#[test]
+fn rollup_after_correction_is_accepted() {
+    let ledger = TempLedger::new("corrected-rollup");
+    let fixture = CorrectedRollup::seal();
+    let replacement = fixture.replacement(&[
+        ("kata-6", fixture.control.id.as_str(), "killed"),
+        ("kata-1", fixture.fix.id.as_str(), "survived"),
+    ]);
+    ledger.write(&fixture.entries(replacement));
 
     let valid = validate_dir(&ledger.0).expect("a superseded rollup is replaced, not refused");
     let effective_rollup = valid
@@ -264,50 +298,14 @@ fn rollup_after_correction_is_accepted() {
 #[test]
 fn rollup_coverage_counts_effective_entries() {
     let ledger = TempLedger::new("rollup-stale-id");
-    let control = seal(kata(1, "kata-6", true, "killed")).expect("control seals");
-    let claim = seal(kata_claiming(
-        2,
-        "kata-1",
-        false,
-        "survived",
-        &["violation:eq0@row3"],
-        Some(executed_arm()),
-    ))
-    .expect("claim seals");
-    let stale_rollup = seal(rollup(
-        3,
-        &[
-            ("kata-6", control.id.as_str(), "killed"),
-            ("kata-1", claim.id.as_str(), "survived"),
-        ],
-    ))
-    .expect("rollup seals");
-    let fix = seal(superseding(
-        kata_claiming(
-            4,
-            "kata-1",
-            false,
-            "survived",
-            &["violation:eq0@row3"],
-            Some(executed_arm()),
-        ),
-        &claim,
-    ))
-    .expect("correction seals");
+    let fixture = CorrectedRollup::seal();
     // The replacement rollup still lists the superseded claim's id.
-    let corrected_rollup = seal(superseding(
-        rollup(
-            5,
-            &[
-                ("kata-6", control.id.as_str(), "killed"),
-                ("kata-1", claim.id.as_str(), "survived"),
-                ("kata-1", fix.id.as_str(), "survived"),
-            ],
-        ),
-        &stale_rollup,
-    ))
-    .expect("replacement rollup seals");
-    ledger.write(&[control, claim, stale_rollup, fix, corrected_rollup]);
+    let replacement = fixture.replacement(&[
+        ("kata-6", fixture.control.id.as_str(), "killed"),
+        ("kata-1", fixture.claim.id.as_str(), "survived"),
+        ("kata-1", fixture.fix.id.as_str(), "survived"),
+    ]);
+    ledger.write(&fixture.entries(replacement));
 
     let violations = validate_dir(&ledger.0).expect_err("coverage counts effective entries");
     assert!(

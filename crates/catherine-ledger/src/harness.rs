@@ -7,7 +7,9 @@
 //! instance, executes the kernel checks, and returns the finding list
 //! plus the parse outcome. A fixture that does not parse is a recorded
 //! outcome (the construction-time probe class), not an error thrown
-//! away.
+//! away. [`derive_probe_verdict`] derives a probe's verdict from its
+//! pre-registered catalog and the recorded comparison — including the
+//! cases where no honest verdict exists.
 //!
 //! Rationale: the harness consumes `catherine-core`'s public artifacts
 //! only (parse, instance, checks, findings encoding) — the same
@@ -63,5 +65,37 @@ pub fn run(fixture: &Path) -> KataRun {
         parsed: true,
         findings: catherine_core::checks::check(&model.schema, &typed),
         parse_error: None,
+    }
+}
+
+/// Derive a probe's verdict against its pre-registered catalog.
+/// `None` means no verdict is derivable — an unregistered probe has no
+/// expectations to judge against, and a uniqueness claim without an
+/// executed arm is refused by the validator upstream rather than
+/// granted a verdict here.
+///
+/// This mirrors [`crate::rollup::derive`]: the status is derived from
+/// recorded evidence (the catalog row and the comparison), never
+/// asserted.
+pub fn derive_probe_verdict(
+    probe_id: &str,
+    unique_detections: &[String],
+    baseline: Option<&crate::entry::BaselineArm>,
+) -> Option<crate::entry::Verdict> {
+    use crate::entry::{BaselineMode, Verdict};
+
+    if crate::catalog::probe_expectations(probe_id).is_empty() {
+        return None;
+    }
+    if unique_detections.is_empty() {
+        // Parity: the probe bought no unique detection — the null result
+        // is the deliverable, not a failure.
+        return Some(Verdict::Killed);
+    }
+    match baseline.map(|arm| arm.mode) {
+        Some(BaselineMode::Executed) => Some(Verdict::Survived),
+        // Cited-only caps uniqueness at inconclusive.
+        Some(BaselineMode::Cited) => Some(Verdict::Inconclusive),
+        None => None,
     }
 }

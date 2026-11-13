@@ -6,4 +6,6 @@ superseded_by = ""
 authored_with = "0.12.0"
 
 [tests]
-cargo = []
+cargo = [
+    { flags = "stale_catalog_hash_after_the_catalog_edit_is_refused" },
+]

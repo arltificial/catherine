@@ -29,11 +29,11 @@ existing `ledger-check <ledger-dir>` surface, never a bespoke re-run.
       execution mode (`executed | cited`), detections on the same fault
       set; validator rules from task 1 wired to the real fields;
       `ledger-record` refuses the same shapes the validator does
-- [ ] 3. Probe catalog: expectation rows (fault → class → expected
+- [x] 3. Probe catalog: expectation rows (fault → class → expected
       outcome) per probe id, committed before the run, referenced from
       the entry by catalog hash; harness derives probe verdicts against
       the catalog exactly as the kata path does
-- [ ] 4. Round-trip tests: a fixture probe ledger under
+- [x] 4. Round-trip tests: a fixture probe ledger under
       `ledger/probes/<name>/` validates green; every task-1 rejection
       fires on the mutated ledger; `ledger-check ledger/` output is
       byte-identical before and after probe recording
