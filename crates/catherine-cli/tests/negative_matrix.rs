@@ -186,6 +186,8 @@ const MATRIX: &[Row] = &[
     Row { name: "check × out-of-range format_version (minor > KNOWN_MINOR)",
           args: &["check", BAD_VERSION, "--json"],
           expect: Expect::Error { code: "unsupported_version" } },
+    Row { name: "check × ill-formed key (arrow not sourced at the key's object)",
+          args: &["check", concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/bad_key.ct.json"), "--json"], expect: Expect::Error { code: "invalid_key" } },
     Row { name: "check × bad flag syntax (unknown flag)",
           args: &["check", ANALYSIS_CONTRADICTION, "--bogus", "--json"],
           expect: Expect::Usage },
