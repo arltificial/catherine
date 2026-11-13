@@ -1,0 +1,44 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Node"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Node": ["lit", "neg"]
+    },
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Node",
+    "columns": [
+      {"name": "kind", "type": "string"}
+    ],
+    "rules": [
+      {
+        "name": "visit_lit",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "lit"},
+        "action": "visit_lit"
+      },
+      {
+        "name": "node_scope",
+        "predicate": {
+          "kind": "or",
+          "args": [
+            {"kind": "cmp", "column": "kind", "op": "eq", "value": "lit"},
+            {"kind": "cmp", "column": "kind", "op": "eq", "value": "neg"}
+          ]
+        },
+        "action": "visit_lit"
+      },
+      {
+        "name": "visit_neg",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "neg"},
+        "action": "visit_neg"
+      }
+    ],
+    "policy": "PriorityOrder"
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "slug": "visitor-sum-types",
+  "preregistered": "2026-11-13",
+  "hypothesis": "A legacy Visitor/Interpreter dispatch reverse-engineered into a rule_presentation over the finite variant domain lets `catherine rules` name shadowed, derivable, and newly-uncovered handler classes that a sampled scripted dispatch test misses; the two-variant floor must record zero unique detections.",
+  "honest_boundary": "Authored rule tables are commodity; this kata measures the reverse-engineering transfer into the declared table plus exact enumeration over the whole variant domain, not a detection-rate win over conventional tooling. A conventional test that enumerates every variant and asserts structural properties would reach parity.",
+  "pattern_mapping": {
+    "visitor_candidate": "docs/ref/ploeh-grounding.md §6 item 3 (Visitor-as-sum-type; §2.5)",
+    "variant_constructor": "one input class kind=<variant> over the declared finite domain",
+    "visit_method": "one rule action",
+    "dispatch_order": "rule order under the declared policy",
+    "disjoint_variants": "DeclaredDisjoint policy",
+    "missing_method": "gap -> underconstraint (hypothesized)",
+    "duplicate_registration": "overlap under DeclaredDisjoint -> violation (executed)",
+    "unreachable_case": "shadow -> redundant (executed)",
+    "boolean_combination_case": "derivable -> redundant (executed)"
+  },
+  "domain": {"kind": ["num", "str", "add", "mul", "neg"]},
+  "fault_domain": {"kind": ["num", "str", "add", "mul", "neg", "div"]},
+  "floor_domain": {"kind": ["lit", "neg"]},
+  "sample": {"num": "visit_num", "add": "visit_add", "neg": "visit_neg"},
+  "floor_sample": {"lit": "visit_lit", "neg": "visit_neg"},
+  "unique_policy": "One unique detection is one pre-registered fault element (F3, F4, F5) whose lens findings the executed baseline did not identify. F1 and F2 are parity: the sampled test names the affected variant.",
+  "unique_expected": {"above_floor": 3, "floor": 0},
+  "kill_condition": "Zero unique detections across F1-F5 kills the transfer claim; any floor unique detection means the control failed to self-negate.",
+  "clean": [
+    {
+      "id": "C0",
+      "fixture": "visitor.ct.json",
+      "probe_domain": "domain",
+      "baseline_expected": []
+    },
+    {
+      "id": "CF",
+      "fixture": "floor/two-variant.ct.json",
+      "probe_domain": "floor_domain",
+      "baseline_expected": []
+    }
+  ],
+  "faults": [
+    {
+      "id": "F1",
+      "fixture": "faults/01-gap-missing-num.ct.json",
+      "probe_domain": "domain",
+      "fault_class": "gap",
+      "probe_class": "underconstraint",
+      "affected_variant": "num",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:num:missing"]
+    },
+    {
+      "id": "F2",
+      "fixture": "faults/02-overlap-duplicate-add.ct.json",
+      "probe_domain": "domain",
+      "fault_class": "overlap",
+      "probe_class": "violation",
+      "affected_variant": "add",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:add:ambiguous:visit_add|visit_add_legacy"]
+    },
+    {
+      "id": "F3",
+      "fixture": "faults/03-shadow-literal-covers-str.ct.json",
+      "probe_domain": "domain",
+      "fault_class": "shadow",
+      "probe_class": "redundant",
+      "affected_variant": "str",
+      "baseline_catches": false,
+      "baseline_expected": []
+    },
+    {
+      "id": "F4",
+      "fixture": "faults/04-derivable-num.ct.json",
+      "probe_domain": "domain",
+      "fault_class": "derivable",
+      "probe_class": "redundant",
+      "affected_variant": "num",
+      "baseline_catches": false,
+      "baseline_expected": []
+    },
+    {
+      "id": "F5",
+      "fixture": "faults/05-missing-variant-div.ct.json",
+      "probe_domain": "fault_domain",
+      "fault_class": "missing-variant-coverage",
+      "probe_class": "underconstraint",
+      "affected_variant": "div",
+      "baseline_catches": false,
+      "baseline_expected": []
+    }
+  ],
+  "floor_faults": [
+    {
+      "id": "NF1",
+      "fixture": "floor/faults/01-gap-remove-lit.ct.json",
+      "probe_domain": "floor_domain",
+      "fault_class": "gap",
+      "probe_class": "underconstraint",
+      "affected_variant": "lit",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:lit:missing"]
+    },
+    {
+      "id": "NF2",
+      "fixture": "floor/faults/02-overlap-duplicate-lit.ct.json",
+      "probe_domain": "floor_domain",
+      "fault_class": "overlap",
+      "probe_class": "violation",
+      "affected_variant": "lit",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:lit:ambiguous:visit_lit|visit_lit_legacy"]
+    },
+    {
+      "id": "NF3",
+      "fixture": "floor/faults/03-shadow-widen-lit.ct.json",
+      "probe_domain": "floor_domain",
+      "fault_class": "shadow",
+      "probe_class": "redundant",
+      "affected_variant": "neg",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:neg:wrong:visit_lit"]
+    }
+  ]
+}

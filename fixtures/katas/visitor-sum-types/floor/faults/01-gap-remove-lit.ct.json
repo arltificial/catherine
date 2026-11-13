@@ -1,0 +1,28 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Node"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Node": ["lit", "neg"]
+    },
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Node",
+    "columns": [
+      {"name": "kind", "type": "string"}
+    ],
+    "rules": [
+      {
+        "name": "visit_neg",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "neg"},
+        "action": "visit_neg"
+      }
+    ],
+    "policy": "PriorityOrder"
+  }
+}

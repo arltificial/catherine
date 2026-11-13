@@ -1,0 +1,48 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["Node"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Node": ["num", "str", "add", "mul", "neg"]
+    },
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Node",
+    "columns": [
+      {"name": "kind", "type": "string"}
+    ],
+    "rules": [
+      {
+        "name": "visit_num",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "num"},
+        "action": "visit_num"
+      },
+      {
+        "name": "visit_str",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "str"},
+        "action": "visit_str"
+      },
+      {
+        "name": "visit_add",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "add"},
+        "action": "visit_add"
+      },
+      {
+        "name": "visit_mul",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "mul"},
+        "action": "visit_mul"
+      },
+      {
+        "name": "visit_neg",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "neg"},
+        "action": "visit_neg"
+      }
+    ],
+    "policy": "PriorityOrder"
+  }
+}
