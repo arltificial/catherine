@@ -21,3 +21,10 @@
 
 # espectacular runtime state (lint caches), not shared
 .espectacular/state/
+
+# mdBook build output (docs.yml / just docs deploy from here, never commit)
+/book/
+
+# Generated book pages (docs.yml / just docs regenerate from
+# openspec/specs + workspace metadata — see docs/SUMMARY.md)
+docs/generated/

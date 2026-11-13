@@ -1,0 +1,12 @@
+[book]
+title = "catherine"
+description = "cat, from categories — a deterministic category-theory modeling workbench: validate .ct.json model documents, get finding-typed diagnostics with witnesses"
+authors = ["arltificial"]
+language = "en"
+src = "docs"
+
+[output.html]
+default-theme = "coal"
+preferred-dark-theme = "coal"
+git-repository-url = "https://github.com/arltificial/catherine"
+edit-url-template = "https://github.com/arltificial/catherine/edit/main/docs/{path}"

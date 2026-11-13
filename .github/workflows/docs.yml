@@ -1,0 +1,98 @@
+# Docs workflow — build the mdBook book and deploy it to GitHub Pages
+# (pattern ported from dulce-de-leche; beads catherine-48f).
+#
+# Triggers on push to main when book sources or deployed specs change, on
+# version tags (so tag pushes re-publish docs at the released version),
+# and manually.
+#
+# Generated pages (release status, copied specs) are marked as generated
+# artifacts — the repo source files remain authoritative (§6 DDL-nsl:
+# version claims come from Cargo.toml, never from hand-typed text).
+#
+# Security model: `contents: read` plus the Pages deployment
+# credentials (pages: write, id-token: write) — no other scope is
+# granted. Third-party actions are pinned to full commit SHAs.
+
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "book.toml"
+      - "openspec/specs/**"
+      - "crates/*/Cargo.toml"
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pinned mdbook (crates.io pin, never latest)
+        # Builds with the rust-toolchain.toml toolchain (auto-installed by
+        # cargo on first use). Same version is documented in the justfile
+        # `docs` recipe.
+        run: cargo install mdbook --version 0.5.4 --locked
+
+      - name: Copy OpenSpec specs into docs source
+        run: |
+          mkdir -p docs/generated/specs
+          for dir in openspec/specs/*/; do
+            name=$(basename "$dir")
+            cp "$dir/spec.md" "docs/generated/specs/$name.md"
+          done
+
+      - name: Generate release-status page from workspace metadata
+        run: |
+          VERSION="$(cargo metadata --no-deps --format-version 1 \
+            | python3 -c 'import json,sys; print(next(p["version"] for p in json.load(sys.stdin)["packages"] if p["name"]=="catherine-cli"))')"
+          TAG="${GITHUB_REF_NAME:-main}"
+          mkdir -p docs/generated
+          cat > docs/generated/release.md <<EOF
+          # Release Status
+
+          > **Generated artifact** (docs.yml, from workspace metadata + git ref).
+          > Do not hand-edit — the repo source files remain authoritative.
+
+          - **Version:** v${VERSION}
+          - **Built from:** ${TAG} @ ${GITHUB_SHA::7}
+          - **Releases:** https://github.com/arltificial/catherine/releases
+          EOF
+
+      - name: Build docs
+        run: mdbook build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: book
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

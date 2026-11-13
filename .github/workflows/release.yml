@@ -1,0 +1,333 @@
+# Release workflow — build cross-platform binaries and publish a GitHub
+# release (pattern ported from dulce-de-leche; beads catherine-z91).
+#
+# Triggered by pushing a version tag (e.g., `git tag v0.1.0 && git push
+# --tags`). Creates a GitHub Release with pre-built `catherine` binaries
+# for Linux, macOS, and Windows. crates.io publication is deliberately
+# deferred (beads catherine-t9w) — the workspace publishes binaries only.
+#
+# Differences from the ddl pattern:
+#   * No crates.io publish, no Homebrew tap / Scoop bucket channels yet;
+#   when crates publication lands it goes in dependency order (core →
+#   analysis → ledger → cli) and skips catherine-wasm (wasm boundary
+#   crate, consumed via the web bundle).
+#   * rust-toolchain.toml pins 1.98.1, so cross targets are installed
+#   for THAT toolchain (`rustup target add --toolchain …`), not for
+#   whatever `rustup default` points at.
+#   * The gate job runs `just ci` + `ah check` but deliberately NOT
+#   `openspec validate --changes`: draft change proposals on main
+#   must not block a release tag; deployed-spec correspondence
+#   (`ah check`) is the release-relevant gate.
+#
+# Security model (SEC-06 / DDL-bas):
+#   * Workflow-level permissions default to `contents: read`; only the
+#     `publish` job is granted `contents: write`, so no build/test job
+#     can touch releases.
+#   * Publication credentials are referenced exclusively inside the
+#     `publish` job.
+#   * `publish` needs `test` and `security`: a failed, skipped, or
+#     cancelled gate on the tagged commit prevents publication entirely.
+#   * Every third-party action is pinned to a full reviewed commit SHA
+#     (same pins as dulce-de-leche's reviewed release workflow).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: linux
+
+      - name: Install pinned toolchain (rust-toolchain.toml) + cross target
+        run: |
+          CHANNEL="$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)"
+          rustup toolchain install "$CHANNEL" --profile minimal
+          rustup target add --toolchain "$CHANNEL" aarch64-unknown-linux-gnu
+
+      - name: Install aarch64 cross-compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build x86_64 Linux
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Build aarch64 Linux
+        run: cargo build --release --target aarch64-unknown-linux-gnu
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      - name: Stage binaries
+        run: |
+          mkdir -p bins/linux_amd64 bins/linux_arm64
+          cp target/x86_64-unknown-linux-gnu/release/catherine bins/linux_amd64/catherine
+          cp target/aarch64-unknown-linux-gnu/release/catherine bins/linux_arm64/catherine
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bins-linux
+          path: bins/
+          retention-days: 1
+
+  build-darwin:
+    name: Build macOS
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: darwin
+
+      - name: Install pinned toolchain (rust-toolchain.toml) + cross target
+        run: |
+          CHANNEL="$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)"
+          rustup toolchain install "$CHANNEL" --profile minimal
+          rustup target add --toolchain "$CHANNEL" x86_64-apple-darwin,aarch64-apple-darwin
+
+      - name: Build x86_64 macOS
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Build aarch64 macOS
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Stage binaries
+        run: |
+          mkdir -p bins/darwin_amd64 bins/darwin_arm64
+          cp target/x86_64-apple-darwin/release/catherine bins/darwin_amd64/catherine
+          cp target/aarch64-apple-darwin/release/catherine bins/darwin_arm64/catherine
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bins-darwin
+          path: bins/
+          retention-days: 1
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: windows
+
+      # Host target (x86_64-pc-windows-msvc) needs no explicit install, but
+      # the pinned toolchain itself must exist or cargo auto-installs it
+      # without a shared cache key — install it explicitly for rust-cache.
+      - name: Install pinned toolchain (rust-toolchain.toml)
+        run: |
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern 'channel\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          rustup toolchain install $channel --profile minimal
+
+      - name: Build x86_64 Windows
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Stage binaries
+        shell: bash
+        run: |
+          mkdir -p bins/windows_amd64
+          cp target/x86_64-pc-windows-msvc/release/catherine.exe bins/windows_amd64/catherine.exe
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: bins-windows
+          path: bins/
+          retention-days: 1
+
+  # Gate on the exact tagged commit (GITHUB_SHA). Mirrors ci.yml's gate
+  # (`just ci` + spec-test correspondence) minus draft-change validation —
+  # see the header note. Failed / skipped / cancelled blocks `publish`
+  # via its `needs` list.
+  test:
+    name: Gate tagged commit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install Rust stable (rustup) + fmt/clippy components
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+
+      - name: Install pinned ecosystem tools (versions.ddl.toml)
+        run: scripts/ci-install.sh
+
+      - name: Install just (gate runner)
+        run: cargo install just --version 1.59.0
+
+      - name: Gate — pretender, fmt / clippy -D warnings / tests / wasm (just ci)
+        run: just ci
+
+      - name: Gate — ah check (spec-test correspondence)
+        run: ah check
+
+  security:
+    name: Advisory & secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # The audit/scan steps run just recipes — install just or they exit 127
+      - uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: security
+
+      - name: Dependency advisory audit (RustSec)
+        run: just advisory
+
+      - name: Secret scan
+        run: just secret-scan
+
+  publish:
+    name: Publish Release
+    needs: [build-linux, build-darwin, build-windows, test, security]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: bins-*
+          path: bins/
+          merge-multiple: true
+
+      - name: Package archives and checksums
+        id: pkg
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          mkdir -p dist
+          # upload-artifact v4 does not preserve file permissions — restore the
+          # exec bit or the tarballs ship 644 binaries and `curl | tar xz`
+          # installs a non-runnable catherine (see DDL-3av).
+          chmod +x -- bins/*/*
+          tar -czf "dist/catherine_${VERSION}_linux_amd64.tar.gz"  -C bins/linux_amd64  catherine
+          tar -czf "dist/catherine_${VERSION}_linux_arm64.tar.gz"  -C bins/linux_arm64  catherine
+          tar -czf "dist/catherine_${VERSION}_darwin_amd64.tar.gz" -C bins/darwin_amd64 catherine
+          tar -czf "dist/catherine_${VERSION}_darwin_arm64.tar.gz" -C bins/darwin_arm64 catherine
+          (cd bins/windows_amd64 && zip "../../dist/catherine_${VERSION}_windows_amd64.zip" catherine.exe)
+          cd dist && sha256sum ./*.tar.gz ./*.zip > checksums.txt
+
+      - name: Assert workspace versions match the tag
+        # The shipped binary's `--version` comes from catherine-cli's
+        # manifest — a v0.2.0 tag whose binary reports v0.1.0 would be a
+        # broken release. Every published crate's manifest version must
+        # equal the tag version (ddl is single-crate so its pattern needs
+        # no such gate; a workspace does).
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, subprocess, sys
+          want = os.environ["TAG"]
+          if want.startswith("v"):
+              want = want[1:]
+          meta = json.loads(subprocess.check_output(
+              ["cargo", "metadata", "--no-deps", "--format-version", "1"]))
+          published = {"catherine-core", "catherine-analysis",
+                       "catherine-ledger", "catherine-cli"}
+          bad = [f'{p["name"]}: {p["version"]} != {want}'
+                 for p in meta["packages"]
+                 if p["name"] in published and p["version"] != want]
+          if bad:
+              print("::error::crate versions do not match tag " + os.environ["TAG"] + ":")
+              print("\n".join(bad))
+              sys.exit(1)
+          EOF
+
+      # DDL-wof (SEC-03/06): publish cryptographically verifiable provenance
+      # for every supported binary. provenance.json binds each artifact's
+      # sha256 to the publisher/build identity (repository, workflow, tag).
+      # Excluded from its own artifact map — a file cannot contain its own
+      # digest.
+      - name: Generate provenance manifest
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'EOF'
+          import hashlib, json, os
+          dist = "dist"
+          artifacts = {}
+          for name in sorted(os.listdir(dist)):
+              if name == "provenance.json":
+                  continue
+              path = os.path.join(dist, name)
+              if not os.path.isfile(path):
+                  continue
+              h = hashlib.sha256()
+              with open(path, "rb") as f:
+                  for chunk in iter(lambda: f.read(1 << 20), b""):
+                      h.update(chunk)
+              artifacts[name] = h.hexdigest()
+          provenance = {
+              "repository": os.environ["REPO"],
+              "workflow": "Release",
+              "tag": os.environ["TAG"],
+              "artifacts": artifacts,
+          }
+          with open(os.path.join(dist, "provenance.json"), "w") as f:
+              json.dump(provenance, f, indent=2, sort_keys=True)
+              f.write("\n")
+          EOF
+
+      - name: Create GitHub release (idempotent on retry)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${{ steps.pkg.outputs.version }}"
+          PRERELEASE=""
+          [[ "${TAG}" == *-* ]] && PRERELEASE="--prerelease"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "::notice::release ${TAG} already exists — leaving assets as-is (idempotent retry)."
+          else
+            gh release create "${TAG}" \
+              --title "${TAG}" \
+              --generate-notes \
+              $PRERELEASE \
+              dist/catherine_${VERSION}_linux_amd64.tar.gz \
+              dist/catherine_${VERSION}_linux_arm64.tar.gz \
+              dist/catherine_${VERSION}_darwin_amd64.tar.gz \
+              dist/catherine_${VERSION}_darwin_arm64.tar.gz \
+              dist/catherine_${VERSION}_windows_amd64.zip \
+              dist/checksums.txt \
+              dist/provenance.json
+          fi
