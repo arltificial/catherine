@@ -69,12 +69,15 @@ Findings + dispositions:
 - [NOTE, RECORDED] Probe 2's source annex is a recon PDF extraction, not
    a corpus document; recorded in the entry discrepancies so no
    corpus-ingest claim is implied.
-- [BLOCKER, PRE-EXISTING, FILED] `cargo test --workspace` hangs on
-   `catherine-core`'s `presentation_row_names_never_reach_the_hash`
-   proptest (canonical relabel exponential on symmetric models): the
-   test alone exceeded 180 s repeatedly; the full suite is green with
-   that property skipped. Not caused by this ticket; filed as a beads
-   bug with the repro.
+- [RESOLVED AFTER RETEST] An earlier run suggested
+   `catherine-core`'s canonicalization proptest hung; retested clean:
+   `cargo test -p catherine-core --test roundtrip` completes in 23 s and
+   the whole workspace suite is green. The genuine limitation is
+   narrower: `model_hash` on a *large* symmetric fixture (120 identical
+   path rows) does not finish promptly, which is why the probe fixtures
+   were authored at reduced row counts. Filed as `catherine-6fs`
+   (performance, not a test hang) and closed with this evidence; the
+   fixture-size choice stands and is documented in the probe READMEs.
 - [DEFERRED, LOW] `ah check` positional-argument error seen once from
    the pre-commit wrapper (clap: "--changes requires a value") while the
    same `ah check` passes standalone and via `lefthook run`; not
