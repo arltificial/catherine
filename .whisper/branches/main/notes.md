@@ -168,7 +168,7 @@
   HEAD: 59a6072 (fix(ci): ensure wasm32 target for the pinned toolchain inside check-wasm)
   Session: omp orchestrator (renew + orchestrate; user directive: push + implement all remaining tickets, tdd-ro5u, commit per ticket)
   Task: catherine — pushed main; closed mrq, 7e8, 9b5 (wasm+web), 1ml; CI lane hardened; hc6 partial
-  Previous entry: 84ea7114ac118c4834e730e7f702783aa6133205e61aaaa00ca478a0f236922a
+  Previous entry: 84ea7114ac118c4834e730e7f702783aa6133205e61aaaa00ca478a0f236922a (superseded by 6247ad93ae0a6d5ac36284b66d466dba57c1cc4c849a612422e4c17081fecfa5)
   
   Objective: implement ALL remaining tickets per tdd-ro5u with a commit after each; push lane first.
   
@@ -190,3 +190,55 @@
   Validation: just ci green locally at bc6fc18 pre-justfile-fix (only delta = idempotent rustup line); boundary/parity/vitest/tsc green; wasm smoke screenshot archived; export fresh at bc6fc18 content.
   
   Constraints: push authorized for the CI-fix lane + ticket commits (done); bogart work NEVER pushed; user ship-checkpoint replaced by per-ticket commit directive; P6 verdict procedure + stop condition stand; no claims of detection-rate wins; kernel crates genesis-free.
+- 2026-11-12T19:58:07Z [id:6247ad93ae0a6d5ac36284b66d466dba57c1cc4c849a612422e4c17081fecfa5] (#resume-catherine-design) Format: 1
+  Timestamp: 2026-11-12T14:05:00Z
+  Repo: arltificial/catherine (private, github, host alias git@at)
+  Branch: main
+  HEAD: ca67edf (chore(beads): export — close catherine-dvx (last ticket))
+  Session: omp orchestrator (long campaign session; waves delegated to task agents, several phases completed inline when credit windows died mid-dispatch — deviations disclosed in per-ticket ro5u artifacts)
+  Task: catherine — ALL 12 TICKETS CLOSED: campaign complete (user directive: push + implement all remaining tickets, tdd-ro5u, commit per ticket)
+  Previous entry: 6b4f65bedb40a546686cfa837247e0f2ad4c52ad80dbb54e01245f30bc989681
+  
+  Objective: build catherine per docs/DESIGN.md to completion — done; bd ready reports "No open issues".
+  
+  Current phase: commit (everything landed and pushed; nothing in flight in the repo).
+  
+  Current state — verdicts and headline landings:
+  - P6 catherine-9vv (STOP CONDITION) executed: FizzBuzz negative control ran FIRST and self-negated (killed, zero unique detections); ledger verdict SURVIVED (scoped); P7/P8 gates flipped per the recorded procedure; crates/catherine-ledger + ledger/ entries #1-#5.
+  - P7 catherine-alr: format 1.1 schema maps (hash-neutral, pinned model_hash), pullback reindex with loud lost-data enumeration, Δ∘Δ′ return-identity proof (ignored test un-ignored + identity regression), catherine migrate CLI (exit 8 lost-data, 0 lossless). Multi-arrow target paths are a DOCUMENTED phase-B limit (valued cells recorded as lost, cells None — module doc in migrate/transport.rs).
+  - P8 catherine-nq5 (HYPOTHESIZED): format 1.2 rule presentation (KNOWN_MINOR=2, hash-neutral), sim-oracle parity engine, catherine rules CLI; pre-registered validation verdict SURVIVED-SCOPED — 12-fault matrix conventional 7/12 vs lens 12/12, 5 unique ALL structural redundancy (caveat recorded in ledger/rule-lens entry, never rounded); near-floor control killed 0/3; ledger/rule-lens/ is a sibling ledger (P6's sealed rollup forbids appends).
+  - P9 catherine-hc6 (bogart pilot, models 1-3) closed: bogart commits fd07973,4864809,943a300,4f400ea; triage 2 real (bogart-4wt filed in bogart bd) / 67 noise accounted.
+  - P9 adjunct catherine-ga7 closed: spec-driven grounded-instance harness (bogart commits bc51d1e,a8dafd8); byte-identical parity with the pilot model; seeded must-gate 7/7 with witnesses; ZERO catherine kernel delta.
+  - P10 catherine-dvx closed (LAST): schema-diff classification accreted/weakened-with-witness/refactor-equivalent/cosmetic-silent over the shared bounded engine; catherine diff CLI; kernel delta 0.
+  - P5 catherine-9b5: wasm boundary + web view (headless smoke verified); P2 wave mrq/7e8/1ml/3zs/w6z all closed (ratchets + gates).
+  - CI lane hardened earlier: GITHUB_PATH for npm prefix, pinned rust-toolchain.toml 1.98.1, wasm32 target in check-wasm.
+  
+  Exact next action: NONE pending on the ticket chain. Candidates when asked: (a) confirm the GitHub Actions run on the latest pushes is green (gh run list); (b) bogart's 6 commits remain UNPUSHED (user-gated policy — never push without explicit instruction); (c) optional future work: multi-arrow path composition in Δ reindex (phase-B limit), no other follow-ups filed.
+  
+  Essential constraints: push authorized only as already done (main pushed through ca67edf); bogart pushes never; gates green at every ticket commit (fmt/clippy -D warnings/workspace tests/wasm/openspec strict/pretender); pretender caps forced several decompositions (file ≤400, fn ≤40, app cyc ≤10, test-fn cyc ≤3); commit-per-ticket with ro5u artifacts (openspec/changes/<change>/ro5u-review.md or .wai/projects/catherine/reviews/<id>-ro5u.md); bd close+export orchestrator-owned; 11/11 openspec changes strict-valid.
+  
+  Validation: just ci EXIT=0 at the last feature commit a286401; the final two commits after it are export chores (issues.jsonl only); openspec validate --changes strict 11/11.
+  
+  Unresolved: GH Actions status for the last pushes (not polled to completion); bogart repo has 2 pre-existing unrelated dirty files (not ours). (supersedes 6b4f65bedb40a546686cfa837247e0f2ad4c52ad80dbb54e01245f30bc989681)
+- 2026-11-12T20:48:57Z [id:07c7b0a91a635464b4d6855ad330894eac7f263e2aa3968f0ebb6bc237e8afdb] (#resume-catherine-design) Format: 1
+  Timestamp: 2026-11-12T20:48:47Z
+  Repo: arltificial/catherine (private, github, host alias at)
+  Branch: main
+  HEAD: ca67edf (equals origin/main; working tree clean except this handoff append)
+  Session: omp renew session (no session id exposed)
+  Task: catherine campaign post-completion verification; bogart publish-unit regression test committed
+  Previous entry: none (prior campaign record 6247ad93ae0a6d5ac36284b66d466dba57c1cc4c849a612422e4c17081fecfa5 stays valid, not superseded — different session)
+  
+  Objective: close out the "all 12 tickets closed" state, verify CI, and decide the deferred Δ multi-arrow-path question.
+  Current phase: commit/close — catherine has nothing in flight; no code changed this session.
+  
+  Current state:
+  - CI: both pending runs at ca67edf and a286401 concluded success (43293107492 at 20:10Z, 43293048032 at 20:13Z). All earlier pushes green except 43267211010 (migrate CLI), superseded by green efbc99f run. Item (a) from the previous handoff is CLOSED.
+  - Δ multi-arrow paths (item c) DEFERRED to another session by user. Analysis done, no code: parse accepts any non-empty list of declared target arrows (parse/schema_map.rs::declared_path, "typing check is phase B" — never added); transport.rs::reindex_arrow treats len>1 as non-transportable and turns every valued cell into LostCell. No fixture or spec sentence covers len>1. Consequence: a malformed single-arrow map (wrong endpoint/start) looks identical to designed loss — class-A seam. Forward composition is ill-defined (needs intermediate rows = invention, or writes into tables owned by other arrows). Options: A pin+validate (typing pass, reason-bearing witness, 4th fixture, spec sentence — recommended, small); B reject len>1 at parse (breaking parse change vs additive policy); C true pullback direction (target instance + map -> source instance, chained lookup, dangling = None — coherent home for composition, medium cost). Do not build forward composition.
+  - Bogart (host alias at, ../bogart, main): another live session committed c5e24e6 (unit PATH + EnvironmentFile) and 1459d8b, then pushed both. This session added c93eabe "test(systemd): pin the publish unit's PATH and MCP credential env (a4h.4)" — 12 lines in scripts/test_publish_timers.py, RED proven against b9a0b4c's unit, 7/7 green at HEAD. Local main is ahead 1 of origin/main, NOT pushed (explicit user instruction). 13 dirty files remain from the parallel session (publish_daily.py, clj builder/tests, docs) — untouched.
+  
+  Exact next action: on request, (i) push c93eabe when the user authorizes (push was explicitly declined this session); (ii) start option A for the multi-arrow limit; (iii) yesterday's publish timer first live run at 2026-11-13 06:00:59 -03 — inspect journalctl --user -u bogart-publish.service and tail data/backfill/publish-state.jsonl.
+  
+  Constraints: never push bogart without explicit instruction; the bogart working tree belongs to a concurrent session — do not touch its dirty files; no ticket claims this session; bd ready in catherine is empty.
+  Validation: catherine just ci not rerun (no code change this session); CI green as above; category: verified externally.
+  Unresolved: multi-arrow decision (deferred); bogart b92 stale daily_pickup fixtures; /opt/bogart closure at c310063; openspec archive for add-norma-observation-bridge (bogart-ovo).

@@ -1,0 +1,11 @@
+id = "non-invertible-round-trip-proven"
+description = "When the composed round-trip of a forward schema map and a candidate inverse is not the identity on some element, the executed report proves non-invertibility by exhibiting the element whose return differs, naming its collapsing sibling and the return the inverse yields instead."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_collapsing_round_trip_proves_non_invertibility_with_the_offending_row" },
+]

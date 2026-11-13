@@ -1,0 +1,11 @@
+id = "witnessed-difference"
+description = "Two instances differing on an observation within the declared set yield a distinguishable result naming the differing observation and both values, with the observation set echoed in the result."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "task5_differing_observation_is_named_with_both_values" },
+]

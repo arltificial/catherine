@@ -6,3 +6,6 @@ changes = "openspec/changes"
 
 [runners]
 cargo = ["cargo", "test"]
+# The web view's tests live in web/ (own package + vitest config); the
+# runner chdirs there and appends contract flags as vitest path filters.
+vitest = ["sh", "-c", "cd web && npx vitest run \"$@\"", "vitest"]

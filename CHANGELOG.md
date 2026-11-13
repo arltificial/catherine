@@ -235,6 +235,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Specs deployed: the 10 completed openspec changes are archived into
+  `openspec/specs/` (9 capabilities) and every deployed scenario is bound
+  to an executable contract under `.espectacular/<capability>/` — 52/52
+  covered, so `ah check` now checks something (it previously had zero
+  deployed specs and was vacuous). All 79 contract test entries pass.
+  Two scenarios had no verifying test and gained one: kernel dependency
+  purity (`crates/catherine-wasm/tests/purity.rs`) and the web save path
+  (`web/src/save.ts` + `web/test/save.test.ts`, with a `vitest` runner in
+  `.espectacular/config.toml`). `add-bogart-pilot` remains an open change
+  (models 4–5 unimplemented).
 - License: MIT → Apache-2.0 (matches code donors specodelic/wild/genesis;
   switched before any code landed).
 - underconstraint: the direct-only `related()` limit — transitive accepted

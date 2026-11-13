@@ -1,0 +1,11 @@
+id = "oversized-instance-rejected-at-the-boundary"
+description = "A document exceeding the declared byte cap is rejected at the boundary with the typed DocumentTooLarge error carrying the actual and maximum byte counts, so the kernel's parser (and thus the kernel) is never invoked on the oversized instance."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "oversized_document_yields_the_typed_cap_error" },
+]

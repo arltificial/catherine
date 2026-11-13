@@ -1,0 +1,11 @@
+id = "parallel-paths-without-equation"
+description = "Two paths sharing endpoints with no relating equation raise an underconstraint finding naming both paths, labeled hypothesized and phrased as the domain question rather than a violation."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "task3_parallel_paths_raise_the_hypothesized_domain_question" },
+]

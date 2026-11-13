@@ -1,0 +1,11 @@
+id = "parity-with-the-donor-implementation"
+description = "Ported instance tables and checks run over the specodelic corpus representations produce findings matching specodelic's acset behavior on every shared case before any rewrite of ported logic is merged."
+archetype = "NR"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "parity_fixtures_match_the_vendored_expected_sets" },
+]

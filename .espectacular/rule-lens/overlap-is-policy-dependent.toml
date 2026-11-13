@@ -1,0 +1,12 @@
+id = "overlap-is-policy-dependent"
+description = "When two rule regions intersect, DeclaredDisjoint yields a violation witnessed on the intersecting input, while a declared resolving policy such as PriorityOrder yields no overlap finding because the policy resolves the ambiguity."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "overlap_fixture_maps_to_an_executed_violation" },
+    { flags = "priority_policy_reports_no_overlap_finding" },
+]

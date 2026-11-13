@@ -1,0 +1,11 @@
+id = "the-view-is-never-the-source-of-truth"
+description = "Saving an edited document downloads model.ct.json whose bytes are the edited text verbatim — a plain .ct.json identical in format to what the kernel parses, with no keys or side-car state added by the UI."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+vitest = [
+    { flags = "test/save.test.ts" },
+]

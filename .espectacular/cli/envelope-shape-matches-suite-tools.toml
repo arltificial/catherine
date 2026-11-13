@@ -1,0 +1,13 @@
+id = "envelope-shape-matches-suite-tools"
+description = "Any `catherine` command run with `--json` emits output that parses as the same envelope shape turu/whisper/ddl emit (ok, envelope_kind, data, warnings, hints), with findings under `data.findings`."
+archetype = "CE"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "findings_envelope_carries_the_suite_shape" },
+    { flags = "check_violating_fixture_emits_envelope_and_exits_3" },
+    { flags = "findings_view_has_the_same_payload_as_check" },
+]

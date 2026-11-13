@@ -1,0 +1,11 @@
+id = "budget-exhaustion-is-unknown-not-success"
+description = "A bound that expires before exhaustion yields UNKNOWN carrying the explored scope and the exact candidate count, never a contradiction or a naked no-contradiction-found claim."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "task2_small_budget_yields_unknown_with_the_explored_scope" },
+]

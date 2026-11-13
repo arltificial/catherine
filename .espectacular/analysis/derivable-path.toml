@@ -1,0 +1,11 @@
+id = "derivable-path"
+description = "A path that rewrites to a declared path under the equation set yields a redundant finding naming the derivable path and its reducing path, while paths without a proof are not claimed redundant."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "task4_derivable_equation_is_proven_redundant_with_both_paths" },
+]

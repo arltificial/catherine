@@ -1,0 +1,11 @@
+id = "round-trip-preserves-the-model"
+description = "Serializing an arbitrary valid model and re-parsing the bytes yields a model equal to the original."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "roundtrip_preserves_the_model" },
+]

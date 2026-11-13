@@ -1,0 +1,11 @@
+id = "shadow-rule-is-redundant-with-proof"
+description = "When a rule's effective region is empty under the declared policy, analysis emits a redundant finding naming that rule as derivable and the earlier rule whose region covers it, deriving the death from the earlier rules plus the policy."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "shadow_fixture_maps_to_an_executed_redundancy" },
+]

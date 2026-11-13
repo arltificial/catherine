@@ -1,0 +1,11 @@
+id = "unknown-major-is-rejected"
+description = "A document declaring an unknown format_version major, or omitting the field, fails parsing with unsupported_version carrying the line and column of the format_version node, never a partial or guessed parse."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "malformed_presentations_are_rejected_at_the_pinned_nodes" },
+]

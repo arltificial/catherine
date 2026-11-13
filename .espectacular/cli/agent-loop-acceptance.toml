@@ -1,0 +1,12 @@
+id = "agent-loop-acceptance"
+description = "An agent running `catherine check bowling.ct.json --json` on a model whose accepted equation one row violates gets exactly one violation entry in `data.findings` carrying the equation id, the row id and both path values, and the command exits with the violation exit code."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "check_violating_fixture_emits_envelope_and_exits_3" },
+    { flags = "design_s5_walkthrough_violating_then_fixed" },
+]

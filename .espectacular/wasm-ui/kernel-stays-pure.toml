@@ -1,0 +1,11 @@
+id = "kernel-stays-pure"
+description = "Building the workspace for the wasm32 target compiles catherine-core and catherine-analysis with no wasm-bindgen or genesis dependency in their resolved dependency graph, so the kernel links nothing browser-specific and nothing from the sibling suite."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "kernel_crates_link_no_wasm_bindgen_or_genesis" },
+]

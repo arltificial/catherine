@@ -1,0 +1,12 @@
+id = "budget-expiry-is-unknown"
+description = "A candidate budget that expires before the space is exhausted classifies as unknown with the exact explored scope and candidate count, never as equivalence."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "budget_expiry_is_unknown_and_structural_change_is_refused" },
+    { flags = "weakened_edit_exits_3_with_witness_and_budget_expiry_is_unknown" },
+]

@@ -1,0 +1,11 @@
+id = "ill-typed-equation"
+description = "An equation whose lhs and rhs paths end at different objects fails with ill_typed_equation, and a path referencing an undeclared arrow fails with unknown_arrow, each naming the offending path."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "malformed_presentations_are_rejected_at_the_pinned_nodes" },
+]

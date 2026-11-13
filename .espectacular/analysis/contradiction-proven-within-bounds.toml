@@ -1,0 +1,11 @@
+id = "contradiction-proven-within-bounds"
+description = "Exhausting the declared bound with no instance satisfying the accepted equations yields a contradiction finding with the bound restated - a completed-exhaustion proof, not a witness or UNKNOWN."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "task1_over_constrained_schema_exhausts_to_contradiction" },
+]

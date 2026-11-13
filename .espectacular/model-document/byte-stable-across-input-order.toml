@@ -1,0 +1,12 @@
+id = "byte-stable-across-input-order"
+description = "The same model written twice under different JSON key ordering yields byte-identical canonical serialization and equal model hashes."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "serialization_is_byte_stable_across_input_order" },
+    { flags = "model_hash_is_structure_only" },
+]

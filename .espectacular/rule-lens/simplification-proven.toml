@@ -1,0 +1,11 @@
+id = "simplification-proven"
+description = "When a rule table is replaced by a smaller table plus a declared precedence policy and no distinguishing witness exists in-domain, the equivalence check returns equivalent-in-scope with the bound stated."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "shadowed_rule_drops_without_witness" },
+]

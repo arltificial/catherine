@@ -1,0 +1,11 @@
+id = "refactor-proven-equivalent-in-scope"
+description = "Two schemas enforcing the same instance space whose bounded enumeration exhausts without a separating instance classify as equivalent-in-scope with the explored scope echoed and zero findings."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "refactor_is_equivalent_in_scope_and_cosmetic_edit_is_silent" },
+]

@@ -1,0 +1,13 @@
+id = "fizzbuzz-self-negation"
+description = "The FizzBuzz negative-control kata entry records a self-negating verdict with its comparison procedure (findings fired vs conventional baseline) attached, claims no unique detection over conventional trivial tests, and is the first kata entry in the ledger."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "rejects_control_that_did_not_self_negate" },
+    { flags = "rejects_kata_entry_without_prior_negative_control" },
+    { flags = "rollup_invalid_run_when_the_control_fails_to_self_negate" },
+]

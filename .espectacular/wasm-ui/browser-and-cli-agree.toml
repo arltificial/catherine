@@ -1,0 +1,11 @@
+id = "browser-and-cli-agree"
+description = "For every parity-corpus and CLI fixture document, the wasm boundary's findings JSON is identical to the kernel path the CLI forwards, so the browser and the CLI report the same findings with the same kinds, labels, and witnesses."
+archetype = "CE"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "wasm_and_kernel_paths_agree_on_every_fixture" },
+]

@@ -1,0 +1,11 @@
+id = "proposed-equation-failure-is-a-question-not-a-violation"
+description = "A failing proposed equation yields a violation-shaped outcome labeled hypothesized — a domain question under review — countable separately from the accepted equation's executed violation over the same failing row."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "proposed_failure_is_violation_shaped_and_hypothesized" },
+]

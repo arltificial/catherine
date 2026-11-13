@@ -1,0 +1,12 @@
+id = "ci-branches-without-parsing"
+description = "A check run that produces only dangling findings exits with the dangling-class code and a clean model exits 0, so CI and agents branch on exit status without parsing output text."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "check_dangling_fixture_exits_4_and_the_run_continues" },
+    { flags = "check_clean_fixture_exits_0_with_empty_findings" },
+]

@@ -1,0 +1,12 @@
+id = "null-reference-survives-parsing"
+description = "An instance arrow value of null parses without error or repair, is carried as a dangling value, and canonical serialization round-trips it as null."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "dangling_value_is_reported_and_the_run_continues" },
+    { flags = "roundtrip_preserves_the_model" },
+]

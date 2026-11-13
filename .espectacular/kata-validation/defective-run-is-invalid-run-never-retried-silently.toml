@@ -1,0 +1,12 @@
+id = "defective-run-is-invalid-run-never-retried-silently"
+description = "A kata run that hits a tooling defect records invalid-run with the defect, and a re-run is a new append-only entry referencing the invalid one rather than a silent retry."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "superseding_entry_is_accepted_when_target_exists" },
+    { flags = "rejects_supersession_pointing_at_missing_entry" },
+]

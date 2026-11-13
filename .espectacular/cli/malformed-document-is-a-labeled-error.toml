@@ -1,0 +1,12 @@
+id = "malformed-document-is-a-labeled-error"
+description = "A model document that fails parsing (a duplicate ident at line 14) fails with a labeled error carrying line/column, a stable code and a remediation hint — never a stack trace or a silent success."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "check_malformed_fixture_emits_error_envelope_and_exits_1" },
+    { flags = "check_human_malformed_error_is_labeled_without_stack_trace" },
+]

@@ -1,0 +1,12 @@
+id = "structural-change-is-refused"
+description = "Schemas differing in objects or arrows classify as incomparable, because instance spaces across different vocabularies require a declared schema map rather than a guess."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "budget_expiry_is_unknown_and_structural_change_is_refused" },
+    { flags = "diff_surface_surfaces_malformed_input_honestly" },
+]

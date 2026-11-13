@@ -1,0 +1,11 @@
+id = "killed-stops-p7-p8"
+description = "A project-level killed verdict recorded in the P6 ledger is the stop condition: the gated P7 migration and P8 rule-lens tickets remain closed-unevaluated and the negative-result document exists."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "rollup_killed_when_a_positive_kata_is_killed" },
+]

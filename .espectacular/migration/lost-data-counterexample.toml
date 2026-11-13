@@ -1,0 +1,12 @@
+id = "lost-data-counterexample"
+description = "A schema map that drops a source object's rows emits one executed lost-data finding per dropped row, each naming the object and row identity, so the losses are countable and stably ordered rather than silent."
+archetype = "CE"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "drop_object_enumerates_one_lost_data_finding_per_dropped_row" },
+    { flags = "migrate_human_lines_name_every_lost_element" },
+]

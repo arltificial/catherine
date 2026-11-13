@@ -1,0 +1,11 @@
+id = "dangling-arrow-value"
+description = "An arrow value naming a nonexistent row emits a dangling outcome carrying the arrow and source row; equations traversing that arrow report the affected rows as not evaluable through the dangling reference rather than as violations, and the rest of the run continues."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "dangling_value_is_reported_and_the_run_continues" },
+]

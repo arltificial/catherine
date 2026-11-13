@@ -1,0 +1,12 @@
+id = "faithful-reindex"
+description = "Migrating a source instance along a schema map yields a target instance whose kept rows transfer verbatim with no invented rows or objects, and the reported source-to-target row correspondence accounts for every kept source row."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "reindex_invents_nothing_and_carries_kept_rows_verbatim" },
+    { flags = "migrate_lost_data_envelope_is_exit_8_with_kernel_findings_verbatim" },
+]

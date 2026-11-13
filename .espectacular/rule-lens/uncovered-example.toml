@@ -1,0 +1,11 @@
+id = "uncovered-example"
+description = "When a candidate rule table assigns no action to a supplied input-to-output example, candidate discovery reports that example as a gap finding naming the uncovered input class and the example's index."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "an_uncovered_example_is_a_gap_finding" },
+]

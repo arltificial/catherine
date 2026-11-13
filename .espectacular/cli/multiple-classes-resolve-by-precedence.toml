@@ -1,0 +1,12 @@
+id = "multiple-classes-resolve-by-precedence"
+description = "A check run that produces both dangling and violation findings exits with the violation-class code while the output payload still lists both finding classes, resolving the class set under the fixed precedence violation > dangling > contradiction > underconstraint > redundant."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "check_multi_class_fixture_exits_3_and_lists_both_classes" },
+    { flags = "multi_class_runs_exit_with_the_minimum_class_code" },
+]

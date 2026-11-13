@@ -1,0 +1,12 @@
+id = "repeated-runs-are-diff-stable"
+description = "Checking the same model twice, in one process or across processes, serializes byte-identical finding lists."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "repeated_checks_are_byte_identical" },
+    { flags = "findings_round_trip_and_serialize_stably" },
+]

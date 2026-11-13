@@ -1,0 +1,11 @@
+id = "violation-finding-carries-row-and-values"
+description = "A kernel check that produces a violation yields a Violation finding carrying the equation id, the offending row id, and both composed path values, assertable structurally rather than through output text."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "violation_from_a_real_kernel_run_carries_label_and_witness" },
+]

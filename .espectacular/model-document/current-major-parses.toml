@@ -1,0 +1,12 @@
+id = "current-major-parses"
+description = "Parsing a .ct.json document whose format_version names the current major with a minor this build knows (minor <= KNOWN_MINOR) succeeds and fully represents the document's schema and instance."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "empty_schema_and_empty_instance_parse_cleanly" },
+    { flags = "roundtrip_preserves_the_model" },
+]

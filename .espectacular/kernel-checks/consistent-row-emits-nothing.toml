@@ -1,0 +1,11 @@
+id = "consistent-row-emits-nothing"
+description = "When every row satisfies every accepted equation, checking returns zero outcomes — silence is post-evaluation success over stored values, not an unevaluated declaration."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "consistent_instance_is_silent" },
+]

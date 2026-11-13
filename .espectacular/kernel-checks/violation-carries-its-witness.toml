@@ -1,0 +1,11 @@
+id = "violation-carries-its-witness"
+description = "A row whose accepted equation lhs and rhs paths compose to different rows yields exactly one violation outcome naming the equation, the row id and both composed path values — one outcome per violating row, not one per equation."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "accepted_violation_carries_its_witnesses" },
+]

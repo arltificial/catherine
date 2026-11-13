@@ -1,0 +1,11 @@
+id = "duplicate-identifier"
+description = "A document where two objects or two arrows share one identifier fails parsing with duplicate_ident pointing at the second occurrence, and neither occurrence is stored."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "malformed_presentations_are_rejected_at_the_pinned_nodes" },
+]

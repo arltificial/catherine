@@ -1,0 +1,11 @@
+id = "action-assignment-must-be-total"
+description = "When a rule table's rule regions leave part of the declared input domain uncovered, bounded analysis emits a gap finding as a hypothesized underconstraint naming the uncovered input class (\"age = 70\") and the uncovered inputs."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "gap_fixture_maps_to_a_hypothesized_underconstraint" },
+]

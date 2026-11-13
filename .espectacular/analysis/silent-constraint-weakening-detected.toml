@@ -1,0 +1,12 @@
+id = "silent-constraint-weakening-detected"
+description = "Dropping an equation v1 enforced while a fully-resolved bounded instance satisfies every accepted v2 equation and violates the dropped v1 equation classifies as weakened with exactly one violation/executed finding, and the witness re-checks clean under v2 and rejected under v1."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "weakening_pair_is_caught_with_a_v2_valid_v1_invalid_witness" },
+    { flags = "weakened_edit_exits_3_with_witness_and_budget_expiry_is_unknown" },
+]

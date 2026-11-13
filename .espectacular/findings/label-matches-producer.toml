@@ -1,0 +1,13 @@
+id = "label-matches-producer"
+description = "A finding produced by kernel execution of an accepted equation carries the executed label, while a finding raised as a domain question (proposed equation or parallel paths) carries the hypothesized label."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "violation_from_a_real_kernel_run_carries_label_and_witness" },
+    { flags = "proposed_failure_is_violation_shaped_and_hypothesized" },
+    { flags = "underconstraint_shape_pins_both_witness_arms" },
+]

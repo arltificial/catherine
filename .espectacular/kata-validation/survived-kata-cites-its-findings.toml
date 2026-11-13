@@ -1,0 +1,11 @@
+id = "survived-kata-cites-its-findings"
+description = "A kata that reproduces its ct-catlab-validated findings as executed checks records a survived ledger entry citing each reproduced finding by id, with any inexpressible invariant listed in the gap field."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "rule_lens_ledger_is_valid_and_derives_its_recorded_verdict" },
+]

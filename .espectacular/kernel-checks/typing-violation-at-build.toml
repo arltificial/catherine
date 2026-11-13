@@ -1,0 +1,11 @@
+id = "typing-violation-at-build"
+description = "Assigning an arrow a value naming a row of an object that is not the arrow's target records a build-time typing violation naming the row and arrow, and the value never becomes a morphism table entry."
+archetype = "SA"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "typing_violation_is_a_build_report_and_never_stored" },
+]

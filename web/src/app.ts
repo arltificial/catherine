@@ -6,6 +6,7 @@
 
 import { byId, clear, el, text } from "./dom";
 import { renderFindings } from "./findings";
+import { saveArtifact } from "./save";
 import { renderSchemaGraph } from "./schemaGraph";
 import { runCheck, type BoundaryErrorEnc } from "./wasm";
 import type { CtSchemaV1Document } from "./types/ct-schema-v1";
@@ -70,11 +71,7 @@ function loadFile(file: File): void {
 
 /** Save the textarea's current document as a downloaded `.ct.json` file. */
 function saveFile(): void {
-  const blob = new Blob([byId<HTMLTextAreaElement>("doc").value], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = el("a", { href: url, download: "model.ct.json" });
-  link.click();
-  URL.revokeObjectURL(url);
+  saveArtifact(byId<HTMLTextAreaElement>("doc").value);
 }
 
 /** The ledger's kata fixtures, as loadable presets (tasks.md task 6).
