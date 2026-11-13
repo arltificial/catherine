@@ -1,0 +1,11 @@
+id = "ill-formed-key"
+description = "A key whose object or arrow is undeclared, whose arrow is not sourced at the key's object, or whose arrow list is empty or repeats a name fails parsing with invalid_key at the key's node, naming the exact defect."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "ill_formed_key" },
+]

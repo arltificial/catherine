@@ -1,0 +1,12 @@
+id = "presentation-only-edit-is-silent"
+description = "An edit whose only difference from v1 is equation rationale, document order, or a proposed equation or key classifies as cosmetic and emits zero findings."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "refactor_is_equivalent_in_scope_and_cosmetic_edit_is_silent" },
+    { flags = "proposed_key_edit_is_cosmetic" },
+]

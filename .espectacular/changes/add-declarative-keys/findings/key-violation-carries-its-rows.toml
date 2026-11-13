@@ -1,0 +1,11 @@
+id = "key-violation-carries-its-rows"
+description = "A key violation is a Violation finding carrying the key's canonical index and both colliding row ids, encoded as {\"key\": n, \"rows\": [lo, hi]} — distinguishable from an equation witness without consulting the schema."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "key_violation_carries_its_rows" },
+]

@@ -1,0 +1,11 @@
+id = "proposed-key-is-preserved-as-a-question"
+description = "A key declaring status proposed parses like any other key and leaves the schema's accepted-key set unchanged."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "proposed_key_is_preserved_as_a_question" },
+]

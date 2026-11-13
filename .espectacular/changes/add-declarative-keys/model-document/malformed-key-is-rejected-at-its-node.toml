@@ -1,0 +1,11 @@
+id = "malformed-key-is-rejected-at-its-node"
+description = "A key that names an undeclared object, names an undeclared arrow, names an arrow not sourced at its object, carries an empty arrows list, or repeats an arrow name fails parsing with invalid_key carrying the line/column of the offending node under /schema/keys/<i>, and no key is silently repaired or dropped."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "malformed_key_is_rejected_at_its_node" },
+]

@@ -1,0 +1,11 @@
+id = "keys-round-trip-and-canonicalize"
+description = "A document declaring several keys in arbitrary input order parses successfully, the schema carries them in canonical (object, arrows, status) order, and canonical serialization is byte-identical to the same keys declared in another input order."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "keys_round_trip_and_canonicalize" },
+]

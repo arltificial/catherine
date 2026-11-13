@@ -1,0 +1,11 @@
+id = "colliding-tuple-carries-its-witness"
+description = "Two rows of a key's object agreeing on every key arrow's value yield exactly one violation naming the key index and both row ids (ascending), labeled executed for an accepted key and hypothesized for a proposed one."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "colliding_tuple_carries_its_witness" },
+]

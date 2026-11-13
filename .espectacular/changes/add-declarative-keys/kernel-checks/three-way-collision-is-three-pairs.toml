@@ -1,0 +1,11 @@
+id = "three-way-collision-is-three-pairs"
+description = "Three rows agreeing on a key tuple yield three findings, one per unordered pair — each pair is a demonstrated failure with an exact witness, not a summary count."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "three_way_collision_is_three_pairs" },
+]

@@ -1,0 +1,13 @@
+id = "editor-side-validation"
+description = "Validating a .ct.json document against the published artifact detects schema-expressible errors without the kernel — missing required fields, JSON type mismatches, a bad status enum, ident-pattern violations, duplicate array-identifiers, and a key with an empty or duplicate arrows list — and the artifact documents that unknown-arrow, ill-typed-equation, and key declaredness/source checks remain kernel-side."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "schema_expressible_errors_are_rejected_without_the_kernel" },
+    { flags = "the_artifact_documents_the_kernel_side_checks" },
+    { flags = "keys_are_covered_by_the_artifact" },
+]

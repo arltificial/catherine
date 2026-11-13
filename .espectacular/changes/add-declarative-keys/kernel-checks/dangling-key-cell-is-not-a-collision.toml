@@ -1,0 +1,11 @@
+id = "dangling-key-cell-is-not-a-collision"
+description = "A row whose key arrow value is dangling yields the dangling finding for that cell and no key violation involving that row — the unresolved cell is never double-reported."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "dangling_key_cell_is_not_a_collision" },
+]

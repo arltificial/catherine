@@ -1,0 +1,13 @@
+id = "silent-constraint-weakening-detected"
+description = "Dropping an equation or an accepted key v1 enforced while a fully-resolved bounded instance satisfies every accepted v2 constraint and violates the dropped v1 constraint classifies as weakened with exactly one violation/executed finding whose witness names the lost v1 constraint, and the witness re-checks clean under v2 and rejected under v1."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "weakening_pair_is_caught_with_a_v2_valid_v1_invalid_witness" },
+    { flags = "weakened_edit_exits_3_with_witness_and_budget_expiry_is_unknown" },
+    { flags = "dropped_key_is_weakened_with_key_witness" },
+]

@@ -1,0 +1,11 @@
+id = "absent-keys-are-hash-neutral"
+description = "A pre-1.3 document carrying no keys section has exactly the canonical bytes and model hash it produced before keys existed, while a document that adds keys hashes differently."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "absent_keys_are_hash_neutral" },
+]

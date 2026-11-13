@@ -1,0 +1,11 @@
+id = "clean-key-emits-nothing"
+description = "When every row of the key's object resolves its key arrows to distinct tuples, checking emits no key finding, and repeated checks serialize byte-identically under the taxonomy's canonical order."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "clean_key_emits_nothing" },
+]
