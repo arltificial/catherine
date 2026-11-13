@@ -109,6 +109,17 @@ block → edition` plus totality of `block → document`. Hand-chase on a
 denormalized row that drifted: both sides computed, mismatch = violation
 with witness — the same finding a checker would emit, derived by hand.
 
+**Granularity rule (PROPOSED — not yet validated on a second domain).** Model
+one arrow per relation that exists as a **stored, independently writable
+reference**; do not encode relations that exist only in prose, plans, or
+derived views. Pre-build test: for every arrow you intend to declare, name
+the storing column (or table) it reads. If more than a third of the arrows
+have no storing column, you are modeling the plan, not the system — stop and
+re-scope before spending the check budget. The one-third threshold is
+arbitrary, calibrated against the bogart pilot's 2/69 finding triage; treat
+it as a smell threshold, never as a validated cutoff. The rule is
+**PROPOSED**: it has not been tested on a second domain.
+
 ## 3. State-shape invariants — what must be true whenever the system is running
 
 **Use when:** any stateful system (orders, ledgers, reservations, sessions)

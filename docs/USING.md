@@ -39,6 +39,11 @@ You are about to implement a feature described in prose. Before writing code:
 1. Restate the domain as objects and arrows ("Assignment has `staff` and
    `equipment`; each belongs to a `Unit`"). Record ambiguities as UNKNOWN —
    do not resolve them silently.
+   **Arrow granularity (PROPOSED, one-pilot calibration):** declare one
+   arrow per **stored, independently writable** reference. Before you model,
+   name the storing column for each arrow; if more than a third have none,
+   you are modeling the plan, not the system — stop. Full rule and its
+   calibration limits: `ref/ct_methodology_playbook.md` §2.
 2. Write the smallest schema that captures the *claims* the requirements
    make, plus a tiny instance of what they *imply* (3–10 rows, including
    one deliberately awkward row).
