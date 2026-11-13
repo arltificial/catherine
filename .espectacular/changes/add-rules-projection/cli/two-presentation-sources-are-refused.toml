@@ -1,0 +1,12 @@
+id = "two-presentation-sources-are-refused"
+description = "`--project` on a document that already carries a `rule_presentation` fails with a labeled `bad_argument` error, as does `--columns`/`--action` naming an arrow that is not sourced at the projected object — no implicit preference and no guessed arrow."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "projection_refuses_document_with_rule_presentation" },
+    { flags = "projection_refuses_arrow_not_sourced_at_object" },
+]

@@ -1,0 +1,12 @@
+id = "ambiguous-rows-are-violations"
+description = "Two projected rows that share every projected column value but differ as rows emit exactly one `executed` violation finding per colliding pair, with both row names in the witness, and the command exits with the violation class code."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "projection_collision_emits_one_violation_with_both_rows" },
+    { flags = "projection_capture_slice_acceptance_three_violations" },
+]

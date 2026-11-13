@@ -1,0 +1,12 @@
+id = "undeclared-absent-combinations-are-silent"
+description = "A projection of rows that cover only part of a larger conceptual set emits no `underconstraint` finding for combinations the instance does not contain; declaring such a combination through `--values` emits the gap finding naming it."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "projection_undeclared_absent_input_is_silent" },
+    { flags = "projection_declared_absent_input_yields_gap" },
+]

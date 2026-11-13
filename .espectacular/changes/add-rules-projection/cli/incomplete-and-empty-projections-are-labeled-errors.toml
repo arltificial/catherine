@@ -1,0 +1,12 @@
+id = "incomplete-and-empty-projections-are-labeled-errors"
+description = "A projection whose column or action cell is null fails with the labeled `projection_incomplete` code naming row and arrow, and a projected object with no rows fails with `empty_projection` — both under the build-failure exit class, never a silent skip or a vacuous clean run."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "projection_null_cell_is_labeled_error_with_row_and_arrow" },
+    { flags = "projection_empty_object_is_labeled_error_not_clean_run" },
+]
