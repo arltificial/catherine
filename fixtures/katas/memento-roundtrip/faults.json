@@ -1,0 +1,116 @@
+{
+  "kata": "memento-roundtrip",
+  "ticket": "catherine-lgl.5",
+  "comparison_rule": "unique = probe elements minus baseline-identified elements; an element is lost_row:<object>#<row>, lost_cell:<arrow>#<row>, or round_trip:<object>#<row>; an arm identifies an element only by naming it (a dropped field at an unsampled row is not identified)",
+  "baseline_protocol": "prototype/memento_roundtrip_baseline.py: a field-by-field save/restore migration checklist over the pre-registered sample cells below. For each sampled (arrow, row) cell it asserts that the restore map does not assign the field to null. It executes no delta, has no row or collapse model, and catches only sampled losses. --assert checks its detections and identified elements against this file and recomputes unique = probe_expected minus identified.",
+  "sample": [
+    {
+      "arrow": "snap_title",
+      "rows": [0, 1]
+    },
+    {
+      "arrow": "page_text",
+      "rows": [0, 1]
+    },
+    {
+      "arrow": "tag_label",
+      "rows": [0, 1]
+    },
+    {
+      "arrow": "snap_subtitle",
+      "rows": [0]
+    },
+    {
+      "arrow": "page_note",
+      "rows": [0]
+    },
+    {
+      "arrow": "page_owner",
+      "rows": [0]
+    }
+  ],
+  "faults": [
+    {
+      "id": "identity",
+      "fixture": "restore-identity.ct.json",
+      "control": true,
+      "probe_expected": {
+        "lost_rows": {},
+        "lost_cells": {},
+        "round_trip": []
+      },
+      "baseline_expected": [],
+      "baseline_identified": {},
+      "unique_expected": [],
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "dropped-field",
+      "fixture": "restore-dropped-field.ct.json",
+      "control": false,
+      "probe_expected": {
+        "lost_rows": {},
+        "lost_cells": {
+          "snap_word_count": [0, 1]
+        },
+        "round_trip": []
+      },
+      "baseline_expected": [],
+      "baseline_identified": {},
+      "unique_expected": [
+        "lost_cell:snap_word_count#0",
+        "lost_cell:snap_word_count#1"
+      ],
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "lossy-optional",
+      "fixture": "restore-lossy-optional.ct.json",
+      "control": false,
+      "probe_expected": {
+        "lost_rows": {},
+        "lost_cells": {
+          "page_note": [1, 3]
+        },
+        "round_trip": []
+      },
+      "baseline_expected": [],
+      "baseline_identified": {},
+      "unique_expected": [
+        "lost_cell:page_note#1",
+        "lost_cell:page_note#3"
+      ],
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "version-skew",
+      "fixture": "restore-version-skew.ct.json",
+      "control": false,
+      "probe_expected": {
+        "lost_rows": {},
+        "lost_cells": {
+          "page_next": [0],
+          "page_note": [1],
+          "page_text": [0, 1, 2]
+        },
+        "round_trip": [
+          "round_trip:SnapshotPage#0"
+        ]
+      },
+      "baseline_expected": [
+        "field-drop:page_text#0",
+        "field-drop:page_text#1"
+      ],
+      "baseline_identified": {
+        "lost_cell:page_text": [0, 1]
+      },
+      "unique_expected": [
+        "lost_cell:page_next#0",
+        "lost_cell:page_note#1",
+        "lost_cell:page_text#2",
+        "round_trip:SnapshotPage#0"
+      ],
+      "verdict_expected": "survived"
+    }
+  ]
+}

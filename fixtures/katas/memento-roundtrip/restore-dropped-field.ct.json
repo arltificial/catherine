@@ -1,0 +1,209 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": [
+      "Snapshot",
+      "SnapshotPage",
+      "SnapshotTag"
+    ],
+    "arrows": [
+      {
+        "name": "page_next",
+        "src": "SnapshotPage",
+        "tgt": "SnapshotPage"
+      },
+      {
+        "name": "page_note",
+        "src": "SnapshotPage",
+        "tgt": "SnapshotPage"
+      },
+      {
+        "name": "page_owner",
+        "src": "SnapshotPage",
+        "tgt": "Snapshot"
+      },
+      {
+        "name": "page_text",
+        "src": "SnapshotPage",
+        "tgt": "SnapshotPage"
+      },
+      {
+        "name": "snap_subtitle",
+        "src": "Snapshot",
+        "tgt": "Snapshot"
+      },
+      {
+        "name": "snap_title",
+        "src": "Snapshot",
+        "tgt": "Snapshot"
+      },
+      {
+        "name": "snap_word_count",
+        "src": "Snapshot",
+        "tgt": "Snapshot"
+      },
+      {
+        "name": "tag_label",
+        "src": "SnapshotTag",
+        "tgt": "SnapshotTag"
+      },
+      {
+        "name": "tag_owner",
+        "src": "SnapshotTag",
+        "tgt": "Snapshot"
+      }
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Snapshot": [
+        "snap_000",
+        "snap_001"
+      ],
+      "SnapshotPage": [
+        "page_000",
+        "page_001",
+        "page_002",
+        "page_003"
+      ],
+      "SnapshotTag": [
+        "tag_000",
+        "tag_001",
+        "tag_002"
+      ]
+    },
+    "tables": {
+      "page_next": {
+        "page_000": "page_001",
+        "page_002": "page_003"
+      },
+      "page_note": {
+        "page_001": "page_001",
+        "page_003": "page_003"
+      },
+      "page_owner": {
+        "page_000": "snap_000",
+        "page_001": "snap_000",
+        "page_002": "snap_001",
+        "page_003": "snap_001"
+      },
+      "page_text": {
+        "page_000": "page_000",
+        "page_001": "page_001",
+        "page_002": "page_002",
+        "page_003": "page_003"
+      },
+      "snap_subtitle": {
+        "snap_000": "snap_000"
+      },
+      "snap_title": {
+        "snap_000": "snap_000",
+        "snap_001": "snap_001"
+      },
+      "snap_word_count": {
+        "snap_000": "snap_000",
+        "snap_001": "snap_001"
+      },
+      "tag_label": {
+        "tag_000": "tag_000",
+        "tag_001": "tag_001",
+        "tag_002": "tag_002"
+      },
+      "tag_owner": {
+        "tag_000": "snap_000",
+        "tag_001": "snap_000",
+        "tag_002": "snap_001"
+      }
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": [
+        "Document",
+        "DocumentBlock",
+        "DocumentTag"
+      ],
+      "arrows": [
+        {
+          "name": "block_next",
+          "src": "DocumentBlock",
+          "tgt": "DocumentBlock"
+        },
+        {
+          "name": "block_note",
+          "src": "DocumentBlock",
+          "tgt": "DocumentBlock"
+        },
+        {
+          "name": "block_owner",
+          "src": "DocumentBlock",
+          "tgt": "Document"
+        },
+        {
+          "name": "block_text",
+          "src": "DocumentBlock",
+          "tgt": "DocumentBlock"
+        },
+        {
+          "name": "doc_subtitle",
+          "src": "Document",
+          "tgt": "Document"
+        },
+        {
+          "name": "doc_title",
+          "src": "Document",
+          "tgt": "Document"
+        },
+        {
+          "name": "doc_word_count",
+          "src": "Document",
+          "tgt": "Document"
+        },
+        {
+          "name": "tag_label",
+          "src": "DocumentTag",
+          "tgt": "DocumentTag"
+        },
+        {
+          "name": "tag_owner",
+          "src": "DocumentTag",
+          "tgt": "Document"
+        }
+      ],
+      "equations": []
+    },
+    "objects": {
+      "Snapshot": "Document",
+      "SnapshotPage": "DocumentBlock",
+      "SnapshotTag": "DocumentTag"
+    },
+    "arrows": {
+      "page_next": [
+        "block_next"
+      ],
+      "page_note": [
+        "block_note"
+      ],
+      "page_owner": [
+        "block_owner"
+      ],
+      "page_text": [
+        "block_text"
+      ],
+      "snap_subtitle": [
+        "doc_subtitle"
+      ],
+      "snap_title": [
+        "doc_title"
+      ],
+      "snap_word_count": null,
+      "tag_label": [
+        "tag_label"
+      ],
+      "tag_owner": [
+        "tag_owner"
+      ]
+    }
+  }
+}
