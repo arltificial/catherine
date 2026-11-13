@@ -6,4 +6,6 @@ superseded_by = ""
 authored_with = "0.12.0"
 
 [tests]
-cargo = []
+cargo = [
+    { flags = "floor_control_loses_only_the_fully_visible_table_rows" },
+]

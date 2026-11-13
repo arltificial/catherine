@@ -22,9 +22,9 @@ tells you when modeling is a waste of time.
 | Bounded counterexample search | smallest breaking instance, or honest `UNKNOWN {scope}` — never a naked "no violation found" |
 | Discovery questions | parallel paths without equations surface as domain questions (spec-ambiguity mechanism) |
 | Redundancy & equivalence | derivable paths flagged; models compared via `distinguish` with witness inputs |
-| Migration safety (P7) | Δ reindexing with loud lost-data counterexamples — no conventional counterpart exists |
+| Migration safety (P7) | Δ reindexing with loud lost-data counterexamples — measured against a committed conventional baseline (statement lint + row-count/checksum dry run) on three pilot-scale fixtures: 10 named cell losses and 1 round-trip counterexample the baseline cannot identify ([probe ledger](fixtures/probes/migration/README.md), entries `ledger/probes/migration/`, `catherine-1od`) |
 | Schema diff (P10) | v1→v2 edits classified accreted / weakened-with-witness (an instance v2 accepts and v1 rejects) / equivalent-in-scope / cosmetic (silent) |
-| Rule lens (P8, hypothesized) | rules as subobjects + policy: gap/overlap/shadow/derivable; simplifications proven compliant |
+| Rule lens (P8, hypothesized) | rules as subobjects + policy: gap/overlap/shadow/derivable; simplifications proven compliant. Scoped to **extracted** prose/PDF tables no DMN analyzer ingests — authored decision tables are commodity (Calvanese et al., [arXiv:1603.07466](https://arxiv.org/abs/1603.07466); Signavio, OpenRules); extracted-table evidence ([probe ledger](fixtures/probes/rule_lens/README.md), entries `ledger/probes/rule-lens-extracted/`, `catherine-1od`) |
 | Epistemic labels | PROVED / EXECUTED / HYPOTHESIZED / UNKNOWN on every answer |
 
 **The honest boundary is part of the product:** on rule-based or trivial

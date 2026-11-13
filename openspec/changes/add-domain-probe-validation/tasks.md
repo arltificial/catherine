@@ -40,32 +40,32 @@ existing `ledger-check <ledger-dir>` surface, never a bespoke re-run.
 
 ## GREEN — inaugural probe 1: migration Δ at real scale
 
-- [ ] 5. Bogart-scale migration fixtures in `fixtures/probes/migration/`,
+- [x] 5. Bogart-scale migration fixtures in `fixtures/probes/migration/`,
       built up from the existing `fixtures/migration/bogart_rehearsal.ct.json`
       toward real pilot-corpus schema complexity; pre-registered
       lost-data and non-invertibility expectations committed first;
       floor control fixture = a loss fully visible to row-count/checksum
       dry run (probe must show zero unique detections there)
-- [ ] 6. Baseline harness committed and version-pinned BEFORE the run
+- [x] 6. Baseline harness committed and version-pinned BEFORE the run
       (rule_lens_baseline.py pattern): statement-level migration lint
       (Atlas/Flyway-class at a pinned revision, or a frozen script
       encoding exactly its documented checks) + row-count/checksum dry
       run, over the same fault set; baseline detections frozen as
       assertions
-- [ ] 7. Run `catherine migrate` across the fault set via the harness;
+- [x] 7. Run `catherine migrate` across the fault set via the harness;
       derive unique set mechanically; record entries in
       `ledger/probes/migration/`; verdict by the recorded procedure —
       including the honest null if the baseline matches every detection
 
 ## GREEN — inaugural probe 2: rule lens on extracted tables
 
-- [ ] 8. Corpus check first: confirm a real policy/eligibility table
+- [x] 8. Corpus check first: confirm a real policy/eligibility table
       exists in the bogart/Normai corpus; if none does, record
       `inconclusive` naming the missing corpus (or select and record an
       alternative real source) — never fabricate a table to flatter the
       probe. Extract the table (prose/PDF source recorded), author
       declared input→output examples, pre-register expectations
-- [ ] 9. Freeze the manual-review protocol into a committed scripted
+- [x] 9. Freeze the manual-review protocol into a committed scripted
       assertion set BEFORE the run (the rule-lens 45-assertion pattern)
       — the baseline arm is executed and replayable, never a live "we
       reviewed it" note; run `catherine rules` + discovery; derive the
@@ -74,7 +74,7 @@ existing `ledger-check <ledger-dir>` surface, never a bespoke re-run.
 
 ## Docs scoping — after evidence lands (not before)
 
-- [ ] 10. README/USING rule-lens claims repositioned to the
+- [x] 10. README/USING rule-lens claims repositioned to the
       extracted-table scope with the DMN-parity citation (Calvanese et
       al. arXiv:1603.07466; Signavio/OpenRules); migration claims cite
       the probe entries; USING.md banner flips ILLUSTRATED → EXECUTED
@@ -83,7 +83,7 @@ existing `ledger-check <ledger-dir>` surface, never a bespoke re-run.
 
 ## REFACTOR
 
-- [ ] 11. Tidy: shared catalog/expectation plumbing between kata and
+- [x] 11. Tidy: shared catalog/expectation plumbing between kata and
       probe paths where duplication appeared; contract TOMLs under
       `.espectacular/domain-probes/` complete (every task-1 stub
       populated, no `no-toml` findings remain); `ah check --changes

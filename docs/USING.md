@@ -5,11 +5,12 @@ at a problem — human, or an agent with a shell. Companions: `PROPOSAL.md`
 (why), `THEORY.md` (the mathematics), `ref/category_theoretic_modeling_
 methodology.md` (the modeling procedure), `DESIGN.md` §5 (validation plan).
 
-> **Epistemic status of this document.** P0 (model-document kernel) has
-> landed; P1–P3 are in flight. The example outputs below are **ILLUSTRATED**
-> — they show the contracted output shape from `DESIGN.md` §5, not captured
-> terminal sessions. Do not cite them as EXECUTED. When P3 ships, this file
-> gains captured runs and the banner flips.
+> **Epistemic status of this document.** The runs in §Probe evidence are
+> **EXECUTED** — captured from the shipped CLI on 2026-11-13 and cited to
+> the ledger entries they produced. The worked equipment example below is
+> still an **ILLUSTRATED** pre-format sketch (it predates the `.ct.json`
+> format and is not runnable); it is marked as such and must not be cited
+> as EXECUTED.
 
 ## The one mental model
 
@@ -89,8 +90,13 @@ On rule-based or trivial problems (parsing, formatting, scoring rules) the
 correct use of catherine is to hear "model this conventionally" and comply —
 the FizzBuzz negative control is a release gate (E4: kata-6 killed at a
 7-line conditional; the checks worked, the cost didn't). If your problem is
-a rule table *above* the triviality floor, that is P8's rule lens — a
-pre-registered hypothesis, not a shipped claim.
+a rule table *above* the triviality floor, the rule lens is the relevant
+surface — but only for **extracted** tables (prose/PDF sources no DMN
+analyzer ingests). Authored decision tables are commodity (Calvanese et
+al., arXiv:1603.07466; Signavio, OpenRules). The extracted-table evidence,
+including what the lens adds over a sampled conventional review, is the
+probe ledger (`../fixtures/probes/rule_lens/README.md`, entries under
+`ledger/probes/rule-lens-extracted/`).
 
 ## For humans
 
@@ -164,6 +170,42 @@ Equally load-bearing — each line with its source:
 - **No knowledge-store ambitions.** Claims, lineage, provenance ledgers live
   in bajan/wild, which consume catherine verdicts — catherine emits verdicts
   only (program boundary, `bd memory: program-boundary`).
+
+## Probe evidence (EXECUTED, 2026-11-13)
+
+Two real runs, captured from the shipped CLI. They are the evidence the
+claim-scoping in `README.md` cites; the ledger entries are
+`ledger/probes/migration/0002-06f4dd84.json` and
+`ledger/probes/rule-lens-extracted/0002-c3316a38.json`.
+
+Migration lost data — the dropped `RawCapture` table (abridged to the
+first three lost rows; the run emits six, one per row, exit 8):
+
+```text
+$ catherine migrate fixtures/probes/migration/floor-visible-loss.ct.json --json
+{"ok":true,...,"data":{"rows":{"ServingDocument":8,"ServingEdition":4,
+ "ServingPage":16},"lost":[{"label":"executed","kind":"lost_row",
+ "witness":{"object":"RawCapture","row":0}},{"label":"executed",
+ "kind":"lost_row","witness":{"object":"RawCapture","row":1}},
+ {"label":"executed","kind":"lost_row","witness":{"object":"RawCapture",
+ "row":2}},...]}}
+```
+
+Rule lens on an extracted table — a widened ZD cap rule shadows the two
+later ZD rows (exit 7):
+
+```text
+$ catherine rules fixtures/probes/rule_lens/extracted/faults/05-shadow-widen-zona-2022-10.ct.json \
+    --values alcance=general,zona_desfavorable \
+    --values fecha=2022-10-01,2022-12-01,2023-01-01 --max-candidates 64 --json
+{"ok":true,...,"data":{"outcome":"analyzed","findings":[
+ {"label":"executed","kind":"redundant","witness":{
+  "derivable":["zona_desfavorable_2022_12_01"],
+  "reducing":["zona_desfavorable_2022_10_01"]}},
+ {"label":"executed","kind":"redundant","witness":{
+  "derivable":["zona_desfavorable_2023_01_01"],
+  "reducing":["zona_desfavorable_2022_10_01"]}}]}}
+```
 
 ## Worked example (ILLUSTRATED)
 

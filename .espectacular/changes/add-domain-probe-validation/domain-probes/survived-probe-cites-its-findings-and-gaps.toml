@@ -6,4 +6,7 @@ superseded_by = ""
 authored_with = "0.12.0"
 
 [tests]
-cargo = []
+cargo = [
+    { flags = "cell_only_loss_names_each_valued_cell_with_rows_preserved" },
+    { flags = "probe_ledger_records_the_preregistered_evidence" },
+]
