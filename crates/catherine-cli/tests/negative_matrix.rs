@@ -16,12 +16,11 @@
 //! object/arrow names in flags, second-doc schema mismatch, out-of-range
 //! `format_version`, unknown seed, uncomposable observation, partial or
 //! absent schema map, absent rule presentation, unknown predicate
-//! column, invalid policy, garbage rules, garbage instance rows, an
-//! invalid `rules --project` invocation (two presentation sources,
-//! undeclared object, arrow not sourced at the object, missing
-//! `--columns`, null projected cell, empty projection), bad flag syntax
-//! (unknown flag → clap exit 2; malformed flag value → `bad_argument`
-//! exit 1).
+//! column, invalid policy, garbage rules, garbage instance rows, bad flag
+//! syntax (unknown flag → clap exit 2; malformed flag value →
+//! `bad_argument` exit 1). The `rules --project` surface keeps its own
+//! matrix binary (`negative_matrix_projection.rs`), split out to stay
+//! inside the file-size gate.
 //! Behavior is probed live against the real binary
 //! (`CARGO_BIN_EXE_catherine`); assertions are structural
 //! (`serde_json::Value`) and numeric (exit codes), never snapshots.
@@ -129,25 +128,6 @@ const RULES_GARBAGE: &str = concat!(
 const RULES_NO_SECTION: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/bowling.ct.json"
-);
-/// The projection surface's fixtures: instance rows to project, the same
-/// rows plus a `rule_presentation` (two presentation sources), a null
-/// projected cell, and an object with no rows.
-const PROJECTION_ROWS: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/tests/fixtures/projection_rows.ct.json"
-);
-const PROJECTION_WITH_RULES: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/tests/fixtures/projection_with_rules.ct.json"
-);
-const PROJECTION_NULL_CELL: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/tests/fixtures/projection_null_cell.ct.json"
-);
-const PROJECTION_EMPTY: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/tests/fixtures/projection_empty.ct.json"
 );
 
 /// Spawn the `catherine` binary with the given arguments (same helper
@@ -358,32 +338,6 @@ const MATRIX: &[Row] = &[
     Row { name: "rules × bad flag syntax (unknown flag)",
           args: &["rules", RULE_LENS_GAP, "--values", "age=1", "--bogus", "--json"],
           expect: Expect::Usage },
-    Row { name: "rules × --project on a document carrying rule_presentation (two sources)",
-          args: &["rules", PROJECTION_WITH_RULES, "--project", "capture",
-                  "--columns", "capture_source", "--json"],
-          expect: Expect::Error { code: "bad_argument" } },
-    Row { name: "rules × --project names an undeclared object",
-          args: &["rules", PROJECTION_ROWS, "--project", "ghost",
-                  "--columns", "capture_source", "--json"],
-          expect: Expect::Error { code: "bad_argument" } },
-    Row { name: "rules × --columns arrow not sourced at the projected object",
-          args: &["rules", PROJECTION_ROWS, "--project", "capture",
-                  "--columns", "source_edition", "--json"],
-          expect: Expect::Error { code: "bad_argument" } },
-    Row { name: "rules × --project without --columns",
-          args: &["rules", PROJECTION_ROWS, "--project", "capture", "--json"],
-          expect: Expect::Error { code: "bad_argument" } },
-    Row { name: "rules × --columns without --project",
-          args: &["rules", PROJECTION_ROWS, "--columns", "capture_source", "--json"],
-          expect: Expect::Error { code: "bad_argument" } },
-    Row { name: "rules × null projected cell (no silent row drop)",
-          args: &["rules", PROJECTION_NULL_CELL, "--project", "capture",
-                  "--columns", "capture_source", "--json"],
-          expect: Expect::Error { code: "projection_incomplete" } },
-    Row { name: "rules × empty projected object (no vacuous clean run)",
-          args: &["rules", PROJECTION_EMPTY, "--project", "capture",
-                  "--columns", "capture_source", "--json"],
-          expect: Expect::Error { code: "empty_projection" } },
 ];
 
 /// The recurrence gate: every row must surface its malformed input

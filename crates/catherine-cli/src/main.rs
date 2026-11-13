@@ -162,22 +162,7 @@ fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl 
             direction,
         } => query_command(model, seed, follow, direction, ctx),
         C::Migrate { model } => migrate_command(model, ctx),
-        C::Rules {
-            model,
-            values,
-            max_candidates,
-            project,
-            columns,
-            action,
-        } => rules_command(
-            model,
-            values,
-            *max_candidates,
-            project.as_deref(),
-            columns.as_deref(),
-            action.as_deref(),
-            ctx,
-        ),
+        C::Rules { .. } => rules_command(command, ctx),
     }
 }
 
@@ -349,23 +334,28 @@ fn migrate_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -> 
     )
 }
 
-/// Forward [`rules::run_rules`] on the shared execution path.
-fn rules_command<O: Write, E: Write>(
-    model: &str,
-    values: &[String],
-    max_candidates: usize,
-    project: Option<&str>,
-    columns: Option<&str>,
-    action: Option<&str>,
-    ctx: &mut Ctx<'_, O, E>,
-) -> i32 {
-    rules::run_rules(
+/// Forward [`rules::run_rules`] on the shared execution path. The arm
+/// above binds no fields, so `dispatch_command` stays inside the
+/// function-line cap; this helper is reached only for `Commands::Rules`.
+fn rules_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, O, E>) -> i32 {
+    let cli::Commands::Rules {
         model,
         values,
         max_candidates,
         project,
         columns,
         action,
+    } = command
+    else {
+        unreachable!("dispatch routes only Commands::Rules here");
+    };
+    rules::run_rules(
+        model,
+        values,
+        *max_candidates,
+        project.as_deref(),
+        columns.as_deref(),
+        action.as_deref(),
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),
