@@ -4,6 +4,9 @@ ci:
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
     just check-wasm
+    # Fail-closed complexity gate, full tree, no baseline (same command as
+    # the lefthook pretender-strict hook and the CI workflow step).
+    pretender check --mode gate
 
 # wasm32 compile-only gate (openspec change `add-wasm-web-view`, task 4):
 # the kernel crates stay wasm-optional — compilation is the gate, no

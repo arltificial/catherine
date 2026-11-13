@@ -31,6 +31,12 @@ jobs:
       - name: Install just (gate runner)
         run: cargo install just --version 1.59.0
 
+      - name: Gate — pretender complexity, fail-closed full tree (no baseline)
+        # The local pre-commit hook runs the same command outside the
+        # ddl-managed block (lefthook.yml pretender-strict); this step makes
+        # `--no-verify` commits fail too. 0.2s, no baseline permitted.
+        run: pretender check --mode gate
+
       - name: Gate — fmt / clippy -D warnings / tests (incl. conformance)
         run: just ci
 

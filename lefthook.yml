@@ -15,6 +15,16 @@ pre-commit:
     ddl-spk-lint:
       run: spk lint openspec/specs || test $? -eq 2
     # ddl:managed:end (pre-commit)
+    pretender-strict:
+      # Fail-closed pretender over the whole tree, outside the ddl-managed
+      # block so regeneration cannot restore the blind form. The managed
+      # `--diff-only` gate exited 0 on fully staged commits: `--diff-only`
+      # diffs the *unstaged* tree, and at pre-commit nothing is unstaged —
+      # it scanned nothing (the catherine-x94 loophole). No baseline file is
+      # present or permitted: gate mode fails closed on any violation, and
+      # `gate_conformance` fails if `pretender-baseline.json` ever appears.
+      # Full scan is ~0.2s.
+      run: pretender check --mode gate
     hook-swallow-guard:
       # catherine-u6y: fails while .beads/hooks/* swallow lefthook's exit code
       # (what `bd init` regenerates). Passes only while the hand-fixed capture
