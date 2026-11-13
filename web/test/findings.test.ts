@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { renderFindings, witnessText, type FindingEnc } from "../src/findings";
-import { findingClassFixtures } from "./fixtures/findings";
+import { findingClassFixtures, keyViolationFixture } from "./fixtures/findings";
 
 /** The golden tree for one finding row — built here, compared to the panel's output. */
 function goldenRow(finding: FindingEnc): string {
@@ -54,13 +54,29 @@ describe("findings panel (golden DOM)", () => {
     expect(kinds).toEqual(
       new Set(["violation", "dangling", "contradiction", "underconstraint", "redundant"]),
     );
-    // Both violation labels survive as distinct rows — never merged.
-    expect(panel.querySelectorAll('li.finding[data-kind="violation"][data-label="executed"]')).toHaveLength(1);
+    // Both violation labels survive as distinct rows — never merged, and the
+    // key witness adds a second `executed` violation beside the equation one.
+    expect(panel.querySelectorAll('li.finding[data-kind="violation"][data-label="executed"]')).toHaveLength(2);
     expect(panel.querySelectorAll('li.finding[data-kind="violation"][data-label="hypothesized"]')).toHaveLength(1);
     // Witness facts are present in every row's witness span.
     for (const row of panel.querySelectorAll("li.finding")) {
       expect(row.querySelector(".witness")?.textContent?.length ?? 0).toBeGreaterThan(0);
     }
+  });
+
+  it("names the key and both rows of a key violation — no undefined fields", () => {
+    // The key arm of the untagged union renders both row ids.
+    expect(witnessText(keyViolationFixture.finding)).toBe("key 0: rows 3 and 7 collide");
+
+    const panel = document.createElement("div");
+    renderFindings([keyViolationFixture.finding], panel);
+    const row = panel.querySelector('li.finding[data-kind="violation"]');
+    expect(row).not.toBeNull();
+    const witness = row!.querySelector(".witness")?.textContent ?? "";
+    expect(witness).toBe("key 0: rows 3 and 7 collide");
+    expect(witness).toContain("3");
+    expect(witness).toContain("7");
+    expect(witness).not.toContain("undefined");
   });
 
   it("clears the panel on re-render — the panel is never stateful", () => {

@@ -5,9 +5,10 @@
 // epistemic label + witness, the same taxonomy the terminal prints.
 //
 // Responsibilities: [`FindingEnc`] and its witnesses — the TS mirror of
-// the kernel's serde encoding, pinned by the parity test (wasm task 7) —
-// and [`renderFindings`]: one `li.finding` per finding carrying
-// `data-kind` and `data-label`, with `.kind`, `.label`, and `.witness`
+// the kernel's serde encoding, pinned by the parity test (wasm task 7);
+// the violation witness is an untagged union (equation or key) split on
+// field presence — and [`renderFindings`]: one `li.finding` per finding
+// carrying `data-kind` and `data-label`, with `.kind`, `.label`, and `.witness`
 // spans inside. Structural, not snapshot: every fact a finding carries
 // is present and queryable in the DOM.
 //
@@ -22,12 +23,27 @@ import { clear, el, text } from "./dom";
 /** The epistemic label — exactly the three spellings the kernel type allows. */
 export type EpistemicLabel = "executed" | "hypothesized" | "unknown";
 
-export interface ViolationWitness {
+/** The equation arm of the violation witness — which equation failed, on which row, with the two values. */
+export interface EquationViolationWitness {
   equation: number;
   row: number;
   lhs: number;
   rhs: number;
 }
+
+/** The key arm — the canonical key index and the colliding row pair, ascending. */
+export interface KeyViolationWitness {
+  key: number;
+  rows: [number, number];
+}
+
+/**
+ * The kernel's untagged violation-witness union: equation violations keep
+ * `{equation, row, lhs, rhs}` byte-identically; key violations are
+ * `{key, rows}`. The field sets are disjoint, so `"equation" in witness`
+ * discriminates.
+ */
+export type ViolationWitness = EquationViolationWitness | KeyViolationWitness;
 
 export interface DanglingWitness {
   arrow: string;
@@ -68,7 +84,9 @@ export function witnessText(finding: FindingEnc): string {
   switch (finding.kind) {
     case "violation": {
       const w = finding.witness;
-      return `equation ${w.equation} on row ${w.row}: ${w.lhs} ≠ ${w.rhs}`;
+      return "equation" in w
+        ? `equation ${w.equation} on row ${w.row}: ${w.lhs} ≠ ${w.rhs}`
+        : `key ${w.key}: rows ${w.rows[0]} and ${w.rows[1]} collide`;
     }
     case "dangling":
       return `${finding.witness.arrow} on row ${finding.witness.src} unresolved`;

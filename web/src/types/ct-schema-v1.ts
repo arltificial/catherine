@@ -6,6 +6,12 @@ export type Ident = string;
 
 export type Path = Array<Ident>;
 
+export type Key = {
+  "object": Ident;
+  "arrows": Array<Ident>;
+  "status"?: "proposed" | "accepted";
+};
+
 export type Column = {
   "name": Ident;
   "type": "int" | "bool" | "string";
@@ -53,6 +59,7 @@ export type CtSchemaV1Document = {
   "rationale"?: string;
   "status"?: "proposed" | "accepted";
 }>;
+  "keys"?: Array<Key>;
 };
   "instance": {
   "rows": Record<string, Array<Ident>>;
@@ -72,6 +79,7 @@ export type CtSchemaV1Document = {
   "rationale"?: string;
   "status"?: "proposed" | "accepted";
 }>;
+  "keys"?: Array<Key>;
 };
   "objects": Record<string, (null) | (Ident)>;
   "arrows": Record<string, (null) | (Array<Ident>)>;
