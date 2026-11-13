@@ -22,6 +22,12 @@
 //! repaired (acset-core `dangling_is_a_value`). Check order is the
 //! document order documented in the crate README, so an error is
 //! predictable, never order-dependent on the walk.
+//!
+//! Names stay outside the parsed model by construction: [`parse_with_rows`]
+//! returns the same [`Model`] as [`parse`] beside a [`RowNames`] side table
+//! (object → names indexed by dense [`RowId`]), so callers that must spell
+//! a value (the `rules --project` bridge) read the table while `Instance`
+//! equality, the canonical bytes, and the model hash remain name-blind.
 
 mod predicate;
 mod rule_presentation;
@@ -37,6 +43,15 @@ use schema::{check_arrows, check_equations, check_ident, check_objects, check_ve
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
 
+/// The presentation names the parser normalizes away, indexed by dense
+/// `RowId` per object: `RowNames[object][row.0]` is that row's declared
+/// name. Deliberately *outside* [`Model`]: `Instance` equality, the
+/// canonical bytes, and the model hash stay name-independent (the
+/// canonical writer synthesizes dense `_<i>` labels), so a caller that
+/// needs to spell a value — the `rules --project` bridge — reads this
+/// side table instead of teaching the kernel's data model a name.
+pub type RowNames = BTreeMap<Ident, Vec<Ident>>;
+
 /// Parse a `.ct.json` v1 model document. Accepted additive minors of the
 /// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 2);
 /// higher minors are rejected with `unsupported_version` — never guessed.
@@ -45,6 +60,14 @@ use std::collections::BTreeMap;
 /// schema objects → arrows → equations → instance rows → tables →
 /// schema map → rule presentation.
 pub fn parse(text: &str) -> Result<Model, ParseError> {
+    parse_with_rows(text).map(|(model, _)| model)
+}
+
+/// [`parse`], additionally returning the presentation names it normalized
+/// away ([`RowNames`]). The model half is byte-identical to [`parse`]'s
+/// result — the names are a side table, not part of the model, so hash
+/// and canonical form are untouched.
+pub fn parse_with_rows(text: &str) -> Result<(Model, RowNames), ParseError> {
     let doc: RawDoc = serde_json::from_str(text).map_err(syntax_err)?;
     let spans = scan_spans(text);
     validate(doc, &spans)
@@ -76,8 +99,9 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 ///    decidable predicates, required actions, declared policy (absent =
 ///    hash-neutral);
 /// 10. the normalized model — dense rows, total value vectors, canonical
-///     equation order; presentation names never reach it.
-fn validate(doc: RawDoc, spans: &Spans) -> Result<Model, ParseError> {
+///     equation order — plus the [`RowNames`] side table (the presentation
+///     names, indexed by those dense ids); the names never enter the model.
+fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError> {
     let version = check_version(&doc, spans)?;
     let Some(schema) = doc.schema else {
         return Err(spans.syntax("", "missing required field `schema`"));
@@ -302,8 +326,34 @@ fn check_table_src(
     Ok(*src_id)
 }
 
-/// The normalized model: dense rows per declared object, total value
-/// vectors, canonical equation order.
+/// The presentation names, indexed by dense [`RowId`]: every declared
+/// object gets an entry (an object with no rows gets an empty one), and
+/// each name vector is ordered by row id, i.e. sorted-name order.
+fn row_names(
+    objects: &BTreeMap<Ident, ()>,
+    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
+) -> RowNames {
+    objects
+        .keys()
+        .map(|object| {
+            let mut pairs: Vec<(&String, RowId)> = row_index
+                .get(&object.0)
+                .map(|names| names.iter().map(|(name, row)| (name, *row)).collect())
+                .unwrap_or_default();
+            pairs.sort_by_key(|(_, row)| row.0);
+            let names = pairs
+                .into_iter()
+                .map(|(name, _)| Ident(name.clone()))
+                .collect();
+            (object.clone(), names)
+        })
+        .collect()
+}
+
+/// The normalized model plus the name side table: dense rows per declared
+/// object, total value vectors, canonical equation order. The model is
+/// exactly what [`parse`] returned before this seam existed; the names
+/// travel beside it ([`RowNames`]) and never enter [`Model`].
 #[allow(clippy::too_many_arguments)]
 fn build_model(
     version: Version,
@@ -314,7 +364,8 @@ fn build_model(
     values: BTreeMap<Ident, Vec<Option<RowId>>>,
     schema_map: Option<SchemaMap>,
     rule_presentation: Option<RulePresentation>,
-) -> Model {
+) -> (Model, RowNames) {
+    let names = row_names(&objects, &row_index);
     let rows_out = objects
         .keys()
         .map(|o| {
@@ -322,21 +373,21 @@ fn build_model(
             (o.clone(), (0..n).map(RowId).collect())
         })
         .collect();
-    let schema = Schema {
-        objects,
-        arrows,
-        equations,
-    };
-    Model {
+    let model = Model {
         format_version: version,
-        schema,
+        schema: Schema {
+            objects,
+            arrows,
+            equations,
+        },
         instance: Instance {
             rows: rows_out,
             values,
         },
         schema_map,
         rule_presentation,
-    }
+    };
+    (model, names)
 }
 
 fn check_dup_keys(spans: &Spans, pointer: &str, where_: &str) -> Result<(), ParseError> {
@@ -365,5 +416,62 @@ fn syntax_err(err: serde_json::Error) -> ParseError {
         line: err.line(),
         column: err.column(),
         message,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Rows declared out of order: the name table must follow the dense
+    /// ids the model carries (sorted-name order), not the file order.
+    const DOC: &str = r#"{
+        "format_version": "1.0",
+        "schema": {"objects": ["Thing"], "arrows": [], "equations": []},
+        "instance": {
+            "rows": {"Thing": ["zeta", "alpha", "mu"]},
+            "tables": {}
+        }
+    }"#;
+
+    #[test]
+    fn row_names_follow_the_dense_row_ids() {
+        let (model, names) = parse_with_rows(DOC).expect("the document parses");
+        let thing = Ident("Thing".to_string());
+        assert_eq!(
+            names[&thing],
+            vec![
+                Ident("alpha".to_string()),
+                Ident("mu".to_string()),
+                Ident("zeta".to_string()),
+            ],
+            "names indexed by dense RowId, i.e. sorted-name order"
+        );
+        assert_eq!(
+            model.instance.rows[&thing],
+            vec![RowId(0), RowId(1), RowId(2)],
+            "the model keeps only the dense ids"
+        );
+    }
+
+    /// The side table is additive: `parse` is exactly `parse_with_rows().0`.
+    #[test]
+    fn parse_returns_the_same_model_without_the_names() {
+        let (with_rows, _) = parse_with_rows(DOC).expect("the document parses");
+        assert_eq!(parse(DOC).expect("the document parses"), with_rows);
+    }
+
+    /// Every declared object has an entry, including one with no rows.
+    #[test]
+    fn row_names_cover_objects_without_rows() {
+        let (_, names) = parse_with_rows(
+            r#"{
+                "format_version": "1.0",
+                "schema": {"objects": ["Empty"], "arrows": [], "equations": []},
+                "instance": {"rows": {}, "tables": {}}
+            }"#,
+        )
+        .expect("the document parses");
+        assert_eq!(names[&Ident("Empty".to_string())], Vec::<Ident>::new());
     }
 }

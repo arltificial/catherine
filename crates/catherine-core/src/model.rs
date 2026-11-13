@@ -222,8 +222,10 @@ impl CmpOp {
 
 /// A predicate literal whose variant must agree with its column's
 /// [`ColumnType`] (the parser enforces the agreement; the type carries no
-/// re-check).
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// re-check). Ordered so an exact input set can be canonically sorted and
+/// deduplicated (variant order `Int < Bool < String`; within a column the
+/// variant is fixed, so the order is the column's own).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Literal {
     Int(i64),
     Bool(bool),
