@@ -18,43 +18,57 @@ arXiv:1603.07466); the P8 unique-detection result generalizes only to
 *extracted* tables that no DMN analyzer can ingest — a claim that is
 currently unscoped in README/USING and untested on real extracted tables.
 
-The kata ledger cannot carry these runs: its rollup is sealed (project
-verdict `survived (scoped)`), its control-first ordering is
-FizzBuzz-specific, and its catalog is kata-scoped. The dossier's open
-question — "can the catalog format be reused for non-kata domain probes,
-or does it need a lighter sibling?" — is answered here: a lighter sibling
-entry kind (`probe`) in the same crate, same content-addressing, same
-closed verdict vocabulary, never touching the sealed rollup.
+The kata ledger's rollup is sealed (project verdict `survived
+(scoped)`) — but the project already proved the lighter sibling pattern
+in-tree: `ledger/rule-lens/` is a separate ledger directory of
+unmodified kata-shaped entries with its own self-negating floor control
+and a recorded executed baseline arm, green under the same validator.
+The dossier's open question — "can the catalog format be reused for
+non-kata domain probes, or does it need a lighter sibling?" — is
+answered here: **reuse the kata shape in a separate ledger directory
+(the rule-lens pattern)**; the one genuinely new rule is that a
+unique-detection claim requires a committed, executed baseline arm.
 
 ## What Changes
 
-- **`catherine-ledger` gains a `probe` entry kind** (lighter sibling of
-  `kata`): pre-registered expectation catalog (fault → class → expected
-  catherine outcome, committed before the run, referenced by hash),
-  executed run record, **named conventional-baseline arm** (a
-  unique-detection claim without a recorded baseline run is refused —
-  parity is the ceiling without one), expressibility gaps, closed verdict
-  vocabulary (`killed | survived | inconclusive | invalid-run`),
-  content-addressed ids, append-only supersession.
-- **Validator rules**: a probe entry without a catalog hash is refused; a
-  `unique_detections` claim without a baseline arm is refused; probe
-  entries are refused inside the kata ledger series (separate
-  `ledger/probes/` sequence); the sealed kata rollup is never recomputed
-  or extended by probe entries.
+- **Probe ledger directories** (`ledger/probes/<name>/`) reuse the kata
+  entry shape, content-addressing, closed verdict vocabulary, and
+  append-only supersession — no new entry kind (design Decision 1
+  revised after Rule-of-5 review found the rule-lens precedent
+  unaddressed). Each probe series carries its own floor control: a
+  fault set where the conventional baseline catches everything, on
+  which the probe must show zero unique detections.
+- **One new validator rule, ledger-wide**: a non-empty
+  `unique_detections` without a baseline arm naming a committed,
+  version-pinned baseline artifact (frozen script or pinned tool
+  revision) is refused; a cited-but-not-executed baseline caps the
+  verdict at `inconclusive` on uniqueness; no baseline arm caps at
+  parity (empty unique set). This retroactively hardens the kata
+  science — all existing entries already comply.
+- **Validator rules preserved by regression pins**: probe sequences
+  without a self-negating floor control are refused by the EXISTING
+  violations; the sealed kata rollup is never recomputed, extended, or
+  superseded by probe recording (byte-identity test).
 - **Inaugural probe 1 — migration Δ at real scale**: bogart-scale
-  migration fixtures (beyond the 3–4-row pins in `fixtures/migration/`),
+  migration fixtures built up from `bogart_rehearsal.ct.json`,
   pre-registered lost-data/non-invertibility expectations, baseline arm =
-  the conventional practice the synthesis named (statement-level
-  migration linting à la Atlas/Flyway + row-count/checksum dry run), run
-  through `catherine migrate`, recorded as probe ledger entries. Answers:
-  does counterexample quality hold at real schema complexity, and is the
+  a committed version-pinned harness encoding the conventional practice
+  the synthesis named (statement-level migration linting à la
+  Atlas/Flyway + row-count/checksum dry run), run through `catherine
+  migrate`, recorded as probe ledger entries. Answers: does
+  counterexample quality hold at real schema complexity, and is the
   unique band real against the baseline?
 - **Inaugural probe 2 — rule lens on extracted tables**: extract a real
   policy/eligibility table from the bogart/Normai corpus (prose/PDF —
-  the ingest surface no DMN analyzer has), run `catherine rules` /
-  discovery against declared examples, baseline arm = manual review of
-  the same table, recorded as probe ledger entries. Answers: does the
-  P8 unique-detection result survive restriction to extracted tables?
+  the ingest surface no DMN analyzer has; if no real table exists, the
+  probe records `inconclusive` naming the missing corpus, never a
+  fabricated table), run `catherine rules` / discovery against declared
+  examples, baseline arm = the manual-review protocol **frozen into a
+  committed scripted assertion set before the run** (the
+  `rule_lens_baseline.py` 45-assertion pattern — a live "we reviewed
+  it" note is not a baseline arm), recorded as probe ledger entries.
+  Answers: does the P8 unique-detection result survive restriction to
+  extracted tables?
 - **Docs scoping after evidence lands**: README/USING rule-lens claims
   repositioned to the extracted-table scope (DMN parity acknowledged with
   citation); migration claims cite the probe ledger entries; USING.md
@@ -64,10 +78,14 @@ closed verdict vocabulary, never touching the sealed rollup.
 ## Impact
 
 - Affected specs: **`domain-probes` (new capability)**; consumes
-  `migration`, `rule-lens`, `cli`, `findings` unchanged; `kata-validation`
-  untouched (sealed rollup invariant explicitly preserved).
-- Affected code: `crates/catherine-ledger` (entry kind, validator,
-  catalog, bins), `fixtures/probes/` (new), docs (post-evidence).
+  `migration`, `rule-lens`, `cli`, `findings` unchanged;
+  `kata-validation` spec untouched (sealed rollup preserved by
+  byte-identity test), though the baseline-arm rule applies to kata
+  entries too.
+- Affected code: `crates/catherine-ledger` (baseline-arm fields +
+  validator rule + probe catalogs; NO new entry kind),
+  `fixtures/probes/` (new), baseline harness scripts (committed,
+  pinned), docs (post-evidence).
 - Spectacular: new scenarios need contract TOMLs under
   `.espectacular/domain-probes/` at implementation time.
 - Beads: one implementation ticket; coordination (not dependency) with
