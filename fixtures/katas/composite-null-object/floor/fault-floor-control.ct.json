@@ -1,0 +1,31 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Node"],
+    "arrows": [
+      {"name": "parent", "src": "Node", "tgt": "Node"},
+      {"name": "top", "src": "Node", "tgt": "Node"}
+    ],
+    "equations": [
+      {
+        "lhs": ["parent", "top"],
+        "rhs": ["top"],
+        "rationale": "root closure: a node's parent resolves to the same composite root as the node itself; the nil row is its own parent and its own top, so the Null Object is neutral and cannot become a real mount point",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["top", "top"],
+        "rhs": ["top"],
+        "rationale": "nil identity: the root map is idempotent and nil is a fixed point, so flattening never treats the Null Object as a leaf",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {"Node": ["child", "nil", "root"]},
+    "tables": {
+      "parent": {"child": null, "nil": "root", "root": "root"},
+      "top": {"child": "root", "nil": "nil", "root": "root"}
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "kata": "composite-null-object",
+  "comparison_rule": "unique = probe elements minus baseline-identified elements; an element is dangling:<arrow>@<object>#<row>, violation:eq<n>@<object>#<row>, or lost_cell:<arrow>#<row>; an arm identifies an element only by naming it",
+  "baseline_sample_rule": "the scripted traversal test checks the pre-registered sample of node names plus the distinguished nil row; it does not enumerate the whole tree, so a fault outside the sample is invisible to it",
+  "faults": [
+    {
+      "id": "floor-composite-control",
+      "fixture": "floor/fault-floor-control.ct.json",
+      "surface": "check",
+      "control": true,
+      "fault_class": "floor-near-trivial",
+      "baseline_sample": ["child"],
+      "baseline_expected": ["dangling:parent@Node#0", "nil-parent:Node#nil"],
+      "baseline_identified": ["dangling:parent@Node#0", "violation:eq0@Node#1"],
+      "probe_expected": ["dangling:parent@Node#0", "violation:eq0@Node#1"],
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "broken-parent-link",
+      "fixture": "fault-broken-parent-link.ct.json",
+      "surface": "check",
+      "control": false,
+      "fault_class": "broken-child-parent-link",
+      "baseline_sample": ["c1", "c2"],
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "probe_expected": ["dangling:parent@Node#3"],
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "nil-as-real-leaf",
+      "fixture": "fault-nil-as-real-leaf.ct.json",
+      "surface": "check",
+      "control": false,
+      "fault_class": "nil-treated-as-real-leaf",
+      "baseline_sample": ["c1", "c2"],
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "probe_expected": ["violation:eq0@Node#4"],
+      "unique_expected": 1,
+      "verdict_expected": "survived"
+    },
+    {
+      "id": "lost-child-migrate",
+      "fixture": "fault-lost-child-migrate.ct.json",
+      "surface": "migrate",
+      "control": false,
+      "fault_class": "lost-child-on-flatten",
+      "baseline_sample": [],
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "probe_expected": [
+        "lost_cell:parent#0",
+        "lost_cell:parent#1",
+        "lost_cell:parent#2",
+        "lost_cell:parent#3",
+        "lost_cell:parent#4",
+        "lost_cell:parent#5",
+        "lost_cell:parent#6"
+      ],
+      "unique_expected": 7,
+      "verdict_expected": "survived"
+    }
+  ]
+}
