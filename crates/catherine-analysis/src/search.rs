@@ -130,37 +130,20 @@ pub fn enumerate<T>(
 ) -> Enumeration<T> {
     // Effective row counts: per schema object, the bound's value or zero.
     let counts = effective_counts(schema, bound);
-    // Zero-size bound: nothing anywhere to search — UNKNOWN with the
-    // empty scope, never a contradiction claim (spec scenario,
-    // ticket anti_goal).
+    // A zero-size bound has nothing anywhere to search: UNKNOWN with the
+    // empty scope, never a contradiction claim (spec scenario, anti_goal).
     let explored_rows = nonempty_counts(&counts);
     if explored_rows.is_empty() {
         return Enumeration::Unknown {
-            scope: SearchScope {
-                rows: BTreeMap::new(),
-                candidates_explored: 0,
-            },
+            scope: scope_of(BTreeMap::new(), 0),
         };
     }
-    // Cell plan and its mixed-radix counter: big-endian (the first
-    // cell varies slowest), so candidate k is the k-th smallest
-    // assignment. Exhaustion is the counter wrapping — no space size is
-    // ever computed or claimed.
     let (cells, radices) = cell_plan(schema, &counts);
     let mut digits: Vec<usize> = vec![0; cells.len()];
     let mut explored: usize = 0;
-    loop {
-        // Budget check first: the budget expired before exhaustion is
-        // UNKNOWN with the exact explored scope — never a contradiction.
-        if explored == bound.max_candidates {
-            return Enumeration::Unknown {
-                scope: SearchScope {
-                    rows: explored_rows,
-                    candidates_explored: explored,
-                },
-            };
-        }
-        // Materialize the candidate at the current counter position.
+    // Budget first: an expired budget is UNKNOWN over the exact explored
+    // scope, never a contradiction.
+    while explored != bound.max_candidates {
         let instance = materialize(&cells, &digits, &counts);
         explored += 1;
         if let Some(found) = probe(&instance) {
@@ -168,12 +151,21 @@ pub fn enumerate<T>(
         }
         if !increment(&mut digits, &radices) {
             return Enumeration::Exhausted {
-                scope: SearchScope {
-                    rows: explored_rows,
-                    candidates_explored: explored,
-                },
+                scope: scope_of(explored_rows, explored),
             };
         }
+    }
+    Enumeration::Unknown {
+        scope: scope_of(explored_rows, explored),
+    }
+}
+
+/// The scope a bounded claim explored: the rows searched, the candidates
+/// examined.
+fn scope_of(rows: BTreeMap<Ident, usize>, candidates_explored: usize) -> SearchScope {
+    SearchScope {
+        rows,
+        candidates_explored,
     }
 }
 

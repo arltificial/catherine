@@ -75,14 +75,17 @@ def induced_action(presentation, row):
     return matches[0]["action"] if len(matches) == 1 else AMBIGUOUS
 
 
-def row(age, income, member, tier, region):
-    return {
-        "age": age,
-        "income": income,
-        "member": member,
-        "tier": tier,
-        "region": region,
-    }
+# The input record's columns, in `row()` call order.
+ROW_FIELDS = ("age", "income", "member", "tier", "region")
+
+
+def row(*values):
+    """One input record: the `ROW_FIELDS` values, given positionally."""
+    if len(values) != len(ROW_FIELDS):
+        raise TypeError(
+            f"row() takes {len(ROW_FIELDS)} fields but {len(values)} were given"
+        )
+    return dict(zip(ROW_FIELDS, values))
 
 
 # Frozen from fixtures/rule_lens/kata/pricing-gold.ct.json before any fault

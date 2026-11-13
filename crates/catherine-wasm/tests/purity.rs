@@ -28,7 +28,22 @@ const FORBIDDEN_PREFIXES: [&str; 2] = ["wasm-bindgen", "genesis"];
 
 #[test]
 fn kernel_crates_link_no_wasm_bindgen_or_genesis() {
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let metadata = cargo_metadata();
+    let packages = metadata["packages"].as_array().expect("packages array");
+    for name in KERNEL_CRATES {
+        let linked = first_forbidden_dependency(workspace_package(packages, name));
+        assert!(
+            linked.is_none(),
+            "{name} must stay wasm-agnostic, but links {}",
+            linked.unwrap_or("")
+        );
+    }
+}
+
+/// The workspace's resolved dependency graph (`cargo metadata --no-deps`),
+/// queried from this crate's directory and `--offline`: no index access, and
+/// the workspace is already resolved by the `cargo test` invocation.
+fn cargo_metadata() -> serde_json::Value {
     let output = Command::new(env!("CARGO"))
         .args([
             "metadata",
@@ -37,7 +52,7 @@ fn kernel_crates_link_no_wasm_bindgen_or_genesis() {
             "1",
             "--offline",
         ])
-        .current_dir(manifest_dir)
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
         .expect("cargo metadata runs");
     assert!(
@@ -45,27 +60,31 @@ fn kernel_crates_link_no_wasm_bindgen_or_genesis() {
         "cargo metadata failed: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    serde_json::from_slice(&output.stdout).expect("metadata is JSON")
+}
 
-    let metadata: serde_json::Value =
-        serde_json::from_slice(&output.stdout).expect("metadata is JSON");
-    let packages = metadata["packages"].as_array().expect("packages array");
+/// The workspace package named `name`; its absence is a failure.
+fn workspace_package<'a>(packages: &'a [serde_json::Value], name: &str) -> &'a serde_json::Value {
+    packages
+        .iter()
+        .find(|package| package["name"] == name)
+        .unwrap_or_else(|| panic!("{name} must be a workspace package"))
+}
 
-    for name in KERNEL_CRATES {
-        let package = packages
-            .iter()
-            .find(|package| package["name"] == name)
-            .unwrap_or_else(|| panic!("{name} must be a workspace package"));
-        let dependencies = package["dependencies"]
-            .as_array()
-            .expect("dependencies array");
-        for dependency in dependencies {
-            let dependency_name = dependency["name"].as_str().expect("dependency name");
-            for prefix in FORBIDDEN_PREFIXES {
-                assert!(
-                    !dependency_name.starts_with(prefix),
-                    "{name} must stay wasm-agnostic, but links {dependency_name}"
-                );
-            }
-        }
-    }
+/// The first dependency of `package` matching a forbidden prefix, if any —
+/// the one the kernel may never link.
+fn first_forbidden_dependency(package: &serde_json::Value) -> Option<&str> {
+    package["dependencies"]
+        .as_array()
+        .expect("dependencies array")
+        .iter()
+        .map(|dependency| dependency["name"].as_str().expect("dependency name"))
+        .find(|dependency_name| forbidden_dependency(dependency_name))
+}
+
+/// Whether a dependency matches one of the forbidden prefixes.
+fn forbidden_dependency(dependency_name: &str) -> bool {
+    FORBIDDEN_PREFIXES
+        .iter()
+        .any(|prefix| dependency_name.starts_with(prefix))
 }

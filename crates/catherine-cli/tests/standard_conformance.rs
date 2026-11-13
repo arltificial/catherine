@@ -108,54 +108,81 @@ fn beads_issues_jsonl_is_an_intact_source_of_truth() {
     let mut ids = BTreeSet::new();
     // (line number, dependency's issue_id, dependency's depends_on_id)
     let mut dependencies = Vec::new();
-
-    for (i, line) in raw.lines().enumerate() {
-        if line.trim().is_empty() {
-            continue;
-        }
-        let record: Json = serde_json::from_str(line)
-            .unwrap_or_else(|e| panic!("line {} of issues.jsonl is not valid JSON: {e}", i + 1));
-
-        let id = record
-            .get("id")
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| panic!("line {} of issues.jsonl has no id", i + 1));
-        assert!(
-            ids.insert(id.to_string()),
-            "duplicate issue id '{id}' at line {}",
-            i + 1
-        );
-
-        if let Some(deps) = record.get("dependencies").and_then(|v| v.as_array()) {
-            for dep in deps {
-                let issue_id = dep.get("issue_id").and_then(|v| v.as_str());
-                let depends_on_id = dep.get("depends_on_id").and_then(|v| v.as_str());
-                match (issue_id, depends_on_id) {
-                    (Some(from), Some(to)) => {
-                        dependencies.push((i + 1, from.to_string(), to.to_string()));
-                    }
-                    _ => panic!(
-                        "line {} dependency is missing issue_id/depends_on_id: {dep}",
-                        i + 1
-                    ),
-                }
-            }
-        }
+    for (index, line) in raw.lines().enumerate() {
+        collect_issue_line(line, index + 1, &mut ids, &mut dependencies);
     }
 
     assert!(
         !ids.is_empty(),
         "issues.jsonl contains no issues — source of truth is degenerate"
     );
+    assert_dependencies_resolve(&dependencies, &ids);
+}
 
-    for (line, from, to) in dependencies {
+/// One line of the export: a JSON object with a unique, non-empty id whose
+/// dependency references are recorded for the resolve pass. Blank lines are
+/// skipped.
+fn collect_issue_line(
+    line: &str,
+    number: usize,
+    ids: &mut BTreeSet<String>,
+    dependencies: &mut Vec<(usize, String, String)>,
+) {
+    if line.trim().is_empty() {
+        return;
+    }
+    let record: Json = serde_json::from_str(line)
+        .unwrap_or_else(|e| panic!("line {number} of issues.jsonl is not valid JSON: {e}"));
+    let id = issue_id(&record, number);
+    assert!(
+        ids.insert(id.to_string()),
+        "duplicate issue id '{id}' at line {number}"
+    );
+    if let Some(deps) = record.get("dependencies").and_then(|v| v.as_array()) {
+        collect_dependencies(deps, number, dependencies);
+    }
+}
+
+/// The record's `id`, asserted to be a non-empty string.
+fn issue_id(record: &Json, number: usize) -> &str {
+    record
+        .get("id")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| panic!("line {number} of issues.jsonl has no id"))
+}
+
+/// Record every dependency reference on one issue, in file order.
+fn collect_dependencies(
+    deps: &[Json],
+    number: usize,
+    dependencies: &mut Vec<(usize, String, String)>,
+) {
+    for dep in deps {
+        let (from, to) = dependency_ref(dep, number);
+        dependencies.push((number, from, to));
+    }
+}
+
+/// One dependency's `(issue_id, depends_on_id)` pair; both ends are required.
+fn dependency_ref(dep: &Json, number: usize) -> (String, String) {
+    let issue_id = dep.get("issue_id").and_then(|v| v.as_str());
+    let depends_on_id = dep.get("depends_on_id").and_then(|v| v.as_str());
+    match (issue_id, depends_on_id) {
+        (Some(from), Some(to)) => (from.to_string(), to.to_string()),
+        _ => panic!("line {number} dependency is missing issue_id/depends_on_id: {dep}"),
+    }
+}
+
+/// Every recorded reference resolves inside the same export.
+fn assert_dependencies_resolve(deps: &[(usize, String, String)], ids: &BTreeSet<String>) {
+    for (line, from, to) in deps {
         assert!(
-            ids.contains(&from),
+            ids.contains(from),
             "line {line}: dependency issue_id '{from}' is not in issues.jsonl"
         );
         assert!(
-            ids.contains(&to),
+            ids.contains(to),
             "line {line}: dependency depends_on_id '{to}' is not in issues.jsonl"
         );
     }

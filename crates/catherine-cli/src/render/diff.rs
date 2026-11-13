@@ -72,7 +72,35 @@ pub struct DiffData<'a> {
 
 /// The one diff-envelope path.
 pub fn diff_envelope(report: &SchemaDiffReport, warnings: Vec<Warning>) -> Envelope<DiffData<'_>> {
-    let (outcome, scope, witness, added) = match &report.outcome {
+    let (outcome, scope, witness, added) = outcome_parts(&report.outcome);
+    Envelope::success(
+        CLI_VERSION,
+        EnvelopeKind::Check,
+        DiffData {
+            outcome,
+            bound: BoundView::of(&report.bound),
+            scope,
+            witness,
+            added,
+            findings: &report.findings,
+        },
+        warnings,
+        Vec::new(),
+    )
+}
+
+/// One classification as the payload fields: the outcome string, the
+/// scope exactly when the claim is bounded, the witness exactly for
+/// `weakened`, and the accreted constraints (empty otherwise).
+fn outcome_parts(
+    outcome: &SchemaDiffOutcome,
+) -> (
+    &'static str,
+    Option<ScopeView>,
+    Option<InstanceView>,
+    Vec<ConstraintView>,
+) {
+    match outcome {
         SchemaDiffOutcome::Cosmetic => ("cosmetic", None, None, Vec::new()),
         SchemaDiffOutcome::Accreted { added } => ("accreted", None, None, constraint_views(added)),
         SchemaDiffOutcome::Weakened { witness } => (
@@ -98,21 +126,7 @@ pub fn diff_envelope(report: &SchemaDiffReport, warnings: Vec<Warning>) -> Envel
         }
         // The runner refuses this class before rendering (labeled error).
         SchemaDiffOutcome::Incomparable => ("incomparable", None, None, Vec::new()),
-    };
-    Envelope::success(
-        CLI_VERSION,
-        EnvelopeKind::Check,
-        DiffData {
-            outcome,
-            bound: BoundView::of(&report.bound),
-            scope,
-            witness,
-            added,
-            findings: &report.findings,
-        },
-        warnings,
-        Vec::new(),
-    )
+    }
 }
 
 /// The diff human lines. The weakening block reuses the §5 renderer with
@@ -122,34 +136,9 @@ pub fn render_diff(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
         SchemaDiffOutcome::Cosmetic => {
             vec!["diff: cosmetic — no enforced-constraint change, 0 findings".to_string()]
         }
-        SchemaDiffOutcome::Accreted { added } => {
-            let mut lines = vec![format!(
-                "diff: accreted — {} enforced constraint(s) added, 0 findings",
-                added.len()
-            )];
-            lines.extend(added.iter().map(added_line));
-            lines
-        }
-        SchemaDiffOutcome::Weakened { .. } => {
-            let mut lines =
-                vec!["diff: weakened — a v1-enforced equation is not enforced by v2".to_string()];
-            lines.extend(
-                report
-                    .findings
-                    .iter()
-                    .flat_map(|finding| render_one(finding, v1)),
-            );
-            lines
-        }
-        SchemaDiffOutcome::StrengthenedInScope { added, scope } => {
-            let mut lines = vec![format!(
-                "diff: strengthened-in-scope — no weakening instance within the explored bounds, {} enforced constraint(s) added{}",
-                added.len(),
-                scope_suffix(scope)
-            )];
-            lines.extend(added.iter().map(added_line));
-            lines
-        }
+        SchemaDiffOutcome::Accreted { added } => accreted_lines(added),
+        SchemaDiffOutcome::Weakened { .. } => weakened_lines(report, v1),
+        SchemaDiffOutcome::StrengthenedInScope { added, scope } => strengthened_lines(added, scope),
         SchemaDiffOutcome::EquivalentInScope { scope } => vec![format!(
             "diff: equivalent-in-scope — no separating instance within the explored bounds{}",
             scope_suffix(scope)
@@ -162,6 +151,43 @@ pub fn render_diff(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
             "diff: incomparable — objects or arrows differ, no classification claimed".to_string(),
         ],
     }
+}
+
+/// The `accreted` human lines: the head count, then one line per added
+/// constraint.
+fn accreted_lines(added: &[EnforcedEquation]) -> Vec<String> {
+    let mut lines = vec![format!(
+        "diff: accreted — {} enforced constraint(s) added, 0 findings",
+        added.len()
+    )];
+    lines.extend(added.iter().map(added_line));
+    lines
+}
+
+/// The `weakened` human lines: the head, then the §5 finding block
+/// rendered against the v1 schema (the side that enforced the equation).
+fn weakened_lines(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
+    let mut lines =
+        vec!["diff: weakened — a v1-enforced equation is not enforced by v2".to_string()];
+    lines.extend(
+        report
+            .findings
+            .iter()
+            .flat_map(|finding| render_one(finding, v1)),
+    );
+    lines
+}
+
+/// The `strengthened-in-scope` human lines: the head with the scope tail,
+/// then one line per added constraint.
+fn strengthened_lines(added: &[EnforcedEquation], scope: &SearchScope) -> Vec<String> {
+    let mut lines = vec![format!(
+        "diff: strengthened-in-scope — no weakening instance within the explored bounds, {} enforced constraint(s) added{}",
+        added.len(),
+        scope_suffix(scope)
+    )];
+    lines.extend(added.iter().map(added_line));
+    lines
 }
 
 /// One added constraint as a human line.

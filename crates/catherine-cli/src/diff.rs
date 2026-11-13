@@ -25,7 +25,9 @@ use crate::run::{emit_error, exit_code, load_model, write_envelope};
 use crate::runners::{print_run_warnings, prune_undeclared_rows};
 use catherine_analysis::bounds::SearchBounds;
 use catherine_analysis::schema_diff::{self, SchemaDiffOutcome};
+use catherine_core::model::{Ident, Model, Schema};
 use genesis::envelope::Warning;
+use std::collections::BTreeMap;
 use std::io::Write;
 
 /// Execute the schema diff once and render. Returns the process exit
@@ -43,24 +45,15 @@ pub fn run_diff(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
-    let v1 = match load_model(model_path) {
-        Ok(model) => model,
+    let (v1, v2) = match load_pair(model_path, second_path) {
+        Ok(pair) => pair,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
-    let v2 = match load_model(second_path) {
-        Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
-    };
-    let mut max_rows = match parse_rows(rows) {
+    let max_rows = match parse_rows(rows) {
         Ok(max_rows) => max_rows,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
     };
-    let mut warnings = warnings;
-    prune_undeclared_rows(&v1.schema, &mut max_rows, &mut warnings);
-    let bound = SearchBounds {
-        max_rows,
-        max_candidates,
-    };
+    let (bound, warnings) = prune_and_bound(&v1.schema, max_rows, max_candidates, warnings);
     let report = schema_diff::diff(&v1.schema, &v2.schema, &bound);
     if matches!(report.outcome, SchemaDiffOutcome::Incomparable) {
         return emit_error(&incomparable(second_path), json, warnings, stdout, stderr);
@@ -75,6 +68,29 @@ pub fn run_diff(
         }
     }
     exit_code(&report.findings)
+}
+
+/// Both documents through the shared loader; the first failure is the
+/// labeled error, never a half-loaded run.
+fn load_pair(model_path: &str, second_path: &str) -> Result<(Model, Model), LabeledError> {
+    Ok((load_model(model_path)?, load_model(second_path)?))
+}
+
+/// The bound the scan runs under: the `--rows` map pruned to v1's
+/// declared objects, naming an undeclared object on the warnings channel
+/// (catherine-0kw).
+fn prune_and_bound(
+    schema: &Schema,
+    mut max_rows: BTreeMap<Ident, usize>,
+    max_candidates: usize,
+    mut warnings: Vec<Warning>,
+) -> (SearchBounds, Vec<Warning>) {
+    prune_undeclared_rows(schema, &mut max_rows, &mut warnings);
+    let bound = SearchBounds {
+        max_rows,
+        max_candidates,
+    };
+    (bound, warnings)
 }
 
 /// A vocabulary difference is a labeled input error: instance spaces
