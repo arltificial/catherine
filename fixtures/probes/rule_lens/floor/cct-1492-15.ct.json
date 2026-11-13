@@ -1,0 +1,35 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "fecha",
+        "type": "string"
+      }
+    ],
+    "rules": [
+      {
+        "name": "tope_2024_10_01",
+        "predicate": {
+          "kind": "cmp",
+          "column": "fecha",
+          "op": "eq",
+          "value": "2024-10-01"
+        },
+        "action": "tope_641748216"
+      }
+    ]
+  }
+}

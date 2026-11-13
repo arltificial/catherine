@@ -1,0 +1,177 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "alcance",
+        "type": "string"
+      },
+      {
+        "name": "fecha",
+        "type": "string"
+      }
+    ],
+    "rules": [
+      {
+        "name": "general_2022_10_01",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "alcance",
+              "op": "eq",
+              "value": "general"
+            },
+            {
+              "kind": "cmp",
+              "column": "fecha",
+              "op": "eq",
+              "value": "2022-10-01"
+            }
+          ]
+        },
+        "action": "tope_49192134"
+      },
+      {
+        "name": "general_2022_10_repeat",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "alcance",
+              "op": "eq",
+              "value": "general"
+            },
+            {
+              "kind": "cmp",
+              "column": "fecha",
+              "op": "eq",
+              "value": "2022-10-01"
+            }
+          ]
+        },
+        "action": "tope_49192134"
+      },
+      {
+        "name": "zona_desfavorable_2022_10_01",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "alcance",
+              "op": "eq",
+              "value": "zona_desfavorable"
+            },
+            {
+              "kind": "cmp",
+              "column": "fecha",
+              "op": "eq",
+              "value": "2022-10-01"
+            }
+          ]
+        },
+        "action": "tope_59030562"
+      },
+      {
+        "name": "general_2022_12_01",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "alcance",
+              "op": "eq",
+              "value": "general"
+            },
+            {
+              "kind": "cmp",
+              "column": "fecha",
+              "op": "eq",
+              "value": "2022-12-01"
+            }
+          ]
+        },
+        "action": "tope_53207958"
+      },
+      {
+        "name": "zona_desfavorable_2022_12_01",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "alcance",
+              "op": "eq",
+              "value": "zona_desfavorable"
+            },
+            {
+              "kind": "cmp",
+              "column": "fecha",
+              "op": "eq",
+              "value": "2022-12-01"
+            }
+          ]
+        },
+        "action": "tope_63849549"
+      },
+      {
+        "name": "general_2023_01_01",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "alcance",
+              "op": "eq",
+              "value": "general"
+            },
+            {
+              "kind": "cmp",
+              "column": "fecha",
+              "op": "eq",
+              "value": "2023-01-01"
+            }
+          ]
+        },
+        "action": "tope_58528749"
+      },
+      {
+        "name": "zona_desfavorable_2023_01_01",
+        "predicate": {
+          "kind": "and",
+          "args": [
+            {
+              "kind": "cmp",
+              "column": "alcance",
+              "op": "eq",
+              "value": "zona_desfavorable"
+            },
+            {
+              "kind": "cmp",
+              "column": "fecha",
+              "op": "eq",
+              "value": "2023-01-01"
+            }
+          ]
+        },
+        "action": "tope_70234497"
+      }
+    ],
+    "policy": "PriorityOrder"
+  }
+}

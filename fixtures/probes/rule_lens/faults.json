@@ -1,0 +1,123 @@
+{
+  "probe": "probe-rule-lens-extracted",
+  "source": {
+    "annex": "Disposici\u00f3n 75/2026 (DTRT), annex 1 \u2014 CCT 288/97 indemnity caps",
+    "path": "/var/home/sasha/para/areas/dev/gh/at/bogart/recon/sources/probe-anexos/pdfs/anexo_7796103_1.txt",
+    "text_sha256": "7f01bdcb903f9f02c94ffde396a001a7114d9774323b8c77e86af2bc15d1c645",
+    "note": "pdf text layer via pdftotext; the 'Alcance: Zona Desfavorable' label is printed AFTER its three rows (merged-cell hazard), so the extraction maps the label backwards"
+  },
+  "floor_source": {
+    "annex": "Disposici\u00f3n 45/2026 (DTRT), annex 1 \u2014 CCT 1492/15",
+    "path": "/var/home/sasha/para/areas/dev/gh/at/bogart/recon/sources/probe-anexos/pdfs/anexo_7796116_1.txt",
+    "text_sha256": "ae5bea61c57967b14d2738642ea78a0a0340406a8f00b11e64ab28b5b54e49fb"
+  },
+  "domain": {
+    "alcance": [
+      "general",
+      "zona_desfavorable"
+    ],
+    "fecha": [
+      "2022-10-01",
+      "2022-12-01",
+      "2023-01-01"
+    ]
+  },
+  "floor_domain": {
+    "fecha": [
+      "2024-10-01"
+    ]
+  },
+  "baseline_sample": {
+    "above_floor": [
+      [
+        "general",
+        "2022-10-01"
+      ],
+      [
+        "general",
+        "2022-12-01"
+      ],
+      [
+        "general",
+        "2023-01-01"
+      ],
+      [
+        "zona_desfavorable",
+        "2022-10-01"
+      ]
+    ],
+    "floor": [
+      [
+        "2024-10-01"
+      ]
+    ]
+  },
+  "faults": [
+    {
+      "id": "gap-remove-general-2023-01",
+      "table": "above_floor",
+      "fixture": "extracted/faults/01-gap-remove-general-2023-01.ct.json",
+      "catalog_fault": "gap",
+      "baseline_catches": true,
+      "observed_findings": 1
+    },
+    {
+      "id": "gap-remove-zona-2022-12",
+      "table": "above_floor",
+      "fixture": "extracted/faults/02-gap-remove-zona-2022-12.ct.json",
+      "catalog_fault": "gap",
+      "baseline_catches": false,
+      "observed_findings": 1
+    },
+    {
+      "id": "overlap-declared-disjoint",
+      "table": "above_floor",
+      "fixture": "extracted/faults/03-overlap-declared-disjoint.ct.json",
+      "catalog_fault": "overlap",
+      "baseline_catches": true,
+      "observed_findings": 1
+    },
+    {
+      "id": "shadow-duplicate-general-2022-10",
+      "table": "above_floor",
+      "fixture": "extracted/faults/04-shadow-duplicate-general-2022-10.ct.json",
+      "catalog_fault": "shadow",
+      "baseline_catches": false,
+      "observed_findings": 1
+    },
+    {
+      "id": "shadow-widen-zona-2022-10",
+      "table": "above_floor",
+      "fixture": "extracted/faults/05-shadow-widen-zona-2022-10.ct.json",
+      "catalog_fault": "shadow",
+      "baseline_catches": false,
+      "observed_findings": 2
+    },
+    {
+      "id": "floor-gap-remove-row",
+      "table": "floor",
+      "fixture": "floor/faults/01-gap-remove-row.ct.json",
+      "catalog_fault": "floor-near-trivial",
+      "baseline_catches": true,
+      "observed_findings": 1
+    },
+    {
+      "id": "floor-overlap-different-cap",
+      "table": "floor",
+      "fixture": "floor/faults/02-overlap-different-cap.ct.json",
+      "catalog_fault": "floor-near-trivial",
+      "baseline_catches": true,
+      "observed_findings": 1
+    }
+  ],
+  "unreached": [
+    {
+      "catalog_fault": "derivable",
+      "why": "a derivable rule's region must equal the intersection of two OTHER rules' regions; the extracted table's rules are disjoint singleton cells, so every pairwise intersection is empty and no non-duplicating derivable insertion exists. Recorded as a gap, never forced into the table."
+    }
+  ],
+  "unique_expected": {
+    "above_floor": 4,
+    "floor": 0
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": [
+      "Input"
+    ],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "Input",
+    "columns": [
+      {
+        "name": "fecha",
+        "type": "string"
+      }
+    ],
+    "rules": []
+  }
+}
