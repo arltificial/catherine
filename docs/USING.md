@@ -171,9 +171,9 @@ Equally load-bearing — each line with its source:
   in bajan/wild, which consume catherine verdicts — catherine emits verdicts
   only (program boundary, `bd memory: program-boundary`).
 
-## Probe evidence (EXECUTED, 2026-11-13)
+## Captured runs (EXECUTED, 2026-11-13)
 
-Two real runs, captured from the shipped CLI. They are the evidence the
+Three real runs, captured from the shipped CLI. They are the evidence the
 claim-scoping in `README.md` cites; the ledger entries are
 `ledger/probes/migration/0002-06f4dd84.json` and
 `ledger/probes/rule-lens-extracted/0002-c3316a38.json`.
@@ -189,6 +189,15 @@ $ catherine migrate fixtures/probes/migration/floor-visible-loss.ct.json --json
  "kind":"lost_row","witness":{"object":"RawCapture","row":1}},
  {"label":"executed","kind":"lost_row","witness":{"object":"RawCapture",
  "row":2}},...]}}
+```
+
+Executed check — a committed kata fault fixture, the equation violation
+with its witness row (exit 5):
+
+```text
+$ catherine check fixtures/katas/bowling-fault-miswired-slot.ct.json --json
+{"ok":true,...,"data":{"findings":[{"label":"executed","kind":"violation",
+ "witness":{"equation":0,"row":1,"lhs":1,"rhs":0}}]},"warnings":[]}}
 ```
 
 Rule lens on an extracted table — a widened ZD cap rule shadows the two

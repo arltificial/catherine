@@ -24,7 +24,7 @@ tells you when modeling is a waste of time.
 | Redundancy & equivalence | derivable paths flagged; models compared via `distinguish` with witness inputs |
 | Migration safety (P7) | Δ reindexing with loud lost-data counterexamples — measured against a committed conventional baseline (statement lint + row-count/checksum dry run) on three pilot-scale fixtures: 10 named cell losses and 1 round-trip counterexample the baseline cannot identify ([probe ledger](fixtures/probes/migration/README.md), entries `ledger/probes/migration/`, `catherine-1od`) |
 | Schema diff (P10) | v1→v2 edits classified accreted / weakened-with-witness (an instance v2 accepts and v1 rejects) / equivalent-in-scope / cosmetic (silent) |
-| Rule lens (P8, hypothesized) | rules as subobjects + policy: gap/overlap/shadow/derivable; simplifications proven compliant. Scoped to **extracted** prose/PDF tables no DMN analyzer ingests — authored decision tables are commodity (Calvanese et al., [arXiv:1603.07466](https://arxiv.org/abs/1603.07466); Signavio, OpenRules); extracted-table evidence ([probe ledger](fixtures/probes/rule_lens/README.md), entries `ledger/probes/rule-lens-extracted/`, `catherine-1od`) |
+| Rule lens (P8, executed; scoped to extracted tables) | rules as subobjects + policy: gap/overlap/shadow/derivable; simplifications proven compliant. Scoped to **extracted** prose/PDF tables no DMN analyzer ingests — authored decision tables are commodity (Calvanese et al., [arXiv:1603.07466](https://arxiv.org/abs/1603.07466); Signavio, OpenRules); extracted-table evidence ([probe ledger](fixtures/probes/rule_lens/README.md), entries `ledger/probes/rule-lens-extracted/`, `catherine-1od`) |
 | Epistemic labels | PROVED / EXECUTED / HYPOTHESIZED / UNKNOWN on every answer |
 
 **The honest boundary is part of the product:** on rule-based or trivial
@@ -85,19 +85,23 @@ fabricated end-to-end.
 
 ## Status & roadmap
 
-Design converged (Rule-of-5); implementation not started. Phases are
-beads tickets (`bd list`), each a red→green→refactor cycle:
+P0–P10 are closed (each phase ran its red→green→refactor cycle as a beads
+ticket), and P11's domain-probe validation is recorded in
+`ledger/probes/`. The phase map, for orientation:
 
 ```
 P0 kernel skeleton → P1 executed checks → P2 findings → P3 CLI (genesis)
-→ P4 analysis → P5 wasm+web → P6 kata ledger (STOP CONDITION)
-→ P7 migration Δ → P8 rule lens (hypothesis, pre-registered validation)
-→ P9 bogart pilot (first real-domain dogfood)
+→ P4 analysis → P5 wasm+web → P6 kata ledger (STOP CONDITION: survived,
+scoped) → P7 migration Δ → P8 rule lens (pre-registered validation,
+survived scoped) → P9 bogart pilot (first real-domain dogfood)
+→ P10 schema diff → P11 domain probes (baseline-armed, recorded)
 ```
 
-`bd ready` shows the single unblocked ticket. If P6's ledger verdict is
-`killed`, the project stops and records the negative result — that is the
-pre-committed stop condition, not a failure mode.
+`bd ready` lists the remaining work (docs drift, seam recipe, positioning
+notes, the pattern-kata suite). P6's ledger verdict gates P7/P8 — it came
+back `survived (scoped)`, so both proceeded by the recorded procedure; had
+it been `killed`, the project would have stopped and recorded the negative
+result.
 
 ## Tooling (ddl-managed)
 
