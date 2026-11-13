@@ -22,7 +22,7 @@ use catherine_analysis::bounds::{ScopeCaps, UNCOVERED_INPUTS_QUESTION};
 use catherine_analysis::rule_lens::{rule_lens, RuleLensOutcome};
 use catherine_core::findings::{
     DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind, RedundantWitness,
-    UnderconstraintWitness,
+    UnderconstraintWitness, ViolationWitness,
 };
 use catherine_core::model::{
     CmpOp, ColumnType, Ident, Literal, Path, Policy, Predicate, RowId, Rule, RulePresentation,
@@ -131,12 +131,12 @@ fn overlap_fixture_maps_to_an_executed_violation() {
         findings,
         vec![Finding {
             label: EpistemicLabel::Executed,
-            kind: FindingKind::Violation(EquationWitness {
+            kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                 equation: 0,
                 row: RowId(1),
                 lhs: RowId(0),
                 rhs: RowId(1),
-            }),
+            })),
         }]
     );
     let json = serde_json::to_value(&findings).expect("findings serialize");

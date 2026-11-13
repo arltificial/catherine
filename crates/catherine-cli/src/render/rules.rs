@@ -15,7 +15,7 @@
 //! rendered as clean.
 
 use super::{path_string, CLI_VERSION};
-use catherine_core::findings::{DomainQuestion, Finding, FindingKind};
+use catherine_core::findings::{DomainQuestion, Finding, FindingKind, ViolationWitness};
 use catherine_core::model::RulePresentation;
 use catherine_core::rule_lens::RuleScope;
 use genesis::envelope::{Envelope, EnvelopeKind, Warning};
@@ -95,11 +95,18 @@ pub fn render_rules(findings: &[Finding], presentation: &RulePresentation) -> Ve
 /// non-default epistemic label.
 fn finding_line(finding: &Finding, presentation: &RulePresentation) -> String {
     let head = match &finding.kind {
-        FindingKind::Violation(witness) => format!(
+        FindingKind::Violation(ViolationWitness::Equation(witness)) => format!(
             "violation: rules `{}` and `{}` disagree on input #{}",
             rule_name(presentation, witness.lhs.0),
             rule_name(presentation, witness.rhs.0),
             witness.row.0
+        ),
+        // The rule lens emits equation witnesses only; a programmatically
+        // assembled key violation still renders its rows rather than
+        // panicking (totality).
+        FindingKind::Violation(ViolationWitness::Key(witness)) => format!(
+            "violation: key-{} collides on rows #{} and #{}",
+            witness.key, witness.rows[0].0, witness.rows[1].0
         ),
         FindingKind::Underconstraint(witness) => underconstraint_head(&witness.case),
         FindingKind::Redundant(witness) => format!(
@@ -169,7 +176,7 @@ fn rule_name(presentation: &RulePresentation, index: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use catherine_core::findings::{EpistemicLabel, EquationWitness};
+    use catherine_core::findings::{EpistemicLabel, EquationWitness, ViolationWitness};
     use catherine_core::model::{Ident, Path, RowId, Rule};
 
     fn table() -> RulePresentation {
@@ -225,12 +232,12 @@ mod tests {
             },
             Finding {
                 label: EpistemicLabel::Executed,
-                kind: FindingKind::Violation(EquationWitness {
+                kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                     equation: 0,
                     row: RowId(1),
                     lhs: RowId(0),
                     rhs: RowId(1),
-                }),
+                })),
             },
             Finding {
                 label: EpistemicLabel::Executed,

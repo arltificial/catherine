@@ -31,7 +31,9 @@
 //! sample is the universe of the claim.
 
 use crate::bounds::uncovered_inputs_finding;
-use catherine_core::findings::{EpistemicLabel, EquationWitness, Finding, FindingKind};
+use catherine_core::findings::{
+    EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
+};
 use catherine_core::model::{ColumnType, Ident, Literal, Policy, RowId, RulePresentation};
 use catherine_core::rule_lens::{evaluate, RuleDomain};
 use std::collections::BTreeMap;
@@ -197,12 +199,12 @@ fn violation_finding(
         .unwrap_or(lhs);
     Finding {
         label: EpistemicLabel::Executed,
-        kind: FindingKind::Violation(EquationWitness {
+        kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
             equation: lhs,
             row: RowId(index),
             lhs: RowId(lhs),
             rhs: RowId(rhs),
-        }),
+        })),
     }
 }
 

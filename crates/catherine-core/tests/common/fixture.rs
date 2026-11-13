@@ -181,6 +181,7 @@ pub fn assemble(case: &FixtureCase) -> (Schema, Instance) {
             objects: objects_of(&case.row_counts),
             arrows: arrows_of(&case.arrows),
             equations: case.equations.clone(),
+            keys: Vec::new(),
         },
         Instance {
             rows: rows_of(&case.row_counts),

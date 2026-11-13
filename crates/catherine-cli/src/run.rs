@@ -179,19 +179,19 @@ mod tests {
     use catherine_core::error::{ErrorCode, ParseError, SemanticError};
     use catherine_core::findings::{
         ContradictionWitness, DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness,
-        RedundantWitness, UnderconstraintWitness,
+        RedundantWitness, UnderconstraintWitness, ViolationWitness,
     };
     use catherine_core::model::{Ident, Path, RowId};
 
     fn violation() -> Finding {
         Finding {
             label: EpistemicLabel::Executed,
-            kind: FindingKind::Violation(EquationWitness {
+            kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                 equation: 0,
                 row: RowId(3),
                 lhs: RowId(1),
                 rhs: RowId(2),
-            }),
+            })),
         }
     }
 

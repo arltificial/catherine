@@ -7,7 +7,7 @@
 //! order (kind first, then witness ids), exactly as `check` emits.
 
 use catherine_core::findings::{
-    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
+    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
 };
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{ConstraintStatus, Equation, Ident, Path, RowId, Schema};
@@ -99,12 +99,12 @@ fn row_violation(
                 ConstraintStatus::Accepted => EpistemicLabel::Executed,
                 ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
             },
-            kind: FindingKind::Violation(EquationWitness {
+            kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                 equation: index,
                 row: RowId(row),
                 lhs,
                 rhs,
-            }),
+            })),
         }),
         _ => None,
     }

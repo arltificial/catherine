@@ -19,7 +19,7 @@
 
 use std::path::Path;
 
-use catherine_core::findings::{EpistemicLabel, FindingKind};
+use catherine_core::findings::{EpistemicLabel, FindingKind, ViolationWitness};
 use catherine_core::hash::model_hash;
 use catherine_core::parse::parse;
 use catherine_ledger::entry::BaselineMode;
@@ -121,7 +121,7 @@ const UNIQUE_SET: [&str; 5] = [
 fn element(kind: &FindingKind) -> String {
     match kind {
         FindingKind::Dangling(witness) => format!("dangling:{}#{}", witness.arrow.0, witness.src.0),
-        FindingKind::Violation(witness) => {
+        FindingKind::Violation(ViolationWitness::Equation(witness)) => {
             format!("violation:eq{}@row{}", witness.equation, witness.row.0)
         }
         other => panic!("unexpected finding kind in a wrapper-laws fixture: {other:?}"),

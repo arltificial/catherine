@@ -30,7 +30,7 @@ use common::load_presentation;
 
 use catherine_core::checks::check;
 use catherine_core::findings::{
-    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
+    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
 };
 use catherine_core::instance::{DanglingCell, TypedInstance, TypingViolation};
 use catherine_core::model::{Ident, Instance, RowId, Schema};
@@ -211,12 +211,12 @@ fn violation_outcome(name: &str, o: &Value) -> Finding {
         // Kind names the shape; P1's `hypothesis` outcomes carry
         // the `hypothesized` label on the same violation shape.
         label: violation_label(o),
-        kind: FindingKind::Violation(EquationWitness {
+        kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
             equation: o["equation"].as_u64().expect("equation") as usize,
             row: RowId(o["row"].as_u64().expect("row") as usize),
             lhs: RowId(o["lhs"].as_u64().expect("lhs") as usize),
             rhs: RowId(o["rhs"].as_u64().expect("rhs") as usize),
-        }),
+        })),
     }
 }
 

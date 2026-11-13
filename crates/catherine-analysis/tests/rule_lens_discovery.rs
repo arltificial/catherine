@@ -21,6 +21,7 @@ use catherine_analysis::bounds::UNCOVERED_INPUTS_QUESTION;
 use catherine_analysis::rule_lens::{discover, RuleExample};
 use catherine_core::findings::{
     DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind, UnderconstraintWitness,
+    ViolationWitness,
 };
 use catherine_core::model::{Ident, Literal, RowId, RulePresentation};
 use catherine_core::parse::parse;
@@ -128,12 +129,12 @@ fn a_differing_example_is_a_violation_finding() {
         report.findings,
         vec![Finding {
             label: EpistemicLabel::Executed,
-            kind: FindingKind::Violation(EquationWitness {
+            kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                 equation: 1,
                 row: RowId(0),
                 lhs: RowId(1),
                 rhs: RowId(1),
-            }),
+            })),
         }]
     );
     assert_eq!(report.examples_checked, 1);

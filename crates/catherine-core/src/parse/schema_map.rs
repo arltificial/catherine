@@ -1,6 +1,6 @@
 //! Purpose: the Δ schema-map parse pass (add-delta-migration phase A)
 //! — the additive 1.1 section is validated on its own: the target
-//! schema runs the same object/arrow/equation passes as the document
+//! schema runs the same object/arrow/equation/key passes as the document
 //! schema (own pointer root), and the assignment maps are total over
 //! the declared source elements with targets declared in the target.
 //!
@@ -9,6 +9,7 @@
 //! (`catherine_core::migrate`). A partial map is the labeled
 //! `partial_schema_map` build error naming the unmapped element.
 
+use super::keys::check_keys;
 use super::schema::{check_arrows, check_equations, check_objects, RawSchema};
 use super::spans::Spans;
 use crate::error::ErrorCode;
@@ -33,10 +34,12 @@ fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::err
     let objects = check_objects(raw, spans)?;
     let arrows = check_arrows(raw, &objects, spans)?;
     let equations = check_equations(raw, &arrows, spans)?;
+    let keys = check_keys(raw, &objects, &arrows, spans)?;
     Ok(Schema {
         objects,
         arrows,
         equations,
+        keys,
     })
 }
 

@@ -99,18 +99,20 @@ pub fn unknown_follow_warning(arrow: &str) -> Warning {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use catherine_core::findings::{EpistemicLabel, EquationWitness, Finding, FindingKind};
+    use catherine_core::findings::{
+        EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
+    };
     use catherine_core::model::RowId;
 
     fn violation() -> Finding {
         Finding {
             label: EpistemicLabel::Executed,
-            kind: FindingKind::Violation(EquationWitness {
+            kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                 equation: 0,
                 row: RowId(3),
                 lhs: RowId(1),
                 rhs: RowId(2),
-            }),
+            })),
         }
     }
 

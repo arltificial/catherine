@@ -10,7 +10,7 @@
 //! golden fixtures (one per rule-table bug class) parsing with their
 //! documented policy and rule order, the closed predicate language, the
 //! labeled validation errors naming the offending element, the additive
-//! minor gate (1.2 known, 1.3 rejected), and the section's serialize/parse
+//! minor gate (1.3 known, 1.4 rejected), and the section's serialize/parse
 //! fixed point.
 //!
 //! Rationale: openspec change `add-rule-lens` phase A (design.md
@@ -269,14 +269,14 @@ fn column_order_is_presentation_but_rule_order_is_identity() {
 }
 
 #[test]
-fn the_additive_minor_gate_knows_1_2() {
-    let too_new = doc(VALID).replace("\"format_version\": \"1.2\"", "\"format_version\": \"1.3\"");
-    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.3 is unknown") else {
+fn the_additive_minor_gate_knows_1_3() {
+    let too_new = doc(VALID).replace("\"format_version\": \"1.2\"", "\"format_version\": \"1.4\"");
+    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.4 is unknown") else {
         panic!("an unknown minor is a labeled rejection");
     };
     assert_eq!(semantic.code, ErrorCode::UnsupportedVersion);
     assert!(
-        semantic.message.contains("known version is 1.2"),
+        semantic.message.contains("known version is 1.3"),
         "the gate names the known version: {}",
         semantic.message
     );

@@ -204,3 +204,76 @@ fn diff_surface_surfaces_malformed_input_honestly() {
         "the ignored bound object is named: {w}"
     );
 }
+
+// ── declarative keys: the added-key payload and human line ──────────
+
+const KEYS_V1: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/schema_diff/keys/v1.ct.json"
+);
+const KEYS_V2: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/schema_diff/keys/v2.ct.json"
+);
+const KEY_VIOLATION: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/key_violation.ct.json"
+);
+
+/// An added accepted key is `accreted`, named in the payload with the
+/// untagged key shape and in the human `added:` line — the equation shape
+/// is unchanged.
+#[test]
+fn added_key_is_named_in_payload_and_human_output() {
+    let out = run(&["diff", KEYS_V1, KEYS_V2, "--rows", "A=1", "--json"]);
+    assert_eq!(code(&out), 0, "accretion is not finding-bearing");
+    let v = envelope(&out);
+    assert_eq!(v["data"]["outcome"], "accreted");
+    assert_eq!(
+        v["data"]["added"][0],
+        serde_json::json!({"object": "A", "arrows": ["f"]}),
+        "the key's untagged payload shape"
+    );
+    assert!(
+        v["data"]["findings"]
+            .as_array()
+            .expect("findings")
+            .is_empty(),
+        "accretion emits zero findings"
+    );
+
+    let human = run(&["diff", KEYS_V1, KEYS_V2, "--rows", "A=1"]);
+    assert_eq!(code(&human), 0);
+    assert!(
+        text(&human).contains("  added: key A(f)"),
+        "the human added line names the key: {}",
+        text(&human)
+    );
+}
+
+/// A key collision renders with both rows in the human transcript and as
+/// a key witness in the JSON payload.
+#[test]
+fn key_violation_renders_both_rows() {
+    let out = run(&["check", KEY_VIOLATION]);
+    assert_eq!(code(&out), 3, "an accepted key violation exits 3");
+    let human = text(&out);
+    assert!(
+        human.contains("violation: key-0 capture(capture_source∘capture_edition)"),
+        "the key head names the object and tuple: {human}"
+    );
+    assert!(
+        human.contains("  at rows capture#0, capture#1"),
+        "the witness names both colliding rows: {human}"
+    );
+
+    let json = run(&["check", KEY_VIOLATION, "--json"]);
+    let v = envelope(&json);
+    assert_eq!(v["data"]["findings"][0]["kind"], "violation");
+    assert_eq!(v["data"]["findings"][0]["label"], "executed");
+    assert_eq!(v["data"]["findings"][0]["witness"]["key"], 0);
+    assert_eq!(
+        v["data"]["findings"][0]["witness"]["rows"],
+        serde_json::json!([0, 1])
+    );
+}

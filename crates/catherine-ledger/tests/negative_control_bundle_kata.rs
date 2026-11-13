@@ -22,7 +22,7 @@
 
 use std::path::{Path, PathBuf};
 
-use catherine_core::findings::FindingKind;
+use catherine_core::findings::{FindingKind, ViolationWitness};
 use catherine_core::hash::model_hash;
 use catherine_core::parse::parse;
 use catherine_ledger::entry::BaselineMode;
@@ -138,7 +138,7 @@ fn violation_witness(
     finding: &catherine_core::findings::Finding,
 ) -> Option<(usize, usize, usize, usize)> {
     match &finding.kind {
-        FindingKind::Violation(witness) => Some((
+        FindingKind::Violation(ViolationWitness::Equation(witness)) => Some((
             witness.equation,
             witness.row.0,
             witness.lhs.0,

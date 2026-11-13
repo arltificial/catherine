@@ -7,7 +7,7 @@
 //! witness instance, the added enforced constraints, and the findings
 //! verbatim) and render the human lines: the classification head, the
 //! §5 finding block for `weakened`, and one `added:` line per accreted
-//! constraint.
+//! constraint (an equation as `lhs = rhs`, a key as `key Object(a∘b)`).
 //!
 //! Rationale: one envelope shape (the genesis `Check` kind over the
 //! analysis payloads); the outcome string names the epistemic state and
@@ -21,29 +21,54 @@ use super::analysis::{BoundView, InstanceView, ScopeView};
 use super::render_one;
 use super::CLI_VERSION;
 use catherine_analysis::bounds::SearchScope;
-use catherine_analysis::schema_diff::{EnforcedEquation, SchemaDiffOutcome, SchemaDiffReport};
+use catherine_analysis::schema_diff::{EnforcedConstraint, SchemaDiffOutcome, SchemaDiffReport};
 use catherine_core::findings::Finding;
 use catherine_core::model::Schema;
 use genesis::envelope::{Envelope, EnvelopeKind, Warning};
 use serde::Serialize;
 
-/// One enforced equation as the payload spells it: arrow-name sequences.
+/// One enforced constraint as the payload spells it. Untagged: the
+/// equation shape stays exactly `{"lhs": [...], "rhs": [...]}` (the
+/// pre-key payload is byte-identical), and a key adds
+/// `{"object": ..., "arrows": [...]}`.
 #[derive(Serialize)]
-pub struct ConstraintView {
-    /// The left side's arrows, in composition order.
-    pub lhs: Vec<String>,
-    /// The right side's arrows, in composition order.
-    pub rhs: Vec<String>,
+#[serde(untagged)]
+pub enum ConstraintView {
+    /// An accepted equation's two arrow-name sequences.
+    Equation {
+        /// The left side's arrows, in composition order.
+        lhs: Vec<String>,
+        /// The right side's arrows, in composition order.
+        rhs: Vec<String>,
+    },
+    /// An accepted key's object and arrow-name sequence.
+    Key {
+        /// The key's object.
+        object: String,
+        /// The key's arrows, in composition order.
+        arrows: Vec<String>,
+    },
 }
 
-fn constraint_views(added: &[EnforcedEquation]) -> Vec<ConstraintView> {
+fn constraint_views(added: &[EnforcedConstraint]) -> Vec<ConstraintView> {
     added
         .iter()
-        .map(|equation| ConstraintView {
-            lhs: equation.lhs.0.iter().map(|arrow| arrow.0.clone()).collect(),
-            rhs: equation.rhs.0.iter().map(|arrow| arrow.0.clone()).collect(),
+        .map(|constraint| match constraint {
+            EnforcedConstraint::Equation { lhs, rhs } => ConstraintView::Equation {
+                lhs: arrow_names(&lhs.0),
+                rhs: arrow_names(&rhs.0),
+            },
+            EnforcedConstraint::Key { object, arrows } => ConstraintView::Key {
+                object: object.0.clone(),
+                arrows: arrow_names(arrows),
+            },
         })
         .collect()
+}
+
+/// An arrow sequence as the payload spells it.
+fn arrow_names(arrows: &[catherine_core::model::Ident]) -> Vec<String> {
+    arrows.iter().map(|arrow| arrow.0.clone()).collect()
 }
 
 /// The diff payload: the outcome string is the classification, the
@@ -155,7 +180,7 @@ pub fn render_diff(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
 
 /// The `accreted` human lines: the head count, then one line per added
 /// constraint.
-fn accreted_lines(added: &[EnforcedEquation]) -> Vec<String> {
+fn accreted_lines(added: &[EnforcedConstraint]) -> Vec<String> {
     let mut lines = vec![format!(
         "diff: accreted — {} enforced constraint(s) added, 0 findings",
         added.len()
@@ -165,10 +190,10 @@ fn accreted_lines(added: &[EnforcedEquation]) -> Vec<String> {
 }
 
 /// The `weakened` human lines: the head, then the §5 finding block
-/// rendered against the v1 schema (the side that enforced the equation).
+/// rendered against the v1 schema (the side that enforced the constraint).
 fn weakened_lines(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
     let mut lines =
-        vec!["diff: weakened — a v1-enforced equation is not enforced by v2".to_string()];
+        vec!["diff: weakened — a v1-enforced constraint is not enforced by v2".to_string()];
     lines.extend(
         report
             .findings
@@ -180,7 +205,7 @@ fn weakened_lines(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
 
 /// The `strengthened-in-scope` human lines: the head with the scope tail,
 /// then one line per added constraint.
-fn strengthened_lines(added: &[EnforcedEquation], scope: &SearchScope) -> Vec<String> {
+fn strengthened_lines(added: &[EnforcedConstraint], scope: &SearchScope) -> Vec<String> {
     let mut lines = vec![format!(
         "diff: strengthened-in-scope — no weakening instance within the explored bounds, {} enforced constraint(s) added{}",
         added.len(),
@@ -190,13 +215,27 @@ fn strengthened_lines(added: &[EnforcedEquation], scope: &SearchScope) -> Vec<St
     lines
 }
 
-/// One added constraint as a human line.
-fn added_line(equation: &EnforcedEquation) -> String {
-    format!(
-        "  added: {} = {}",
-        super::path_string(&equation.lhs),
-        super::path_string(&equation.rhs)
-    )
+/// One added constraint as a human line: an equation as `lhs = rhs`, a
+/// key as `key Object(a∘b)`.
+fn added_line(constraint: &EnforcedConstraint) -> String {
+    match constraint {
+        EnforcedConstraint::Equation { lhs, rhs } => {
+            format!(
+                "  added: {} = {}",
+                super::path_string(lhs),
+                super::path_string(rhs)
+            )
+        }
+        EnforcedConstraint::Key { object, arrows } => format!(
+            "  added: key {}({})",
+            object.0,
+            arrows
+                .iter()
+                .map(|arrow| arrow.0.as_str())
+                .collect::<Vec<_>>()
+                .join("∘")
+        ),
+    }
 }
 
 /// The scope tail of a bounded verdict: candidates explored and the

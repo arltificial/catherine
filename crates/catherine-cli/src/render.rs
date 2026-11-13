@@ -57,8 +57,9 @@ pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, Rule
 
 use catherine_core::findings::{
     DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind,
+    KeyWitness, ViolationWitness,
 };
-use catherine_core::model::{Path, RowId, Schema};
+use catherine_core::model::{Ident, Path, RowId, Schema};
 
 /// The CLI version carried in every envelope's `cli_version`.
 pub const CLI_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -115,13 +116,24 @@ pub(super) fn render_one(finding: &Finding, schema: &Schema) -> Vec<String> {
     }
 }
 
-/// The §5 violation block: `violation: eq-<canonical index> <lhs path>
+/// The §5 violation block, one branch per witness shape. The equation
+/// branch renders `violation: eq-<canonical index> <lhs path>
 /// ≠ <rhs path>` then the two-space-indented witness line `at row
-/// <Object#n>: lhs=<Object#n> rhs=<Object#n>`. The equation's paths and
-/// the row objects come from the same schema the kernel checked, so the
+/// <Object#n>: lhs=<Object#n> rhs=<Object#n>`; the key branch renders
+/// `violation: key-<canonical index> <object>(<arrows>)` then
+/// `at rows <Object#n>, <Object#m>`. The witness's declaration and the
+/// row objects come from the same schema the kernel checked, so the
 /// lookups are total for every kernel-emitted witness; the bare-number
 /// fallbacks exist for totality under programmatically assembled input.
-fn render_violation(w: &EquationWitness, schema: &Schema, label: &str) -> Vec<String> {
+fn render_violation(w: &ViolationWitness, schema: &Schema, label: &str) -> Vec<String> {
+    match w {
+        ViolationWitness::Equation(witness) => render_equation_violation(witness, schema, label),
+        ViolationWitness::Key(witness) => render_key_violation(witness, schema, label),
+    }
+}
+
+/// The §5 equation-violation block.
+fn render_equation_violation(w: &EquationWitness, schema: &Schema, label: &str) -> Vec<String> {
     let equation = schema.equations.get(w.equation);
     let head = match equation {
         Some(eq) => format!(
@@ -143,6 +155,31 @@ fn render_violation(w: &EquationWitness, schema: &Schema, label: &str) -> Vec<St
         None => format!("  at row {}: lhs={} rhs={}", w.row.0, w.lhs.0, w.rhs.0),
     };
     vec![head, row_line]
+}
+
+/// The §5 key-violation block: the key's canonical index, its object and
+/// arrow tuple, and the two colliding rows ascending.
+fn render_key_violation(w: &KeyWitness, schema: &Schema, label: &str) -> Vec<String> {
+    let key = schema.keys.get(w.key);
+    let head = match key {
+        Some(key) => format!(
+            "violation: key-{} {}({}){}",
+            w.key,
+            key.object.0,
+            arrows_string(&key.arrows),
+            label
+        ),
+        None => format!("violation: key-{}{}", w.key, label),
+    };
+    let object = key.map(|key| key.object.0.as_str());
+    vec![
+        head,
+        format!(
+            "  at rows {}, {}",
+            row_at(object, w.rows[0]),
+            row_at(object, w.rows[1])
+        ),
+    ]
 }
 
 /// The dangling line pair: the arrow and the source row the dangling
@@ -167,7 +204,12 @@ fn label_suffix(label: EpistemicLabel) -> String {
 /// A path as the transcript spells it: the arrow names in composition
 /// order joined with `∘`.
 pub fn path_string(path: &Path) -> String {
-    path.0
+    arrows_string(&path.0)
+}
+
+/// An arrow sequence as the transcript spells it: names joined with `∘`.
+fn arrows_string(arrows: &[Ident]) -> String {
+    arrows
         .iter()
         .map(|ident| ident.0.as_str())
         .collect::<Vec<_>>()
@@ -194,173 +236,4 @@ fn path_codomain<'a>(schema: &'a Schema, path: &Path) -> Option<&'a str> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use catherine_core::findings::{
-        ContradictionWitness, DanglingWitness, RedundantWitness, UnderconstraintWitness,
-    };
-    use catherine_core::model::{Arrow, ConstraintStatus, Equation, Ident};
-    use std::collections::BTreeMap;
-
-    fn finding(kind: FindingKind, label: EpistemicLabel) -> Finding {
-        Finding { label, kind }
-    }
-
-    /// The bowling schema, minimally reconstructed for the transcript
-    /// pin: the four arrows and the one canonical equation.
-    fn bowling_schema() -> Schema {
-        let mut arrows = BTreeMap::new();
-        for (name, src, tgt) in [
-            ("staff_unit", "Assignment", "Staff"),
-            ("assigned_staff", "Staff", "Unit"),
-            ("equipment_unit", "Assignment", "Equipment"),
-            ("assigned_item", "Equipment", "Unit"),
-        ] {
-            arrows.insert(
-                Ident(name.to_string()),
-                Arrow {
-                    src: Ident(src.to_string()),
-                    tgt: Ident(tgt.to_string()),
-                },
-            );
-        }
-        Schema {
-            objects: BTreeMap::new(),
-            arrows,
-            equations: vec![Equation {
-                lhs: Path(vec![
-                    Ident("staff_unit".to_string()),
-                    Ident("assigned_staff".to_string()),
-                ]),
-                rhs: Path(vec![
-                    Ident("equipment_unit".to_string()),
-                    Ident("assigned_item".to_string()),
-                ]),
-                rationale: "a row's staff and its equipment land in the same unit".to_string(),
-                status: ConstraintStatus::Accepted,
-            }],
-        }
-    }
-
-    #[test]
-    fn violation_renders_the_s5_block() {
-        let schema = bowling_schema();
-        let lines = render_one(
-            &finding(
-                FindingKind::Violation(EquationWitness {
-                    equation: 0,
-                    row: RowId(3),
-                    lhs: RowId(1),
-                    rhs: RowId(2),
-                }),
-                EpistemicLabel::Executed,
-            ),
-            &schema,
-        );
-        assert_eq!(
-            lines,
-            vec![
-                "violation: eq-0 staff_unit∘assigned_staff ≠ equipment_unit∘assigned_item",
-                "  at row Assignment#3: lhs=Unit#1 rhs=Unit#2",
-            ]
-        );
-    }
-
-    #[test]
-    fn non_executed_labels_append_to_the_head_line() {
-        let schema = bowling_schema();
-        let lines = render_one(
-            &finding(
-                FindingKind::Violation(EquationWitness {
-                    equation: 0,
-                    row: RowId(3),
-                    lhs: RowId(1),
-                    rhs: RowId(2),
-                }),
-                EpistemicLabel::Hypothesized,
-            ),
-            &schema,
-        );
-        assert!(lines[0].ends_with(" (hypothesized)"), "{}", lines[0]);
-        assert_eq!(lines[1], "  at row Assignment#3: lhs=Unit#1 rhs=Unit#2");
-    }
-
-    #[test]
-    fn dangling_renders_arrow_and_source_row() {
-        let schema = bowling_schema();
-        let lines = render_one(
-            &finding(
-                FindingKind::Dangling(DanglingWitness {
-                    arrow: Ident("assigned_staff".to_string()),
-                    src: RowId(0),
-                }),
-                EpistemicLabel::Executed,
-            ),
-            &schema,
-        );
-        assert_eq!(
-            lines,
-            vec!["dangling: arrow assigned_staff", "  at row Staff#0"]
-        );
-    }
-
-    #[test]
-    fn redundant_renders_labeled_lines() {
-        // The three analysis classes have no P4 producer; constructed
-        // findings pin their renderings at the unit level (brief §3
-        // criterion 4). No schema anchor is needed.
-        let schema = Schema::default();
-        let lines = render_one(
-            &finding(
-                FindingKind::Redundant(RedundantWitness {
-                    derivable: Path(vec![Ident("f".to_string()), Ident("g".to_string())]),
-                    reducing: Path(vec![Ident("h".to_string())]),
-                }),
-                EpistemicLabel::Unknown,
-            ),
-            &schema,
-        );
-        assert_eq!(lines, vec!["redundant: f∘g (unknown)", "  derivable as h",]);
-    }
-
-    #[test]
-    fn contradiction_renders_labeled_lines() {
-        let schema = Schema::default();
-        let lines = render_one(
-            &finding(
-                FindingKind::Contradiction(ContradictionWitness { scope: vec![0, 2] }),
-                EpistemicLabel::Unknown,
-            ),
-            &schema,
-        );
-        assert_eq!(
-            lines,
-            vec!["contradiction: eq-0, eq-2 admit no instance (unknown)"]
-        );
-    }
-
-    #[test]
-    fn underconstraint_renders_labeled_lines() {
-        let schema = Schema::default();
-        let lines = render_one(
-            &finding(
-                FindingKind::Underconstraint(UnderconstraintWitness {
-                    case: DomainQuestion::ParallelPaths {
-                        lhs: Path(vec![Ident("staff_unit".to_string())]),
-                        rhs: Path(vec![Ident("equipment_unit".to_string())]),
-                    },
-                    question: "have no declared equation?".to_string(),
-                }),
-                EpistemicLabel::Hypothesized,
-            ),
-            &schema,
-        );
-        assert_eq!(
-            lines,
-            vec![
-                "underconstraint: parallel paths staff_unit / equipment_unit (hypothesized)",
-                "  have no declared equation?",
-            ]
-        );
-    }
-}
+mod tests;

@@ -60,6 +60,7 @@ fn schema_of(doc: &Value) -> Result<Schema, String> {
         objects,
         arrows,
         equations: equations_of(doc)?,
+        keys: Vec::new(),
     })
 }
 

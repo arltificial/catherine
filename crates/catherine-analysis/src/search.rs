@@ -343,6 +343,7 @@ mod tests {
                 eq(&["f", "f", "f"], &["f"], ConstraintStatus::Accepted),
                 eq(&["f"], &["f", "f"], ConstraintStatus::Proposed),
             ],
+            keys: Vec::new(),
         }
     }
 

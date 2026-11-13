@@ -12,7 +12,7 @@
 use catherine_core::checks::check;
 use catherine_core::findings::{
     ContradictionWitness, DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness,
-    Finding, FindingKind, RedundantWitness, UnderconstraintWitness,
+    Finding, FindingKind, RedundantWitness, UnderconstraintWitness, ViolationWitness,
 };
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{Ident, Path, RowId};
@@ -55,12 +55,12 @@ fn violation_from_a_real_kernel_run_carries_label_and_witness() {
         findings,
         vec![Finding {
             label: EpistemicLabel::Executed,
-            kind: FindingKind::Violation(EquationWitness {
+            kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                 equation: 0,
                 row: RowId(1),
                 lhs: RowId(0),
                 rhs: RowId(1),
-            }),
+            })),
         }],
         "expected one executed violation naming equation 0, row a2 (RowId(1)), \
          lhs=b1 rhs=b2"
@@ -89,12 +89,12 @@ fn dangling_from_a_real_kernel_run_is_recorded_and_the_run_continues() {
         vec![
             Finding {
                 label: EpistemicLabel::Executed,
-                kind: FindingKind::Violation(EquationWitness {
+                kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                     equation: 0,
                     row: RowId(2),
                     lhs: RowId(0),
                     rhs: RowId(1),
-                }),
+                })),
             },
             Finding {
                 label: EpistemicLabel::Executed,
@@ -133,21 +133,21 @@ fn proposed_failure_is_violation_shaped_and_hypothesized() {
         vec![
             Finding {
                 label: EpistemicLabel::Hypothesized,
-                kind: FindingKind::Violation(EquationWitness {
+                kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                     equation: 0,
                     row: RowId(0),
                     lhs: RowId(0),
                     rhs: RowId(1),
-                }),
+                })),
             },
             Finding {
                 label: EpistemicLabel::Executed,
-                kind: FindingKind::Violation(EquationWitness {
+                kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                     equation: 1,
                     row: RowId(0),
                     lhs: RowId(0),
                     rhs: RowId(1),
-                }),
+                })),
             },
         ],
         "expected hypothesized (equation 0, proposed) then executed (equation 1, accepted) \

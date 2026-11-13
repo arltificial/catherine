@@ -90,6 +90,7 @@ fn build_model(
             objects: object_map(names),
             arrows,
             equations,
+            keys: Vec::new(),
         },
         instance: Instance { rows, values },
         schema_map: None,

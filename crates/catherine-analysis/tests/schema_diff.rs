@@ -18,10 +18,10 @@
 
 use catherine_analysis::bounds::SearchBounds;
 use catherine_analysis::schema_diff::{
-    diff, EnforcedEquation, SchemaDiffOutcome, SchemaDiffReport,
+    diff, EnforcedConstraint, SchemaDiffOutcome, SchemaDiffReport,
 };
 use catherine_core::checks;
-use catherine_core::findings::{EpistemicLabel, FindingKind};
+use catherine_core::findings::{EpistemicLabel, FindingKind, ViolationWitness};
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{ConstraintStatus, Equation, Ident, Path, Schema};
 use catherine_core::parse::parse;
@@ -63,7 +63,7 @@ fn assert_weakened(v1: &Schema, v2: &Schema, report: &SchemaDiffReport) {
     let finding = &report.findings[0];
     assert_eq!(finding.label, EpistemicLabel::Executed);
     match &finding.kind {
-        FindingKind::Violation(witness) => {
+        FindingKind::Violation(ViolationWitness::Equation(witness)) => {
             assert_eq!(
                 (
                     witness.equation,
@@ -75,7 +75,7 @@ fn assert_weakened(v1: &Schema, v2: &Schema, report: &SchemaDiffReport) {
                 "the dropped equation's row and composed values"
             );
         }
-        other => panic!("violation kind expected, got {other:?}"),
+        other => panic!("equation violation expected, got {other:?}"),
     }
     let SchemaDiffOutcome::Weakened { witness } = &report.outcome else {
         panic!("weakened expected, got {:?}", report.outcome);
@@ -123,7 +123,7 @@ fn assert_cosmetic_and_accreted() {
     match accreted.outcome {
         SchemaDiffOutcome::Accreted { added } => assert_eq!(
             added,
-            vec![EnforcedEquation {
+            vec![EnforcedConstraint::Equation {
                 lhs: Path(vec![ident("f")]),
                 rhs: Path(vec![ident("f")]),
             }],

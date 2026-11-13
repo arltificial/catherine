@@ -9,8 +9,9 @@
 //! `invalid_status`, `unsupported_version`, plus the named additive-section
 //! extensions) — the fixture harness's expected shape. Parse
 //! normalizes presentation away: row names become dense per-object ids in
-//! sorted order, equations are stored in canonical sorted order, and
-//! every declared arrow carries a total value vector (`None` = dangling).
+//! sorted order, equations and keys are stored in canonical sorted order,
+//! and every declared arrow carries a total value vector (`None` =
+//! dangling).
 //!
 //! Rationale: design Decision 3 — "line-accurate" means the line/column of
 //! the offending JSON node, not of a bespoke text syntax. Structural
@@ -29,6 +30,8 @@
 //! a value (the `rules --project` bridge) read the table while `Instance`
 //! equality, the canonical bytes, and the model hash remain name-blind.
 
+mod build;
+mod keys;
 mod predicate;
 mod rows;
 mod rule_presentation;
@@ -37,21 +40,21 @@ mod schema_map;
 mod spans;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
-use crate::model::{
-    Arrow, Equation, Ident, Instance, Model, RowId, RulePresentation, Schema, SchemaMap, Version,
-};
+use crate::model::{Arrow, Ident, Model, RowId, RulePresentation, SchemaMap};
 pub use rows::RowNames;
 
+use build::build_model;
+use keys::check_keys;
 use schema::{check_arrows, check_equations, check_ident, check_objects, check_version, RawDoc};
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
 
 /// Parse a `.ct.json` v1 model document. Accepted additive minors of the
-/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 2);
+/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 3);
 /// higher minors are rejected with `unsupported_version` — never guessed.
 /// Malformed presentations rejected with line-accurate
 /// errors. Check order (documented in the crate README): version →
-/// schema objects → arrows → equations → instance rows → tables →
+/// schema objects → arrows → equations → keys → instance rows → tables →
 /// schema map → rule presentation.
 pub fn parse(text: &str) -> Result<Model, ParseError> {
     parse_with_rows(text).map(|(model, _)| model)
@@ -82,19 +85,23 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 ///    declaredness (the stable `unknown_arrow` is about equation paths);
 /// 5. equations — path idents, declared arrows, endpoint typing, status,
 ///    canonical order (file order is presentation — Decision 4);
-/// 6. instance rows — repeated JSON keys caught from the span scan before
+/// 6. keys (additive 1.3) — object declaredness, a non-empty
+///    duplicate-free arrow tuple sourced at the object, status, canonical
+///    order (absent/empty = hash-neutral);
+/// 7. instance rows — repeated JSON keys caught from the span scan before
 ///    serde's last-wins map can drop them; object keys declared; row
 ///    idents checked per list;
-/// 7. instance tables — repeated keys, declared arrows, declared src
+/// 8. instance tables — repeated keys, declared arrows, declared src
 ///    rows, values that are declared target rows or `null`;
-/// 8. schema map (additive 1.1) — declared data only, totality over the
+/// 9. schema map (additive 1.1) — declared data only, totality over the
 ///    declared source elements, targets declared (absent = hash-neutral);
-/// 9. rule presentation (additive 1.2) — declared domain, typed columns,
-///    decidable predicates, required actions, declared policy (absent =
-///    hash-neutral);
-/// 10. the normalized model — dense rows, total value vectors, canonical
-///     equation order — plus the [`RowNames`] side table (the presentation
-///     names, indexed by those dense ids); the names never enter the model.
+/// 10. rule presentation (additive 1.2) — declared domain, typed columns,
+///     decidable predicates, required actions, declared policy (absent =
+///     hash-neutral);
+/// 11. the normalized model — dense rows, total value vectors, canonical
+///     equation and key order — plus the [`RowNames`] side table (the
+///     presentation names, indexed by those dense ids); the names never
+///     enter the model.
 fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError> {
     let version = check_version(&doc, spans)?;
     let Some(schema) = doc.schema else {
@@ -106,6 +113,7 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError>
     let objects = check_objects(&schema, spans)?;
     let arrows = check_arrows(&schema, &objects, spans)?;
     let equations = check_equations(&schema, &arrows, spans)?;
+    let keys = check_keys(&schema, &objects, &arrows, spans)?;
     let row_index = check_rows(&instance, &objects, spans)?;
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
     let schema_map = declared_schema_map(&doc.schema_map, &objects, &arrows, spans)?;
@@ -115,6 +123,7 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError>
         objects,
         arrows,
         equations,
+        keys,
         row_index,
         values,
         schema_map,
@@ -318,46 +327,6 @@ fn check_table_src(
         ));
     };
     Ok(*src_id)
-}
-
-/// The normalized model plus the name side table: dense rows per declared
-/// object, total value vectors, canonical equation order. The model is
-/// exactly what [`parse`] returned before this seam existed; the names
-/// travel beside it ([`RowNames`]) and never enter [`Model`].
-#[allow(clippy::too_many_arguments)]
-fn build_model(
-    version: Version,
-    objects: BTreeMap<Ident, ()>,
-    arrows: BTreeMap<Ident, Arrow>,
-    equations: Vec<Equation>,
-    row_index: BTreeMap<String, BTreeMap<String, RowId>>,
-    values: BTreeMap<Ident, Vec<Option<RowId>>>,
-    schema_map: Option<SchemaMap>,
-    rule_presentation: Option<RulePresentation>,
-) -> (Model, RowNames) {
-    let names = rows::row_names(&objects, &row_index);
-    let rows_out = objects
-        .keys()
-        .map(|o| {
-            let n = row_index.get(&o.0).map_or(0, BTreeMap::len);
-            (o.clone(), (0..n).map(RowId).collect())
-        })
-        .collect();
-    let model = Model {
-        format_version: version,
-        schema: Schema {
-            objects,
-            arrows,
-            equations,
-        },
-        instance: Instance {
-            rows: rows_out,
-            values,
-        },
-        schema_map,
-        rule_presentation,
-    };
-    (model, names)
 }
 
 fn check_dup_keys(spans: &Spans, pointer: &str, where_: &str) -> Result<(), ParseError> {

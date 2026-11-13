@@ -79,6 +79,7 @@ fn schema_for_properties() -> Schema {
             .collect::<BTreeMap<_, _>>(),
         arrows,
         equations: vec![],
+        keys: Vec::new(),
     }
 }
 

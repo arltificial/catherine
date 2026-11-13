@@ -50,6 +50,7 @@ pub(crate) fn schema(
             .map(|(name, src, tgt)| (ident(name), arrow(src, tgt)))
             .collect::<BTreeMap<_, _>>(),
         equations,
+        keys: Vec::new(),
     }
 }
 

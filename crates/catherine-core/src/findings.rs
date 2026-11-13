@@ -11,10 +11,12 @@
 //! `illustrated` do not exist in the type, so the kernel cannot fabricate
 //! them — those labels belong to later layers, if ever), and the shared
 //! witness payloads the kernel walk constructs once ([`EquationWitness`],
-//! [`DanglingWitness`]). Kind names the *shape* of the fact; the label
-//! names its *weight*: an accepted-equation failure and a proposed-
-//! equation failure are both violation-shaped findings, countable apart
-//! by label, never merged into one severity. The analysis kinds
+//! [`KeyWitness`], the [`ViolationWitness`] union, [`DanglingWitness`]).
+//! Kind names the *shape* of the fact; the label names its *weight*: an
+//! accepted-equation failure and a proposed-equation failure are both
+//! violation-shaped findings, countable apart by label, never merged into
+//! one severity — and a key collision is the same violation shape with
+//! the key witness, never a sixth kind. The analysis kinds
 //! ([`FindingKind::Redundant`], [`FindingKind::Contradiction`],
 //! [`FindingKind::Underconstraint`]) are defined and fixture-pinned here;
 //! their producers are P4's (bounded analysis) — nothing in this crate
@@ -24,9 +26,10 @@
 //!
 //! Ordering is total and documented: by kind (variant declaration order
 //! of [`FindingKind`]), then witness ids (canonical id order inside each
-//! witness), with the label as the final tiebreak — `check` sorts its
-//! result under this order, so repeated checks of the same model
-//! serialize byte-identically. Sorted findings make accumulation
+//! witness; within a violation, the witness variant order — equations
+//! before keys — then ids), with the label as the final tiebreak —
+//! `check` sorts its result under this order, so repeated checks of the
+//! same model serialize byte-identically. Sorted findings make accumulation
 //! order-free: per-equation batches of the same model concatenate as a
 //! monoid (see `checks.rs` for the sub-model boundary). Serialization is
 //! derived serde JSON with
@@ -85,6 +88,35 @@ pub struct EquationWitness {
     pub lhs: RowId,
     /// The composed `rhs` path value.
     pub rhs: RowId,
+}
+
+/// The key witness: an accepted or proposed key whose arrow tuple agrees
+/// on two rows of its object. The key is named by its canonical index
+/// (as [`EquationWitness`] names an equation); both colliding rows are
+/// carried, ascending. The shared tuple values are not duplicated — they
+/// are recoverable from the instance, and carrying them would make the
+/// witness instance-dependent while the key declaration is not.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct KeyWitness {
+    /// The key's index in `Schema::keys` (canonical order).
+    pub key: usize,
+    /// The two colliding rows of the key's object, ascending.
+    pub rows: [RowId; 2],
+}
+
+/// The violation witness's two shapes: an equation failure or a key
+/// collision (design Decision 3). Serialized untagged — the serialized
+/// field sets are disjoint (`equation`/`row`/`lhs`/`rhs` versus
+/// `key`/`rows`), so the equation JSON stays byte-identical and
+/// deserialization is unambiguous. The variant order is the taxonomy's
+/// kind-internal order: equations before keys.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ViolationWitness {
+    /// A path equation failed on a row.
+    Equation(EquationWitness),
+    /// A key's arrow tuple collided on two rows.
+    Key(KeyWitness),
 }
 
 /// The dangling witness: an arrow cell that holds no row, naming the
@@ -165,11 +197,12 @@ pub struct UnderconstraintWitness {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "witness", rename_all = "snake_case")]
 pub enum FindingKind {
-    /// A path equation failed on a row: the fact's shape for both
-    /// epistemic weights — `executed` when the failed equation is
-    /// accepted, `hypothesized` when it is proposed. The kind names the
-    /// shape; the label names the weight.
-    Violation(EquationWitness),
+    /// A constraint failed: the fact's shape for both epistemic weights —
+    /// `executed` when the failed constraint is accepted, `hypothesized`
+    /// when it is proposed. The witness is the untagged union of the
+    /// equation witness and the key witness; the kind names the shape,
+    /// the label names the weight.
+    Violation(ViolationWitness),
     /// An arrow cell holds no row: paths traversing the cell
     /// short-circuit there; the affected row is never also a violation.
     Dangling(DanglingWitness),

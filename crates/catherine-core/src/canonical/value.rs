@@ -2,7 +2,7 @@
 //! verbatim (mechanical lint refactor); no behavior change.
 
 use crate::model::{
-    Equation, Literal, Model, Predicate, RowId, Rule, RulePresentation, Schema, SchemaMap,
+    Equation, Key, Literal, Model, Predicate, RowId, Rule, RulePresentation, Schema, SchemaMap,
 };
 use serde_json::{Map, Value};
 
@@ -83,13 +83,17 @@ fn schema_value(model: &Model) -> Value {
     schema_section(&model.schema)
 }
 
-/// The canonical `schema` section: sorted objects, arrows, and equations
-/// (equations sorted by their canonical sort key — the parser already
-/// stores them sorted, but constructed values must serialize the same
-/// way, specodelic's `schema_export` discipline).
+/// The canonical `schema` section: sorted objects, arrows, equations, and
+/// keys (equations and keys sorted by their canonical sort keys — the
+/// parser already stores them sorted, but constructed values must
+/// serialize the same way, specodelic's `schema_export` discipline). An
+/// empty key list is omitted entirely: pre-1.3 documents keep their exact
+/// canonical bytes and hash (design Decision 1).
 fn schema_section(schema: &Schema) -> Value {
     let mut equations: Vec<&Equation> = schema.equations.iter().collect();
     equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    let mut keys: Vec<&Key> = schema.keys.iter().collect();
+    keys.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
     let arrows: Vec<Value> = schema
         .arrows
         .iter()
@@ -102,13 +106,33 @@ fn schema_section(schema: &Schema) -> Value {
         })
         .collect();
     let equation_values: Vec<Value> = equations.iter().map(|e| equation_value(e)).collect();
-    obj([
+    let mut entries = vec![
         (
             "objects",
             Value::Array(schema.objects.keys().map(|o| string(&o.0)).collect()),
         ),
         ("arrows", Value::Array(arrows)),
         ("equations", Value::Array(equation_values)),
+    ];
+    if !keys.is_empty() {
+        entries.push((
+            "keys",
+            Value::Array(keys.iter().map(|key| key_value(key)).collect()),
+        ));
+    }
+    obj_vec(entries)
+}
+
+/// One canonical key entry: the object, its arrow sequence in declared
+/// order, and the constraint status.
+fn key_value(key: &Key) -> Value {
+    obj([
+        ("object", string(&key.object.0)),
+        (
+            "arrows",
+            Value::Array(key.arrows.iter().map(|arrow| string(&arrow.0)).collect()),
+        ),
+        ("status", string(key.status.as_str())),
     ])
 }
 

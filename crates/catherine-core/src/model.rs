@@ -2,11 +2,11 @@
 //! sketch, verbatim in shape.
 //!
 //! Responsibilities: represent a parsed `.ct.json` v1 document (schema:
-//! objects, arrows, path equations with rationale + status; instance: rows
-//! and per-arrow value tables with `None` = dangling) as canonical data:
-//! every collection keyed by `Ident` in a `BTreeMap`, so equal models are
-//! indistinguishable from their key order in the input file (design
-//! Decision 4).
+//! objects, arrows, path equations with rationale + status, and
+//! declarative keys with status; instance: rows and per-arrow value
+//! tables with `None` = dangling) as canonical data: every collection
+//! keyed by `Ident` in a `BTreeMap`, so equal models are indistinguishable
+//! from their key order in the input file (design Decision 4).
 //!
 //! Rationale: adapted from specodelic's acset-core contracts (`src/acset/
 //! schema.rs` canonical sorted order and `(source, name)`-unique morphisms;
@@ -102,17 +102,46 @@ impl Equation {
     }
 }
 
-/// The schema presentation: objects, generating arrows, and path
-/// equations. `objects` maps each ident to `()` — the map *is* the sorted
-/// name set (design Decision 4, adapted from acset-core `canonical_order`).
-/// Equations are stored in canonical order (sorted by
-/// `(lhs, rhs, rationale, status)`), so input file order never reaches the
-/// model.
+/// A declarative key: injectivity of an object's arrow-value tuple over
+/// that object's rows (format 1.3, `add-declarative-keys`). The arrows
+/// are generating morphisms sourced at `object`; the parser guarantees
+/// non-empty, duplicate-free, declared, and source-typed, so the type
+/// carries no validity re-check.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Key {
+    /// The object the injectivity claim ranges over.
+    pub object: Ident,
+    /// The key's arrows, in the declared order (the tuple's slots).
+    pub arrows: Vec<Ident>,
+    /// Accepted keys are executed constraints; proposed keys are
+    /// questions (the equation status rule, verbatim).
+    pub status: ConstraintStatus,
+}
+
+impl Key {
+    /// The canonical sort key — `(object, arrows, status)`. Key list
+    /// order in the input file is presentation (design Decision 4): the
+    /// parser stores keys sorted by this key and the serializer emits
+    /// them in the same order defensively.
+    pub(crate) fn sort_key(&self) -> (&Ident, &Vec<Ident>, &'static str) {
+        (&self.object, &self.arrows, self.status.as_str())
+    }
+}
+
+/// The schema presentation: objects, generating arrows, path equations,
+/// and declarative keys. `objects` maps each ident to `()` — the map
+/// *is* the sorted name set (design Decision 4, adapted from acset-core
+/// `canonical_order`). Equations are stored in canonical order (sorted by
+/// `(lhs, rhs, rationale, status)`) and keys in canonical order (sorted
+/// by `(object, arrows, status)`), so input file order never reaches the
+/// model. The key list is empty in every pre-1.3 document; an empty key
+/// list is omitted from canonical bytes (hash neutrality).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Schema {
     pub objects: BTreeMap<Ident, ()>,
     pub arrows: BTreeMap<Ident, Arrow>,
     pub equations: Vec<Equation>,
+    pub keys: Vec<Key>,
 }
 
 /// The instance presentation: per-object dense row ids and one partial

@@ -40,7 +40,9 @@ mod discovery;
 pub use discovery::{discover, DiscoveryError, DiscoveryReport, RuleExample};
 
 use crate::bounds::{redundant_finding, uncovered_inputs_finding, ScopeCaps};
-use catherine_core::findings::{EpistemicLabel, EquationWitness, Finding, FindingKind};
+use catherine_core::findings::{
+    EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
+};
 use catherine_core::model::{Ident, Literal, Path, Policy, RowId, RulePresentation};
 use catherine_core::rule_lens::{
     analyze_with_bounds, RuleAnalysis, RuleDomain, RuleOutcome, RuleOverlap, RuleScope,
@@ -116,12 +118,12 @@ fn overlap_findings(analysis: &RuleAnalysis) -> Vec<Finding> {
 fn overlap_finding(overlap: &RuleOverlap, input: usize) -> Finding {
     Finding {
         label: EpistemicLabel::Executed,
-        kind: FindingKind::Violation(EquationWitness {
+        kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
             equation: overlap.left,
             row: RowId(input),
             lhs: RowId(overlap.left),
             rhs: RowId(overlap.right),
-        }),
+        })),
     }
 }
 

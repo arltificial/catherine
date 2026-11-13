@@ -297,7 +297,7 @@ fn unsupported_version_hint_states_known_version_policy() {
         "the stale 'minors accepted' claim is gone: {err:?}"
     );
     assert!(
-        err.contains("1.2") && err.contains("KNOWN_MINOR"),
+        err.contains("1.3") && err.contains("KNOWN_MINOR"),
         "the hint states the known version and the KNOWN_MINOR cap: {err:?}"
     );
 }

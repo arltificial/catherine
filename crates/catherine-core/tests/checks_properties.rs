@@ -17,7 +17,7 @@ use expected::expected_findings;
 
 use catherine_core::checks::check;
 use catherine_core::findings::{
-    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
+    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
 };
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{
@@ -122,7 +122,7 @@ proptest! {
                     let n = built.rows().get(&schema.arrows[&w.arrow].src).map(Vec::len).unwrap_or(0);
                     prop_assert!(w.src.0 < n, "dangling src row in the arrow's source space");
                 }
-                FindingKind::Violation(w) => {
+                FindingKind::Violation(ViolationWitness::Equation(w)) => {
                     prop_assert!(w.equation < schema.equations.len(), "equation index valid");
                     let eq = &schema.equations[w.equation];
                     prop_assert_eq!(
@@ -135,6 +135,22 @@ proptest! {
                     prop_assert!(w.row.0 < n, "row is a row of the equation's domain object");
                     let tgt_space = built.rows().get(&schema.arrows[&eq.lhs.0[eq.lhs.0.len() - 1]].tgt).map(Vec::len).unwrap_or(0);
                     prop_assert!(w.lhs.0 < tgt_space && w.rhs.0 < tgt_space, "composed values are rows of the path's target");
+                }
+
+                FindingKind::Violation(ViolationWitness::Key(w)) => {
+                    prop_assert!(w.key < schema.keys.len(), "key index valid");
+                    let key = &schema.keys[w.key];
+                    let n = built.rows().get(&key.object).map(Vec::len).unwrap_or(0);
+                    prop_assert!(
+                        w.rows[0].0 < n && w.rows[1].0 < n,
+                        "witness rows are rows of the key's object"
+                    );
+                    prop_assert!(w.rows[0] < w.rows[1], "witness rows ascending");
+                    prop_assert_eq!(
+                        finding.label == EpistemicLabel::Hypothesized,
+                        key.status == ConstraintStatus::Proposed,
+                        "the label mirrors the key's status"
+                    );
                 }
                 FindingKind::Redundant(_)
                 | FindingKind::Contradiction(_)
@@ -229,12 +245,12 @@ fn self_loop_arrows_are_legal_and_evaluated() {
         check(&schema, &case_two),
         vec![Finding {
             label: EpistemicLabel::Executed,
-            kind: FindingKind::Violation(EquationWitness {
+            kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
                 equation: 0,
                 row: RowId(1),
                 lhs: RowId(0), // f(a(1)) = f(0) = 0
                 rhs: RowId(1), // f(1) = 1
-            }),
+            })),
         }],
         "the self-loop's composition difference is a witnessed violation on row 1"
     );
@@ -280,6 +296,7 @@ fn self_loop_schema() -> Schema {
         objects,
         arrows,
         equations,
+        keys: Vec::new(),
     }
 }
 

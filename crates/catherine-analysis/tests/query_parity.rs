@@ -218,6 +218,7 @@ fn parity_schema() -> Schema {
             .collect::<BTreeMap<_, _>>(),
         arrows,
         equations: vec![],
+        keys: Vec::new(),
     }
 }
 

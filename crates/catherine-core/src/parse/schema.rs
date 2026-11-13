@@ -2,6 +2,7 @@
 //! gate, objects, arrows, equations). Split out of `parse.rs` verbatim
 //! during the mechanical lint refactor; no behavior change.
 
+use super::keys::RawKey;
 use super::rule_presentation::RawRulePresentation;
 use super::schema_map::RawSchemaMap;
 use super::spans::Spans;
@@ -35,6 +36,8 @@ pub(super) struct RawSchema {
     pub(super) arrows: Vec<RawArrow>,
     #[serde(default)]
     pub(super) equations: Vec<RawEquation>,
+    #[serde(default)]
+    pub(super) keys: Vec<RawKey>,
 }
 
 #[derive(Deserialize)]
@@ -67,8 +70,10 @@ pub(super) struct RawInstance {
 /// semantics this build doesn't understand must never be misinterpreted
 /// (no-guessed-parse rule). Raise this when new additive semantics land.
 /// 1 = the `schema_map` section (add-delta-migration phase A);
-/// 2 = the `rule_presentation` section (add-rule-lens phase A).
-const KNOWN_MINOR: u64 = 2;
+/// 2 = the `rule_presentation` section (add-rule-lens phase A);
+/// 3 = the `schema.keys` section (add-declarative-keys; an absent or
+/// empty list is hash-neutral).
+const KNOWN_MINOR: u64 = 3;
 
 /// The version gate: `MAJOR.MINOR`, present, well-formed, known major, minor within `KNOWN_MINOR`.
 pub(super) fn check_version(
@@ -180,7 +185,7 @@ pub(super) fn check_equations(
         let lhs = check_path(spans, &format!("{base}/lhs"), &raw.lhs, arrows)?;
         let rhs = check_path(spans, &format!("{base}/rhs"), &raw.rhs, arrows)?;
         check_endpoints(raw, &lhs, &rhs, &base, arrows, spans)?;
-        let status = check_status(raw.status.as_deref(), &base, spans)?;
+        let status = check_status(raw.status.as_deref(), &base, spans, "equation")?;
         equations.push(Equation {
             lhs,
             rhs,
@@ -223,12 +228,14 @@ fn check_endpoints(
     Ok(())
 }
 
-/// Equation status: absent defaults to `accepted`; anything but
-/// `proposed`/`accepted` is rejected.
-fn check_status(
+/// Constraint status: absent defaults to `accepted`; anything but
+/// `proposed`/`accepted` is rejected. Shared by equations and keys, with
+/// `subject` naming the constrained element in the message.
+pub(super) fn check_status(
     status: Option<&str>,
     base: &str,
     spans: &Spans,
+    subject: &str,
 ) -> Result<ConstraintStatus, crate::error::ParseError> {
     match status {
         None => Ok(ConstraintStatus::Accepted),
@@ -237,7 +244,7 @@ fn check_status(
         Some(other) => Err(spans.semantic(
             &format!("{base}/status"),
             ErrorCode::InvalidStatus,
-            format!("invalid equation status `{other}`: must be `proposed` or `accepted`"),
+            format!("invalid {subject} status `{other}`: must be `proposed` or `accepted`"),
         )),
     }
 }

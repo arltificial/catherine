@@ -15,8 +15,9 @@
 
 /// The stable semantic error codes. Closed at P0; extended only by a
 /// named ticket — `partial_schema_map` (openspec change
-/// `add-delta-migration` phase A) and the rule-presentation codes
-/// (openspec change `add-rule-lens` phase A) are the extensions so far.
+/// `add-delta-migration` phase A), the rule-presentation codes
+/// (openspec change `add-rule-lens` phase A), and `invalid_key`
+/// (openspec change `add-declarative-keys`) are the extensions so far.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     DuplicateIdent,
@@ -42,6 +43,12 @@ pub enum ErrorCode {
     /// A rule assigns no action — the action must be a total function on
     /// the input domain.
     MissingAction,
+    /// A declared key is not a well-formed injectivity claim over this
+    /// schema: undeclared object or arrow, an arrow not sourced at the
+    /// key's object, an empty arrow list, or a repeated arrow name. One
+    /// code because every case is the same defect class — the message
+    /// names the exact defect at its node.
+    InvalidKey,
 }
 
 impl ErrorCode {
@@ -61,6 +68,7 @@ impl ErrorCode {
             Self::InvalidPredicate => "invalid_predicate",
             Self::InvalidPolicy => "invalid_policy",
             Self::MissingAction => "missing_action",
+            Self::InvalidKey => "invalid_key",
         }
     }
 }
