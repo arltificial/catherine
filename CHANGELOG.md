@@ -265,6 +265,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Arrow-granularity rule re-scoped after its second execution
+  (`catherine-8v9`): a storage-granularity model of bogart's FTS anchor
+  (2 arrows with named storing columns, 0 equations) produces **zero**
+  findings over the 289-page slice and the full 74,257-page corpus — the
+  same model class that excludes the pilot's 67 noise findings also
+  excludes its 2 real `bogart-4wt` ambiguity defects, because no table
+  stores a selector→capture column (live census: 1,441 selectors, 3
+  ambiguous). The rule therefore governs *structural* claims only;
+  derivation/selection claims must be declared explicitly (rule lens,
+  P8). Status stays PROPOSED; `docs/USING.md` and
+  `docs/ref/ct_methodology_playbook.md` §2 carry the scope limit.
+  Evidence: `fixtures/probes/granularity-bogart/` +
+  `prototype/bogart_storage_granularity.py`.
 - Specs deployed: the 10 completed openspec changes are archived into
   `openspec/specs/` (9 capabilities) and every deployed scenario is bound
   to an executable contract under `.espectacular/<capability>/` — 52/52
