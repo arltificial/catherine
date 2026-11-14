@@ -1,0 +1,33 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Hook", "Call", "Rank"],
+    "arrows": [
+      {"name": "calls", "src": "Call", "tgt": "Hook"},
+      {"name": "call_rank", "src": "Call", "tgt": "Rank"},
+      {"name": "hook_rank", "src": "Hook", "tgt": "Rank"},
+      {"name": "hook_call", "src": "Hook", "tgt": "Call"}
+    ],
+    "equations": [
+      {
+        "lhs": ["calls", "hook_rank"],
+        "rhs": ["call_rank"],
+        "rationale": "candidate law: the template body invokes each hook at the position the protocol declares for it (the call log is a transcription of the body's message sends)",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Hook": ["only"],
+      "Call": ["c0"],
+      "Rank": ["r1"]
+    },
+    "tables": {
+      "calls": {"c0": "only"},
+      "call_rank": {"c0": "r1"},
+      "hook_rank": {"only": "r1"},
+      "hook_call": {"only": "c0"}
+    }
+  }
+}

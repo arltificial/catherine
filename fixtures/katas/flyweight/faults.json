@@ -1,0 +1,125 @@
+{
+  "kata": "flyweight",
+  "hypothesis": "Flyweight's sharing law is expressible on the current kernel surface after all: a declarative key on the flyweight object indexes the intrinsic tuple (one shared instance per intrinsic state; any two colliding rows are one executed violation each), and a path equation names the client's handle as the factory's instance for its key. The prior disposition ('identity is data; no predicate') is refuted for structural sharing. The hypothesis under test is the P6 parity hypothesis: the kernel buys zero unique detections over the complete conventional Flyweight test.",
+  "laws": {
+    "F-Intern": {
+      "name": "one shared instance per intrinsic state",
+      "statement": "for the declared instance, `intrinsic: Flyweight -> Intrinsic` is injective over the flyweight rows: no two distinct flyweight rows carry the same intrinsic tuple",
+      "surface": "format 1.3 declarative key {object: Flyweight, arrows: [intrinsic], status: accepted}; every colliding unordered pair is one executed `violation` with witness {key, rows}",
+      "expressible": true,
+      "why": "the key is an injectivity predicate over declared rows; it needs no notion of runtime object identity, only the declared intrinsic cells"
+    },
+    "F-Handle": {
+      "name": "the client's handle is the factory's instance for its key",
+      "statement": "for every declared client c, flyweight(c) = factory(key(c)) as a row co-reference (dense row id), not a value comparison",
+      "surface": "path equation lhs [key, factory] / rhs [flyweight] over Client -> Flyweight",
+      "expressible": true,
+      "why": "the equation compares the two paths' target row ids, so it is a co-reference predicate; equal intrinsic values in different rows are still a violation"
+    },
+    "F-Closure": {
+      "name": "every declared flyweight instance is the factory's image (no leaked instance)",
+      "statement": "every declared Flyweight row is in the image of `factory`",
+      "surface": "none — the kernel has no surjectivity/closure predicate; `query --follow factory --direction backward` can compute the preimage, but a query result is data, never a finding",
+      "expressible": false,
+      "missing_predicate": "a surjectivity / image-closure predicate on a declared arrow over declared rows (or an unreachable-instance finding)",
+      "why": "declarative keys state injectivity only; equations relate path values from the same source row; the analysis ops return data (closures, questions) and emit no finding for a declared-but-unreachable row"
+    },
+    "F-Capacity": {
+      "name": "declared instance counts and share counts",
+      "statement": "the number of flyweight instances, or the share count of one intrinsic state, obeys a declared bound",
+      "surface": "none — colliding *pairs* are observable through F-Intern, but no numeric/cardinality predicate exists over row counts",
+      "expressible": false,
+      "missing_predicate": "an arithmetic/cardinality constraint over declared instance counts (e.g. max instances per intrinsic state, or a declared pool size)",
+      "why": "the closed constraint vocabulary is path equality, totality, injectivity keys, and presentation rules; none carries a numeral over instance counts. F-Intern gives pair existence, not counts"
+    }
+  },
+  "comparison_rule": "An element is one named witness both arms may identify: `flyweight:handle-identity@Client#<idx>` (a client whose handle differs from the factory's instance for its key), `flyweight:interning-pair@Flyweight#<lo>/Flyweight#<hi>` (an unordered colliding pair, ascending), or `flyweight:pool-closure@Flyweight#<idx>` (a declared instance the factory cannot return). The probe arm maps an executed `violation` witness to exactly one element: an equation witness {equation: 0, row: r} maps to the handle element of Client#r; a key witness {key: 0, rows: [lo, hi]} maps to the interning-pair element. unique = probe elements minus baseline elements; the baseline's pool-closure elements have no probe counterpart by construction (F-Closure is unexpressible), so they can never be unique.",
+  "element_vocabulary": [
+    "flyweight:handle-identity@Client#<idx>",
+    "flyweight:interning-pair@Flyweight#<lo>/Flyweight#<hi>",
+    "flyweight:pool-closure@Flyweight#<idx>"
+  ],
+  "clean_fixtures": {
+    "flyweight.ct.json": [],
+    "control-floor.ct.json": []
+  },
+  "faults": [
+    {
+      "id": "floor-rerouted-handle",
+      "control": true,
+      "pattern": "flyweight",
+      "base_fixture": "control-floor.ct.json",
+      "fixture": "control-floor-fault-rerouted-handle.ct.json",
+      "law": "F-Handle",
+      "probe_expected": ["flyweight:handle-identity@Client#0"],
+      "baseline_expected": [
+        "flyweight:handle-identity@Client#0",
+        "flyweight:pool-closure@Flyweight#1"
+      ],
+      "unique_expected": [],
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "duplicate-intrinsic",
+      "control": false,
+      "pattern": "flyweight",
+      "base_fixture": "flyweight.ct.json",
+      "fixture": "flyweight-fault-duplicate-intrinsic.ct.json",
+      "law": "F-Intern",
+      "probe_expected": ["flyweight:interning-pair@Flyweight#0/Flyweight#1"],
+      "baseline_expected": ["flyweight:interning-pair@Flyweight#0/Flyweight#1"],
+      "unique_expected": [],
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "rerouted-handle",
+      "control": false,
+      "pattern": "flyweight",
+      "base_fixture": "flyweight.ct.json",
+      "fixture": "flyweight-fault-rerouted-handle.ct.json",
+      "law": "F-Handle",
+      "probe_expected": ["flyweight:handle-identity@Client#1"],
+      "baseline_expected": ["flyweight:handle-identity@Client#1"],
+      "unique_expected": [],
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "orphan-instance",
+      "control": false,
+      "pattern": "flyweight",
+      "base_fixture": "flyweight.ct.json",
+      "fixture": "flyweight-fault-orphan-instance.ct.json",
+      "law": "F-Closure",
+      "probe_expected": [],
+      "baseline_expected": ["flyweight:pool-closure@Flyweight#1"],
+      "unique_expected": [],
+      "verdict_expected": "killed"
+    }
+  ],
+  "expected_probe_findings": {
+    "flyweight.ct.json": [],
+    "control-floor.ct.json": [],
+    "control-floor-fault-rerouted-handle.ct.json": [
+      {
+        "label": "executed",
+        "kind": "violation",
+        "witness": {"equation": 0, "row": 0, "lhs": 0, "rhs": 1}
+      }
+    ],
+    "flyweight-fault-duplicate-intrinsic.ct.json": [
+      {
+        "label": "executed",
+        "kind": "violation",
+        "witness": {"key": 0, "rows": [0, 1]}
+      }
+    ],
+    "flyweight-fault-rerouted-handle.ct.json": [
+      {
+        "label": "executed",
+        "kind": "violation",
+        "witness": {"equation": 0, "row": 1, "lhs": 1, "rhs": 0}
+      }
+    ],
+    "flyweight-fault-orphan-instance.ct.json": []
+  }
+}

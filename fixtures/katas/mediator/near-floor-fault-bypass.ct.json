@@ -1,0 +1,85 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": [
+      "Colleague",
+      "Interaction",
+      "Mediator"
+    ],
+    "arrows": [
+      {
+        "name": "hub",
+        "src": "Colleague",
+        "tgt": "Mediator"
+      },
+      {
+        "name": "speaker",
+        "src": "Interaction",
+        "tgt": "Colleague"
+      },
+      {
+        "name": "listener",
+        "src": "Interaction",
+        "tgt": "Colleague"
+      },
+      {
+        "name": "dispatched_by",
+        "src": "Interaction",
+        "tgt": "Mediator"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "dispatched_by"
+        ],
+        "rhs": [
+          "listener",
+          "hub"
+        ],
+        "rationale": "the hub that dispatches an interaction is the listener's hub",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "dispatched_by"
+        ],
+        "rhs": [
+          "speaker",
+          "hub"
+        ],
+        "rationale": "the hub that dispatches an interaction is the speaker's hub",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Colleague": [
+        "alice",
+        "bob"
+      ],
+      "Interaction": [
+        "i_ab"
+      ],
+      "Mediator": [
+        "hub_main"
+      ]
+    },
+    "tables": {
+      "hub": {
+        "alice": "hub_main",
+        "bob": "hub_main"
+      },
+      "speaker": {
+        "i_ab": "alice"
+      },
+      "listener": {
+        "i_ab": "bob"
+      },
+      "dispatched_by": {
+        "i_ab": null
+      }
+    }
+  }
+}

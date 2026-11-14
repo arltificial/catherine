@@ -1,0 +1,283 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": [
+      "Module",
+      "Action",
+      "FacadeOp",
+      "SpecCall",
+      "Call",
+      "Outcome"
+    ],
+    "arrows": [
+      {
+        "name": "action_module",
+        "src": "Action",
+        "tgt": "Module"
+      },
+      {
+        "name": "action_outcome",
+        "src": "Action",
+        "tgt": "Outcome"
+      },
+      {
+        "name": "call_facade",
+        "src": "Call",
+        "tgt": "FacadeOp"
+      },
+      {
+        "name": "call_action",
+        "src": "Call",
+        "tgt": "Action"
+      },
+      {
+        "name": "call_outcome",
+        "src": "Call",
+        "tgt": "Outcome"
+      },
+      {
+        "name": "call_spec",
+        "src": "Call",
+        "tgt": "SpecCall"
+      },
+      {
+        "name": "facade_outcome",
+        "src": "FacadeOp",
+        "tgt": "Outcome"
+      },
+      {
+        "name": "spec_action",
+        "src": "SpecCall",
+        "tgt": "Action"
+      },
+      {
+        "name": "spec_facade",
+        "src": "SpecCall",
+        "tgt": "FacadeOp"
+      },
+      {
+        "name": "spec_impl",
+        "src": "SpecCall",
+        "tgt": "Call"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "call_action",
+          "action_outcome"
+        ],
+        "rhs": [
+          "call_outcome"
+        ],
+        "rationale": "call transparency: a facade call observes the outcome of the subsystem action it names - the delegation must be transparent at the call boundary",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "call_spec",
+          "spec_action"
+        ],
+        "rhs": [
+          "call_action"
+        ],
+        "rationale": "attribution, implementation side: an implemented call performs the action its documented call names - a facade may not silently reroute a documented subsystem call",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "call_spec",
+          "spec_facade"
+        ],
+        "rhs": [
+          "call_facade"
+        ],
+        "rationale": "attribution, entry-point side: an implemented call belongs to the entry point of the documented call it realizes - a facade call may not be filed under another facade operation",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "spec_impl",
+          "call_action"
+        ],
+        "rhs": [
+          "spec_action"
+        ],
+        "rationale": "completeness, action side: a documented call is realized by an implementation that performs the documented action - a documented subsystem call may not lose its implementation",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "spec_impl",
+          "call_facade"
+        ],
+        "rhs": [
+          "spec_facade"
+        ],
+        "rationale": "completeness, entry-point side: a documented call is realized under the entry point it was documented for",
+        "status": "accepted"
+      }
+    ],
+    "keys": [
+      {
+        "object": "Call",
+        "arrows": [
+          "call_facade",
+          "call_action"
+        ],
+        "rationale": "trace multiplicity: an entry point makes a given subsystem call at most once, so a duplicated call row is a collision",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Module": [
+        "m_cart",
+        "m_inventory",
+        "m_notify",
+        "m_payments"
+      ],
+      "Action": [
+        "a_cart_add",
+        "a_cart_clear",
+        "a_inv_release",
+        "a_inv_reserve",
+        "a_notify_receipt",
+        "a_pay_capture",
+        "a_pay_refund"
+      ],
+      "FacadeOp": [
+        "f_add_item",
+        "f_cancel",
+        "f_checkout",
+        "f_refund"
+      ],
+      "SpecCall": [
+        "s1_add",
+        "s2_cancel_ref",
+        "s3_cancel_rel",
+        "s4_check_add",
+        "s5_check_cap",
+        "s6_check_res",
+        "s7_check_rcpt",
+        "s8_refund"
+      ],
+      "Call": [
+        "c1_add",
+        "c2_cancel_ref",
+        "c3_cancel_rel",
+        "c4_check_add",
+        "c5_check_cap",
+        "c6_check_res",
+        "c7_check_rcpt",
+        "c8_refund",
+        "c9_check_gift"
+      ],
+      "Outcome": [
+        "o_held",
+        "o_ok",
+        "o_sent"
+      ]
+    },
+    "tables": {
+      "action_module": {
+        "a_cart_add": "m_cart",
+        "a_cart_clear": "m_cart",
+        "a_inv_release": "m_inventory",
+        "a_inv_reserve": "m_inventory",
+        "a_notify_receipt": "m_notify",
+        "a_pay_capture": "m_payments",
+        "a_pay_refund": "m_payments"
+      },
+      "action_outcome": {
+        "a_cart_add": "o_ok",
+        "a_cart_clear": "o_ok",
+        "a_inv_release": "o_ok",
+        "a_inv_reserve": "o_held",
+        "a_notify_receipt": "o_sent",
+        "a_pay_capture": "o_ok",
+        "a_pay_refund": "o_ok"
+      },
+      "call_facade": {
+        "c1_add": "f_add_item",
+        "c2_cancel_ref": "f_cancel",
+        "c3_cancel_rel": "f_cancel",
+        "c4_check_add": "f_checkout",
+        "c5_check_cap": "f_checkout",
+        "c6_check_res": "f_checkout",
+        "c7_check_rcpt": "f_checkout",
+        "c8_refund": "f_refund",
+        "c9_check_gift": "f_checkout"
+      },
+      "call_action": {
+        "c1_add": "a_cart_add",
+        "c2_cancel_ref": "a_pay_refund",
+        "c3_cancel_rel": "a_inv_release",
+        "c4_check_add": "a_cart_add",
+        "c5_check_cap": "a_pay_capture",
+        "c6_check_res": "a_inv_reserve",
+        "c7_check_rcpt": "a_notify_receipt",
+        "c8_refund": "a_pay_refund",
+        "c9_check_gift": "a_cart_clear"
+      },
+      "call_outcome": {
+        "c1_add": "o_ok",
+        "c2_cancel_ref": "o_ok",
+        "c3_cancel_rel": "o_ok",
+        "c4_check_add": "o_ok",
+        "c5_check_cap": "o_ok",
+        "c6_check_res": "o_held",
+        "c7_check_rcpt": "o_sent",
+        "c8_refund": "o_ok",
+        "c9_check_gift": "o_ok"
+      },
+      "call_spec": {
+        "c1_add": "s1_add",
+        "c2_cancel_ref": "s2_cancel_ref",
+        "c3_cancel_rel": "s3_cancel_rel",
+        "c4_check_add": "s4_check_add",
+        "c5_check_cap": "s5_check_cap",
+        "c6_check_res": "s6_check_res",
+        "c7_check_rcpt": "s7_check_rcpt",
+        "c8_refund": "s8_refund"
+      },
+      "facade_outcome": {
+        "f_add_item": "o_ok",
+        "f_cancel": "o_ok",
+        "f_checkout": "o_ok",
+        "f_refund": "o_ok"
+      },
+      "spec_action": {
+        "s1_add": "a_cart_add",
+        "s2_cancel_ref": "a_pay_refund",
+        "s3_cancel_rel": "a_inv_release",
+        "s4_check_add": "a_cart_add",
+        "s5_check_cap": "a_pay_capture",
+        "s6_check_res": "a_inv_reserve",
+        "s7_check_rcpt": "a_notify_receipt",
+        "s8_refund": "a_pay_refund"
+      },
+      "spec_facade": {
+        "s1_add": "f_add_item",
+        "s2_cancel_ref": "f_cancel",
+        "s3_cancel_rel": "f_cancel",
+        "s4_check_add": "f_checkout",
+        "s5_check_cap": "f_checkout",
+        "s6_check_res": "f_checkout",
+        "s7_check_rcpt": "f_checkout",
+        "s8_refund": "f_refund"
+      },
+      "spec_impl": {
+        "s1_add": "c1_add",
+        "s2_cancel_ref": "c2_cancel_ref",
+        "s3_cancel_rel": "c3_cancel_rel",
+        "s4_check_add": "c4_check_add",
+        "s5_check_cap": "c5_check_cap",
+        "s6_check_res": "c6_check_res",
+        "s7_check_rcpt": "c7_check_rcpt",
+        "s8_refund": "c8_refund"
+      }
+    }
+  }
+}

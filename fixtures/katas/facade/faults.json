@@ -1,0 +1,772 @@
+{
+  "kata": "facade",
+  "candidate_law": "facade trace law: a facade entry point fronts several subsystem actions, and the implementation realizes the documented composition - every documented call has an implementation under the same entry point performing the same subsystem action (completeness), every implemented call belongs to a documented call with the same action (attribution), an entry point makes a given subsystem call at most once (multiplicity), and each call observes its subsystem action's outcome (transparency).",
+  "residual_gaps": "three facade-defining clauses have no predicate on the kernel surface: (1) the entry point's aggregate outcome is a fold over the fiber of call_facade - equations compose forward only, the aggregate is a forward leaf, and there is no fold, identity, or reverse composition; (2) call order is not representable - Call rows are an unordered set and dense ids are name-sorted presentation; (3) surface reduction/coverage - there is no cardinality or existential predicate, so 'the facade exposes no more operations than the subsystem' and 'every promised capability is covered' are unstatable. A fourth, model-side gap: spec aliasing (two documented calls naming one implemented call) is not observable without an identity arrow.",
+  "comparison_rule": "an element is call:<FacadeOp>/<Action> or op:<FacadeOp>. The baseline identifies an element only when one of its frozen conventional assertions fails on it: composition (the sampled entry point's call-pair multiset equals the documented one), aggregate (the entry point's outcome equals the documented aggregate), and per-call transparency (a sampled pair's call outcome equals the named action's outcome). The probe identifies an element only when a check finding's witness resolves to it: an equation witness resolves by its source object's row pair, a key witness by the colliding rows' pair, a dangling witness by the source row's pair. unique = executed probe elements minus baseline-identified elements. Hypothesized underconstraint findings are discovery questions recorded verbatim, never counted as detections.",
+  "hypotheses_expected": [
+    "parallel_paths:call_action∘action_outcome=call_facade∘facade_outcome",
+    "parallel_paths:call_facade∘facade_outcome=call_outcome",
+    "parallel_paths:spec_action∘action_outcome=spec_facade∘facade_outcome",
+    "parallel_paths:spec_action∘action_outcome=spec_impl∘call_outcome",
+    "parallel_paths:spec_facade∘facade_outcome=spec_impl∘call_outcome"
+  ],
+  "expressibility": {
+    "fixture": "facade.ct.json",
+    "entry_point": "f_checkout",
+    "forward_objects": [
+      "FacadeOp",
+      "Outcome"
+    ],
+    "backward_call_rows": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "arrows_sourced_at_facadeop": [
+      "facade_outcome"
+    ]
+  },
+  "entries": [
+    {
+      "id": "near-floor",
+      "control": true,
+      "primary_fixture": "floor/fault-dropped-call.ct.json",
+      "runs": [
+        {
+          "fixture": "floor/facade-floor.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ]
+            ]
+          },
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": [],
+          "probe_silent_expected": true
+        },
+        {
+          "fixture": "floor/fault-dropped-call.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "composition:f_add_item/a_cart_add:missing"
+          ],
+          "baseline_identified": [
+            "call:f_add_item/a_cart_add"
+          ],
+          "probe_expected": [
+            "call:f_add_item/a_cart_add"
+          ],
+          "unique_expected": [],
+          "probe_silent_expected": false
+        },
+        {
+          "fixture": "floor/fault-call-outcome-drift.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "transparency:f_add_item/a_cart_add:o_declined!=o_ok"
+          ],
+          "baseline_identified": [
+            "call:f_add_item/a_cart_add"
+          ],
+          "probe_expected": [
+            "call:f_add_item/a_cart_add"
+          ],
+          "unique_expected": [],
+          "probe_silent_expected": false
+        }
+      ]
+    },
+    {
+      "id": "trace-completeness",
+      "control": false,
+      "primary_fixture": "fault-dropped-call.ct.json",
+      "runs": [
+        {
+          "fixture": "facade.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_cancel": {
+              "actions": [
+                "a_inv_release",
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_checkout": {
+              "actions": [
+                "a_cart_add",
+                "a_inv_reserve",
+                "a_pay_capture",
+                "a_notify_receipt"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_refund": {
+              "actions": [
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item",
+              "f_cancel",
+              "f_checkout",
+              "f_refund"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ],
+              [
+                "f_cancel",
+                "a_inv_release"
+              ],
+              [
+                "f_cancel",
+                "a_pay_refund"
+              ],
+              [
+                "f_checkout",
+                "a_cart_add"
+              ],
+              [
+                "f_checkout",
+                "a_inv_reserve"
+              ],
+              [
+                "f_checkout",
+                "a_pay_capture"
+              ],
+              [
+                "f_checkout",
+                "a_notify_receipt"
+              ],
+              [
+                "f_refund",
+                "a_pay_refund"
+              ]
+            ]
+          },
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": [],
+          "probe_silent_expected": true
+        },
+        {
+          "fixture": "fault-dropped-call.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_cancel": {
+              "actions": [
+                "a_inv_release",
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_checkout": {
+              "actions": [
+                "a_cart_add",
+                "a_inv_reserve",
+                "a_pay_capture",
+                "a_notify_receipt"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_refund": {
+              "actions": [
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item",
+              "f_cancel",
+              "f_checkout",
+              "f_refund"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ],
+              [
+                "f_cancel",
+                "a_inv_release"
+              ],
+              [
+                "f_cancel",
+                "a_pay_refund"
+              ],
+              [
+                "f_checkout",
+                "a_cart_add"
+              ],
+              [
+                "f_checkout",
+                "a_inv_reserve"
+              ],
+              [
+                "f_checkout",
+                "a_pay_capture"
+              ],
+              [
+                "f_checkout",
+                "a_notify_receipt"
+              ],
+              [
+                "f_refund",
+                "a_pay_refund"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "composition:f_checkout/a_inv_reserve:missing"
+          ],
+          "baseline_identified": [
+            "call:f_checkout/a_inv_reserve"
+          ],
+          "probe_expected": [
+            "call:f_checkout/a_inv_reserve"
+          ],
+          "unique_expected": [],
+          "probe_silent_expected": false
+        }
+      ]
+    },
+    {
+      "id": "undocumented-call",
+      "control": false,
+      "primary_fixture": "fault-extra-call.ct.json",
+      "runs": [
+        {
+          "fixture": "fault-extra-call.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_cancel": {
+              "actions": [
+                "a_inv_release",
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_checkout": {
+              "actions": [
+                "a_cart_add",
+                "a_inv_reserve",
+                "a_pay_capture",
+                "a_notify_receipt"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_refund": {
+              "actions": [
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item",
+              "f_cancel",
+              "f_checkout",
+              "f_refund"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ],
+              [
+                "f_cancel",
+                "a_inv_release"
+              ],
+              [
+                "f_cancel",
+                "a_pay_refund"
+              ],
+              [
+                "f_checkout",
+                "a_cart_add"
+              ],
+              [
+                "f_checkout",
+                "a_inv_reserve"
+              ],
+              [
+                "f_checkout",
+                "a_pay_capture"
+              ],
+              [
+                "f_checkout",
+                "a_notify_receipt"
+              ],
+              [
+                "f_refund",
+                "a_pay_refund"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "composition:f_checkout/a_cart_clear:unexpected"
+          ],
+          "baseline_identified": [
+            "call:f_checkout/a_cart_clear"
+          ],
+          "probe_expected": [
+            "call:f_checkout/a_cart_clear"
+          ],
+          "unique_expected": [],
+          "probe_silent_expected": false
+        }
+      ]
+    },
+    {
+      "id": "attribution-drift",
+      "control": false,
+      "primary_fixture": "fault-attribution-drift.ct.json",
+      "runs": [
+        {
+          "fixture": "fault-attribution-drift.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_cancel": {
+              "actions": [
+                "a_inv_release",
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_checkout": {
+              "actions": [
+                "a_cart_add",
+                "a_inv_reserve",
+                "a_pay_capture",
+                "a_notify_receipt"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_refund": {
+              "actions": [
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item",
+              "f_cancel",
+              "f_checkout",
+              "f_refund"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ],
+              [
+                "f_cancel",
+                "a_inv_release"
+              ],
+              [
+                "f_cancel",
+                "a_pay_refund"
+              ],
+              [
+                "f_checkout",
+                "a_cart_add"
+              ],
+              [
+                "f_checkout",
+                "a_inv_reserve"
+              ],
+              [
+                "f_checkout",
+                "a_pay_capture"
+              ],
+              [
+                "f_checkout",
+                "a_notify_receipt"
+              ],
+              [
+                "f_refund",
+                "a_pay_refund"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "composition:f_checkout/a_pay_capture:missing",
+            "composition:f_checkout/a_pay_refund:unexpected"
+          ],
+          "baseline_identified": [
+            "call:f_checkout/a_pay_capture",
+            "call:f_checkout/a_pay_refund"
+          ],
+          "probe_expected": [
+            "call:f_checkout/a_pay_capture",
+            "call:f_checkout/a_pay_refund"
+          ],
+          "unique_expected": [],
+          "probe_silent_expected": false
+        }
+      ]
+    },
+    {
+      "id": "trace-multiplicity",
+      "control": false,
+      "primary_fixture": "fault-duplicated-call.ct.json",
+      "runs": [
+        {
+          "fixture": "fault-duplicated-call.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_cancel": {
+              "actions": [
+                "a_inv_release",
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_checkout": {
+              "actions": [
+                "a_cart_add",
+                "a_inv_reserve",
+                "a_pay_capture",
+                "a_notify_receipt"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_refund": {
+              "actions": [
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item",
+              "f_cancel",
+              "f_checkout",
+              "f_refund"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ],
+              [
+                "f_cancel",
+                "a_inv_release"
+              ],
+              [
+                "f_cancel",
+                "a_pay_refund"
+              ],
+              [
+                "f_checkout",
+                "a_cart_add"
+              ],
+              [
+                "f_checkout",
+                "a_inv_reserve"
+              ],
+              [
+                "f_checkout",
+                "a_pay_capture"
+              ],
+              [
+                "f_checkout",
+                "a_notify_receipt"
+              ],
+              [
+                "f_refund",
+                "a_pay_refund"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "composition:f_checkout/a_pay_capture:duplicated"
+          ],
+          "baseline_identified": [
+            "call:f_checkout/a_pay_capture"
+          ],
+          "probe_expected": [
+            "call:f_checkout/a_pay_capture"
+          ],
+          "unique_expected": [],
+          "probe_silent_expected": false
+        }
+      ]
+    },
+    {
+      "id": "aggregate-drift",
+      "control": false,
+      "primary_fixture": "fault-aggregate-drift.ct.json",
+      "runs": [
+        {
+          "fixture": "fault-aggregate-drift.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_cancel": {
+              "actions": [
+                "a_inv_release",
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_checkout": {
+              "actions": [
+                "a_cart_add",
+                "a_inv_reserve",
+                "a_pay_capture",
+                "a_notify_receipt"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_refund": {
+              "actions": [
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item",
+              "f_cancel",
+              "f_checkout",
+              "f_refund"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ],
+              [
+                "f_cancel",
+                "a_inv_release"
+              ],
+              [
+                "f_cancel",
+                "a_pay_refund"
+              ],
+              [
+                "f_checkout",
+                "a_cart_add"
+              ],
+              [
+                "f_checkout",
+                "a_inv_reserve"
+              ],
+              [
+                "f_checkout",
+                "a_pay_capture"
+              ],
+              [
+                "f_checkout",
+                "a_notify_receipt"
+              ],
+              [
+                "f_refund",
+                "a_pay_refund"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "aggregate:f_checkout:o_failed!=o_ok"
+          ],
+          "baseline_identified": [
+            "op:f_checkout"
+          ],
+          "probe_expected": [],
+          "unique_expected": [],
+          "probe_silent_expected": true,
+          "silence_is_gap": true
+        }
+      ]
+    },
+    {
+      "id": "call-transparency",
+      "control": false,
+      "primary_fixture": "fault-call-outcome-drift.ct.json",
+      "runs": [
+        {
+          "fixture": "fault-call-outcome-drift.ct.json",
+          "documented": {
+            "f_add_item": {
+              "actions": [
+                "a_cart_add"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_cancel": {
+              "actions": [
+                "a_inv_release",
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_checkout": {
+              "actions": [
+                "a_cart_add",
+                "a_inv_reserve",
+                "a_pay_capture",
+                "a_notify_receipt"
+              ],
+              "aggregate": "o_ok"
+            },
+            "f_refund": {
+              "actions": [
+                "a_pay_refund"
+              ],
+              "aggregate": "o_ok"
+            }
+          },
+          "sample": {
+            "facades": [
+              "f_add_item",
+              "f_cancel",
+              "f_checkout",
+              "f_refund"
+            ],
+            "transparency_pairs": [
+              [
+                "f_add_item",
+                "a_cart_add"
+              ],
+              [
+                "f_cancel",
+                "a_inv_release"
+              ],
+              [
+                "f_cancel",
+                "a_pay_refund"
+              ],
+              [
+                "f_checkout",
+                "a_cart_add"
+              ],
+              [
+                "f_checkout",
+                "a_inv_reserve"
+              ],
+              [
+                "f_checkout",
+                "a_pay_capture"
+              ],
+              [
+                "f_checkout",
+                "a_notify_receipt"
+              ],
+              [
+                "f_refund",
+                "a_pay_refund"
+              ]
+            ]
+          },
+          "baseline_expected": [
+            "transparency:f_checkout/a_notify_receipt:o_failed!=o_sent"
+          ],
+          "baseline_identified": [
+            "call:f_checkout/a_notify_receipt"
+          ],
+          "probe_expected": [
+            "call:f_checkout/a_notify_receipt"
+          ],
+          "unique_expected": [],
+          "probe_silent_expected": false
+        }
+      ]
+    }
+  ]
+}

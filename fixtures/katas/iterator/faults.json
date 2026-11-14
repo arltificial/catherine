@@ -1,0 +1,163 @@
+{
+  "kata": "iterator",
+  "law": "Declared-sequence traversal law: with a declared finite sequence Element, a declared traversal Step (in emission order), emission arrow yields : Step -> Element and documented inverse back : Element -> Step, the traversal is a bijection onto the declared sequence - yields total, yields injective, yields;back = id_Step, back;yields = id_Element - i.e. every declared element is emitted exactly once. The order clause succ_s;yields = yields;succ_e is separate and needs declared successor cells.",
+  "comparison_rule": "An element is one declared Element row, spelled element:<row name>. The baseline identifies exactly the elements its failed pre-registered position assertions name (both the expected and the actual side). The probe maps a finding to elements: a key collision names a shared emission (yields of the witness step rows); a dangling on `back` names that Element row; a violation names the element of its equation's domain row (Step-domain rows through yields, Element-domain rows directly). unique = sorted(probe elements) - sorted(baseline-identified elements). An unmappable finding is recorded verbatim and never counted.",
+  "baseline_protocol": "Scripted smoke walk over a pre-registered position sample: for each sampled index i, assert emitted[i] == declared[i] and name both sides on failure; an index past the declared sequence names the unexpected emission. No total-length, termination, or tail assertion. The baseline arm runs before the probe arm inside prototype/iterator_baseline.py.",
+  "element_vocabulary": "element:<Element row name>",
+  "entries": [
+    {
+      "id": "floor-control",
+      "control": true,
+      "primary_fixture": "floor-control.ct.json",
+      "runs": [
+        {
+          "fixture": "floor-control.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma"],
+          "emitted": ["e0_alpha", "e1_beta", "e1_beta"],
+          "sample": [0, 1, 2],
+          "exit_expected": 3,
+          "findings_expected": [
+            {"label": "executed", "kind": "violation", "witness": {"equation": 1, "row": 2, "lhs": 1, "rhs": 2}},
+            {"label": "executed", "kind": "violation", "witness": {"key": 0, "rows": [1, 2]}},
+            {"label": "executed", "kind": "dangling", "witness": {"arrow": "back", "src": 2}}
+          ],
+          "baseline_expected": ["sample:pos2:expected-e2_gamma-got-e1_beta"],
+          "baseline_identified": ["element:e1_beta", "element:e2_gamma"],
+          "probe_expected": ["element:e1_beta", "element:e2_gamma"],
+          "unique_expected": []
+        },
+        {
+          "fixture": "clean-traversal.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta"],
+          "emitted": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta"],
+          "sample": [0, 1, 2, 3],
+          "exit_expected": 0,
+          "findings_expected": [],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "duplicate-emission",
+      "control": false,
+      "primary_fixture": "duplicate-emission.ct.json",
+      "runs": [
+        {
+          "fixture": "duplicate-emission.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon"],
+          "emitted": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon", "e4_epsilon"],
+          "sample": [0, 1, 2],
+          "exit_expected": 3,
+          "findings_expected": [
+            {"label": "executed", "kind": "violation", "witness": {"equation": 1, "row": 5, "lhs": 4, "rhs": 5}},
+            {"label": "executed", "kind": "violation", "witness": {"key": 0, "rows": [4, 5]}}
+          ],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["element:e4_epsilon"],
+          "unique_expected": ["element:e4_epsilon"]
+        }
+      ]
+    },
+    {
+      "id": "skipped-element",
+      "control": false,
+      "primary_fixture": "skipped-element.ct.json",
+      "runs": [
+        {
+          "fixture": "skipped-element.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon", "e5_zeta"],
+          "emitted": ["e0_alpha", "e1_beta", "e3_delta", "e4_epsilon", "e5_zeta"],
+          "sample": [0, 1],
+          "exit_expected": 4,
+          "findings_expected": [
+            {"label": "executed", "kind": "dangling", "witness": {"arrow": "back", "src": 2}}
+          ],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["element:e2_gamma"],
+          "unique_expected": ["element:e2_gamma"]
+        }
+      ]
+    },
+    {
+      "id": "reorder-order-blind",
+      "control": false,
+      "primary_fixture": "reorder-order-blind.ct.json",
+      "runs": [
+        {
+          "fixture": "reorder-order-blind.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon"],
+          "emitted": ["e0_alpha", "e1_beta", "e3_delta", "e2_gamma", "e4_epsilon"],
+          "sample": [0, 1],
+          "exit_expected": 0,
+          "findings_expected": [],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "reorder-modeled-swap",
+      "control": false,
+      "primary_fixture": "reorder-modeled-swap.ct.json",
+      "runs": [
+        {
+          "fixture": "reorder-modeled-swap.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon"],
+          "emitted": ["e0_alpha", "e1_beta", "e3_delta", "e2_gamma", "e4_epsilon"],
+          "sample": [0, 1],
+          "exit_expected": 3,
+          "findings_expected": [
+            {"label": "executed", "kind": "violation", "witness": {"equation": 1, "row": 1, "lhs": 3, "rhs": 2}},
+            {"label": "executed", "kind": "violation", "witness": {"equation": 1, "row": 2, "lhs": 2, "rhs": 4}},
+            {"label": "executed", "kind": "violation", "witness": {"equation": 1, "row": 3, "lhs": 4, "rhs": 3}}
+          ],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["element:e1_beta", "element:e2_gamma", "element:e3_delta"],
+          "unique_expected": ["element:e1_beta", "element:e2_gamma", "element:e3_delta"]
+        },
+        {
+          "fixture": "reorder-modeled-clean.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon"],
+          "emitted": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon"],
+          "sample": [0, 1],
+          "exit_expected": 0,
+          "findings_expected": [],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "duplicate-covered",
+      "control": false,
+      "primary_fixture": "duplicate-emission.ct.json",
+      "runs": [
+        {
+          "fixture": "duplicate-emission.ct.json",
+          "declared": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon"],
+          "emitted": ["e0_alpha", "e1_beta", "e2_gamma", "e3_delta", "e4_epsilon", "e4_epsilon"],
+          "sample": [0, 1, 2, 3, 4, 5],
+          "exit_expected": 3,
+          "findings_expected": [
+            {"label": "executed", "kind": "violation", "witness": {"equation": 1, "row": 5, "lhs": 4, "rhs": 5}},
+            {"label": "executed", "kind": "violation", "witness": {"key": 0, "rows": [4, 5]}}
+          ],
+          "baseline_expected": ["sample:pos5:unexpected-emission"],
+          "baseline_identified": ["element:e4_epsilon"],
+          "probe_expected": ["element:e4_epsilon"],
+          "unique_expected": []
+        }
+      ]
+    }
+  ]
+}

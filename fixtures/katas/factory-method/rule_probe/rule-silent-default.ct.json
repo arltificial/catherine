@@ -1,0 +1,46 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["ProductKind"],
+    "arrows": [],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "ProductKind": ["json", "text", "xml", "yaml"]
+    },
+    "tables": {}
+  },
+  "rule_presentation": {
+    "domain": "ProductKind",
+    "columns": [
+      {"name": "kind", "type": "string"}
+    ],
+    "rules": [
+      {
+        "name": "create_json",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "json"},
+        "action": "create_json"
+      },
+      {
+        "name": "create_text",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "text"},
+        "action": "create_text"
+      },
+      {
+        "name": "create_xml",
+        "predicate": {"kind": "cmp", "column": "kind", "op": "eq", "value": "xml"},
+        "action": "create_xml"
+      },
+      {
+        "name": "create_default",
+        "predicate": {
+          "kind": "not",
+          "arg": {"kind": "cmp", "column": "kind", "op": "eq", "value": "__no_kind__"}
+        },
+        "action": "create_default"
+      }
+    ],
+    "policy": "PriorityOrder"
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": [
+      "Element",
+      "Step"
+    ],
+    "arrows": [
+      {
+        "name": "yields",
+        "src": "Step",
+        "tgt": "Element"
+      },
+      {
+        "name": "back",
+        "src": "Element",
+        "tgt": "Step"
+      },
+      {
+        "name": "loop_step",
+        "src": "Step",
+        "tgt": "Step"
+      },
+      {
+        "name": "loop_elem",
+        "src": "Element",
+        "tgt": "Element"
+      },
+      {
+        "name": "succ_e",
+        "src": "Element",
+        "tgt": "Element"
+      },
+      {
+        "name": "succ_s",
+        "src": "Step",
+        "tgt": "Step"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "yields",
+          "back"
+        ],
+        "rhs": [
+          "loop_step"
+        ],
+        "rationale": "the declared inverse returns the step that emitted the element",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "back",
+          "yields"
+        ],
+        "rhs": [
+          "loop_elem"
+        ],
+        "rationale": "the declared inverse reaches only the element that step emitted",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "succ_s",
+          "yields"
+        ],
+        "rhs": [
+          "yields",
+          "succ_e"
+        ],
+        "rationale": "the emission advances along the declared sequence",
+        "status": "accepted"
+      }
+    ],
+    "keys": [
+      {
+        "object": "Step",
+        "arrows": [
+          "yields"
+        ],
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Element": [
+        "e0_alpha",
+        "e1_beta",
+        "e2_gamma",
+        "e3_delta",
+        "e4_epsilon",
+        "e9_end"
+      ],
+      "Step": [
+        "s0",
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s9_end"
+      ]
+    },
+    "tables": {
+      "yields": {
+        "s0": "e0_alpha",
+        "s1": "e1_beta",
+        "s2": "e3_delta",
+        "s3": "e2_gamma",
+        "s4": "e4_epsilon",
+        "s9_end": "e9_end"
+      },
+      "back": {
+        "e0_alpha": "s0",
+        "e1_beta": "s1",
+        "e3_delta": "s2",
+        "e2_gamma": "s3",
+        "e4_epsilon": "s4",
+        "e9_end": "s9_end"
+      },
+      "loop_step": {
+        "s0": "s0",
+        "s1": "s1",
+        "s2": "s2",
+        "s3": "s3",
+        "s4": "s4",
+        "s9_end": "s9_end"
+      },
+      "loop_elem": {
+        "e0_alpha": "e0_alpha",
+        "e1_beta": "e1_beta",
+        "e2_gamma": "e2_gamma",
+        "e3_delta": "e3_delta",
+        "e4_epsilon": "e4_epsilon",
+        "e9_end": "e9_end"
+      },
+      "succ_e": {
+        "e0_alpha": "e1_beta",
+        "e1_beta": "e2_gamma",
+        "e2_gamma": "e3_delta",
+        "e3_delta": "e4_epsilon",
+        "e4_epsilon": "e9_end",
+        "e9_end": "e9_end"
+      },
+      "succ_s": {
+        "s0": "s1",
+        "s1": "s2",
+        "s2": "s3",
+        "s3": "s4",
+        "s4": "s9_end",
+        "s9_end": "s9_end"
+      }
+    }
+  }
+}

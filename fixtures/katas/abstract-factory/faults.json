@@ -1,0 +1,130 @@
+{
+  "kata": "abstract-factory",
+  "comparison_rule": "an element is one declared realization site, spelled cell:<Factory>/<Kind>, or one declared kind, spelled kind:<Kind>; the baseline identifies an element only when one of its pre-registered sample assertions fails on that element; the probe identifies an element when a check finding's witness resolves to it (dangling cell_product/cell_factory/cell_kind -> the Cell row's site; dangling kind_witness -> the Kind row; an equation violation -> its Cell row; a key collision -> the shared site of both rows). unique = executed probe elements minus baseline-identified elements. Hypothesized/unknown findings are questions and are never counted; an executed construction rejection is recorded but never counted.",
+  "entries": [
+    {
+      "id": "near-floor",
+      "control": true,
+      "primary_fixture": "near-floor.ct.json",
+      "runs": [
+        {
+          "fixture": "near-floor.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "sofa"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"]],
+          "sample_kinds": ["chair", "sofa"],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": []
+        },
+        {
+          "fixture": "near-floor-fault-missing.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "sofa"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"]],
+          "sample_kinds": ["chair", "sofa"],
+          "baseline_expected": ["sample:ModernFactory/chair:product-missing"],
+          "baseline_identified": ["cell:ModernFactory/chair"],
+          "probe_expected": ["cell:ModernFactory/chair"],
+          "unique_expected": []
+        },
+        {
+          "fixture": "near-floor-fault-family.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "sofa"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"]],
+          "sample_kinds": ["chair", "sofa"],
+          "baseline_expected": ["sample:VictorianFactory/sofa:family-mismatch"],
+          "baseline_identified": ["cell:VictorianFactory/sofa"],
+          "probe_expected": ["cell:VictorianFactory/sofa"],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "missing-realization",
+      "control": false,
+      "primary_fixture": "01-missing-cell.ct.json",
+      "runs": [
+        {
+          "fixture": "01-missing-cell.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "sofa"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"], ["VictorianFactory", "table"]],
+          "sample_kinds": ["chair", "sofa", "table"],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["cell:ModernFactory/table"],
+          "unique_expected": ["cell:ModernFactory/table"]
+        },
+        {
+          "fixture": "06-unknown-product.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "sofa"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"], ["VictorianFactory", "table"]],
+          "sample_kinds": ["chair", "sofa", "table"],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": [],
+          "construction": {"code": "syntax", "cell": "cell:ModernFactory/chair"}
+        }
+      ]
+    },
+    {
+      "id": "wrong-kind",
+      "control": false,
+      "primary_fixture": "02-wrong-kind.ct.json",
+      "runs": [
+        {
+          "fixture": "02-wrong-kind.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "table"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"], ["VictorianFactory", "table"]],
+          "sample_kinds": ["chair", "sofa", "table"],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["cell:ModernFactory/sofa"],
+          "unique_expected": ["cell:ModernFactory/sofa"]
+        }
+      ]
+    },
+    {
+      "id": "duplicate-declaration",
+      "control": false,
+      "primary_fixture": "03-duplicate-cell.ct.json",
+      "runs": [
+        {
+          "fixture": "03-duplicate-cell.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "table"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"], ["VictorianFactory", "table"]],
+          "sample_kinds": ["chair", "sofa", "table"],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["cell:ModernFactory/sofa"],
+          "unique_expected": ["cell:ModernFactory/sofa"]
+        }
+      ]
+    },
+    {
+      "id": "unrealized-kind",
+      "control": false,
+      "primary_fixture": "04-unrealized-kind.ct.json",
+      "runs": [
+        {
+          "fixture": "04-unrealized-kind.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "sofa"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"], ["VictorianFactory", "table"]],
+          "sample_kinds": ["chair", "sofa", "table"],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["kind:bench"],
+          "unique_expected": ["kind:bench"]
+        }
+      ]
+    },
+    {
+      "id": "missing-combination",
+      "control": false,
+      "primary_fixture": "05-missing-combination.ct.json",
+      "runs": [
+        {
+          "fixture": "05-missing-combination.ct.json",
+          "sample": [["ModernFactory", "chair"], ["ModernFactory", "sofa"], ["VictorianFactory", "chair"], ["VictorianFactory", "sofa"], ["VictorianFactory", "table"]],
+          "sample_kinds": ["chair", "sofa", "table"],
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": []
+        }
+      ]
+    }
+  ]
+}

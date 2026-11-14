@@ -1,0 +1,20 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Client", "Engine", "Mode"],
+    "arrows": [
+      {"name": "engine", "src": "Client", "tgt": "Engine"},
+      {"name": "fallback", "src": "Client", "tgt": "Engine"},
+      {"name": "mode", "src": "Engine", "tgt": "Mode"},
+      {"name": "seen", "src": "Client", "tgt": "Mode"}
+    ],
+    "equations": [
+      {"lhs": ["engine"], "rhs": ["fallback"], "rationale": "every access path returns the same singleton row", "status": "accepted"},
+      {"lhs": ["engine", "mode"], "rhs": ["seen"], "rationale": "the client observes the singleton's current mode", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  }
+}

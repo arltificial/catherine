@@ -1,0 +1,172 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": [
+      "Kind",
+      "Family",
+      "Factory",
+      "Product",
+      "Cell"
+    ],
+    "arrows": [
+      {
+        "name": "factory_family",
+        "src": "Factory",
+        "tgt": "Family"
+      },
+      {
+        "name": "product_family",
+        "src": "Product",
+        "tgt": "Family"
+      },
+      {
+        "name": "product_kind",
+        "src": "Product",
+        "tgt": "Kind"
+      },
+      {
+        "name": "cell_factory",
+        "src": "Cell",
+        "tgt": "Factory"
+      },
+      {
+        "name": "cell_kind",
+        "src": "Cell",
+        "tgt": "Kind"
+      },
+      {
+        "name": "cell_product",
+        "src": "Cell",
+        "tgt": "Product"
+      },
+      {
+        "name": "kind_witness",
+        "src": "Kind",
+        "tgt": "Cell"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "cell_product",
+          "product_family"
+        ],
+        "rhs": [
+          "cell_factory",
+          "factory_family"
+        ],
+        "rationale": "a factory's products belong to the factory's family",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "cell_product",
+          "product_kind"
+        ],
+        "rhs": [
+          "cell_kind"
+        ],
+        "rationale": "the product realizing a kind is of that kind",
+        "status": "accepted"
+      }
+    ],
+    "keys": [
+      {
+        "object": "Cell",
+        "arrows": [
+          "cell_factory",
+          "cell_kind"
+        ],
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Kind": [
+        "chair",
+        "sofa",
+        "table"
+      ],
+      "Family": [
+        "modern",
+        "victorian"
+      ],
+      "Factory": [
+        "ModernFactory",
+        "VictorianFactory"
+      ],
+      "Product": [
+        "ModernChair",
+        "ModernSofa",
+        "ModernTable",
+        "VictorianChair",
+        "VictorianSofa",
+        "VictorianTable"
+      ],
+      "Cell": [
+        "cell_modern_chair",
+        "cell_modern_sofa",
+        "cell_modern_sofa_alt",
+        "cell_modern_table",
+        "cell_victorian_chair",
+        "cell_victorian_sofa",
+        "cell_victorian_table"
+      ]
+    },
+    "tables": {
+      "factory_family": {
+        "ModernFactory": "modern",
+        "VictorianFactory": "victorian"
+      },
+      "product_family": {
+        "ModernChair": "modern",
+        "ModernSofa": "modern",
+        "ModernTable": "modern",
+        "VictorianChair": "victorian",
+        "VictorianSofa": "victorian",
+        "VictorianTable": "victorian"
+      },
+      "product_kind": {
+        "ModernChair": "chair",
+        "ModernSofa": "sofa",
+        "ModernTable": "table",
+        "VictorianChair": "chair",
+        "VictorianSofa": "sofa",
+        "VictorianTable": "table"
+      },
+      "cell_factory": {
+        "cell_modern_chair": "ModernFactory",
+        "cell_modern_sofa": "ModernFactory",
+        "cell_modern_sofa_alt": "ModernFactory",
+        "cell_modern_table": "ModernFactory",
+        "cell_victorian_chair": "VictorianFactory",
+        "cell_victorian_sofa": "VictorianFactory",
+        "cell_victorian_table": "VictorianFactory"
+      },
+      "cell_kind": {
+        "cell_modern_chair": "chair",
+        "cell_modern_sofa": "sofa",
+        "cell_modern_sofa_alt": "sofa",
+        "cell_modern_table": "table",
+        "cell_victorian_chair": "chair",
+        "cell_victorian_sofa": "sofa",
+        "cell_victorian_table": "table"
+      },
+      "cell_product": {
+        "cell_modern_chair": "ModernChair",
+        "cell_modern_sofa": "ModernSofa",
+        "cell_modern_sofa_alt": "ModernSofa",
+        "cell_modern_table": "ModernTable",
+        "cell_victorian_chair": "VictorianChair",
+        "cell_victorian_sofa": "VictorianSofa",
+        "cell_victorian_table": "VictorianTable"
+      },
+      "kind_witness": {
+        "chair": "cell_modern_chair",
+        "sofa": "cell_modern_sofa",
+        "table": "cell_victorian_table"
+      }
+    }
+  }
+}

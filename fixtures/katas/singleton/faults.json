@@ -1,0 +1,82 @@
+{
+  "kata": "singleton",
+  "law": "exact cardinality / unique element: |rows(Engine)| = 1, with every access path resolving to that one row",
+  "comparison_rule": "an element is a named fault; unique = executed probe elements minus baseline-identified elements. A key collision on Engine's mode key resolves to singleton:engine-duplicate (the element is the duplicate, not the witness shape); a dangling witness on engine/fallback resolves to singleton:accessor-dangling@Client#<src>; a construction rejection is recorded as a probe and never counted; a hypothesized finding is never counted.",
+  "entries": [
+    {
+      "id": "control",
+      "control": true,
+      "fixture": "control-fault-disagreement.ct.json",
+      "runs": [
+        {
+          "fixture": "control.ct.json",
+          "baseline_expected": [],
+          "probe_expected": [],
+          "unique_expected": []
+        },
+        {
+          "fixture": "control-fault-disagreement.ct.json",
+          "baseline_expected": [
+            "singleton:engine-duplicate",
+            "singleton:engine!=fallback@Client#0"
+          ],
+          "probe_expected": ["singleton:engine!=fallback@Client#0"],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "duplicate-instance",
+      "control": false,
+      "fixture": "duplicate-instance.ct.json",
+      "runs": [
+        {
+          "fixture": "duplicate-instance.ct.json",
+          "baseline_expected": ["singleton:engine-duplicate"],
+          "probe_expected": [],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "equal-duplicate",
+      "control": false,
+      "fixture": "equal-duplicate-instance.ct.json",
+      "runs": [
+        {
+          "fixture": "equal-duplicate-instance.ct.json",
+          "baseline_expected": ["singleton:engine-duplicate"],
+          "probe_expected": ["singleton:engine-duplicate"],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "missing-instance",
+      "control": false,
+      "fixture": "missing-instance.ct.json",
+      "runs": [
+        {
+          "fixture": "missing-instance.ct.json",
+          "baseline_expected": ["singleton:engine-missing"],
+          "probe_expected": [],
+          "unique_expected": []
+        },
+        {
+          "fixture": "missing-instance-dangling.ct.json",
+          "baseline_expected": [
+            "singleton:engine-missing",
+            "singleton:accessor-dangling@Client#0"
+          ],
+          "probe_expected": ["singleton:accessor-dangling@Client#0"],
+          "unique_expected": []
+        }
+      ],
+      "construction_probe": {
+        "document": "empty-key.ct.json",
+        "fault": "empty-key-tuple",
+        "expected_code": "invalid_key"
+      }
+    }
+  ]
+}

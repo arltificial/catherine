@@ -1,0 +1,33 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Stage", "Action", "Slot"],
+    "arrows": [
+      {"name": "step", "src": "Action", "tgt": "Stage"},
+      {"name": "action_slot", "src": "Action", "tgt": "Slot"},
+      {"name": "stage_slot", "src": "Stage", "tgt": "Slot"},
+      {"name": "stage_action", "src": "Stage", "tgt": "Action"}
+    ],
+    "equations": [
+      {
+        "lhs": ["step", "stage_slot"],
+        "rhs": ["action_slot"],
+        "rationale": "honesty probe: the writer says each step runs at the slot the procedure documents for it; there is no superclass, no override, and no deferred step in this fixture",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Stage": ["fetch", "transform", "emit"],
+      "Action": ["a0", "a1", "a2"],
+      "Slot": ["s1", "s2", "s3"]
+    },
+    "tables": {
+      "step": {"a0": "fetch", "a1": "transform", "a2": "emit"},
+      "action_slot": {"a0": "s1", "a1": "s3", "a2": "s2"},
+      "stage_slot": {"fetch": "s1", "transform": "s2", "emit": "s3"},
+      "stage_action": {"fetch": "a0", "transform": "a1", "emit": "a2"}
+    }
+  }
+}

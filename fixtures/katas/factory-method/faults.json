@@ -1,0 +1,147 @@
+{
+  "slug": "factory-method",
+  "preregistered": "2026-11-13",
+  "law": "dispatch agreement: over the declared product-kind inventory, route ; handler = creator (each kind's arm resolves to the kind's declared creator) and route is total over the declared kinds (a null cell is dangling).",
+  "honest_boundary": "The declared creator arrow is authored specification - the same expectation the conventional test encodes. A conventional test that enumerates every declared kind and asserts the concrete class reaches parity; this kata measures the transfer into the declared relation and its exhaustive evaluation.",
+  "element": "kind:<k>",
+  "sample": {"json": "create_json", "text": "create_text"},
+  "floor_sample": {"json": "create_json", "text": "create_text"},
+  "sample_note": "Frozen above-floor sample: the two formats the legacy suite exercised. xml and yaml were added later and are unsampled. The floor sample is every declared kind.",
+  "unique_policy": "One unique detection is one pre-registered fault element (F1, F2) whose executed kernel finding the executed baseline did not identify. G1/G2 are silent on the kernel and are null results; P1 is a construction refusal and is never counted.",
+  "clean": [
+    {
+      "id": "C0",
+      "fixture": "dispatch.ct.json",
+      "sample_key": "sample",
+      "baseline_expected": [],
+      "note": "clean four-kind dispatch; create_default is declared and unused (allowed)"
+    },
+    {
+      "id": "CF",
+      "fixture": "floor/dispatch.ct.json",
+      "sample_key": "floor_sample",
+      "baseline_expected": [],
+      "note": "clean two-kind floor dispatch"
+    },
+    {
+      "id": "R0",
+      "fixture": "role/dispatch.ct.json",
+      "sample_key": "sample",
+      "baseline_expected": [],
+      "note": "clean four-kind role-annotated dispatch (H2)"
+    },
+    {
+      "id": "RF0",
+      "fixture": "role/floor/dispatch.ct.json",
+      "sample_key": "floor_sample",
+      "baseline_expected": [],
+      "note": "clean two-kind role-annotated floor dispatch (H2)"
+    }
+  ],
+  "faults": [
+    {
+      "id": "F1",
+      "fixture": "fault-silent-default.ct.json",
+      "sample_key": "sample",
+      "fault_class": "silent-default",
+      "probe_class": "violation",
+      "affected_kind": "yaml",
+      "baseline_catches": false,
+      "baseline_expected": [],
+      "probe_expected": ["kind:yaml"]
+    },
+    {
+      "id": "F2",
+      "fixture": "fault-missing-route.ct.json",
+      "sample_key": "sample",
+      "fault_class": "missing-route",
+      "probe_class": "dangling",
+      "affected_kind": "xml",
+      "baseline_catches": false,
+      "baseline_expected": [],
+      "probe_expected": ["kind:xml"]
+    },
+    {
+      "id": "RF1",
+      "fixture": "role/fault-silent-default.ct.json",
+      "sample_key": "sample",
+      "fault_class": "silent-default-eq0-satisfied",
+      "probe_class": "violation",
+      "affected_kind": "yaml",
+      "baseline_catches": false,
+      "baseline_expected": [],
+      "probe_expected": ["kind:yaml"]
+    }
+  ],
+  "floor_faults": [
+    {
+      "id": "NF1",
+      "fixture": "floor/fault-missing-route.ct.json",
+      "sample_key": "floor_sample",
+      "fault_class": "missing-route",
+      "probe_class": "dangling",
+      "affected_kind": "text",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:text:unrouted"],
+      "probe_expected": ["kind:text"]
+    },
+    {
+      "id": "NF2",
+      "fixture": "floor/fault-silent-default.ct.json",
+      "sample_key": "floor_sample",
+      "fault_class": "silent-default",
+      "probe_class": "violation",
+      "affected_kind": "text",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:text:wrong-creator:create_default"],
+      "probe_expected": ["kind:text"]
+    },
+    {
+      "id": "RNF1",
+      "fixture": "role/floor/fault-silent-default.ct.json",
+      "sample_key": "floor_sample",
+      "fault_class": "silent-default",
+      "probe_class": "violation",
+      "affected_kind": "text",
+      "baseline_catches": true,
+      "baseline_expected": ["sample:text:wrong-creator:create_default"],
+      "probe_expected": ["kind:text"]
+    }
+  ],
+  "gaps": [
+    {
+      "id": "G1",
+      "fixture": "gap-declared-fallback.ct.json",
+      "sample_key": "sample",
+      "fault_class": "fallback-declared-as-creator",
+      "probe_class": "none",
+      "affected_kind": "yaml",
+      "baseline_catches": false,
+      "baseline_expected": [],
+      "probe_expected": [],
+      "note": "the spec itself names the fallback as yaml's creator: the agreement equation is satisfied and no predicate distinguishes intent"
+    },
+    {
+      "id": "G2",
+      "fixture": "gap-dead-creator.ct.json",
+      "sample_key": "sample",
+      "fault_class": "unused-creator",
+      "probe_class": "none",
+      "affected_kind": null,
+      "baseline_catches": false,
+      "baseline_expected": [],
+      "probe_expected": [],
+      "note": "create_toml is declared and used by no kind and no handler; image coverage has no predicate"
+    }
+  ],
+  "construction": [
+    {
+      "id": "P1",
+      "fixture": "fault-undeclared-kind.ct.json",
+      "fault_class": "undeclared-kind",
+      "probe_class": "construction",
+      "baseline_skip": true,
+      "note": "the creator table keys toml, which is not a ProductKind row: the parser refuses the document"
+    }
+  ]
+}

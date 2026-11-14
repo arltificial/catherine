@@ -1,0 +1,64 @@
+{
+  "kata": "template-method",
+  "status": "still-gap",
+  "candidate_law": "hook-order declaration vs declared call order: the hook-call sequence transcribed from the template method body equals the order the abstract protocol declares; on the kernel surface it is the commuting triangle `calls ; hook_rank = call_rank`",
+  "comparison_rule": "an element is one hook, spelled hook:<Name>. The conventional arm (executed Python template-method code with a spy) identifies a hook when its live trace violates the declared protocol at that hook's position, when a declared step is absent from the trace, or when a concrete class defines a hook the inherited skeleton never invokes. The kernel arm identifies a hook only when a check witness resolves to one: a violation row is a Call (or Action) row, resolved through calls[row]; a dangling hook_call cell names its Hook row. unique = kernel elements minus baseline elements. A fault with no document form is recorded as a gap, never as a detection.",
+  "entries": [
+    {
+      "id": "near-floor",
+      "control": true,
+      "fixture": "near-floor.ct.json",
+      "code_variant": "near-floor",
+      "transcription_expected": ["only"],
+      "baseline_expected": [],
+      "kernel_expected": [],
+      "unique_expected": [],
+      "note": "one hook, one call: ordering has no content at the floor. The conventional arm has no ordering assertion to make and the kernel's equation is trivially satisfied, so the control is vacuously killed."
+    },
+    {
+      "id": "order-drift",
+      "control": false,
+      "fixture": "template-fault-order-drift.ct.json",
+      "code_variant": "order-drift",
+      "transcription_expected": ["prepare", "finish", "work"],
+      "baseline_expected": ["hook:work", "hook:finish"],
+      "kernel_expected": ["hook:work", "hook:finish"],
+      "unique_expected": [],
+      "note": "parity: the spy test and the kernel name the same two hooks."
+    },
+    {
+      "id": "omitted-hook",
+      "control": false,
+      "fixture": "template-fault-omitted-hook.ct.json",
+      "code_variant": "omitted-stage",
+      "transcription_expected": ["prepare", "finish"],
+      "baseline_expected": ["hook:work"],
+      "kernel_expected": ["hook:work"],
+      "unique_expected": [],
+      "note": "parity, and only because the document author declares a hook_call coverage cell; the row-pointwise equation alone cannot see an uncalled hook."
+    },
+    {
+      "id": "dead-override",
+      "control": false,
+      "fixture": "template.ct.json",
+      "code_variant": "dead-override",
+      "transcription_expected": ["prepare", "work", "finish"],
+      "baseline_expected": ["hook:audit"],
+      "kernel_expected": [],
+      "unique_expected": [],
+      "gap": "the identical document is the faithful transcription of two programs that differ only in a subclass override: one is clean, one has a hook its inherited skeleton never invokes. The kernel is silent on both; no document can record the override relation."
+    },
+    {
+      "id": "procedural-lookalike",
+      "control": false,
+      "counted": false,
+      "fixture": "procedural-lookalike-fault-order-drift.ct.json",
+      "code_variant": null,
+      "transcription_expected": ["fetch", "emit", "transform"],
+      "baseline_expected": [],
+      "kernel_expected": ["hook:transform", "hook:emit"],
+      "unique_expected": [],
+      "note": "probe, not a fault: the same shape of drift in a straight-line procedure with no superclass, no override and no deferred step produces the same two violations. The firing carries no template-method content."
+    }
+  ]
+}

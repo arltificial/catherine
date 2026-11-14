@@ -1,0 +1,107 @@
+{
+  "kata": "mediator",
+  "comparison_rule": "an element is one instance row named by a detection, spelled <object>:<name> (colleague:<name> or interaction:<name>); the baseline identifies an element only when one of its pre-registered per-row assertions fails on that row; the probe identifies an element when a check finding's witness (dangling arrow+row, or equation+row) resolves to that row; unique = executed probe elements minus baseline-identified elements. Hypothesized underconstraint findings are discovery questions, recorded verbatim, never counted as detections.",
+  "documented_routes": {
+    "i_ab": ["alice", "bob"],
+    "i_bc": ["bob", "carol"],
+    "i_ca": ["carol", "alice"]
+  },
+  "baseline_rules": {
+    "colleague-hub-declared": "every colleague's `hub` resolves to a declared Mediator row",
+    "interaction-parties-declared": "every interaction's `speaker` and `listener` resolve to declared Colleague rows and are distinct",
+    "interaction-dispatch-declared": "every interaction's `dispatched_by` resolves to a declared Mediator row",
+    "documented-route": "every interaction's (speaker, listener) pair equals the pre-registered documented route",
+    "not-asserted": "no composition of two arrows (speaker;hub, listener;hub) and no specific mediator row identity: composing arrows is the modeling act under test, and a second declared mediator row is exactly the migration fault"
+  },
+  "entries": [
+    {
+      "id": "near-floor",
+      "control": true,
+      "primary_fixture": "near-floor.ct.json",
+      "runs": [
+        {
+          "fixture": "near-floor.ct.json",
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": []
+        },
+        {
+          "fixture": "near-floor-fault-bypass.ct.json",
+          "baseline_expected": ["interaction:i_ab:dispatch-unresolved"],
+          "baseline_identified": ["interaction:i_ab"],
+          "probe_expected": ["interaction:i_ab"],
+          "unique_expected": []
+        },
+        {
+          "fixture": "near-floor-fault-route.ct.json",
+          "baseline_expected": ["interaction:i_ab:route-mismatch"],
+          "baseline_identified": ["interaction:i_ab"],
+          "probe_expected": [],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "party-second-center",
+      "control": false,
+      "primary_fixture": "party-second-center.ct.json",
+      "runs": [
+        {
+          "fixture": "party-second-center.ct.json",
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["interaction:i_ab", "interaction:i_bc"],
+          "unique_expected": ["interaction:i_ab", "interaction:i_bc"]
+        }
+      ]
+    },
+    {
+      "id": "dispatch-second-center",
+      "control": false,
+      "primary_fixture": "dispatch-second-center.ct.json",
+      "runs": [
+        {
+          "fixture": "dispatch-second-center.ct.json",
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": ["interaction:i_ca"],
+          "unique_expected": ["interaction:i_ca"]
+        }
+      ]
+    },
+    {
+      "id": "bypass",
+      "control": false,
+      "primary_fixture": "bypass.ct.json",
+      "runs": [
+        {
+          "fixture": "bypass.ct.json",
+          "baseline_expected": ["interaction:i_bc:dispatch-unresolved"],
+          "baseline_identified": ["interaction:i_bc"],
+          "probe_expected": ["interaction:i_bc"],
+          "unique_expected": []
+        }
+      ]
+    },
+    {
+      "id": "hub-exclusivity-question",
+      "control": false,
+      "primary_fixture": "mediator.ct.json",
+      "runs": [
+        {
+          "fixture": "mediator.ct.json",
+          "baseline_expected": [],
+          "baseline_identified": [],
+          "probe_expected": [],
+          "unique_expected": [],
+          "discovery": true,
+          "hypotheses_expected": [
+            "parallel_paths:listener=speaker",
+            "parallel_paths:listener,hub=speaker,hub"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "format_version": "1.2",
+  "schema": {
+    "objects": ["ProductKind", "Creator", "Route", "Role"],
+    "arrows": [
+      {"name": "route", "src": "ProductKind", "tgt": "Route"},
+      {"name": "handler", "src": "Route", "tgt": "Creator"},
+      {"name": "creator", "src": "ProductKind", "tgt": "Creator"},
+      {"name": "role", "src": "Creator", "tgt": "Role"},
+      {"name": "expected_role", "src": "ProductKind", "tgt": "Role"}
+    ],
+    "equations": [
+      {
+        "lhs": ["route", "handler"],
+        "rhs": ["creator"],
+        "rationale": "the creator's dispatch routes each declared product kind to the kind's declared creator; a route that resolves elsewhere is a silent fallback",
+        "status": "accepted"
+      },
+      {
+        "lhs": ["route", "handler", "role"],
+        "rhs": ["expected_role"],
+        "rationale": "every declared product kind is served by a concrete creator, never by the declared fallback",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "ProductKind": ["json", "text"],
+      "Creator": ["create_default", "create_json", "create_text"],
+      "Route": ["r_json", "r_text"],
+      "Role": ["concrete", "fallback"]
+    },
+    "tables": {
+      "route": {
+        "json": "r_json",
+        "text": "r_text"
+      },
+      "handler": {
+        "r_json": "create_json",
+        "r_text": "create_text"
+      },
+      "creator": {
+        "json": "create_json",
+        "text": "create_text"
+      },
+      "role": {
+        "create_default": "fallback",
+        "create_json": "concrete",
+        "create_text": "concrete"
+      },
+      "expected_role": {
+        "json": "concrete",
+        "text": "concrete"
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Hook", "Call", "Rank"],
+    "arrows": [
+      {"name": "calls", "src": "Call", "tgt": "Hook"},
+      {"name": "call_rank", "src": "Call", "tgt": "Rank"},
+      {"name": "hook_rank", "src": "Hook", "tgt": "Rank"},
+      {"name": "hook_call", "src": "Hook", "tgt": "Call"}
+    ],
+    "equations": [
+      {
+        "lhs": ["calls", "hook_rank"],
+        "rhs": ["call_rank"],
+        "rationale": "candidate law: the template body invokes each hook at the position the protocol declares for it (the call log is a transcription of the body's message sends)",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Hook": ["prepare", "work", "finish"],
+      "Call": ["c0", "c1", "c2"],
+      "Rank": ["r1", "r2", "r3"]
+    },
+    "tables": {
+      "calls": {"c0": "prepare", "c1": "work", "c2": "finish"},
+      "call_rank": {"c0": "r1", "c1": "r2", "c2": "r3"},
+      "hook_rank": {"prepare": "r1", "work": "r2", "finish": "r3"},
+      "hook_call": {"prepare": "c0", "work": "c1", "finish": "c2"}
+    }
+  }
+}

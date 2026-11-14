@@ -1,0 +1,188 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": [
+      "Module",
+      "Action",
+      "FacadeOp",
+      "SpecCall",
+      "Call",
+      "Outcome"
+    ],
+    "arrows": [
+      {
+        "name": "action_module",
+        "src": "Action",
+        "tgt": "Module"
+      },
+      {
+        "name": "action_outcome",
+        "src": "Action",
+        "tgt": "Outcome"
+      },
+      {
+        "name": "call_facade",
+        "src": "Call",
+        "tgt": "FacadeOp"
+      },
+      {
+        "name": "call_action",
+        "src": "Call",
+        "tgt": "Action"
+      },
+      {
+        "name": "call_outcome",
+        "src": "Call",
+        "tgt": "Outcome"
+      },
+      {
+        "name": "call_spec",
+        "src": "Call",
+        "tgt": "SpecCall"
+      },
+      {
+        "name": "facade_outcome",
+        "src": "FacadeOp",
+        "tgt": "Outcome"
+      },
+      {
+        "name": "spec_action",
+        "src": "SpecCall",
+        "tgt": "Action"
+      },
+      {
+        "name": "spec_facade",
+        "src": "SpecCall",
+        "tgt": "FacadeOp"
+      },
+      {
+        "name": "spec_impl",
+        "src": "SpecCall",
+        "tgt": "Call"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "call_action",
+          "action_outcome"
+        ],
+        "rhs": [
+          "call_outcome"
+        ],
+        "rationale": "call transparency: a facade call observes the outcome of the subsystem action it names - the delegation must be transparent at the call boundary",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "call_spec",
+          "spec_action"
+        ],
+        "rhs": [
+          "call_action"
+        ],
+        "rationale": "attribution, implementation side: an implemented call performs the action its documented call names - a facade may not silently reroute a documented subsystem call",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "call_spec",
+          "spec_facade"
+        ],
+        "rhs": [
+          "call_facade"
+        ],
+        "rationale": "attribution, entry-point side: an implemented call belongs to the entry point of the documented call it realizes - a facade call may not be filed under another facade operation",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "spec_impl",
+          "call_action"
+        ],
+        "rhs": [
+          "spec_action"
+        ],
+        "rationale": "completeness, action side: a documented call is realized by an implementation that performs the documented action - a documented subsystem call may not lose its implementation",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "spec_impl",
+          "call_facade"
+        ],
+        "rhs": [
+          "spec_facade"
+        ],
+        "rationale": "completeness, entry-point side: a documented call is realized under the entry point it was documented for",
+        "status": "accepted"
+      }
+    ],
+    "keys": [
+      {
+        "object": "Call",
+        "arrows": [
+          "call_facade",
+          "call_action"
+        ],
+        "rationale": "trace multiplicity: an entry point makes a given subsystem call at most once, so a duplicated call row is a collision",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Module": [
+        "m_cart"
+      ],
+      "Action": [
+        "a_cart_add"
+      ],
+      "FacadeOp": [
+        "f_add_item"
+      ],
+      "SpecCall": [
+        "s1_add"
+      ],
+      "Call": [
+        "c1_add"
+      ],
+      "Outcome": [
+        "o_declined",
+        "o_ok"
+      ]
+    },
+    "tables": {
+      "action_module": {
+        "a_cart_add": "m_cart"
+      },
+      "action_outcome": {
+        "a_cart_add": "o_ok"
+      },
+      "call_facade": {
+        "c1_add": "f_add_item"
+      },
+      "call_action": {
+        "c1_add": "a_cart_add"
+      },
+      "call_outcome": {
+        "c1_add": "o_declined"
+      },
+      "call_spec": {
+        "c1_add": "s1_add"
+      },
+      "facade_outcome": {
+        "f_add_item": "o_ok"
+      },
+      "spec_action": {
+        "s1_add": "a_cart_add"
+      },
+      "spec_facade": {
+        "s1_add": "f_add_item"
+      },
+      "spec_impl": {
+        "s1_add": "c1_add"
+      }
+    }
+  }
+}
