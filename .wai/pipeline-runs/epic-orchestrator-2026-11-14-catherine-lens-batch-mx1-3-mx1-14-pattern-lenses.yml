@@ -1,0 +1,11 @@
+run_id: epic-orchestrator-2026-11-14-catherine-lens-batch-mx1-3-mx1-14-pattern-lenses
+pipeline: epic-orchestrator
+topic: 'catherine lens batch: mx1.3-mx1.14 pattern lenses'
+created_at: '2026-11-14T00:31:50.060711436+00:00'
+current_step: 7
+approvals: {}
+epic: null
+child_issues: []
+child_runs: []
+handoff_artifact: null
+bypasses: []
