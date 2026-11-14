@@ -1,0 +1,13 @@
+id = "registry-metadata-is-complete-and-listable"
+description = "The pattern registry reports every registered lens's exact kebab-case id, GoF name, universal abstraction, one law kind, and the disposition row's scope string, in a fixed literal order; listing reads no model and runs no lens, and a missing lens is a labeled unknown id rather than a silently smaller list."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "registry_metadata_is_complete_and_unique" },
+    { flags = "the_reference_lens_metadata_is_the_visitor_disposition_row" },
+    { flags = "the_list_names_the_registry_shape" },
+]

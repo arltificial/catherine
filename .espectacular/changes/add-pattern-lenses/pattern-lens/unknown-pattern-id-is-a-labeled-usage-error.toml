@@ -1,0 +1,12 @@
+id = "unknown-pattern-id-is-a-labeled-usage-error"
+description = "A pattern request naming an id absent from the registry exits 2 with a labeled bad_argument diagnostic naming the id and the known ids, writes no findings payload, and never reports an empty success; an omitted --id without --list takes the same usage path."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "find_fails_closed_on_an_unknown_id" },
+    { flags = "an_unknown_pattern_id_is_a_bad_argument" },
+]

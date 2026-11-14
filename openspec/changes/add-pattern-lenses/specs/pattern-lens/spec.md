@@ -23,13 +23,13 @@ registry's fixed order.
   only by case or spelling does not resolve
 
 ### Requirement: Pattern-lens findings reuse the existing taxonomy
-The system SHALL emit pattern-lens diagnostics exclusively as the existing
-finding kinds and witnesses — gap → `underconstraint` (`hypothesized`,
-uncovered inputs witness), overlap under `DeclaredDisjoint` →
-`violation` (`executed`), shadow/derivable → `redundant` (`executed`),
-equation violations → `violation` (`executed`), lost data → the migration
-class's `dangling`/lost findings — sorted by the taxonomy's total order. No
-new finding kind, witness shape, or exit class SHALL be introduced.
+The system SHALL carry a completed lens run's taxonomy diagnostics in a
+`checks` channel and SHALL NOT introduce a new finding kind, witness shape,
+or exit class: gap → `underconstraint` (`hypothesized`, uncovered-inputs
+witness), overlap under `DeclaredDisjoint` → `violation` (`executed`),
+shadow/derivable → `redundant` (`executed`), equation violations →
+`violation` (`executed`). The checks SHALL be sorted by the taxonomy's
+total order.
 
 #### Scenario: A rule-region defect is an existing kind with its witness
 - **WHEN** a rule-table lens finds an uncovered input class or a dead rule
@@ -44,6 +44,27 @@ new finding kind, witness shape, or exit class SHALL be introduced.
 - **THEN** the result is `unknown` carrying the exact scope explored and no
   findings, which is a completed bounded run and is never reported as
   clean
+
+### Requirement: Lost data travels on the migration channel
+The system SHALL carry a lens run's lost-data findings in a separate
+`migrations` channel, verbatim as the migration engine's
+`catherine_core::migrate::MigrationFinding`s (`lost_row`/`lost_cell`, label
+`executed`). They SHALL NOT be folded into the taxonomy or given a new
+taxonomy kind, and any migration finding SHALL yield the lost-data exit
+class (8).
+
+#### Scenario: Lost data is a migration finding on its own channel
+- **WHEN** a Δ lens's run drops rows or valued cells
+- **THEN** each loss is a `lost_row`/`lost_cell` `MigrationFinding` with
+  its object/arrow and row witness on the `migrations` channel, rendered
+  under `data.migrations`, and the run exits 8 (the lost-data class); no
+  taxonomy kind, witness shape, or new exit class is invented for it
+
+#### Scenario: A checks-only result cannot satisfy a lost-data row
+- **WHEN** a lens reports only `checks` (or nothing) for an expectation
+  row whose recorded multiset contains `lost_row`/`lost_cell`
+- **THEN** the replay gate compares across both channels and fails the row
+  loudly, never passing it on an empty migration list
 
 ### Requirement: An unknown or unevaluable pattern request fails closed
 The system SHALL refuse a pattern request that it cannot serve with a
@@ -66,24 +87,26 @@ report `unknown` with a scope string naming the missing surface.
   declaration that does not bind the declared columns or names no rule
   surface, no `schema_map` for the Δ lens)
 - **THEN** the run reports `unknown` with a scope string naming the missing
-  surface and zero findings; a document that fails to parse or type is the
-  existing labeled parse/build error (exit 1) instead, and a malformed
-  `--values` spelling is the existing labeled `bad_argument` flag error
-  (exit 1) — none of the three is an empty success
+  surface and zero findings and zero migrations; a document that fails to
+  parse or type is the existing labeled parse/build error (exit 1) instead,
+  and a malformed `--values` spelling is the existing labeled
+  `bad_argument` flag error (exit 1) — none of the three is an empty success
 
 ### Requirement: The replay gate reproduces the recorded kata verdicts
 The system SHALL gate every lens on a checked-in expectation table derived
 from `ledger/katas/*/`: each recorded fault's fixture, values, and
-`(kind, label)` multiset from the entry's `run.findings`, with
-`catherine_class: gap` rows and empty recorded multisets asserted silent.
-The gate SHALL report parity rows as parity only — it SHALL NOT compute,
-emit, or assert a unique-detection count or a detection rate.
+`(kind, label)` multiset, composed across the lens's `checks` and
+`migrations` channels, with `catherine_class: gap` rows and empty recorded
+multisets asserted silent. Parity rows SHALL be reported as parity only —
+no unique-detection count and no detection rate.
 
 #### Scenario: A lens reproduces its recorded finding classes
 - **WHEN** the replay harness runs a lens over the fixture the ledger entry
   records
-- **THEN** the run's `(kind, label)` multiset equals the entry's recorded
-  multiset for that fixture, including the near-floor and clean arms
+- **THEN** the run's `(kind, label)` multiset, over both channels, equals
+  the entry's recorded multiset for that fixture, including the near-floor
+  and clean arms, and a recorded lost-data kind arrives as a migration
+  finding
 
 #### Scenario: Parity rows stay silent
 - **WHEN** a fault is one the entry's conventional baseline also catches
@@ -108,17 +131,19 @@ emit, or assert a unique-detection count or a detection rate.
 ### Requirement: The pattern surface is a named CLI command
 The system SHALL expose the registry and single-lens runs as
 `catherine pattern <model.ct.json> [--id <pattern>] [--values
-column=v1,v2,...] [--list]`, with the same findings envelope and exit
-classes as the analysis commands: findings exit at the minimum present
-class code, `unknown` exits 0 with `outcome: "unknown"` and its scope, and
-usage errors exit 2. A run without an id SHALL be refused; there is no
-implicit run-every-lens mode.
+column=v1,v2,...] [--list]`. Checks SHALL exit at the minimum present class
+code, any migration finding SHALL exit 8 (lost data), `unknown` SHALL exit
+0 with `outcome: "unknown"` and its scope, and usage errors SHALL exit 2. A
+run without an id SHALL be refused; there is no implicit run-every-lens
+mode.
 
 #### Scenario: One lens runs over a model
 - **WHEN** `catherine pattern <model> --id <pattern>` runs over a fixture
   with values that bind its declared domain
 - **THEN** the output is the findings envelope (or an `unknown` outcome
-  with its scope) for that lens alone, with the class exit code
+  with its scope) for that lens alone — `data.findings` holding the checks
+  and `data.migrations` the migration engine's lost-data findings — with
+  the class exit code (8 when any migration finding is present)
 
 #### Scenario: List form names the lenses and runs none
 - **WHEN** `catherine pattern <model> --list` runs

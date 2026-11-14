@@ -22,6 +22,7 @@ mod cli;
 mod config;
 mod diff;
 mod migrate;
+mod pattern;
 mod projection;
 mod render;
 mod rules;
@@ -58,6 +59,7 @@ fn did_you_mean(err: &clap::error::Error) -> Option<String> {
             "query".to_string(),
             "migrate".to_string(),
             "rules".to_string(),
+            "pattern".to_string(),
         ],
     );
     SuggestionEngine::new()
@@ -163,6 +165,7 @@ fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl 
         } => query_command(model, seed, follow, direction, ctx),
         C::Migrate { model } => migrate_command(model, ctx),
         C::Rules { .. } => rules_command(command, ctx),
+        C::Pattern { .. } => pattern::command(command, ctx),
     }
 }
 

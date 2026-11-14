@@ -1,0 +1,12 @@
+id = "a-rule-region-defect-is-an-existing-kind-with-its-witness"
+description = "A rule-table lens emits only the existing taxonomy kinds through the shared rule_lens mapping: an uncovered input class is underconstraint/hypothesized with the uncovered-inputs witness, a dead or derivable handler is redundant/executed naming the reducing rules, and an overlap under DeclaredDisjoint is violation/executed — never a pattern-specific kind."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "visitor" },
+    { flags = "the_table_records_the_three_visitor_unique_classes" },
+]

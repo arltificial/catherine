@@ -106,6 +106,21 @@ including what the lens adds over a sampled conventional review, is the
 probe ledger (`../fixtures/probes/rule_lens/README.md`, entries under
 `ledger/probes/rule-lens-extracted/`).
 
+Design patterns have their own named surface: `catherine pattern
+<model.ct.json> [--id <pattern>] [--values column=v1,v2,...] [--list]`
+runs exactly one registered lens over the model with the same findings
+envelope and exit table as `rules`; a lens's `scope` string (printed by
+`--list`) is its honesty boundary — coverage-only or parity where the kata
+verdict recorded it — an unevaluable surface reports `unknown` with that
+scope instead of an empty success, and an unknown id is a labeled usage
+error (exit 2). Lenses ship per pattern ticket, so `--list` is the honest
+inventory of what is installed:
+
+```console
+$ catherine pattern fixtures/katas/visitor-sum-types/visitor.ct.json --list
+pattern: 0 registered lens(es)
+```
+
 ### Recipe D — the seam agreement dbt cannot express
 
 dbt's `relationships` test checks that one column's values exist in

@@ -260,6 +260,32 @@ pub enum Commands {
         #[arg(long = "action", value_name = "ARROW")]
         action: Option<String>,
     },
+    /// Pattern lens: list the registered design-pattern lenses or run
+    /// exactly one over the document. Findings reuse the existing
+    /// taxonomy and exit at the minimum present class code; a bounded
+    /// non-answer is `outcome: "unknown"` with its scope (exit 0, never
+    /// "clean"); an omitted or unknown `--id` is a labeled `bad_argument`
+    /// usage error (exit 2). `--list` prints id, name, abstraction, law
+    /// kind, and scope, and runs no lens. A document without the surface
+    /// the named lens evaluates reports UNKNOWN naming the missing
+    /// surface; a parse/build failure keeps the shared labeled error.
+    #[command(after_help = EXIT_CODE_TABLE)]
+    Pattern {
+        /// Path to the .ct.json model document (not read by `--list`).
+        model: String,
+        /// Run exactly this registered pattern lens (exact kebab-case id).
+        #[arg(long = "id", value_name = "PATTERN")]
+        id: Option<String>,
+        /// Finite values per declared column, `column=v1,v2,...`
+        /// (repeatable) — binds a rule-table lens's declared domain. The
+        /// CLI checks the spelling; a declaration the lens cannot bind is
+        /// the lens's labeled UNKNOWN naming the mismatch.
+        #[arg(long = "values", value_name = "COLUMN=V1,V2,...")]
+        values: Vec<String>,
+        /// List the registered lenses and their law scope; runs no lens.
+        #[arg(long = "list")]
+        list: bool,
+    },
 }
 
 /// The analysis scope-cap defaults, sourced from the analysis crate's

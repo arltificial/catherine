@@ -52,6 +52,19 @@ Errors go to stderr, findings to stdout. `catherine.toml` (optional,
 genesis config module) defaults `format` and `verbosity`; explicit
 flags win.
 
+The `pattern` surface runs one registered design-pattern lens by its exact
+id — `catherine pattern <model.ct.json> [--id <pattern>] [--values ...]
+[--list]` — with the same findings envelope and exit table as `rules`, an
+`unknown` outcome plus its law scope for a bounded non-answer, and a
+labeled usage error (exit 2) for an omitted or unknown id. `--list` prints
+each registered lens's id, name, abstraction, law kind, and scope and runs
+nothing; the registry ships empty until the per-pattern lens tickets land,
+so `--list` is currently the honest inventory:
+
+```
+catherine pattern fixtures/katas/visitor-sum-types/visitor.ct.json --list
+```
+
 Exit codes mirror finding classes — CI and agents branch on exit
 status without parsing any text:
 

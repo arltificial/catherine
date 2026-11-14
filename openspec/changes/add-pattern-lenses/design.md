@@ -167,8 +167,13 @@ pub struct LensInput<'a> {
     pub values: &'a [String], // the CLI's `--values column=v1,v2,...` spellings
 }
 
+pub struct LensFindings {
+    pub checks: Vec<Finding>, // the P2 taxonomy's findings
+    pub migrations: Vec<catherine_core::migrate::MigrationFinding>, // the migrate surface
+}
+
 pub enum LensOutcome {
-    Findings(Vec<Finding>),
+    Findings(LensFindings),
     Unknown { scope: String }, // the exact scope that could not be decided
 }
 
@@ -178,11 +183,23 @@ pub trait PatternLens {
 }
 ```
 
+- **Two finding channels, two kernel shapes.** A completed run carries the
+  P2 taxonomy's checks and the migration engine's lost-data findings side by
+  side. `migrations` holds `catherine_core::migrate::MigrationFinding`
+  (`lost_row`/`lost_cell`, label `executed`) verbatim — the migrate
+  surface's own type, not another taxonomy kind. The Δ lenses' recorded
+  multisets include those kinds (composite/null-object's flatten fault,
+  builder's dropped step, memento's round trips), so a `Vec<Finding>`-only
+  outcome could not carry three of the twelve disposition rows; splitting by
+  surface keeps the taxonomy closed and each channel's serde encoding the
+  kernel's own (the CLI prints `checks` under `data.findings` and
+  `migrations` under `data.migrations`).
 - **Rule-table lenses** (`visitor`, `interpreter`, `chain-of-responsibility`,
   `strategy`) bind their finite domain with
   `catherine_core::rule_lens::RuleDomain::from_presentation` from
   `input.values` and reuse `catherine_analysis::rule_lens::rule_lens` — one
-  analysis path, the same one the ledger's `rules` commands recorded.
+  analysis path, the same one the ledger's `rules` commands recorded. They
+  fill `checks` and leave `migrations` empty.
 - **Equation/Δ lenses** reuse the kernel operations their kata commands
   recorded: `check` (equation and structural findings), `migrate` (lost-row
   and lost-cell enumeration), `redundant` (Builder's duplicated-law
@@ -246,6 +263,10 @@ catherine pattern <model.ct.json> [--id <pattern>] [--values ...] [--list]
   scoped ones.
 - **Exit contract** (no change to the shipped table):
   - findings → the minimum present class code (3..=7), exactly as `check`;
+  - any migration finding → 8, the table's lost-data class
+    (`crate::cli::LOST_DATA_EXIT_CODE`), exactly as `migrate`; the lost
+    data is the run's own result, so it is not outranked by the checks'
+    minimum;
   - `Unknown { scope }` → 0 with `outcome: "unknown"` and the scope in the
     payload (a completed bounded run, never "clean");
   - unknown or missing `--id` → 2 (usage class) with a labeled
@@ -260,8 +281,8 @@ catherine pattern <model.ct.json> [--id <pattern>] [--values ...] [--list]
   `LensOutcome::Unknown { scope }` whose scope string names the missing
   surface — for example, the scope reads `no rule_presentation section;
   nothing evaluated`, or `schema_map absent; no lost-data enumeration`.
-  The CLI renders it as `outcome: "unknown"` + scope with
-  zero findings — labeled exactly like the bounded non-answer, and never a
+  The CLI renders it as `outcome: "unknown"` + scope with zero findings and
+  zero migrations — labeled exactly like the bounded non-answer, and never a
   bare `findings: []` presented as clean. A malformed document still takes
   the exit-1 error route, so "parsed but unevaluable" and "did not parse"
   stay distinguishable.
@@ -289,11 +310,14 @@ crates/catherine-analysis/tests/pattern_expectations.rs  # table (checked in)
   must not emit that fault's class. A fixture whose recorded multiset is
   empty (the identity control in `memento-roundtrip`, the clean arms) must
   produce zero findings.
-- The harness asserts, per table row: the run's `(kind, label)` multiset
-  equals the entry's recorded multiset, and the parity flags are reported
-  as parity only. It has **no unique-detection output and no detection-rate
-  assertion**: parity rows stay silent in the gate's result, which is what
-  "parity, no claim" means operationally.
+- The harness asserts, per table row: the run's `(kind, label)` multiset —
+  composed across both channels, `checks` plus `migrations` — equals the
+  entry's recorded multiset, and the parity flags are reported as parity
+  only. A row recording `lost_row`/`lost_cell` is therefore satisfiable only
+  by the lens's `migrations` list; a checks-only or empty outcome fails it
+  loudly rather than passing silently. It has **no unique-detection output
+  and no detection-rate assertion**: parity rows stay silent in the gate's
+  result, which is what "parity, no claim" means operationally.
 - Test names are the pattern ids, so the per-lens Meter is
   `cargo test -p catherine-analysis --test pattern_replay <pattern-id>`
   and the whole suite is the same command without the filter.

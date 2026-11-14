@@ -1,0 +1,14 @@
+id = "a-lens-reproduces-its-recorded-finding-classes"
+description = "The replay harness runs a lens over each checked-in expectation row and asserts the run's (kind, label) multiset equals the sealed kata ledger's recorded multiset for the fixture, including the clean arms; parity rows are reported as parity with no unique-detection count, a bounded non-answer is UNKNOWN with its scope, and a gap or construction row stays silent."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_table_records_the_three_visitor_unique_classes" },
+    { flags = "the_table_covers_all_twelve_in_scope_patterns" },
+    { flags = "a_bounded_non_answer_is_unknown" },
+    { flags = "visitor" },
+]

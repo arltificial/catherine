@@ -34,6 +34,7 @@
 pub mod bounds;
 pub mod distinguish;
 pub mod parallel;
+pub mod pattern;
 pub mod query;
 pub mod rewrite;
 pub mod rule_lens;

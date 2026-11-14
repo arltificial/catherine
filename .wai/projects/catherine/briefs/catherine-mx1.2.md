@@ -27,7 +27,11 @@ pub struct PatternMeta {
     pub scope: &'static str,
 }
 pub struct LensInput<'a> { pub model: &'a catherine_core::model::Model, pub values: &'a [String] }
-pub enum LensOutcome { Findings(Vec<Finding>), Unknown { scope: String } }
+pub struct LensFindings {
+    pub checks: Vec<Finding>,
+    pub migrations: Vec<catherine_core::migrate::MigrationFinding>,
+}
+pub enum LensOutcome { Findings(LensFindings), Unknown { scope: String } }
 pub trait PatternLens {
     fn meta(&self) -> &'static PatternMeta;
     fn run(&self, input: &LensInput<'_>, caps: &ScopeCaps) -> LensOutcome;
@@ -40,6 +44,10 @@ pub fn run(id: &str, input: &LensInput<'_>, caps: &ScopeCaps) -> Result<LensOutc
 - Lenses bind their declared domain with `catherine_core::rule_lens::RuleDomain::from_presentation`
   and reuse `catherine_analysis::rule_lens::rule_lens`; findings are the existing P2 taxonomy
   kinds with witnesses. No new finding kinds, no new heuristics.
+- The completed outcome carries two typed channels: `checks` (the P2 taxonomy) and
+  `migrations` (the migration engine's `lost_row`/`lost_cell` `MigrationFinding`s, the migrate
+  surface — not new P2 kinds). The Δ lens rows need both. CLI renders checks under
+  `data.findings` and migrations under `data.migrations`; any migration finding exits 8.
 - Unknown pattern id: labeled `bad_argument` error, CLI exit 2, never empty success.
 - CLI: `catherine pattern <model.ct.json> [--id <pattern>] [--values ...] [--list]`, same
   envelope/exit conventions as `catherine rules` (reuse its runner where possible).
@@ -93,6 +101,7 @@ pub fn run(id: &str, input: &LensInput<'_>, caps: &ScopeCaps) -> Result<LensOutc
 
 ```bash
 cargo test -p catherine-analysis --test pattern_replay
+cargo test -p catherine-analysis --test pattern_reference
 cargo test -p catherine-cli --test cli
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
@@ -101,8 +110,12 @@ cargo run -q -p catherine-cli -- pattern fixtures/katas/visitor-sum-types/visito
 cargo run -q -p catherine-cli -- pattern fixtures/katas/visitor-sum-types/visitor.ct.json --id visitor --values kind=lit,neg
 ```
 
-The last command exits 0 with `findings` (or `outcome: "unknown"` + scope); an unknown id exits 2
-with a labeled error. `ledger-check ledger/katas` stays green.
+The last command exits **2** with a labeled `bad_argument` error naming `visitor` and the
+(ships-empty) known-id list until `catherine-mx1.9` wires the shipped Visitor lens — the registry
+ships empty by design, so the test-only reference lens exercises the seam, not the CLI. An unknown
+id exits 2 the same way. Once a lens is registered: the run exits 0 with `findings` (or
+`outcome: "unknown"` + scope), any migration finding exits 8, and the checks exit at their minimum
+present class code. `ledger-check ledger/katas` stays green.
 
 ## Spawn model
 
