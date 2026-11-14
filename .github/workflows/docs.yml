@@ -1,9 +1,12 @@
 # Docs workflow — build the mdBook book and deploy it to GitHub Pages
 # (pattern ported from dulce-de-leche; beads catherine-48f).
 #
-# Triggers on push to main when book sources or deployed specs change, on
-# version tags (so tag pushes re-publish docs at the released version),
-# and manually.
+# Triggers on push to main when book sources or deployed specs change,
+# and manually. Tag pushes deliberately do NOT deploy: the github-pages
+# environment's protection rules only admit the default branch, so tag
+# runs fail with "not allowed to deploy" (v0.1.0, beads catherine-z91).
+# Docs content is identical on main; the generated release page reads
+# the version from workspace metadata.
 #
 # Generated pages (release status, copied specs) are marked as generated
 # artifacts — the repo source files remain authoritative (§6 DDL-nsl:
@@ -23,8 +26,6 @@ on:
       - "book.toml"
       - "openspec/specs/**"
       - "crates/*/Cargo.toml"
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
