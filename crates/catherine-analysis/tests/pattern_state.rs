@@ -192,10 +192,8 @@ fn every_recorded_row_matches_the_ledger_multiset() {
 
 #[test]
 fn the_killed_floor_and_parity_rows_stay_silent_or_match() {
-    let parity: Vec<&'static Expectation> = state_rows()
-        .into_iter()
-        .filter(|row| row.parity)
-        .collect();
+    let parity: Vec<&'static Expectation> =
+        state_rows().into_iter().filter(|row| row.parity).collect();
     assert_eq!(parity.len(), 7, "the floor and parity arms are recorded");
     for row in parity {
         assert_row(row);
