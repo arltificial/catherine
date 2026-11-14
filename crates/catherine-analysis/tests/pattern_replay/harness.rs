@@ -139,10 +139,12 @@ fn multiset(findings: &LensFindings) -> Vec<FindingKey> {
 /// lens actually reported.
 pub fn compare(findings: &LensFindings, expected: &[FindingKey]) -> Result<(), String> {
     let actual = multiset(findings);
-    if actual == expected {
+    let mut want = expected.to_vec();
+    want.sort_unstable();
+    if actual == want {
         Ok(())
     } else {
-        Err(format!("expected {expected:?}, got {actual:?}"))
+        Err(format!("expected {want:?}, got {actual:?}"))
     }
 }
 

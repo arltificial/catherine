@@ -110,9 +110,9 @@ pub static EXPECTATIONS: &[Expectation] = &[
     row("builder", "fixtures/katas/builder-monoid/faults/04-optional-part-dropped.ct.json", &[], "optional-part-dropped", "finding", &[LC], false),
 
     // adapter — ledger/katas/wrapper-laws/
-    row("adapter", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C1", "finding", &[V, V, D], true),
-    row("adapter", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C2", "finding", &[V, V, D], true),
-    row("adapter", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C3", "finding", &[V, V, D], true),
+    row("adapter", "fixtures/katas/wrapper-laws/floor/faults/01-identity-wrapper-swaps-result.ct.json", &[], "C1", "finding", &[V], true),
+    row("adapter", "fixtures/katas/wrapper-laws/floor/faults/02-identity-wrapper-rewires-key.ct.json", &[], "C2", "finding", &[V], true),
+    row("adapter", "fixtures/katas/wrapper-laws/floor/faults/03-identity-wrapper-loses-note.ct.json", &[], "C3", "finding", &[D], true),
     row("adapter", "fixtures/katas/wrapper-laws/wrapper-laws.ct.json", &[], "clean", "finding", &[], true),
     row("adapter", "fixtures/katas/wrapper-laws/faults/01-adapter-drops-field.ct.json", &[], "W1", "finding", &[D, D, D], false),
     row("adapter", "fixtures/katas/wrapper-laws/faults/02-proxy-rewires-identity.ct.json", &[], "W2", "finding", &[V], false),
@@ -120,9 +120,9 @@ pub static EXPECTATIONS: &[Expectation] = &[
     row("adapter", "fixtures/katas/wrapper-laws/faults/04-wrapper-loses-optional.ct.json", &[], "W4", "finding", &[D], false),
 
     // decorator — the same evidence, read through the stacking equation
-    row("decorator", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C1", "finding", &[V, V, D], true),
-    row("decorator", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C2", "finding", &[V, V, D], true),
-    row("decorator", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C3", "finding", &[V, V, D], true),
+    row("decorator", "fixtures/katas/wrapper-laws/floor/faults/01-identity-wrapper-swaps-result.ct.json", &[], "C1", "finding", &[V], true),
+    row("decorator", "fixtures/katas/wrapper-laws/floor/faults/02-identity-wrapper-rewires-key.ct.json", &[], "C2", "finding", &[V], true),
+    row("decorator", "fixtures/katas/wrapper-laws/floor/faults/03-identity-wrapper-loses-note.ct.json", &[], "C3", "finding", &[D], true),
     row("decorator", "fixtures/katas/wrapper-laws/wrapper-laws.ct.json", &[], "clean", "finding", &[], true),
     row("decorator", "fixtures/katas/wrapper-laws/faults/01-adapter-drops-field.ct.json", &[], "W1", "finding", &[D, D, D], false),
     row("decorator", "fixtures/katas/wrapper-laws/faults/02-proxy-rewires-identity.ct.json", &[], "W2", "finding", &[V], false),
@@ -130,9 +130,9 @@ pub static EXPECTATIONS: &[Expectation] = &[
     row("decorator", "fixtures/katas/wrapper-laws/faults/04-wrapper-loses-optional.ct.json", &[], "W4", "finding", &[D], false),
 
     // proxy — the same evidence, read through the identity-preservation law
-    row("proxy", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C1", "finding", &[V, V, D], true),
-    row("proxy", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C2", "finding", &[V, V, D], true),
-    row("proxy", "fixtures/katas/wrapper-laws/floor/identity-wrapper.ct.json", &[], "C3", "finding", &[V, V, D], true),
+row("proxy", "fixtures/katas/wrapper-laws/floor/faults/01-identity-wrapper-swaps-result.ct.json", &[], "C1", "finding", &[V], true),
+    row("proxy", "fixtures/katas/wrapper-laws/floor/faults/02-identity-wrapper-rewires-key.ct.json", &[], "C2", "finding", &[V], true),
+    row("proxy", "fixtures/katas/wrapper-laws/floor/faults/03-identity-wrapper-loses-note.ct.json", &[], "C3", "finding", &[D], true),
     row("proxy", "fixtures/katas/wrapper-laws/wrapper-laws.ct.json", &[], "clean", "finding", &[], true),
     row("proxy", "fixtures/katas/wrapper-laws/faults/01-adapter-drops-field.ct.json", &[], "W1", "finding", &[D, D, D], false),
     row("proxy", "fixtures/katas/wrapper-laws/faults/02-proxy-rewires-identity.ct.json", &[], "W2", "finding", &[V], false),

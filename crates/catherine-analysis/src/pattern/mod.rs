@@ -39,6 +39,19 @@ use catherine_core::rule_lens::{RuleDomain, RuleScope};
 use std::collections::BTreeMap;
 use std::fmt;
 
+pub mod adapter;
+pub mod builder;
+pub mod chain_of_responsibility;
+pub mod composite;
+pub mod decorator;
+pub mod interpreter;
+pub mod memento;
+pub mod null_object;
+pub mod proxy;
+pub mod state;
+pub mod strategy;
+pub mod visitor;
+
 /// The coarse invariant family a lens checks. One value per lens even where
 /// the disposition row names two faces; the metadata's `scope` keeps the
 /// row's full wording.
@@ -181,7 +194,20 @@ impl std::error::Error for LensError {}
 
 /// The production registry: one line per landed lens, ordered by id. Empty
 /// at the foundation — the orchestrator wires each lens's module here.
-static LENSES: &[&'static dyn PatternLens] = &[];
+static LENSES: &[&'static dyn PatternLens] = &[
+    &adapter::Lens,
+    &builder::Lens,
+    &chain_of_responsibility::Lens,
+    &composite::Lens,
+    &decorator::Lens,
+    &interpreter::Lens,
+    &memento::Lens,
+    &null_object::Lens,
+    &proxy::Lens,
+    &state::Lens,
+    &strategy::Lens,
+    &visitor::Lens,
+];
 
 /// The shipped lenses, in registry order (`--list` and the unknown-id
 /// diagnostic are byte-stable over this literal).
