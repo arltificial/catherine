@@ -1,0 +1,11 @@
+id = "killed-and-gap-rows-stay-silent"
+description = "Killed and gap rows stay silent"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_killed_floor_and_parity_rows_stay_silent_or_match" },
+]

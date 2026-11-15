@@ -1,0 +1,11 @@
+id = "the-duplicated-row-case-is-parity"
+description = "The duplicated-row case is parity"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_near_floor_duplicate_row_stays_silent" },
+]

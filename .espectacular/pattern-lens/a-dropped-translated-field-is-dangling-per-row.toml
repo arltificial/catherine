@@ -1,0 +1,11 @@
+id = "a-dropped-translated-field-is-dangling-per-row"
+description = "A dropped translated field is dangling per row"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_floor_faults_replay_their_recorded_elements" },
+]

@@ -1,0 +1,11 @@
+id = "shadowed-and-derivable-handlers-are-redundant"
+description = "Shadowed and derivable handlers are redundant"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_row_matches_the_lens" },
+]

@@ -1,0 +1,11 @@
+id = "a-reversed-stack-order-violates-transparency"
+description = "A reversed stack order violates transparency"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_decorator_row_replays_exactly" },
+]

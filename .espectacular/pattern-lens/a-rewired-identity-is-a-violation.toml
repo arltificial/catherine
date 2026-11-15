@@ -1,0 +1,11 @@
+id = "a-rewired-identity-is-a-violation"
+description = "A rewired identity is a violation"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_proxy_identity_equation_witness_is_the_recorded_one" },
+]

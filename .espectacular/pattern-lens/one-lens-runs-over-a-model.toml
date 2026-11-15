@@ -1,0 +1,11 @@
+id = "one-lens-runs-over-a-model"
+description = "One lens runs over a model"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_visitor_row_matches_the_recorded_multiset" },
+]

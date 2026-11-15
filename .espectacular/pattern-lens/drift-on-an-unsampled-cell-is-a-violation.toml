@@ -1,0 +1,11 @@
+id = "drift-on-an-unsampled-cell-is-a-violation"
+description = "Drift on an unsampled cell is a violation"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_table_has_the_recorded_state_rows" },
+]

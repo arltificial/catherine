@@ -1,0 +1,11 @@
+id = "behaviour-changing-faults-are-parity"
+description = "Behaviour-changing faults are parity"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_adapter_row_replays_exactly" },
+]

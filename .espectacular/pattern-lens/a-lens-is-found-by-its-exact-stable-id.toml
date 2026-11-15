@@ -1,0 +1,11 @@
+id = "a-lens-is-found-by-its-exact-stable-id"
+description = "A lens is found by its exact stable id"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "find_fails_closed_on_an_unknown_id" },
+]

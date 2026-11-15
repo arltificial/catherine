@@ -1,0 +1,11 @@
+id = "a-bounded-non-answer-is-unknown-with-its-scope"
+description = "A bounded non-answer is UNKNOWN with its scope"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "a_bounded_non_answer_is_unknown" },
+]

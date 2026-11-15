@@ -1,0 +1,11 @@
+id = "a-collapsed-shape-is-proven-non-invertible"
+description = "A collapsed shape is proven non-invertible"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_non_invertibility_row_reports_the_same_lost_cells" },
+]

@@ -7,17 +7,31 @@ the disposition is. Nothing here claims a detection-rate win: parity with
 conventional tests is the expected outcome (E4), and several rows are
 explicit kills or gaps.
 
+Implementation: the twelve executed rows ship as `catherine pattern`
+lenses (spec `openspec/specs/pattern-lens/spec.md`; seam and replay meter in
+`crates/catherine-analysis/src/pattern/`). The gap epic `catherine-r5k`
+re-opened the disposed/unexpressible rows: five became executed-scoped
+(Abstract Factory, Factory Method, Facade, Iterator, Mediator), Flyweight
+became executed-parity under a key-based sharing law, Template Method stays
+a named gap, and Singleton stays unexpressible with the missing cardinality
+predicate named. Rows marked `implemented` carry a replay meter over their
+sealed ledger entries.
+
 Dispositions:
 
 - **executed** — a recorded kata with a control that self-negates, a
   committed conventional baseline arm, and a ledger entry (scoped).
+- **implemented** — the executed law ships as a registry lens; its replay
+  meter reproduces the recorded class per fault, parity rows stay silent.
 - **killed** — explored; the conventional test caught the same faults
   (parity). Recorded as a null result, not a failure.
+- **still gap** — a law was named and executed against the surface, but the
+  pattern-defining fault stays invisible; the missing predicate is named.
 - **unexpressible** — no predicate/law for the pattern on the current
   kernel surface; the gap is named.
-- **disposed** — no executable structural invariant identified for this
-  surface (construction/convenience patterns). Not a proof of
-  impossibility; a re-open needs a new law, not a new fixture.
+- **disposed** — no executable structural invariant identified; not a proof
+  of impossibility — a re-open requires naming a new law first (the r5k
+  epic shows how five of these rows were re-opened and executed).
 
 | Pattern | Universal abstraction (ploeh) | Kata | Executable law on the surface | Evidence | Disposition |
 |---|---|---|---|---|---|

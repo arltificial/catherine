@@ -113,12 +113,16 @@ envelope and exit table as `rules`; a lens's `scope` string (printed by
 `--list`) is its honesty boundary — coverage-only or parity where the kata
 verdict recorded it — an unevaluable surface reports `unknown` with that
 scope instead of an empty success, and an unknown id is a labeled usage
-error (exit 2). Lenses ship per pattern ticket, so `--list` is the honest
-inventory of what is installed:
+error (exit 2). Twelve lenses ship today (adapter, builder,
+chain-of-responsibility, composite, decorator, interpreter, memento,
+null-object, proxy, state, strategy, visitor), so `--list` is the installed
+inventory:
 
 ```console
 $ catherine pattern fixtures/katas/visitor-sum-types/visitor.ct.json --list
-pattern: 0 registered lens(es)
+pattern: 12 registered lens(es)
+adapter  Adapter — wrapper law preservation · coverage · link-level delegation/field laws; coverage-only
+builder  Builder — monoid (accumulation) · order · emitted part traces to a declared step; ...
 ```
 
 ### Recipe D — the seam agreement dbt cannot express

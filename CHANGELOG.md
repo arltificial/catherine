@@ -3,7 +3,40 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
+
+## [Unreleased]
+
+### Added
+
+- Pattern lenses (`add-pattern-lenses`, `catherine-mx1`): the twelve
+  executed rows of `docs/ref/pattern-kata-dispositions.md` ship as
+  registered, law-scoped checks (`catherine pattern <model> [--id <pattern>]
+  [--values ...] [--list]`). Each lens carries its GoF name, universal
+  abstraction, one law kind (`identity | totality | coverage | order |
+  delta`), and the disposition row's scope string; the replay meter
+  (`crates/catherine-analysis/tests/pattern_replay.rs`) reproduces the
+  sealed ledger's per-fault classes and keeps parity rows silent. Findings
+  reuse the existing taxonomy (`checks` channel) and the migrate engine's
+  `lost_row`/`lost_cell` findings (`migrations` channel, exit 8); an
+  unknown id is a labeled `bad_argument` (exit 2); a bounded non-answer is
+  `unknown` with its exact scope. No detection-rate claim: coverage-only
+  and parity scopes are printed by `--list`.
+- Pattern dictionary gaps (`catherine-r5k`): the disposed/unexpressible
+  rows were re-opened with named laws and sealed ledger entries —
+  Abstract Factory, Factory Method, Facade, Iterator, and Mediator became
+  executed-scoped; Flyweight became executed-parity under a key-based
+  sharing law (the prior "unexpressible" was a fixture defect); Template
+  Method stays a named gap (no override/dispatch predicate); Singleton
+  stays unexpressible (missing cardinality/existence predicate). Every
+  entry is sealed via `ledger-record` with a committed conventional
+  baseline arm.
+
+### Changed
+
+- `docs/ref/pattern-kata-dispositions.md` marks the twelve executed rows
+  `implemented`, records the r5k outcomes, and defines the `still gap`
+  disposition.
 
 ## [0.1.0] - 2026-11-13
 

@@ -1,0 +1,11 @@
+id = "an-expectation-mismatch-fails-the-gate"
+description = "An expectation mismatch fails the gate"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "a_migrateless_lens_cannot_pass_a_lost_cell_row" },
+]

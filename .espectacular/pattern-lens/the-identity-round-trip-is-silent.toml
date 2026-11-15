@@ -1,0 +1,11 @@
+id = "the-identity-round-trip-is-silent"
+description = "The identity round trip is silent"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_identity_control_self_negates" },
+]

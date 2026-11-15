@@ -1,0 +1,11 @@
+id = "an-unresolved-target-is-dangling"
+description = "An unresolved target is dangling"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_recorded_faults_are_never_silent" },
+]

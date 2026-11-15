@@ -1,0 +1,11 @@
+id = "a-dropped-restore-field-loses-its-cells"
+description = "A dropped restore field loses its cells"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_dropped_field_is_named_at_every_valued_cell" },
+]

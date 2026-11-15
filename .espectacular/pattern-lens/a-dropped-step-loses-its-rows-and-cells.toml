@@ -1,0 +1,11 @@
+id = "a-dropped-step-loses-its-rows-and-cells"
+description = "A dropped step loses its rows and cells"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_dropped_step_reports_every_lost_row_and_cell" },
+]

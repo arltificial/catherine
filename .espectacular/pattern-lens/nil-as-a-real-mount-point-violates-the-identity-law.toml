@@ -1,0 +1,11 @@
+id = "nil-as-a-real-mount-point-violates-the-identity-law"
+description = "Nil as a real mount point violates the identity law"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_row_matches_the_ledger_multiset" },
+]

@@ -1,0 +1,11 @@
+id = "an-unhandled-variant-is-a-coverage-gap"
+description = "An unhandled variant is a coverage gap"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_row_matches_the_ledger_multiset" },
+]

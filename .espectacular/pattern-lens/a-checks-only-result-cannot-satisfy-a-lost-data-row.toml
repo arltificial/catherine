@@ -1,0 +1,11 @@
+id = "a-checks-only-result-cannot-satisfy-a-lost-data-row"
+description = "A checks-only result cannot satisfy a lost-data row"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "a_migrateless_lens_cannot_pass_a_lost_cell_row" },
+]

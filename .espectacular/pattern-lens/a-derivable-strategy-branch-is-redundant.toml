@@ -1,0 +1,11 @@
+id = "a-derivable-strategy-branch-is-redundant"
+description = "A derivable strategy branch is redundant"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_strategy_row_replays" },
+]

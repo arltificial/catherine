@@ -1,0 +1,11 @@
+id = "a-non-neutral-nil-element-is-a-violation"
+description = "A non-neutral nil element is a violation"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_floor_control_names_the_nil_row_and_the_child_cell" },
+]

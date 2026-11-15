@@ -1,0 +1,11 @@
+id = "duplicate-registration-is-a-violation-under-disjointness"
+description = "Duplicate registration is a violation under disjointness"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_duplicated_step_proves_the_duplicated_law_twice" },
+]

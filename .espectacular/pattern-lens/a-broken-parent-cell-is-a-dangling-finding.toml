@@ -1,0 +1,12 @@
+id = "a-broken-parent-cell-is-a-dangling-finding"
+description = "A broken parent cell is a dangling finding"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_composite_row_matches_the_recorded_multiset" },
+    { flags = "the_floor_control_names_its_two_executed_elements" },
+]

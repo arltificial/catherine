@@ -1,0 +1,11 @@
+id = "a-near-floor-control-buys-nothing"
+description = "A near-floor control buys nothing"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "the_near_floor_control_stays_silent" },
+]

@@ -1,0 +1,11 @@
+id = "a-handler-order-gap-is-an-uncovered-class"
+description = "A handler-order gap is an uncovered class"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_row_matches_the_lens" },
+]

@@ -1,0 +1,11 @@
+id = "an-unfilled-declared-cell-is-dangling-with-schema-questions"
+description = "An unfilled declared cell is dangling with schema questions"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_recorded_row_matches_the_ledger_multiset" },
+]

@@ -1,0 +1,11 @@
+id = "lost-data-is-a-migration-finding-on-its-own-channel"
+description = "Lost data is a migration finding on its own channel"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "pattern::tests::the_migration_channel_keeps_the_migrate_serde_shape" },
+]

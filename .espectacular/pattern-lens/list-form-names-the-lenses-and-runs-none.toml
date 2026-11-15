@@ -1,0 +1,11 @@
+id = "list-form-names-the-lenses-and-runs-none"
+description = "List form names the lenses and runs none"
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "pattern::tests::the_list_names_the_registry_shape" },
+]

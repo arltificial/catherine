@@ -58,8 +58,8 @@ id — `catherine pattern <model.ct.json> [--id <pattern>] [--values ...]
 `unknown` outcome plus its law scope for a bounded non-answer, and a
 labeled usage error (exit 2) for an omitted or unknown id. `--list` prints
 each registered lens's id, name, abstraction, law kind, and scope and runs
-nothing; the registry ships empty until the per-pattern lens tickets land,
-so `--list` is currently the honest inventory:
+nothing; the registry ships the twelve executed pattern lenses, so `--list`
+is the installed inventory:
 
 ```
 catherine pattern fixtures/katas/visitor-sum-types/visitor.ct.json --list
