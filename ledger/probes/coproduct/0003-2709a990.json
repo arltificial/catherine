@@ -1,0 +1,137 @@
+{
+  "seq": 3,
+  "kind": "kata",
+  "recorded": "2026-11-16",
+  "kata": {
+    "kata_id": "probe-coproduct",
+    "name": "probe coproduct: a rogue variant row and a dual-covered row under a declared closed coproduct — two executed violations the conventional arm misses",
+    "control": false,
+    "series_report": "openspec/changes/add-coproduct-exhaustiveness/design.md (Decision 5); openspec/specs/domain-probes/spec.md; fixtures/probes/coproduct/README.md (pre-registered; registered catalog sha256:a4b0451c8906ffb58e52186a20a9c5081a82ea71f25fe7db79fcdc8515f749ce)",
+    "series_verdict": "pre-registered: the built coproduct check must name the rogue `voucher` row and the dual-covered `shared` row; the executed conventional gap-suite arm pins today's silence, so both detections are unique",
+    "fixture": "fixtures/probes/coproduct/payments-rogue-voucher.ct.json",
+    "fixture_hash": "sha256:999d9c5e60070197f52b2b34ceda66187ebdf2ba560c661333fcc31ceadc14b0",
+    "expected": [
+      {
+        "fault": "floor-keys-caught",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "floor control — two variant rows (`Card` c1, c2) collapse onto one coproduct row (`Method` card), a defect the incumbent `schema.keys` injectivity check names in full (violation, key 0, rows [0, 1]); the coproduct surface (coverage/disjointness of `Method`'s rows) cannot express injection injectivity, so the probe must show zero unique detections here (design Decision 5)"
+      },
+      {
+        "fault": "rogue-variant",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "a rogue fourth variant — the `voucher` row of `Method` lies in the image of no declared injection of the accepted `Method` coproduct (`card_inj`, `transfer_inj`, `cash_inj`); the pre-registered expectation is one violation/executed naming the uncovered recipient row (gap G3: today the row is silently accepted, exit 0, findings [])"
+      },
+      {
+        "fault": "dual-covered",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "a dual-covered row — `Method` row `shared` lies in the image of both `card_inj` and `transfer_inj`, falsifying the declared disjointness of an accepted coproduct; the pre-registered expectation is one violation/executed naming the row and both injections (today silently accepted, exit 0, findings [])"
+      },
+      {
+        "fault": "clean-closed-table",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "a clean closed table — `Method` = card | transfer | cash with every row covered exactly once; the pre-registered expectation is zero findings (the negative side of both defect arms: the check must not fire on a correct declaration)"
+      }
+    ],
+    "run": {
+      "commands": [
+        "./target/debug/catherine check fixtures/probes/coproduct/payments-three-variants.ct.json --json  # exit 0, findings []",
+        "./target/debug/catherine check fixtures/probes/coproduct/payments-rogue-voucher.ct.json --json  # exit 3, one violation/executed {coproduct: 0, row: 3}",
+        "./target/debug/catherine check fixtures/probes/coproduct/payments-dual-covered.ct.json --json  # exit 3, one violation/executed {coproduct: 0, row: 2, injections: [card_inj, transfer_inj]}",
+        "./target/debug/catherine check fixtures/probes/coproduct/floor-keys-caught.ct.json --json  # exit 3, one violation/executed {key: 0, rows: [0, 1]}",
+        "./target/debug/catherine check crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json --json  # conventional baseline, executed at RED (revision 79cef70, pre-capability): exit 0, findings []",
+        "./target/debug/catherine check crates/catherine-cli/tests/fixtures/key_violation.ct.json --json  # incumbent keys arm, executed at RED: exit 3, one violation/executed {key: 0, rows: [0, 1]}"
+      ],
+      "findings": [
+        {
+          "kind": "violation",
+          "label": "executed",
+          "witness": {
+            "coproduct": 0,
+            "row": 3
+          }
+        },
+        {
+          "kind": "violation",
+          "label": "executed",
+          "witness": {
+            "coproduct": 0,
+            "injections": [
+              "card_inj",
+              "transfer_inj"
+            ],
+            "row": 2
+          }
+        },
+        {
+          "kind": "violation",
+          "label": "executed",
+          "witness": {
+            "key": 0,
+            "rows": [
+              0,
+              1
+            ]
+          }
+        }
+      ]
+    },
+    "comparison": {
+      "conventional_baseline": "The hand-authored gap-suite case `coproduct-absence` (crates/catherine-cli/tests/expressibility_gaps/cases/analysis.rs at revision bda3819) pins today's behaviour on crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json as a recorded limitation: executed at RED with the pre-capability binary it exited 0 with findings [], naming neither the rogue `voucher` row nor the dual-covered `shared` row. Silence is its detection set, so it identifies none of the probe elements.",
+      "fired": [
+        {
+          "finding_id": "coproduct:Method@3:uncovered",
+          "kind": "violation",
+          "label": "executed",
+          "expectation": "rogue-variant"
+        },
+        {
+          "finding_id": "coproduct:Method@2:dual(card_inj,transfer_inj)",
+          "kind": "violation",
+          "label": "executed",
+          "expectation": "dual-covered"
+        },
+        {
+          "finding_id": "keys:Card:card_inj@rows0,1",
+          "kind": "violation",
+          "label": "executed",
+          "expectation": "floor-keys-caught"
+        }
+      ],
+      "unique_detections": [
+        "coproduct:Method@3:uncovered",
+        "coproduct:Method@2:dual(card_inj,transfer_inj)"
+      ],
+      "baseline": {
+        "artifact": "catherine check over the committed gap-suite case crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json (case `coproduct-absence` in crates/catherine-cli/tests/expressibility_gaps/cases/analysis.rs sha256:8dc2d5258df113d915079c7d6d20271c7ba72e18d97c907564ab06193b752da4, artifact revision bda3819), executed at RED with the revision-79cef70 build (binary sha256:819d798f808ef2935a3e44b718eb56461821ef43409073cec22bf346f4b4844c): exit 0, findings []",
+        "mode": "executed",
+        "detections": []
+      }
+    },
+    "expressibility_gap": [],
+    "procedure": [
+      "1. The fault set and its expectations were committed in fixtures/probes/coproduct/faults.json and the four catalog rows were registered in crates/catherine-ledger/src/catalog.rs before this run; nothing here is edited after the run.",
+      "2. The conventional baseline arm was executed at RED, before the coproduct check existed: `catherine check` on the gap-suite coproduct case exited 0 with findings [], naming neither the `voucher` row nor the `shared` row.",
+      "3. The probe arm ran `catherine check` on the four frozen fixtures: the clean three-variant table exited 0 with no findings; the rogue-voucher fixture exited 3 with one violation/executed {coproduct: 0, row: 3}; the dual-covered fixture exited 3 with one violation/executed {coproduct: 0, row: 2, injections: [card_inj, transfer_inj]}; the floor fixture exited 3 with the incumbent keys witness {key: 0, rows: [0, 1]} and no coproduct finding.",
+      "4. Elements were compared at fault level: the conventional baseline identifies none, so `coproduct:Method@3:uncovered` and `coproduct:Method@2:dual(card_inj,transfer_inj)` are unique. The floor element `keys:Card:card_inj@rows0,1` is not counted as unique — seq 1's executed keys baseline names the same element, which is why the control self-negates (the floor control records zero unique detections).",
+      "5. The uniqueness axis derives survived for a non-empty unique set against an executed baseline arm: the built coproduct check names both pre-registered faults the conventional arm misses, and the clean table stays silent."
+    ],
+    "catalog_hash": "sha256:a4b0451c8906ffb58e52186a20a9c5081a82ea71f25fe7db79fcdc8515f749ce",
+    "verdict": "survived",
+    "discrepancies": [
+      "The conventional baseline arm's pre-registered file identity named `crates/catherine-cli/tests/expressibility_gaps/cases.rs` (sha256:2630d4bef49070497986042b50aa2def003847ac3f4e77197077f76ddf5928a1), a path that never existed in git; the `coproduct-absence` case lives in crates/catherine-cli/tests/expressibility_gaps/cases/analysis.rs at revision bda3819 (sha256:8dc2d5258df113d915079c7d6d20271c7ba72e18d97c907564ab06193b752da4). fixtures/probes/coproduct/README.md and the catalog's baseline_arms.conventional.artifact were corrected in place before any probe entry is committed; the correction moves the catalog file's content address from sha256:f18a556696187daf1459af8ec067419372a37a5f07ca28a35bc1d79b8b73eec7 to sha256:388cefe6e8a894be114e7eccc87393e00850ecdde94078c027a9e05b4ebf0e4b and changes nothing else: same catalog rows, same executed arm (exit 0, findings []), same verdict and unique-detection arithmetic.",
+      "This entry records that correction: the verdict (`survived`) and the unique detections (`coproduct:Method@3:uncovered`, `coproduct:Method@2:dual(card_inj,transfer_inj)`) are unchanged, because the executed arm's output is unchanged."
+    ]
+  },
+  "rollup": null,
+  "model_hashes": [
+    "sha256:ede094298d1041ca8c13c6b8d9786086b9616f6d4a848b006e3dbf525fe64593",
+    "sha256:999d9c5e60070197f52b2b34ceda66187ebdf2ba560c661333fcc31ceadc14b0",
+    "sha256:c953da599e293a516e1785a213242304d9ac6fdbafd27fff6917cf9a19f2677a",
+    "sha256:0517667d8f596dcf4f7fd0c912e4787b36377df6add2c53ea4fe859b2ef3032a"
+  ],
+  "id": "sha256:2709a9909f27a4a73baebb4413dd2e787f6e3bdaf5d3197b34e9ce865cb64842"
+}

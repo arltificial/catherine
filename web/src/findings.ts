@@ -6,8 +6,10 @@
 //
 // Responsibilities: [`FindingEnc`] and its witnesses — the TS mirror of
 // the kernel's serde encoding, pinned by the parity test (wasm task 7);
-// the violation witness is an untagged union (equation or key) split on
-// field presence — and [`renderFindings`]: one `li.finding` per finding
+// the violation witness is an untagged union (equation, key, or
+// coproduct) split on field presence, with the coproduct's optional
+// `injections` field carried exactly when the kernel emits it — and
+// [`renderFindings`]: one `li.finding` per finding
 // carrying `data-kind` and `data-label`, with `.kind`, `.label`, and `.witness`
 // spans inside. Structural, not snapshot: every fact a finding carries
 // is present and queryable in the DOM.
@@ -38,12 +40,29 @@ export interface KeyViolationWitness {
 }
 
 /**
+ * The coproduct arm — the declaration's canonical index and the failed
+ * row. `injections` is present exactly when the row lies in more than one
+ * declared injection (the disjointness failure); the kernel omits the
+ * field for a coverage failure, so it is optional here rather than an
+ * empty array that would render as an undefined-valued fact.
+ */
+export interface CoproductViolationWitness {
+  coproduct: number;
+  row: number;
+  injections?: string[];
+}
+
+/**
  * The kernel's untagged violation-witness union: equation violations keep
  * `{equation, row, lhs, rhs}` byte-identically; key violations are
- * `{key, rows}`. The field sets are disjoint, so `"equation" in witness`
- * discriminates.
+ * `{key, rows}`; coproduct violations are `{coproduct, row, injections?}`.
+ * The field sets are disjoint, so `"equation" in witness` and
+ * `"key" in witness` discriminate.
  */
-export type ViolationWitness = EquationViolationWitness | KeyViolationWitness;
+export type ViolationWitness =
+  | EquationViolationWitness
+  | KeyViolationWitness
+  | CoproductViolationWitness;
 
 export interface DanglingWitness {
   arrow: string;
@@ -79,15 +98,40 @@ function pathText(path: readonly string[]): string {
   return path.join(" ∘ ");
 }
 
+/** The equation arm's facts: which equation failed, on which row, with the two values. */
+function equationViolationText(w: EquationViolationWitness): string {
+  return `equation ${w.equation} on row ${w.row}: ${w.lhs} ≠ ${w.rhs}`;
+}
+
+/** The key arm's facts: the canonical key index and the colliding row pair. */
+function keyViolationText(w: KeyViolationWitness): string {
+  return `key ${w.key}: rows ${w.rows[0]} and ${w.rows[1]} collide`;
+}
+
+/** The coproduct arm's facts: uncovered row, or the colliding injections. */
+function coproductViolationText(w: CoproductViolationWitness): string {
+  const covering = w.injections ?? [];
+  return covering.length === 0
+    ? `coproduct ${w.coproduct}: row ${w.row} uncovered`
+    : `coproduct ${w.coproduct}: row ${w.row} covered by ${covering.join(", ")} (disjointness)`;
+}
+
+/** The violation witness, split on the union's disjoint field sets. */
+function violationText(w: ViolationWitness): string {
+  if ("equation" in w) {
+    return equationViolationText(w);
+  }
+  if ("key" in w) {
+    return keyViolationText(w);
+  }
+  return coproductViolationText(w);
+}
+
 /** The witness facts, as text — one rendering path per witness shape. */
 export function witnessText(finding: FindingEnc): string {
   switch (finding.kind) {
-    case "violation": {
-      const w = finding.witness;
-      return "equation" in w
-        ? `equation ${w.equation} on row ${w.row}: ${w.lhs} ≠ ${w.rhs}`
-        : `key ${w.key}: rows ${w.rows[0]} and ${w.rows[1]} collide`;
-    }
+    case "violation":
+      return violationText(finding.witness);
     case "dangling":
       return `${finding.witness.arrow} on row ${finding.witness.src} unresolved`;
     case "contradiction":

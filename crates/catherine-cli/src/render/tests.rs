@@ -48,6 +48,7 @@ fn bowling_schema() -> Schema {
             status: ConstraintStatus::Accepted,
         }],
         keys: Vec::new(),
+        coproducts: Vec::new(),
     }
 }
 

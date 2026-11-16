@@ -100,6 +100,16 @@ exactly. The surface reports findings — it never emits a merged document.
 `underconstraint` accepts the same joint form for seam-only parallel-path
 questions and labels a disjoint union the same way.
 
+Closed variants are declared, not inferred: the additive
+`schema.coproducts` section (format 1.5) lists
+`{"object": C, "arrows": ["V_k → C", …], "status": "accepted" | "proposed"}`
+— the `keys` grammar with coverage/disjointness semantics. An accepted
+declaration is executed by `check`: a row of `C` outside every injection
+image is one `violation`/`executed` naming the row, a row in two images one
+naming the row and both injections; `proposed` declarations fire
+`hypothesized`. A malformed declaration is `invalid_coproduct` at its node,
+and documents without the section keep their exact bytes and hash.
+
 Exit codes mirror finding classes — CI and agents branch on exit
 status without parsing any text:
 

@@ -2,6 +2,7 @@
 //! gate, objects, arrows, equations). Split out of `parse.rs` verbatim
 //! during the mechanical lint refactor; no behavior change.
 
+use super::coproducts::RawCoproduct;
 use super::instance_map::RawInstanceMap;
 use super::keys::RawKey;
 use super::rule_presentation::RawRulePresentation;
@@ -41,6 +42,8 @@ pub(super) struct RawSchema {
     pub(super) equations: Vec<RawEquation>,
     #[serde(default)]
     pub(super) keys: Vec<RawKey>,
+    #[serde(default)]
+    pub(super) coproducts: Vec<RawCoproduct>,
 }
 
 #[derive(Deserialize)]
@@ -79,8 +82,10 @@ pub(super) struct RawInstance {
 /// 3 = the `schema.keys` section (add-declarative-keys; an absent or
 /// empty list is hash-neutral);
 /// 4 = the `instance_map` section (add-instance-morphism; absent or
-/// empty is hash-neutral).
-const KNOWN_MINOR: u64 = 4;
+/// empty is hash-neutral);
+/// 5 = the `schema.coproducts` section (add-coproduct-exhaustiveness;
+/// absent or empty is hash-neutral).
+const KNOWN_MINOR: u64 = 5;
 
 /// The version gate: `MAJOR.MINOR`, present, well-formed, known major, minor within `KNOWN_MINOR`.
 pub(super) fn check_version(

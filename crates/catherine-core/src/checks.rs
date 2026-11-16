@@ -5,12 +5,16 @@
 //!
 //! Responsibilities: [`check`] walks the typed instance tables — one
 //! dangling finding per unresolved cell, one finding per equation per
-//! applicable row whose composed paths disagree, and one finding per
-//! unordered pair of rows whose declared key tuple agrees — and never
+//! applicable row whose composed paths disagree, one finding per
+//! unordered pair of rows whose declared key tuple agrees, and one
+//! finding per row of a declared coproduct whose coverage or
+//! disjointness claim fails — and never
 //! emits a finding without its witness. A dangling value short-circuits
 //! path composition at that arrow: the affected row is recorded (by the
 //! dangling finding naming arrow + source row), never reported as a
-//! violation, and never grouped into a key collision; the run continues.
+//! violation, never grouped into a key collision, and never used to
+//! decide a coproduct claim (a partial injection image suppresses the
+//! declaration's findings); the run continues.
 //! Constraint `status` decides the
 //! epistemic label of a violation-shaped finding: `accepted` →
 //! `executed`, `proposed` → `hypothesized` — one kind, countable apart by
@@ -37,11 +41,11 @@
 //! schema fragments.
 
 use crate::findings::{
-    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, KeyWitness,
-    ViolationWitness,
+    CoproductWitness, DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
+    KeyWitness, ViolationWitness,
 };
 use crate::instance::TypedInstance;
-use crate::model::{ConstraintStatus, Ident, Key, RowId, Schema};
+use crate::model::{ConstraintStatus, Coproduct, Ident, Key, RowId, Schema};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Execute every declared equation on every applicable row of the typed
@@ -71,6 +75,7 @@ pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
     findings.extend(dangling_findings(instance, &violated));
     findings.extend(equation_findings(schema, instance));
     findings.extend(key_findings(schema, instance));
+    findings.extend(coproduct_findings(schema, instance));
     // The taxonomy's total order (kind declaration order — violations
     // before dangling — then witness ids, label last) is the emitted
     // contract: the walk's push order is not, and the sorted result makes
@@ -251,4 +256,91 @@ fn key_tuple(tables: &[&Vec<Option<RowId>>], row: RowId) -> Option<Vec<RowId>> {
         tuple.push(table.get(row.0).copied().flatten()?);
     }
     Some(tuple)
+}
+
+/// Every declared coproduct: one coverage finding per uncovered row and
+/// one disjointness finding per row in two injection images. A
+/// declaration whose injections cannot be judged — an arrow outside the
+/// parsed shape, a missing table, or a dangling/typing-violated cell on
+/// any injection — emits nothing: the unresolved cell already carries its
+/// own finding, and a partial image cannot decide coverage, so the row is
+/// never double-reported.
+fn coproduct_findings(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
+    let mut findings = Vec::new();
+    for (index, coproduct) in schema.coproducts.iter().enumerate() {
+        findings.extend(coproduct_declaration(schema, instance, index, coproduct));
+    }
+    findings
+}
+
+/// One declaration's findings over its object's rows: a row covered by no
+/// image is uncovered (injections empty), a row covered by one image is
+/// clean, and a row covered by several names every covering injection.
+fn coproduct_declaration(
+    schema: &Schema,
+    instance: &TypedInstance,
+    index: usize,
+    coproduct: &Coproduct,
+) -> Vec<Finding> {
+    let Some(images) = injection_images(schema, instance, coproduct) else {
+        return Vec::new();
+    };
+    let Some(rows) = instance.rows().get(&coproduct.object) else {
+        return Vec::new();
+    };
+    let label = label_for(coproduct.status);
+    rows.iter()
+        .filter_map(|&row| coproduct_row_finding(label, index, row, &images))
+        .collect()
+}
+
+/// The declared injections' images, each the set of coproduct-object rows
+/// it covers. `None` when the declaration is outside the parsed shape or
+/// an injection has an unresolved cell (the image is partial, so coverage
+/// and disjointness are undecidable and the declaration emits nothing).
+fn injection_images(
+    schema: &Schema,
+    instance: &TypedInstance,
+    coproduct: &Coproduct,
+) -> Option<Vec<(Ident, BTreeSet<RowId>)>> {
+    let mut images = Vec::with_capacity(coproduct.arrows.len());
+    for arrow in &coproduct.arrows {
+        let definition = schema.arrows.get(arrow)?;
+        if definition.tgt != coproduct.object {
+            return None;
+        }
+        let table = instance.tables().get(arrow)?;
+        if table.iter().any(Option::is_none) {
+            return None;
+        }
+        images.push((arrow.clone(), table.iter().flatten().copied().collect()));
+    }
+    Some(images)
+}
+
+/// One row's verdict against the injection images: `None` when exactly one
+/// image covers it, a witness otherwise (no image = uncovered; several =
+/// the covering injections in declared order).
+fn coproduct_row_finding(
+    label: EpistemicLabel,
+    index: usize,
+    row: RowId,
+    images: &[(Ident, BTreeSet<RowId>)],
+) -> Option<Finding> {
+    let injections: Vec<Ident> = images
+        .iter()
+        .filter(|(_, image)| image.contains(&row))
+        .map(|(arrow, _)| arrow.clone())
+        .collect();
+    if injections.len() == 1 {
+        return None;
+    }
+    Some(Finding {
+        label,
+        kind: FindingKind::Violation(ViolationWitness::Coproduct(CoproductWitness {
+            coproduct: index,
+            row,
+            injections,
+        })),
+    })
 }

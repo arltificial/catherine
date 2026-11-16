@@ -222,7 +222,7 @@ fn composition_warning_rows_are_labeled_on_the_envelope() {
             })
             .unwrap_or_default();
         assert!(
-            rules.contains(&rule),
+            rules.contains(rule),
             "[{name}] the labeled warning is present: {rules:?}"
         );
     }

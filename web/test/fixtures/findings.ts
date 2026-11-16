@@ -74,3 +74,23 @@ export const findingClassFixtures: readonly { name: string; finding: FindingEnc 
   },
   keyViolationFixture,
 ];
+
+/** A coproduct coverage violation — the kernel omits `injections` when empty. */
+export const coproductCoverageFixture: { name: string; finding: FindingEnc } = {
+  name: "violation-coproduct-uncovered",
+  finding: {
+    label: "executed",
+    kind: "violation",
+    witness: { coproduct: 0, row: 3 },
+  },
+};
+
+/** A coproduct disjointness violation — the row and both covering injections. */
+export const coproductDualFixture: { name: string; finding: FindingEnc } = {
+  name: "violation-coproduct-dual",
+  finding: {
+    label: "executed",
+    kind: "violation",
+    witness: { coproduct: 0, row: 2, injections: ["card_inj", "transfer_inj"] },
+  },
+};

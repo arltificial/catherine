@@ -48,6 +48,17 @@ pub enum ConstraintView {
         /// The key's arrows, in composition order.
         arrows: Vec<String>,
     },
+    /// An accepted coproduct's object and injection-name sequence. The
+    /// unconditional `kind` discriminator keeps the untagged payload
+    /// distinct from a key's `{object, arrows}` shape.
+    Coproduct {
+        /// The coproduct's object.
+        object: String,
+        /// The injection arrows, in declared order.
+        arrows: Vec<String>,
+        /// The payload discriminator: always `"coproduct"`.
+        kind: &'static str,
+    },
 }
 
 fn constraint_views(added: &[EnforcedConstraint]) -> Vec<ConstraintView> {
@@ -61,6 +72,11 @@ fn constraint_views(added: &[EnforcedConstraint]) -> Vec<ConstraintView> {
             EnforcedConstraint::Key { object, arrows } => ConstraintView::Key {
                 object: object.0.clone(),
                 arrows: arrow_names(arrows),
+            },
+            EnforcedConstraint::Coproduct { object, arrows } => ConstraintView::Coproduct {
+                object: object.0.clone(),
+                arrows: arrow_names(arrows),
+                kind: "coproduct",
             },
         })
         .collect()
@@ -228,6 +244,15 @@ fn added_line(constraint: &EnforcedConstraint) -> String {
         }
         EnforcedConstraint::Key { object, arrows } => format!(
             "  added: key {}({})",
+            object.0,
+            arrows
+                .iter()
+                .map(|arrow| arrow.0.as_str())
+                .collect::<Vec<_>>()
+                .join("∘")
+        ),
+        EnforcedConstraint::Coproduct { object, arrows } => format!(
+            "  added: coproduct {}({})",
             object.0,
             arrows
                 .iter()

@@ -45,6 +45,7 @@ fn endo_schema(keys: Vec<Key>) -> Schema {
         arrows,
         equations: Vec::new(),
         keys,
+        coproducts: Vec::new(),
     }
 }
 

@@ -131,11 +131,12 @@ pub fn expectations(kata_id: &str) -> Vec<Expectation> {
 /// The registered domain-probe ids. Probes ride the kata entry shape in
 /// their own ledger directory (design Decision 1 revised); this list is
 /// the closed set the validator recognizes.
-pub const PROBE_IDS: [&str; 4] = [
+pub const PROBE_IDS: [&str; 5] = [
     "probe-migration",
     "probe-rule-lens-extracted",
     "probe-naturality",
     "probe-composition",
+    "probe-coproduct",
 ];
 
 /// probe-migration: Δ migration at real scale — the pre-registered
@@ -302,6 +303,70 @@ fn probe_composition() -> Vec<Expectation> {
     ]
 }
 
+/// probe-coproduct: the G3 claim — a rogue variant row and a dual-covered
+/// row under a declared closed coproduct are accepted silently today, so
+/// the coproduct check's detections are unique against the executed
+/// conventional arm; rows are the pre-registered catalog verbatim and in
+/// order (control row first), from `fixtures/probes/coproduct/README.md`.
+fn probe_coproduct() -> Vec<Expectation> {
+    let mut rows = vec![coproduct_floor_control()];
+    rows.extend(coproduct_payment_faults());
+    rows
+}
+
+fn coproduct_floor_control() -> Expectation {
+    Expectation {
+        fault: "floor-keys-caught".into(),
+        series_class: "behavioral".into(),
+        catherine_class: "finding".into(),
+        detail: "floor control — two variant rows (`Card` c1, c2) collapse onto one \
+                 coproduct row (`Method` card), a defect the incumbent `schema.keys` \
+                 injectivity check names in full (violation, key 0, rows [0, 1]); the \
+                 coproduct surface (coverage/disjointness of `Method`'s rows) cannot \
+                 express injection injectivity, so the probe must show zero unique \
+                 detections here (design Decision 5)"
+            .into(),
+    }
+}
+
+/// The payments documents: rogue and dual-covered fault arms, clean table.
+fn coproduct_payment_faults() -> Vec<Expectation> {
+    vec![
+        Expectation {
+            fault: "rogue-variant".into(),
+            series_class: "behavioral".into(),
+            catherine_class: "finding".into(),
+            detail: "a rogue fourth variant — the `voucher` row of `Method` lies in the \
+                     image of no declared injection of the accepted `Method` coproduct \
+                     (`card_inj`, `transfer_inj`, `cash_inj`); the pre-registered \
+                     expectation is one violation/executed naming the uncovered recipient \
+                     row (gap G3: today the row is silently accepted, exit 0, findings [])"
+                .into(),
+        },
+        Expectation {
+            fault: "dual-covered".into(),
+            series_class: "behavioral".into(),
+            catherine_class: "finding".into(),
+            detail: "a dual-covered row — `Method` row `shared` lies in the image of both \
+                     `card_inj` and `transfer_inj`, falsifying the declared disjointness of \
+                     an accepted coproduct; the pre-registered expectation is one \
+                     violation/executed naming the row and both injections (today silently \
+                     accepted, exit 0, findings [])"
+                .into(),
+        },
+        Expectation {
+            fault: "clean-closed-table".into(),
+            series_class: "behavioral".into(),
+            catherine_class: "finding".into(),
+            detail: "a clean closed table — `Method` = card | transfer | cash with every row \
+                     covered exactly once; the pre-registered expectation is zero findings \
+                     (the negative side of both defect arms: the check must not fire on a \
+                     correct declaration)"
+                .into(),
+        },
+    ]
+}
+
 /// Whether the id names a registered domain probe.
 pub fn is_probe(id: &str) -> bool {
     PROBE_IDS.contains(&id)
@@ -316,6 +381,7 @@ pub fn probe_expectations(probe_id: &str) -> Vec<Expectation> {
         "probe-rule-lens-extracted" => probe_rule_lens_extracted(),
         "probe-naturality" => probe_naturality(),
         "probe-composition" => probe_composition(),
+        "probe-coproduct" => probe_coproduct(),
         _ => Vec::new(),
     }
 }

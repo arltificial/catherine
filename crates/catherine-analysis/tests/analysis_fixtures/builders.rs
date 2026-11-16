@@ -51,6 +51,7 @@ pub(crate) fn schema(
             .collect::<BTreeMap<_, _>>(),
         equations,
         keys: Vec::new(),
+        coproducts: Vec::new(),
     }
 }
 

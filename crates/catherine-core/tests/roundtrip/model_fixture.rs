@@ -93,6 +93,7 @@ fn build_model(
             arrows,
             equations,
             keys: Vec::new(),
+            coproducts: Vec::new(),
         },
         instance: Instance { rows, values },
         schema_map: None,

@@ -5,10 +5,11 @@
 //! legal.
 //!
 //! Responsibilities: pin the composition API (`parse_document`, `glue`),
-//! the merge rules (objects/arrows/rows identified by name, equations and
-//! keys kept as an enforced multiset), the labeled conflict codes with
-//! document + node attribution, the empty-interface flag, and the
-//! span-preserving `unknown_arrow` raised at glue time.
+//! the merge rules (objects/arrows/rows identified by name, equations,
+//! keys, and coproducts kept as an enforced multiset with per-declaration
+//! attribution), the labeled conflict codes with document + node
+//! attribution, the empty-interface flag, and the span-preserving
+//! `unknown_arrow` raised at glue time.
 //!
 //! Rationale: design Decisions 2 and 3 — gluing is by declared name and
 //! conflicts are labeled errors, never last-writer-wins; equation names
@@ -168,9 +169,7 @@ fn agreeing_overlap_checks_clean() {
 fn disagreeing_arrow_endpoints_are_a_schema_conflict() {
     let a = parse_document("a.ct.json", ENDPOINTS_A).expect("document a parses");
     let b = parse_document("b.ct.json", ENDPOINTS_B).expect("document b parses");
-    let error = glue(&[a, b])
-        .err()
-        .expect("disagreeing endpoints are refused");
+    let error = glue(&[a, b]).expect_err("disagreeing endpoints are refused");
     assert_eq!(error.code(), "schema_conflict", "stable conflict code");
     assert_eq!(
         error.documents(),
@@ -193,7 +192,7 @@ fn disagreeing_arrow_endpoints_are_a_schema_conflict() {
 fn disagreeing_row_values_are_a_row_conflict() {
     let a = parse_document("a.ct.json", ROWS_A).expect("document a parses");
     let b = parse_document("b.ct.json", ROWS_B).expect("document b parses");
-    let error = glue(&[a, b]).err().expect("disagreeing values are refused");
+    let error = glue(&[a, b]).expect_err("disagreeing values are refused");
     assert_eq!(error.code(), "row_conflict", "stable conflict code");
     assert_eq!(
         error.documents(),
@@ -275,9 +274,7 @@ fn cross_document_equation_resolves_after_glue() {
 fn dangling_cross_document_reference_is_unknown_arrow_at_glue() {
     let a = parse_document("seam.ct.json", DANGLING).expect("syntax-only at document level");
     let b = parse_document("dispatch.ct.json", CROSS_B).expect("document b parses");
-    let error = glue(&[a, b])
-        .err()
-        .expect("the dangling reference fails at glue time");
+    let error = glue(&[a, b]).expect_err("the dangling reference fails at glue time");
     assert_eq!(
         error.code(),
         "unknown_arrow",
@@ -309,16 +306,12 @@ fn dangling_cross_document_reference_is_unknown_arrow_at_glue() {
 
 #[test]
 fn single_document_unknown_arrow_matches_the_parse_time_error() {
-    let parse_error = parse(UNKNOWN)
-        .err()
-        .expect("today's parser rejects the dangling path");
+    let parse_error = parse(UNKNOWN).expect_err("today's parser rejects the dangling path");
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("today's error is a semantic unknown_arrow");
     };
     let document = parse_document("d.ct.json", UNKNOWN).expect("syntax-only parse accepts it");
-    let error = glue(&[document])
-        .err()
-        .expect("the singleton pushout resolves it");
+    let error = glue(&[document]).expect_err("the singleton pushout resolves it");
     assert_eq!(error.code(), semantic.code.as_str(), "same stable code");
     assert_eq!(
         error.position(),

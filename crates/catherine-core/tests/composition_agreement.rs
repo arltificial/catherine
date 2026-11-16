@@ -85,7 +85,7 @@ fn document(name: &str, text: &str) -> Document {
 fn glue_failure(first: (&str, &str), second: (&str, &str)) -> CompositionError {
     let a = document(first.0, first.1);
     let b = document(second.0, second.1);
-    glue(&[a, b]).err().expect("the overlap is refused")
+    glue(&[a, b]).expect_err("the overlap is refused")
 }
 
 /// Two clean documents that disagree on a shared object's row set are a
@@ -196,16 +196,13 @@ fn the_empty_interface_is_namespaced() {
 /// resolves over the pushout with the parser's own check and order.
 #[test]
 fn deferred_resolution_keeps_parse_precedence() {
-    let parse_error = parse(PRECEDENCE)
-        .err()
-        .expect("the parser rejects equation 0");
+    let parse_error = parse(PRECEDENCE).expect_err("the parser rejects equation 0");
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("the first error is a semantic code");
     };
     let document = document("p.ct.json", PRECEDENCE);
-    let error = glue(&[document.clone(), document])
-        .err()
-        .expect("the joint run rejects the same equation");
+    let error =
+        glue(&[document.clone(), document]).expect_err("the joint run rejects the same equation");
     assert_eq!(error.code(), semantic.code.as_str(), "same stable code");
     assert_eq!(
         error.position(),
@@ -223,13 +220,12 @@ fn deferred_resolution_keeps_parse_precedence() {
 /// equation slot raises it exactly as the parser does.
 #[test]
 fn a_status_error_is_raised_in_the_equation_slot() {
-    let parse_error = parse(STATUS_SECOND).err().expect("the parser rejects it");
+    let parse_error = parse(STATUS_SECOND).expect_err("the parser rejects it");
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("the first error is a semantic code");
     };
-    let error = parse_document("s.ct.json", STATUS_SECOND)
-        .err()
-        .expect("the deferred parse raises it too");
+    let error =
+        parse_document("s.ct.json", STATUS_SECOND).expect_err("the deferred parse raises it too");
     assert_eq!(
         semantic.code.as_str(),
         "invalid_status",
@@ -274,9 +270,7 @@ fn the_merged_row_space_is_the_agreed_set() {
 fn a_status_error_behind_a_resolved_seam_is_still_raised() {
     let seam = document("seam.ct.json", SEAM_STATUS);
     let sibling = document("sibling.ct.json", SEAM_SIBLING);
-    let error = glue(&[seam, sibling])
-        .err()
-        .expect("the later invalid status is still an error");
+    let error = glue(&[seam, sibling]).expect_err("the later invalid status is still an error");
     assert_eq!(error.code(), "invalid_status", "the parser's code");
     assert_eq!(
         error.documents(),
@@ -295,16 +289,13 @@ fn a_status_error_behind_a_resolved_seam_is_still_raised() {
 /// reports the parser's error verbatim.
 #[test]
 fn a_local_endpoint_mismatch_is_raised_in_the_equation_slot() {
-    let parse_error = parse(ILL_TYPED_LOCAL)
-        .err()
-        .expect("the parser rejects the mismatch");
+    let parse_error = parse(ILL_TYPED_LOCAL).expect_err("the parser rejects the mismatch");
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("the first error is a semantic code");
     };
     assert_eq!(semantic.code.as_str(), "ill_typed_equation", "the code");
-    let error = parse_document("t.ct.json", ILL_TYPED_LOCAL)
-        .err()
-        .expect("the deferred parse raises it too");
+    let error =
+        parse_document("t.ct.json", ILL_TYPED_LOCAL).expect_err("the deferred parse raises it too");
     assert_eq!(
         error,
         ParseError::Semantic(semantic),

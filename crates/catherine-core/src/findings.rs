@@ -121,14 +121,37 @@ pub struct NaturalityWitness {
     pub rhs: Option<RowId>,
 }
 
+/// The coproduct witness: a declared coproduct whose coverage or
+/// disjointness claim failed on one row of its object. The declaration
+/// is named by its canonical index (as [`EquationWitness`] names an
+/// equation), so the witness stays declaration-shaped. `injections` is
+/// empty when the row lies in no injection image (the coverage failure)
+/// and names the colliding injections, in declared order, when it lies in
+/// more than one (the disjointness failure); an empty list is omitted
+/// from the JSON encoding, so the coverage witness carries no misleading
+/// empty field.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct CoproductWitness {
+    /// The coproduct's index in `Schema::coproducts` (canonical order).
+    pub coproduct: usize,
+    /// The row of the coproduct's object that failed.
+    pub row: RowId,
+    /// The injections covering the row — empty for a coverage failure.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub injections: Vec<Ident>,
+}
+
 /// The violation witness's shapes: an equation failure, a key collision,
-/// or a naturality square (design Decision 3; the naturality arm is the
-/// additive 1.4 shape from `add-instance-morphism`). Serialized untagged
-/// — the serialized field sets are disjoint (`equation`/`row`/`lhs`/
-/// `rhs`, `key`/`rows`, `arrow`/`source_row`/`lhs`/`rhs`), so the
-/// equation JSON stays byte-identical and deserialization is
-/// unambiguous. The variant order is the taxonomy's kind-internal order:
-/// equations before keys before naturality.
+/// a naturality square, or a coproduct coverage/disjointness failure
+/// (design Decision 3; the naturality arm is the additive 1.4 shape from
+/// `add-instance-morphism`, the coproduct arm the additive 1.5 shape from
+/// `add-coproduct-exhaustiveness`). Serialized untagged — the serialized
+/// field sets are disjoint (`equation`/`row`/`lhs`/`rhs`,
+/// `key`/`rows`, `arrow`/`source_row`/`lhs`/`rhs`,
+/// `coproduct`/`row`/`injections`), so the equation JSON stays
+/// byte-identical and deserialization is unambiguous. The variant order
+/// is the taxonomy's kind-internal order: equations before keys before
+/// naturality before coproducts.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ViolationWitness {
@@ -138,6 +161,8 @@ pub enum ViolationWitness {
     Key(KeyWitness),
     /// An instance map's commutation square failed.
     Naturality(NaturalityWitness),
+    /// A declared coproduct's coverage or disjointness claim failed.
+    Coproduct(CoproductWitness),
 }
 
 /// The dangling witness: an arrow cell that holds no row, naming the

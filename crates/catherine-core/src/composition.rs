@@ -190,12 +190,22 @@ pub struct KeySource {
     pub arrows: Vec<String>,
 }
 
+/// The document that declared a coproduct and the documents declaring its
+/// injection arrows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoproductSource {
+    /// The declaring document.
+    pub declaring: String,
+    /// Documents declaring the injection arrows, first-declaration order.
+    pub arrows: Vec<String>,
+}
+
 /// The glued model: the union schema and instance plus the attribution
 /// side tables and the empty-interface flag.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Glued {
-    /// The merged schema (objects/arrows by name, equations and keys as an
-    /// enforced multiset in canonical order).
+    /// The merged schema (objects/arrows by name, equations, keys, and
+    /// coproducts as enforced multisets in canonical order).
     pub schema: Schema,
     /// The merged instance over the union's sorted dense row space.
     pub instance: Instance,
@@ -209,6 +219,8 @@ pub struct Glued {
     pub equation_sources: Vec<EquationSource>,
     /// Per-key attribution, aligned with `schema.keys`.
     pub key_sources: Vec<KeySource>,
+    /// Per-coproduct attribution, aligned with `schema.coproducts`.
+    pub coproduct_sources: Vec<CoproductSource>,
     /// Per-arrow declaring documents, first-declaration order.
     pub arrow_sources: BTreeMap<Ident, Vec<String>>,
 }
@@ -231,18 +243,22 @@ pub fn glue(documents: &[Document]) -> Result<Glued, CompositionError> {
     let (equations, equation_sources) =
         resolve::merge_equations(documents, &parts.arrows, &parts.arrow_sources)?;
     let (keys, key_sources) = resolve::merge_keys(documents, &parts.arrow_sources);
+    let (coproducts, coproduct_sources) =
+        resolve::merge_coproducts(documents, &parts.arrow_sources);
     Ok(Glued {
         schema: Schema {
             objects: parts.objects,
             arrows: parts.arrows,
             equations,
             keys,
+            coproducts,
         },
         instance,
         empty_interface: interface::empty_interface(documents),
         documents: documents.iter().map(|doc| doc.name.clone()).collect(),
         equation_sources,
         key_sources,
+        coproduct_sources,
         arrow_sources: parts.arrow_sources,
     })
 }

@@ -17,9 +17,10 @@
 /// named ticket — `partial_schema_map` (openspec change
 /// `add-delta-migration` phase A), the rule-presentation codes
 /// (openspec change `add-rule-lens` phase A), `invalid_key`
-/// (openspec change `add-declarative-keys`), and
-/// `incomplete_instance_map` (openspec change `add-instance-morphism`)
-/// are the extensions so far.
+/// (openspec change `add-declarative-keys`),
+/// `incomplete_instance_map` (openspec change `add-instance-morphism`),
+/// and `invalid_coproduct` (openspec change
+/// `add-coproduct-exhaustiveness`) are the extensions so far.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     DuplicateIdent,
@@ -55,6 +56,13 @@ pub enum ErrorCode {
     /// no decidable reading without an implicit identity, so it is a
     /// malformed claim at the per-object map node, never a default.
     IncompleteInstanceMap,
+    /// A declared coproduct is not a well-formed coverage-and-disjointness
+    /// claim over this schema: undeclared object or arrow, an arrow that
+    /// is not an injection `V_k → C` (wrong target, or sourced at `C`
+    /// itself), an empty arrow list, or a repeated arrow name. One code
+    /// because every case is the same defect class — the message names
+    /// the exact defect at its node (the `invalid_key` discipline).
+    InvalidCoproduct,
 }
 
 impl ErrorCode {
@@ -76,6 +84,7 @@ impl ErrorCode {
             Self::MissingAction => "missing_action",
             Self::InvalidKey => "invalid_key",
             Self::IncompleteInstanceMap => "incomplete_instance_map",
+            Self::InvalidCoproduct => "invalid_coproduct",
         }
     }
 }

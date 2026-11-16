@@ -57,8 +57,8 @@ pub use crate::render::migrate::{migrate_envelope, render_migrate, MigrateData};
 pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, RulesData};
 
 use catherine_core::findings::{
-    DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind,
-    KeyWitness, NaturalityWitness, ViolationWitness,
+    CoproductWitness, DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding,
+    FindingKind, KeyWitness, NaturalityWitness, ViolationWitness,
 };
 use catherine_core::model::{Ident, Path, RowId, Schema};
 
@@ -133,7 +133,37 @@ fn render_violation(w: &ViolationWitness, schema: &Schema, label: &str) -> Vec<S
         ViolationWitness::Naturality(witness) => {
             render_naturality_violation(witness, schema, label)
         }
+        ViolationWitness::Coproduct(witness) => render_coproduct_violation(witness, schema, label),
     }
+}
+
+/// The coproduct violation block: the declaration's canonical index, its
+/// object and injections, then the failed row. A coverage failure spells
+/// the row `uncovered`; a disjointness failure names every covering
+/// injection in the declaration's order.
+fn render_coproduct_violation(w: &CoproductWitness, schema: &Schema, label: &str) -> Vec<String> {
+    let coproduct = schema.coproducts.get(w.coproduct);
+    let head = match coproduct {
+        Some(coproduct) => format!(
+            "violation: coproduct-{} {}({}){}",
+            w.coproduct,
+            coproduct.object.0,
+            arrows_string(&coproduct.arrows),
+            label
+        ),
+        None => format!("violation: coproduct-{}{}", w.coproduct, label),
+    };
+    let object = coproduct.map(|coproduct| coproduct.object.0.as_str());
+    let row = row_at(object, w.row);
+    let detail = if w.injections.is_empty() {
+        format!("  at row {row}: uncovered — no declared injection covers it")
+    } else {
+        format!(
+            "  at row {row}: covered by {} (disjointness)",
+            arrows_string(&w.injections)
+        )
+    };
+    vec![head, detail]
 }
 
 /// The naturality violation block: the arrow, the source row, and both

@@ -1,0 +1,11 @@
+id = "coproduct-violation-carries-its-row-and-injections"
+description = "A coproduct violation is a Violation finding carrying the coproduct's canonical index and the offending row id, encoded as {\"coproduct\": n, \"row\": r} for a coverage failure and with both injection names for a doubly covered row — distinguishable from the equation and key witnesses without consulting the schema."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "coproduct_witness_encodings_are_stable" },
+]

@@ -1,0 +1,100 @@
+{
+  "seq": 2,
+  "kind": "kata",
+  "recorded": "2026-11-16",
+  "kata": {
+    "kata_id": "probe-coproduct",
+    "name": "probe 3 floor control: two variant rows collapsed onto one coproduct row — the incumbent `keys` injectivity check names both rows, so the control must self-negate",
+    "control": true,
+    "series_report": "openspec/changes/add-coproduct-exhaustiveness/design.md (Decision 5); openspec/specs/domain-probes/spec.md; fixtures/probes/coproduct/README.md + faults.json (pre-registered; catalog sha256:388cefe6e8a894be114e7eccc87393e00850ecdde94078c027a9e05b4ebf0e4b)",
+    "series_verdict": "pre-registered: the floor control must self-negate — the incumbent `schema.keys` injectivity check already names both collapsed variant rows, so zero unique detections are available to the coproduct probe; the probe entry against this catalog is appended by GREEN task 11 once the kernel check lands",
+    "fixture": "fixtures/probes/coproduct/floor-keys-caught.ct.json",
+    "fixture_hash": "sha256:76dbedc228187a05fc6d606680f91f5b2cc23a509c844f9b41e2bf40e1e26fe2",
+    "expected": [
+      {
+        "fault": "floor-keys-caught",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "floor control — two variant rows (`Card` c1, c2) collapse onto one coproduct row (`Method` card), a defect the incumbent `schema.keys` injectivity check names in full (violation, key 0, rows [0, 1]); the coproduct surface (coverage/disjointness of `Method`'s rows) cannot express injection injectivity, so the probe must show zero unique detections here (design Decision 5)"
+      },
+      {
+        "fault": "rogue-variant",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "a rogue fourth variant — the `voucher` row of `Method` lies in the image of no declared injection of the accepted `Method` coproduct (`card_inj`, `transfer_inj`, `cash_inj`); the pre-registered expectation is one violation/executed naming the uncovered recipient row (gap G3: today the row is silently accepted, exit 0, findings [])"
+      },
+      {
+        "fault": "dual-covered",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "a dual-covered row — `Method` row `shared` lies in the image of both `card_inj` and `transfer_inj`, falsifying the declared disjointness of an accepted coproduct; the pre-registered expectation is one violation/executed naming the row and both injections (today silently accepted, exit 0, findings [])"
+      },
+      {
+        "fault": "clean-closed-table",
+        "series_class": "behavioral",
+        "catherine_class": "finding",
+        "detail": "a clean closed table — `Method` = card | transfer | cash with every row covered exactly once; the pre-registered expectation is zero findings (the negative side of both defect arms: the check must not fire on a correct declaration)"
+      }
+    ],
+    "run": {
+      "commands": [
+        "./target/debug/catherine check fixtures/probes/coproduct/floor-keys-caught.ct.json --json  # exit 3, one violation/executed {key: 0, rows: [0, 1]}",
+        "./target/debug/catherine check crates/catherine-cli/tests/fixtures/key_violation.ct.json --json  # exit 3, the committed key-violation case emits the same witness shape (incumbent keys arm; binary sha256:819d798f808ef2935a3e44b718eb56461821ef43409073cec22bf346f4b4844c)"
+      ],
+      "findings": [
+        {
+          "kind": "violation",
+          "label": "executed",
+          "witness": {
+            "key": 0,
+            "rows": [
+              0,
+              1
+            ]
+          }
+        }
+      ]
+    },
+    "comparison": {
+      "conventional_baseline": "The incumbent `schema.keys` injectivity check (binary sha256:819d798f808ef2935a3e44b718eb56461821ef43409073cec22bf346f4b4844c, catherine 0.1.0, revision 79cef70) groups the fixture's `Card` rows by their `card_inj` image and names the colliding pair [0, 1] as a violation/executed witness — the collapsed variant is detected in full, exactly as the committed key-violation case pins. The coproduct surface asserts coverage and disjointness of `Method`'s rows, which this defect does not falsify, so the probe buys nothing here.",
+      "fired": [
+        {
+          "finding_id": "violation:key0@Card#rows0,1",
+          "kind": "violation",
+          "label": "executed",
+          "expectation": "floor-keys-caught"
+        }
+      ],
+      "unique_detections": [],
+      "baseline": {
+        "artifact": "catherine 0.1.0 `schema.keys` injectivity check, binary sha256:819d798f808ef2935a3e44b718eb56461821ef43409073cec22bf346f4b4844c (revision 79cef70); pinned by crates/catherine-cli/tests/fixtures/key_violation.ct.json sha256:10f9fbe10766322d6c60dbf165a82e21831e38bfbf7ae30e4caf47d9e666a9f6 and crates/catherine-core/tests/keys_checks.rs sha256:6044d0ac4ed6e580d82635c76d207aee5ceed264c38c9e84b96bbcdc9d3f894c",
+        "mode": "executed",
+        "detections": [
+          "keys:Card:card_inj@rows0,1"
+        ]
+      }
+    },
+    "expressibility_gap": [],
+    "discrepancies": [
+      "No `catalog_hash` is carried: the ledger validator derives that pin from `PROBE_IDS`/`probe_expectations` in crates/catherine-ledger/src/catalog.rs, and `probe-coproduct` is not registered there at this RED commit (kernel-side scope outside this slice); the pre-registered catalog is pinned instead by the file-content address of fixtures/probes/coproduct/faults.json (sha256:388cefe6e8a894be114e7eccc87393e00850ecdde94078c027a9e05b4ebf0e4b), cited in `series_report`, and each fixture by `fixture_hash`.",
+      "This entry is the RED pre-registration record: catalog, fixtures, floor control and the executed baseline arm that pins today's silent acceptance. No probe verdict is derived here — the probe entry against these frozen rows is appended by GREEN task 11 (openspec/changes/add-coproduct-exhaustiveness/tasks.md) after the kernel check lands, and the un-reached expectation rows are carried to it as pre-capability observations.",
+      "The entry validates no executable coproduct semantics: this build parses `schema.coproducts` as an ignored field, so the control's `probe_expected` element is emitted by the incumbent keys check, not by a coproduct check.",
+      "The conventional baseline arm's pre-registered file identity named `crates/catherine-cli/tests/expressibility_gaps/cases.rs` (sha256:2630d4bef49070497986042b50aa2def003847ac3f4e77197077f76ddf5928a1), a path that never existed in git; the `coproduct-absence` case lives in crates/catherine-cli/tests/expressibility_gaps/cases/analysis.rs at revision bda3819 (sha256:8dc2d5258df113d915079c7d6d20271c7ba72e18d97c907564ab06193b752da4). fixtures/probes/coproduct/README.md and the catalog's baseline_arms.conventional.artifact were corrected in place before any probe entry is committed; the correction moves the catalog file's content address from sha256:f18a556696187daf1459af8ec067419372a37a5f07ca28a35bc1d79b8b73eec7 to sha256:388cefe6e8a894be114e7eccc87393e00850ecdde94078c027a9e05b4ebf0e4b and changes nothing else: same catalog rows, same executed arm (exit 0, findings []), same verdict and unique-detection arithmetic."
+    ],
+    "procedure": [
+      "1. The fault set, its expectations and the comparison rule were committed in fixtures/probes/coproduct/{README.md,faults.json} before any run; nothing here is edited after the run.",
+      "2. The baseline arm was executed first: the incumbent `schema.keys` injectivity check on the control fixture through the pinned binary (sha256:819d798f808ef2935a3e44b718eb56461821ef43409073cec22bf346f4b4844c, exit 3, one violation/executed {key: 0, rows: [0, 1]}), and on its own committed key-violation case, which emits the same witness shape.",
+      "3. The probe arm ran the same fixture through the tool's check surface: the only finding is that keys violation; the coproduct surface (coverage/disjointness of `Method`'s rows) is not executable at this revision and emits nothing.",
+      "4. Elements were compared, not prose: the collapsed-variant defect is identified only by naming both rows, and the keys arm names them (keys:Card:card_inj@rows0,1).",
+      "5. unique_detections = probe elements minus baseline-identified elements = empty, so the control self-negates and its recorded verdict is killed (the empty-unique branch of harness::derive_probe_verdict, applied by hand because an unregistered probe id has no mechanical catalog). The probe entry's verdict is not recorded at RED: it is derived at GREEN task 11 from the same frozen rows."
+    ],
+    "catalog_hash": "sha256:a4b0451c8906ffb58e52186a20a9c5081a82ea71f25fe7db79fcdc8515f749ce",
+    "verdict": "killed"
+  },
+  "rollup": null,
+  "model_hashes": [
+    "sha256:0517667d8f596dcf4f7fd0c912e4787b36377df6add2c53ea4fe859b2ef3032a"
+  ],
+  "supersedes": "sha256:84847b2d5cab899b950fdbaee0901d0f35e8ced6f20db4c0f80d3bfbef0ced98",
+  "id": "sha256:d717d7fa3216243ae92a32306a336565d7632544301b9e03ade409af9a0b0507"
+}

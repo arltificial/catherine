@@ -1,0 +1,25 @@
+{
+  "format_version": "1.5",
+  "schema": {
+    "objects": ["Method", "Card", "Transfer"],
+    "arrows": [
+      {"name": "card_inj", "src": "Card", "tgt": "Method"},
+      {"name": "transfer_inj", "src": "Transfer", "tgt": "Method"}
+    ],
+    "equations": [],
+    "coproducts": [
+      {"object": "Method", "arrows": ["transfer_inj"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Method": ["card", "cash"],
+      "Card": ["card"],
+      "Transfer": ["transfer"]
+    },
+    "tables": {
+      "card_inj": {"card": "card"},
+      "transfer_inj": {"transfer": "cash"}
+    }
+  }
+}

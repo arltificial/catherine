@@ -9,8 +9,8 @@ named fixtures, before any kernel coproduct code exists.
 expectation catalog, the comparison rule, both executed baseline arms,
 and the observed RED result. The control entry in
 `ledger/probes/coproduct/` embeds these rows verbatim; the probe entry
-against the same rows is appended by GREEN task 11, after the kernel
-check lands. This directory is the substrate both are judged against.
+against the same rows was recorded as seq 3, after the kernel check
+landed. This directory is the substrate both are judged against.
 
 **Rationale.** `add-coproduct-exhaustiveness` design Decision 5: the
 capability claim is a probe first and a feature second, so a conventional
@@ -23,21 +23,21 @@ arithmetic instead of rhetorical.
 | Field | Value |
 |---|---|
 | Pre-registered | 2026-11-16 (RED task 1, `add-coproduct-exhaustiveness`) |
-| Catalog | `fixtures/probes/coproduct/faults.json`, sha256 `f18a556696187daf1459af8ec067419372a37a5f07ca28a35bc1d79b8b73eec7` |
-| Ledger entry | `ledger/probes/coproduct/0001-84847b2d.json` — the self-negating floor control, the only entry at RED |
-| Probe entry | deferred: appended by GREEN task 11 after the check lands, embedding the same rows |
-| Kernel state | no executable `schema.coproducts`; the section parses as an ignored field |
+| Catalog | `fixtures/probes/coproduct/faults.json`, sha256 `388cefe6e8a894be114e7eccc87393e00850ecdde94078c027a9e05b4ebf0e4b` |
+| Ledger entry | seq 1 (`0001-84847b2d.json`) the RED control; seq 2 (`0002-d717d7fa.json`) the re-recorded control pinning the registered catalog; seq 3 (`0003-2709a990.json`) the probe entry, `survived` |
+| Probe entry | recorded as seq 3 against the same frozen rows: two unique detections, verdict `survived` |
+| Kernel state | `schema.coproducts` is executable (format 1.5): coverage and disjointness failures fire `violation` findings |
 | Frozen | an edit to a fixture or a catalog row is a superseding ledger entry, never a silent change |
 
-The kernel-side `catalog_hash` pin is **not** carried yet: the ledger
-validator derives it from `PROBE_IDS` / `probe_expectations` in
-`crates/catherine-ledger/src/catalog.rs`, and `probe-coproduct` is not
-registered there at this RED commit. Until it is, the catalog's content
-address is the file digest above, carried in the control entry's
-`series_report` and verified by the fixture model hashes. The GREEN
-registration must reproduce the four catalog rows below verbatim and in
-this order (control row first), so the embedded `expected` of the control
-entry and of the GREEN probe entry equals the registered catalog.
+The kernel-side `catalog_hash` pin is carried by seq 2 and seq 3: the
+ledger validator derives it from `PROBE_IDS` / `probe_expectations` in
+`crates/catherine-ledger/src/catalog.rs`, where `probe-coproduct` is
+registered, and the registration reproduces the four catalog rows below
+verbatim and in this order (control row first). The RED control (seq 1)
+pre-dates the registration, so its content address was the file digest
+`f18a5566…`; after the conventional baseline citation was corrected to
+the artifact that actually resolves (see below) the file address is the
+digest above.
 
 ## Fault set
 
@@ -111,12 +111,18 @@ recorded rule of `harness::derive_probe_verdict`: empty unique set →
 `coproduct-absence`, which pins today's behaviour as a recorded
 limitation:
 
-- `crates/catherine-cli/tests/expressibility_gaps/cases.rs` sha256
-  `2630d4bef49070497986042b50aa2def003847ac3f4e77197077f76ddf5928a1`
+- `crates/catherine-cli/tests/expressibility_gaps/cases/analysis.rs`
+  sha256 `8dc2d5258df113d915079c7d6d20271c7ba72e18d97c907564ab06193b752da4`
+  (`coproduct-absence`, at the recorded RED revision `bda3819`)
 - `crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json`
   sha256 `95fc2ac80cd192b784c675e0889e08467fd16a37f3864ced433c9a484702dc62`
 - `docs/ref/expressibility-dispositions.md` sha256
   `a97df1237d2399656acb43f29d539d68406a83d9c47baede4caec91d672fd341`
+
+All three artifacts resolve at the recorded RED revision `bda3819`; the
+pre-registration's file identity was corrected before any probe-entry
+commit (the earlier citation named a `cases.rs` that never existed in
+git, its `2630d4be…` digest matching no blob at any revision).
 
 Executed first, exactly the command the case itself drives:
 
@@ -181,18 +187,26 @@ with byte-identical findings and warnings; the ledger entry pins
   the incumbent `keys` violation, already named by the executed keys
   arm: `unique_detections` = ∅. The control self-negates, as the
   validator requires, before any positive entry may be recorded.
-- **Probe entry — deferred to GREEN task 11.** RED task 1 is
-  pre-registration: catalog + fixtures + floor control + the executed
-  baseline arm pinning today's silence. The probe entry against these
-  frozen rows is appended once the kernel check exists; a `killed`
-  verdict there — the built check naming neither fault — is what stops
-  the change before merge (Decision 5). Nothing here pre-empts that
-  verdict.
+- **seq 2, control — `killed`.** The control re-recorded once the
+  registered catalog existed, pinning `catalog_hash
+  sha256:a4b0451c…`; the floor element is again named only by the
+  incumbent keys arm, so the unique set stays empty.
+- **seq 3, probe — `survived`.** The built check names
+  `coproduct:Method@3:uncovered` (rogue `voucher`) and
+  `coproduct:Method@2:dual(card_inj,transfer_inj)` (doubly covered
+  `shared`); the executed conventional arm identifies neither, so both
+  are unique detections. The clean closed table stays silent, and the
+  floor element is not counted (the keys baseline names it, which is why
+  the control self-negates).
 
-`catalog_hash` is absent from the control entry because the validator
-derives it from the registered probe ids; registering `probe-coproduct`
-in `crates/catherine-ledger/src/catalog.rs` is the kernel-side step that
-turns the file digest above into the machine-checked pin.
+The seq-3 entry records the conventional-baseline citation correction:
+the pre-registered arm named `crates/catherine-cli/tests/expressibility_gaps/cases.rs`
+with sha256 `2630d4be…`, an artifact that never existed in git; the case
+lives in `crates/catherine-cli/tests/expressibility_gaps/cases/analysis.rs`
+at the RED revision `bda3819` (sha256 `8dc2d525…`). The verdict and the
+unique-detection arithmetic are unchanged — the same executed arm
+(gap-suite fixture, exit 0, findings `[]`) identifies none of the probe
+elements.
 
 ## Falsifiers
 

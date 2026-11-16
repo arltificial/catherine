@@ -5,7 +5,12 @@
 
 import { describe, expect, it } from "vitest";
 import { renderFindings, witnessText, type FindingEnc } from "../src/findings";
-import { findingClassFixtures, keyViolationFixture } from "./fixtures/findings";
+import {
+  coproductCoverageFixture,
+  coproductDualFixture,
+  findingClassFixtures,
+  keyViolationFixture,
+} from "./fixtures/findings";
 
 /** The golden tree for one finding row — built here, compared to the panel's output. */
 function goldenRow(finding: FindingEnc): string {
@@ -77,6 +82,28 @@ describe("findings panel (golden DOM)", () => {
     expect(witness).toContain("3");
     expect(witness).toContain("7");
     expect(witness).not.toContain("undefined");
+  });
+
+  it("renders both coproduct witness shapes without undefined fields", () => {
+    // The coverage arm carries no `injections` field: the witness spells the
+    // uncovered row and never prints an absent field as `undefined`.
+    expect(witnessText(coproductCoverageFixture.finding)).toBe(
+      "coproduct 0: row 3 uncovered",
+    );
+    // The disjointness arm names the row and both covering injections.
+    expect(witnessText(coproductDualFixture.finding)).toBe(
+      "coproduct 0: row 2 covered by card_inj, transfer_inj (disjointness)",
+    );
+
+    const panel = document.createElement("div");
+    renderFindings([coproductCoverageFixture.finding, coproductDualFixture.finding], panel);
+    const rows = [...panel.querySelectorAll("li.finding")];
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      const witness = row.querySelector(".witness")?.textContent ?? "";
+      expect(witness).toContain("coproduct 0");
+      expect(witness).not.toContain("undefined");
+    }
   });
 
   it("clears the panel on re-render — the panel is never stateful", () => {

@@ -17,6 +17,12 @@ export type Column = {
   "type": "int" | "bool" | "string";
 };
 
+export type Coproduct = {
+  "object": Ident;
+  "arrows": Array<Ident>;
+  "status"?: "proposed" | "accepted";
+};
+
 export type Rule = {
   "name": Ident;
   "predicate": Predicate;
@@ -60,6 +66,7 @@ export type CtSchemaV1Document = {
   "status"?: "proposed" | "accepted";
 }>;
   "keys"?: Array<Key>;
+  "coproducts"?: Array<Coproduct>;
 };
   "instance": {
   "rows": Record<string, Array<Ident>>;
@@ -80,6 +87,7 @@ export type CtSchemaV1Document = {
   "status"?: "proposed" | "accepted";
 }>;
   "keys"?: Array<Key>;
+  "coproducts"?: Array<Coproduct>;
 };
   "objects": Record<string, (null) | (Ident)>;
   "arrows": Record<string, (null) | (Array<Ident>)>;

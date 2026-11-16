@@ -192,6 +192,56 @@ fn joint_findings_carry_source_attribution() {
 }
 
 #[test]
+fn joint_coproduct_findings_carry_source_attribution() {
+    let a = fixture("composition/coproduct_a.ct.json");
+    let b = fixture("composition/coproduct_b.ct.json");
+    let out = run(&["check", &a, &b, "--json"]);
+    assert_eq!(
+        code(&out),
+        3,
+        "the merged declarations are finding-bearing: {}",
+        stderr(&out)
+    );
+    assert_eq!(stderr(&out), "", "a finding run writes no error stream");
+    let value = parse_json(&stdout(&out), "joint coproduct check");
+    let found = findings(&value);
+    assert_eq!(
+        found.len(),
+        2,
+        "one coverage finding per merged declaration"
+    );
+    assert_eq!(
+        found[0]["witness"],
+        serde_json::json!({"coproduct": 0, "row": 1}),
+        "declaration a leaves the row only b's injection covers"
+    );
+    assert_eq!(
+        found[1]["witness"],
+        serde_json::json!({"coproduct": 1, "row": 0}),
+        "declaration b leaves the row only a's injection covers"
+    );
+    let sources: Vec<Vec<String>> = found
+        .iter()
+        .map(|finding| {
+            finding["source"]
+                .as_array()
+                .expect("joint findings carry source attribution")
+                .iter()
+                .map(|document| document.as_str().expect("document name").to_string())
+                .collect()
+        })
+        .collect();
+    assert!(
+        sources[0][0].ends_with("coproduct_a.ct.json"),
+        "the declaring document is attributed first: {sources:?}"
+    );
+    assert!(
+        sources[1][0].ends_with("coproduct_b.ct.json"),
+        "the second declaration keeps its own declaring document first: {sources:?}"
+    );
+}
+
+#[test]
 fn post_glue_parallel_paths_are_attributed() {
     let a = fixture("composition/parallel_a.ct.json");
     let b = fixture("composition/parallel_b.ct.json");

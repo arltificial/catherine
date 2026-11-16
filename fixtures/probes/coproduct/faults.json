@@ -109,7 +109,7 @@
   ],
   "baseline_arms": {
     "conventional": {
-      "artifact": "crates/catherine-cli/tests/expressibility_gaps/cases.rs sha256:2630d4bef49070497986042b50aa2def003847ac3f4e77197077f76ddf5928a1 (hand-authored `coproduct-absence` case), crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json sha256:95fc2ac80cd192b784c675e0889e08467fd16a37f3864ced433c9a484702dc62, docs/ref/expressibility-dispositions.md sha256:a97df1237d2399656acb43f29d539d68406a83d9c47baede4caec91d672fd341",
+      "artifact": "crates/catherine-cli/tests/expressibility_gaps/cases/analysis.rs sha256:8dc2d5258df113d915079c7d6d20271c7ba72e18d97c907564ab06193b752da4 (hand-authored `coproduct-absence` case), crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json sha256:95fc2ac80cd192b784c675e0889e08467fd16a37f3864ced433c9a484702dc62, docs/ref/expressibility-dispositions.md sha256:a97df1237d2399656acb43f29d539d68406a83d9c47baede4caec91d672fd341 — all three resolved at RED revision bda3819",
       "mode": "executed",
       "command": "./target/debug/catherine check crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json --json  # exit 0, findings [], warnings []",
       "detections": []

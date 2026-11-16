@@ -1,0 +1,11 @@
+id = "witness-encodings-are-stable"
+description = "Findings serialize stably: the equation witness keeps its pre-coproduct byte encoding, the key witness encodes as {\"key\": n, \"rows\": [lo, hi]}, and the coproduct witness encodes as {\"coproduct\": n, \"row\": r} with injections present only for a doubly covered row, so the shapes stay distinguishable without consulting the schema."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "coproduct_witness_encodings_are_stable" },
+]

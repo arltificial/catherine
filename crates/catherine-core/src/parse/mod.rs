@@ -9,7 +9,8 @@
 //! `invalid_status`, `unsupported_version`, plus the named additive-section
 //! extensions) — the fixture harness's expected shape. Parse
 //! normalizes presentation away: row names become dense per-object ids in
-//! sorted order, equations and keys are stored in canonical sorted order,
+//! sorted order, equations, keys, and coproducts are stored in canonical
+//! sorted order,
 //! and every declared arrow carries a total value vector (`None` =
 //! dangling).
 //!
@@ -31,6 +32,7 @@
 //! equality, the canonical bytes, and the model hash remain name-blind.
 
 mod build;
+mod coproducts;
 mod deferred;
 mod instance_map;
 mod keys;
@@ -42,22 +44,26 @@ mod schema_map;
 mod spans;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
-use crate::model::{Arrow, Ident, InstanceMap, Model, RowId, RulePresentation, SchemaMap};
+use crate::model::{
+    Arrow, Equation, Ident, InstanceMap, Model, RowId, RulePresentation, SchemaMap,
+};
+use rows::check_rows;
 pub use rows::RowNames;
 
 use build::build_model;
+use coproducts::check_coproducts;
 pub(crate) use deferred::{parse_deferred, PendingEquations};
 use keys::check_keys;
-use schema::{check_arrows, check_equations, check_ident, check_objects, check_version, RawDoc};
+use schema::{check_arrows, check_equations, check_objects, check_version, RawDoc};
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
 
 /// Parse a `.ct.json` v1 model document. Accepted additive minors of the
-/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 4);
+/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 5);
 /// higher minors are rejected with `unsupported_version` — never guessed.
 /// Malformed presentations rejected with line-accurate
 /// errors. Check order (documented in the crate README): version →
-/// schema objects → arrows → equations → keys → instance rows → tables →
+/// schema objects → arrows → equations → keys → coproducts → instance rows → tables →
 /// schema map → rule presentation.
 pub fn parse(text: &str) -> Result<Model, ParseError> {
     parse_with_rows(text).map(|(model, _)| model)
@@ -95,22 +101,25 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 /// 6. keys (additive 1.3) — object declaredness, a non-empty
 ///    duplicate-free arrow tuple sourced at the object, status, canonical
 ///    order (absent/empty = hash-neutral);
-/// 7. instance rows — repeated JSON keys caught from the span scan before
+/// 7. coproducts (additive 1.5) — object declaredness, a non-empty
+///    duplicate-free injection list `V_k → C`, status, canonical order
+///    (absent/empty = hash-neutral);
+/// 8. instance rows — repeated JSON keys caught from the span scan before
 ///    serde's last-wins map can drop them; object keys declared; row
 ///    idents checked per list;
-/// 8. instance tables — repeated keys, declared arrows, declared src
+/// 9. instance tables — repeated keys, declared arrows, declared src
 ///    rows, values that are declared target rows or `null`;
-/// 9. instance map (additive 1.4) — declared target names preserved as
-///    data, total coverage of every declared row (absent = hash-neutral);
-/// 10. schema map (additive 1.1) — declared data only, totality over the
+/// 10. instance map (additive 1.4) — declared target names preserved as
+///     data, total coverage of every declared row (absent = hash-neutral);
+/// 11. schema map (additive 1.1) — declared data only, totality over the
 ///     declared source elements, targets declared (absent = hash-neutral);
-/// 11. rule presentation (additive 1.2) — declared domain, typed columns,
+/// 12. rule presentation (additive 1.2) — declared domain, typed columns,
 ///     decidable predicates, required actions, declared policy (absent =
 ///     hash-neutral);
-/// 12. the normalized model — dense rows, total value vectors, canonical
-///     equation and key order — plus the [`RowNames`] side table (the
-///     presentation names, indexed by those dense ids); the names never
-///     enter the model.
+/// 13. the normalized model — dense rows, total value vectors, canonical
+///     equation, key, and coproduct order — plus the [`RowNames`] side
+///     table (the presentation names, indexed by those dense ids); the
+///     names never enter the model.
 fn validate_with(
     doc: RawDoc,
     spans: &Spans,
@@ -125,12 +134,9 @@ fn validate_with(
     };
     let objects = check_objects(&schema, spans)?;
     let arrows = check_arrows(&schema, &objects, spans)?;
-    let (equations, pending) = if defer_equations {
-        deferred::check_equations(&schema.equations, &arrows, spans)?
-    } else {
-        (check_equations(&schema.equations, &arrows, spans)?, None)
-    };
+    let (equations, pending) = resolved_equations(&schema, &arrows, spans, defer_equations)?;
     let keys = check_keys(&schema, &objects, &arrows, spans)?;
+    let coproducts = check_coproducts(&schema, &objects, &arrows, spans)?;
     let row_index = check_rows(&instance, &objects, spans)?;
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
     let instance_map = declared_instance_map(&doc.instance_map, &objects, &row_index, spans)?;
@@ -142,6 +148,7 @@ fn validate_with(
         arrows,
         equations,
         keys,
+        coproducts,
         row_index,
         values,
         schema_map,
@@ -149,6 +156,23 @@ fn validate_with(
         instance_map,
     );
     Ok((model, rows, pending))
+}
+
+/// The equation phase: standalone documents run the parser's own resolver
+/// over their arrows immediately; composition documents defer a path that
+/// names a sibling's arrow to the post-glue resolution (design Decision
+/// 3).
+fn resolved_equations(
+    schema: &schema::RawSchema,
+    arrows: &BTreeMap<Ident, Arrow>,
+    spans: &Spans,
+    defer_equations: bool,
+) -> Result<(Vec<Equation>, Option<PendingEquations>), ParseError> {
+    if defer_equations {
+        deferred::check_equations(&schema.equations, arrows, spans)
+    } else {
+        Ok((check_equations(&schema.equations, arrows, spans)?, None))
+    }
 }
 
 /// The document's declared instance map, validated (additive 1.4) —
@@ -194,58 +218,6 @@ fn declared_rule_presentation(
         )?)),
         None => Ok(None),
     }
-}
-
-/// Instance rows: declared object keys, per-list ident and duplicate
-/// checks, then dense ids in sorted-name order — the sorted enumeration
-/// is the first-reference order (design Decision 4).
-fn check_rows(
-    instance: &schema::RawInstance,
-    objects: &BTreeMap<Ident, ()>,
-    spans: &Spans,
-) -> Result<BTreeMap<String, BTreeMap<String, RowId>>, ParseError> {
-    check_dup_keys(spans, "/instance/rows", "in instance rows")?;
-    for obj_name in instance.rows.keys() {
-        if !objects.contains_key(&Ident(obj_name.clone())) {
-            return Err(spans.syntax_key(
-                "/instance/rows",
-                obj_name,
-                format!("instance rows name undeclared object `{obj_name}`"),
-            ));
-        }
-    }
-    let mut row_index: BTreeMap<String, BTreeMap<String, RowId>> = BTreeMap::new();
-    for (obj_name, rows) in &instance.rows {
-        row_index.insert(obj_name.clone(), row_ids(obj_name, rows, spans)?);
-    }
-    Ok(row_index)
-}
-
-/// One object's rows: ident charset + duplicate check, then dense ids in
-/// sorted-name order.
-fn row_ids(
-    obj_name: &str,
-    rows: &[String],
-    spans: &Spans,
-) -> Result<BTreeMap<String, RowId>, ParseError> {
-    let mut seen = BTreeMap::new();
-    for (j, row) in rows.iter().enumerate() {
-        let node = format!("/instance/rows/{obj_name}/{j}");
-        check_ident(spans, &node, row)?;
-        if seen.contains_key(row) {
-            return Err(spans.semantic(
-                &node,
-                ErrorCode::DuplicateIdent,
-                format!("duplicate row ident `{row}` on object `{obj_name}`"),
-            ));
-        }
-        seen.insert(row.clone(), ());
-    }
-    Ok(seen
-        .keys()
-        .enumerate()
-        .map(|(i, name)| (name.clone(), RowId(i)))
-        .collect())
 }
 
 /// Instance tables: repeated keys, declared arrows, declared src rows,

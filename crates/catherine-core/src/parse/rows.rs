@@ -51,6 +51,58 @@ pub(super) fn row_names(
         .collect()
 }
 
+/// Instance rows: declared object keys, per-list ident and duplicate
+/// checks, then dense ids in sorted-name order — the sorted enumeration
+/// is the first-reference order (design Decision 4).
+pub(super) fn check_rows(
+    instance: &super::schema::RawInstance,
+    objects: &BTreeMap<Ident, ()>,
+    spans: &super::spans::Spans,
+) -> Result<BTreeMap<String, BTreeMap<String, RowId>>, crate::error::ParseError> {
+    super::check_dup_keys(spans, "/instance/rows", "in instance rows")?;
+    for obj_name in instance.rows.keys() {
+        if !objects.contains_key(&Ident(obj_name.clone())) {
+            return Err(spans.syntax_key(
+                "/instance/rows",
+                obj_name,
+                format!("instance rows name undeclared object `{obj_name}`"),
+            ));
+        }
+    }
+    let mut row_index: BTreeMap<String, BTreeMap<String, RowId>> = BTreeMap::new();
+    for (obj_name, rows) in &instance.rows {
+        row_index.insert(obj_name.clone(), row_ids(obj_name, rows, spans)?);
+    }
+    Ok(row_index)
+}
+
+/// One object's rows: ident charset + duplicate check, then dense ids in
+/// sorted-name order.
+fn row_ids(
+    obj_name: &str,
+    rows: &[String],
+    spans: &super::spans::Spans,
+) -> Result<BTreeMap<String, RowId>, crate::error::ParseError> {
+    let mut seen = BTreeMap::new();
+    for (j, row) in rows.iter().enumerate() {
+        let node = format!("/instance/rows/{obj_name}/{j}");
+        super::schema::check_ident(spans, &node, row)?;
+        if seen.contains_key(row) {
+            return Err(spans.semantic(
+                &node,
+                crate::error::ErrorCode::DuplicateIdent,
+                format!("duplicate row ident `{row}` on object `{obj_name}`"),
+            ));
+        }
+        seen.insert(row.clone(), ());
+    }
+    Ok(seen
+        .keys()
+        .enumerate()
+        .map(|(i, name)| (name.clone(), RowId(i)))
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

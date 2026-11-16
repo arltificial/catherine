@@ -7,8 +7,10 @@
 //!
 //! Responsibilities: pin `accreted` naming the added coproduct;
 //! `weakened` with a witness instance that carries a rogue variant —
-//! v2-clean and v1-rejected by a coproduct violation; and the cosmetic
-//! silence of a proposed-coproduct edit.
+//! v2-clean and v1-rejected by a coproduct violation; the cosmetic
+//! silence of a proposed-coproduct edit; and that a proposed coproduct
+//! never blocks search cleanliness (its failure is a hypothesis, not a
+//! constraint).
 //!
 //! Rationale: no new classification machinery — the kernel's satisfaction
 //! predicate already treats `executed` violations as unclean, so the scan
@@ -18,6 +20,7 @@
 
 use catherine_analysis::bounds::SearchBounds;
 use catherine_analysis::schema_diff::{diff, EnforcedConstraint, SchemaDiffOutcome};
+use catherine_analysis::search::{search, SearchOutcome};
 use catherine_core::checks;
 use catherine_core::findings::{EpistemicLabel, FindingKind, ViolationWitness};
 use catherine_core::instance::TypedInstance;
@@ -162,4 +165,37 @@ fn proposed_coproduct_edit_is_cosmetic() {
         report.outcome
     );
     assert!(report.findings.is_empty());
+}
+
+/// Scenario "Accepted equations constrain, proposed equations question"
+/// applied to coproducts: the smallest fully resolved witness leaves a
+/// proposed coproduct's coverage claim false as a `hypothesized` question,
+/// and nothing executed blocks the witness.
+#[test]
+fn proposed_coproduct_does_not_block_search_cleanliness() {
+    let schema = schema(vec![coproduct(ConstraintStatus::Proposed)]);
+    let report = search(&schema, &bound());
+    let SearchOutcome::Witness { instance } = report.outcome else {
+        panic!(
+            "a proposed coproduct never makes the space unsatisfiable: {:?}",
+            report.outcome
+        );
+    };
+    let findings = checks::check(&schema, &TypedInstance::build(&schema, &instance));
+    assert!(
+        findings.iter().any(|finding| {
+            finding.label == EpistemicLabel::Hypothesized
+                && matches!(
+                    &finding.kind,
+                    FindingKind::Violation(ViolationWitness::Coproduct(_))
+                )
+        }),
+        "the witness violates the proposed coproduct as a question: {findings:?}"
+    );
+    assert!(
+        findings
+            .iter()
+            .all(|finding| finding.label != EpistemicLabel::Executed),
+        "nothing executed blocks the witness"
+    );
 }

@@ -9,6 +9,7 @@
 //! (`catherine_core::migrate`). A partial map is the labeled
 //! `partial_schema_map` build error naming the unmapped element.
 
+use super::coproducts::check_coproducts;
 use super::keys::check_keys;
 use super::schema::{check_arrows, check_equations, check_objects, RawSchema};
 use super::spans::Spans;
@@ -35,11 +36,13 @@ fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::err
     let arrows = check_arrows(raw, &objects, spans)?;
     let equations = check_equations(&raw.equations, &arrows, spans)?;
     let keys = check_keys(raw, &objects, &arrows, spans)?;
+    let coproducts = check_coproducts(raw, &objects, &arrows, spans)?;
     Ok(Schema {
         objects,
         arrows,
         equations,
         keys,
+        coproducts,
     })
 }
 

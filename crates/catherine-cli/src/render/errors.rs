@@ -97,7 +97,7 @@ fn hint_for_code(code: ErrorCode) -> &'static str {
         ErrorCode::InvalidIdent => "idents match [A-Za-z_][A-Za-z0-9_]*",
         ErrorCode::InvalidStatus => "status is one of: accepted, proposed",
         ErrorCode::UnsupportedVersion => {
-            "set format_version to \"1.4\" — the known version is 1.4; raise KNOWN_MINOR when new additive semantics land"
+            "set format_version to \"1.5\" — the known version is 1.5; raise KNOWN_MINOR when new additive semantics land"
         }
         ErrorCode::PartialSchemaMap => {
             "a schema map must be total: assign every declared source object and arrow — map it to the target, or to null to drop it explicitly"
@@ -119,8 +119,7 @@ fn hint_for_code(code: ErrorCode) -> &'static str {
         ErrorCode::InvalidKey => {
             "a key names a declared object and a non-empty, duplicate-free list of arrows sourced at that object"
         }
-        ErrorCode::IncompleteInstanceMap => {
-            "an instance map must be total: map every row of every schema object (no implicit identity on the rest)"
-        }
+        ErrorCode::IncompleteInstanceMap => "an instance map must be total: map every row of every schema object (no implicit identity on the rest)",
+        ErrorCode::InvalidCoproduct => "a coproduct names a declared object and a non-empty, duplicate-free list of injections V_k → C",
     }
 }

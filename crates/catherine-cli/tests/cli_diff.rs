@@ -220,6 +220,17 @@ const KEY_VIOLATION: &str = concat!(
     "/tests/fixtures/key_violation.ct.json"
 );
 
+// ── coproducts: the added-constraint payload and human line ─────────
+
+const COPRODUCT_V1: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/schema_diff/coproduct/v1.ct.json"
+);
+const COPRODUCT_V2: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../fixtures/schema_diff/coproduct/v2.ct.json"
+);
+
 /// An added accepted key is `accreted`, named in the payload with the
 /// untagged key shape and in the human `added:` line — the equation shape
 /// is unchanged.
@@ -275,5 +286,43 @@ fn key_violation_renders_both_rows() {
     assert_eq!(
         v["data"]["findings"][0]["witness"]["rows"],
         serde_json::json!([0, 1])
+    );
+}
+
+/// An added accepted coproduct is `accreted`, named in the payload with
+/// its `kind: "coproduct"` discriminator and in the human `added:` line —
+/// the key payload shape stays unchanged.
+#[test]
+fn added_coproduct_is_named_in_payload_and_human_output() {
+    let out = run(&[
+        "diff",
+        COPRODUCT_V1,
+        COPRODUCT_V2,
+        "--rows",
+        "C=1",
+        "--json",
+    ]);
+    assert_eq!(code(&out), 0, "accretion is not finding-bearing");
+    let v = envelope(&out);
+    assert_eq!(v["data"]["outcome"], "accreted");
+    assert_eq!(
+        v["data"]["added"][0],
+        serde_json::json!({"object": "C", "arrows": ["i1", "i2"], "kind": "coproduct"}),
+        "the coproduct payload carries its discriminator"
+    );
+    assert!(
+        v["data"]["findings"]
+            .as_array()
+            .expect("findings")
+            .is_empty(),
+        "accretion emits zero findings"
+    );
+
+    let human = run(&["diff", COPRODUCT_V1, COPRODUCT_V2, "--rows", "C=1"]);
+    assert_eq!(code(&human), 0);
+    assert!(
+        text(&human).contains("  added: coproduct C(i1∘i2)"),
+        "the human added line names the coproduct: {}",
+        text(&human)
     );
 }

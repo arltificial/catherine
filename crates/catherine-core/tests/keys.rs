@@ -239,22 +239,22 @@ fn absent_keys_are_hash_neutral() {
     );
 }
 
-/// Scenario "Current major parses": 1.4 is known; 1.5 is not.
+/// Scenario "Current major parses": 1.5 is known; 1.6 is not.
 #[test]
-fn current_major_parses_a_1_4_document() {
+fn current_major_parses_a_1_5_document() {
     let current = key_document(r#"{"object": "capture", "arrows": ["capture_source"]}"#)
-        .replace("\"format_version\": \"1.3\"", "\"format_version\": \"1.4\"");
-    let model = parse(&current).expect("1.4 is the current known minor");
-    assert_eq!(model.format_version.minor, 4);
+        .replace("\"format_version\": \"1.3\"", "\"format_version\": \"1.5\"");
+    let model = parse(&current).expect("1.5 is the current known minor");
+    assert_eq!(model.format_version.minor, 5);
 
-    let too_new = current.replace("\"format_version\": \"1.4\"", "\"format_version\": \"1.5\"");
-    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.5 is unknown") else {
+    let too_new = current.replace("\"format_version\": \"1.5\"", "\"format_version\": \"1.6\"");
+    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.6 is unknown") else {
         panic!("an unknown minor is a semantic rejection");
     };
     assert_eq!(semantic.code, ErrorCode::UnsupportedVersion);
     assert_eq!((semantic.line, semantic.column), (2, 21));
     assert!(
-        semantic.message.contains("known version is 1.4"),
+        semantic.message.contains("known version is 1.5"),
         "the message states the cap: {}",
         semantic.message
     );

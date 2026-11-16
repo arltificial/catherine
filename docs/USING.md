@@ -79,7 +79,7 @@ only, zero findings). A weakened edit is a finding-bearing run (exit 3).
 
 | Finding | Meaning | What to do |
 |---|---|---|
-| `violation` | a declared equation is false at a concrete row, or a declared key (`schema.keys`, 1.3) repeats a tuple | fix the data or the declaration; the witness names the row/equation or the two colliding rows |
+| `violation` | a declared equation is false at a concrete row, a declared key (`schema.keys`, 1.3) repeats a tuple, or a declared coproduct (`schema.coproducts`, 1.5) leaves a row outside every injection image or in two images | fix the data or the declaration; the witness names the row/equation, the two colliding rows, or the row and both covering injections |
 | `dangling` | an arrow points at a row that does not exist | the claim references something absent — missing FK, dead reference |
 | `contradiction` | no instance can satisfy the constraints (bounded search) | the *spec* is impossible as declared; negotiate which constraint yields |
 | `underconstraint` | parallel paths exist with no declared equation *(hypothesis)* | a domain question: must they agree, might they, or should they differ? Declare an equation only if the domain says so |
@@ -203,13 +203,17 @@ Equally load-bearing — each line with its source:
   mid-game scoring needs history the schema cannot see).
 - **No Σ/Π migrations yet.** Δ first (P7); Σ/Π only after Δ is validated —
   "Π does not yet" (DESIGN §4.3). Kan extensions are named, gated, not shipped.
-- **No sketch cones yet.** The vendored methodology's step-3 constructions —
-  pullbacks for compatibility, monomorphisms for uniqueness, coproducts for
-  exhaustive alternatives (Johnson & Rosebrugh sketch data models) — are
-  advisory only in v1: the kernel executes **path equations**, not limit/colimit
-  cones (THEORY §9: ACsets implement Spivak's model, not the full Johnson
-  sketch methodology — enforcement is the contribution). Declaring a cone in
-  this version checks nothing; treat it as prose until cones ship.
+- **No sketch cones yet.** The vendored methodology's limit-side step-3
+  constructions — pullbacks for compatibility and monomorphisms for
+  uniqueness (Johnson & Rosebrugh sketch data models) — are advisory only in
+  v1: the kernel executes **path equations** and the declared `schema.keys`
+  and `schema.coproducts` constraints, not general limit cones (THEORY §9:
+  ACsets implement Spivak's model, not the full Johnson sketch methodology —
+  enforcement is the contribution). Declaring a cone or a pullback in this
+  version checks nothing; treat it as prose until cones ship. Coproducts are
+  declared totality claims and *are* executed: a failed coverage or
+  disjointness claim is a `violation`, never a synthesized default row — the
+  tool verifies the claim, it does not repair it.
 - **No view-update checking.** Whether an update against a model has a
   determinate meaning (the Johnson–Rosebrugh `unupdatable` finding) is
   post-v1; do not promise it.

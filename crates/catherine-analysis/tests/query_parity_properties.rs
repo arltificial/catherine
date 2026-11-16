@@ -80,6 +80,7 @@ fn schema_for_properties() -> Schema {
         arrows,
         equations: vec![],
         keys: Vec::new(),
+        coproducts: Vec::new(),
     }
 }
 

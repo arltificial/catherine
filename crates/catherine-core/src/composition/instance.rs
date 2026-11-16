@@ -225,7 +225,7 @@ fn fill_doc_cells(
     name: &Ident,
     arrow: &Arrow,
     index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
-    cells: &mut Vec<Option<CellClaim>>,
+    cells: &mut [Option<CellClaim>],
 ) -> Result<(), CompositionError> {
     let Some(values) = doc.model.instance.values.get(name) else {
         return Ok(());
@@ -243,7 +243,7 @@ fn set_cell(
     arrow: &Arrow,
     index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
     cell: (RowId, Option<RowId>),
-    cells: &mut Vec<Option<CellClaim>>,
+    cells: &mut [Option<CellClaim>],
 ) -> Result<(), CompositionError> {
     let Some(src) = remap_row(doc, &arrow.src, index, cell.0) else {
         return Ok(());

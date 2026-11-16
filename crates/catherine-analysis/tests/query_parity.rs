@@ -219,6 +219,7 @@ fn parity_schema() -> Schema {
         arrows,
         equations: vec![],
         keys: Vec::new(),
+        coproducts: Vec::new(),
     }
 }
 

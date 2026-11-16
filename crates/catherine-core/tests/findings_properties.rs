@@ -13,8 +13,9 @@ use common::fixture::{self, FixtureCase};
 
 use catherine_core::checks::check;
 use catherine_core::findings::{
-    ContradictionWitness, DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness,
-    Finding, FindingKind, RedundantWitness, UnderconstraintWitness, ViolationWitness,
+    ContradictionWitness, CoproductWitness, DanglingWitness, DomainQuestion, EpistemicLabel,
+    EquationWitness, Finding, FindingKind, RedundantWitness, UnderconstraintWitness,
+    ViolationWitness,
 };
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{ConstraintStatus, Ident, Path, RowId};
@@ -97,6 +98,18 @@ fn arb_finding() -> impl Strategy<Value = Finding> {
             arrow: a,
             src: RowId(s),
         })),
+        (
+            0usize..8,
+            0usize..8,
+            proptest::collection::vec(arb_ident(), 0..=3)
+        )
+            .prop_map(|(coproduct, row, injections)| {
+                FindingKind::Violation(ViolationWitness::Coproduct(CoproductWitness {
+                    coproduct,
+                    row: RowId(row),
+                    injections,
+                }))
+            }),
         (arb_path(), arb_path()).prop_map(|(d, r)| FindingKind::Redundant(RedundantWitness {
             derivable: d,
             reducing: r,
@@ -214,6 +227,18 @@ proptest! {
 
                 FindingKind::Violation(ViolationWitness::Naturality(_)) => {
                     prop_assert!(false, "check never emits naturality witnesses");
+                }
+
+                FindingKind::Violation(ViolationWitness::Coproduct(w)) => {
+                    prop_assert!(w.coproduct < schema.coproducts.len(), "coproduct index valid");
+                    let coproduct = &schema.coproducts[w.coproduct];
+                    let n = built.rows().get(&coproduct.object).map(Vec::len).unwrap_or(0);
+                    prop_assert!(w.row.0 < n, "witness row is a row of the coproduct's object");
+                    prop_assert_eq!(
+                        finding.label == EpistemicLabel::Hypothesized,
+                        coproduct.status == ConstraintStatus::Proposed,
+                        "the label mirrors the coproduct's status"
+                    );
                 }
 
                 FindingKind::Violation(ViolationWitness::Key(w)) => {

@@ -112,8 +112,9 @@ stable, closed set:
 | `unknown_arrow` | an equation path references an undeclared arrow — the message names the path, the position is the offending element |
 | `ill_typed_equation` | an equation's path endpoints do not match — the message names both paths and their endpoints, the position is the equation node |
 | `invalid_ident` | an identifier violates `[A-Za-z_][A-Za-z0-9_]*` — position at the ident node |
-| `invalid_status` | an equation or key `status` is outside `{proposed, accepted}` |
+| `invalid_status` | an equation, key, or coproduct `status` is outside `{proposed, accepted}` |
 | `invalid_key` | a key (`schema.keys`, 1.3) names an undeclared object or arrow, names an arrow not sourced at the key's object, or carries an empty or duplicate `arrows` list — the message names the exact defect at the offending node |
+| `invalid_coproduct` | a coproduct (`schema.coproducts`, 1.5) names an undeclared object or arrow, names an arrow that is not an injection `V_k → C` (targeted away from the coproduct object, or sourced at it), or carries an empty or duplicate `arrows` list — the message names the exact defect at the offending node |
 | `unsupported_version` | `format_version` absent, malformed, or of an unknown major |
 | `partial_schema_map` | a schema map (1.1) fails to assign every declared source object or arrow, or assigns an undeclared element — the message names the unmapped element |
 | `undeclared_rule_domain` | a rule presentation (1.2) names a `domain` that is not a declared schema object |
@@ -127,8 +128,8 @@ Structural malformations outside this set (missing required fields, JSON
 type mismatches, references to undeclared objects/rows, empty equation
 paths) are `Syntax` errors with a human message and a position; the codes
 above are the stable semantic contract. Check order is the document
-order: version → objects → arrows → equations → keys → rows → tables →
-schema map → rule presentation.
+order: version → objects → arrows → equations → keys → coproducts →
+rows → tables → schema map → rule presentation.
 
 ## Rule-lens semantics (1.2)
 

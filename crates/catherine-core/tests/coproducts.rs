@@ -7,10 +7,12 @@
 //!
 //! Responsibilities: pin the canonical `(object, arrows, status)` order,
 //! the repeated-declaration rule, the new minor (1.5 known, 1.6 rejected),
-//! every `invalid_coproduct` class at its node, the absent/empty hash
-//! guard, and the two witness shapes — uncovered row (coverage) and a row
-//! in both injections (disjointness) — plus the proposed label and the
-//! unchanged equation-witness encoding.
+//! every `invalid_coproduct` class at its node (both non-injection
+//! disjuncts: the wrong target and a source at the coproduct object), the
+//! absent/empty hash guard, the two witness shapes — uncovered row
+//! (coverage) and a row in both injections (disjointness) — their exact
+//! JSON encodings, the artifact's `arrows` constraints, the proposed
+//! label, and the unchanged equation-witness encoding.
 //!
 //! Rationale: coproducts are schema constraints (Decision 1): presence
 //! moves the model hash, absence must not; coverage/disjointness are
@@ -20,8 +22,7 @@ use catherine_core::canonical::{canonical_bytes, serialize};
 use catherine_core::checks::check;
 use catherine_core::error::{ErrorCode, ParseError};
 use catherine_core::findings::{
-    CoproductWitness, DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
-    ViolationWitness,
+    CoproductWitness, DanglingWitness, EpistemicLabel, Finding, FindingKind, ViolationWitness,
 };
 use catherine_core::hash::model_hash;
 use catherine_core::instance::TypedInstance;
@@ -38,7 +39,8 @@ const DOC: &str = r#"{
       {"name": "i1", "src": "V1", "tgt": "C"},
       {"name": "i2", "src": "V2", "tgt": "C"},
       {"name": "f", "src": "C", "tgt": "V1"},
-      {"name": "j", "src": "V1", "tgt": "V2"}
+      {"name": "j", "src": "V1", "tgt": "V2"},
+      {"name": "loop", "src": "C", "tgt": "C"}
     ],
     "equations": []__SECTION__
   },
@@ -160,6 +162,11 @@ fn malformed_coproduct_is_rejected_at_its_node() {
             34,
             "arrow targeted away from the coproduct object",
         ),
+        (
+            r#"{"object": "C", "arrows": ["loop"]}"#,
+            34,
+            "arrow sourced at the coproduct object",
+        ),
         (r#"{"object": "C", "arrows": []}"#, 33, "empty arrow list"),
         (
             r#"{"object": "C", "arrows": ["i1", "i1"]}"#,
@@ -167,13 +174,13 @@ fn malformed_coproduct_is_rejected_at_its_node() {
             "duplicate arrow name",
         ),
     ];
-    assert_eq!(cases.len(), 6, "every malformed-coproduct class is pinned");
+    assert_eq!(cases.len(), 7, "every malformed-coproduct class is pinned");
     for (raw, column, what) in cases {
         assert_invalid(raw, column, what);
     }
 }
 
-/// One malformed declaration: the pinned node (line 13, six columns of
+/// One malformed declaration: the pinned node (line 14, six columns of
 /// indent) and the stable code.
 fn assert_invalid(raw: &str, column: usize, what: &str) {
     let text = fill(DOC, &section(raw), EMPTY_ROWS, "", "");
@@ -188,7 +195,7 @@ fn assert_invalid(raw: &str, column: usize, what: &str) {
     );
     assert_eq!(
         (error.line, error.column),
-        (13, column),
+        (14, column),
         "{what}: the offending node"
     );
     assert!(
@@ -360,26 +367,6 @@ fn proposed_coproduct_is_hypothesized() {
     assert_eq!(
         findings,
         vec![coproduct_finding(EpistemicLabel::Hypothesized, 2, &[])]
-    );
-}
-
-/// The equation-witness encoding is unchanged by the added coproduct
-/// witness arm: the serialized bytes are exactly the pre-coproduct shape.
-#[test]
-fn equation_violation_json_is_unchanged() {
-    let finding = Finding {
-        label: EpistemicLabel::Executed,
-        kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
-            equation: 0,
-            row: RowId(1),
-            lhs: RowId(2),
-            rhs: RowId(3),
-        })),
-    };
-    let text = serde_json::to_string(&finding).expect("finding serializes");
-    assert_eq!(
-        text,
-        r#"{"label":"executed","kind":"violation","witness":{"equation":0,"row":1,"lhs":2,"rhs":3}}"#
     );
 }
 

@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Coproduct exhaustiveness (`add-coproduct-exhaustiveness`, `catherine-iib`):
+  the additive `schema.coproducts` section (format 1.5) declares a closed
+  variant set `{"object": C, "arrows": [V_k → C, …], "status": …}` — the
+  same grammar as `keys`, asserting coverage and disjointness of C's rows
+  over the injection images. Accepted declarations execute as constraints:
+  a row outside every injection is one `violation`/`executed` naming the
+  row, a row in two images one naming the row and both injections;
+  `proposed` declarations fire `hypothesized`. Malformed declarations fail
+  `invalid_coproduct` at their node, an empty/absent section is
+  hash-neutral, and the schema-diff enforced set now includes accepted
+  coproducts (add → `accreted`, drop → `weakened` with a rogue-variant
+  witness). Probe: `ledger/probes/coproduct/` recorded the pre-registered
+  catalog before the check landed; the executed run reports `survived`
+  with two unique detections (uncovered `voucher`, dual-covered `shared`)
+  against an executed baseline that never reported them.
 - Joint check at a seam (`add-model-composition`, `catherine-0qz`):
   `catherine check`/`findings` accept two or more documents, gluing them by
   shared declared name (objects, arrows, rows) and executing every input's

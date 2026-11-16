@@ -113,6 +113,10 @@ fn sources_for(finding: &Finding, glued: &Glued) -> Option<Vec<String>> {
             .arrow_sources
             .get(&witness.arrow)
             .map(|sources| dedup(sources)),
+        FindingKind::Violation(ViolationWitness::Coproduct(witness)) => glued
+            .coproduct_sources
+            .get(witness.coproduct)
+            .map(coproduct_docs),
         FindingKind::Dangling(witness) => glued
             .arrow_sources
             .get(&witness.arrow)
@@ -139,6 +143,14 @@ fn equation_docs(source: &catherine_core::composition::EquationSource) -> Vec<St
 
 /// A key's declaring document plus the documents behind its arrows.
 fn key_docs(source: &catherine_core::composition::KeySource) -> Vec<String> {
+    let mut documents = vec![source.declaring.clone()];
+    extend_unique(&mut documents, &source.arrows);
+    documents
+}
+
+/// A coproduct's declaring document plus the documents behind its
+/// injection arrows.
+fn coproduct_docs(source: &catherine_core::composition::CoproductSource) -> Vec<String> {
     let mut documents = vec![source.declaring.clone()];
     extend_unique(&mut documents, &source.arrows);
     documents

@@ -2,8 +2,8 @@
 //! verbatim (mechanical lint refactor); no behavior change.
 
 use crate::model::{
-    Equation, InstanceMap, Key, Literal, Model, Predicate, RowId, Rule, RulePresentation, Schema,
-    SchemaMap,
+    Coproduct, Equation, InstanceMap, Key, Literal, Model, Predicate, RowId, Rule,
+    RulePresentation, Schema, SchemaMap,
 };
 use serde_json::{Map, Value};
 
@@ -114,17 +114,19 @@ fn schema_value(model: &Model) -> Value {
     schema_section(&model.schema)
 }
 
-/// The canonical `schema` section: sorted objects, arrows, equations, and
-/// keys (equations and keys sorted by their canonical sort keys — the
-/// parser already stores them sorted, but constructed values must
-/// serialize the same way, specodelic's `schema_export` discipline). An
-/// empty key list is omitted entirely: pre-1.3 documents keep their exact
+/// The canonical `schema` section: sorted objects, arrows, equations,
+/// keys, and coproducts (equations, keys, and coproducts sorted by their
+/// canonical sort keys — the parser already stores them sorted, but
+/// constructed values must serialize the same way, specodelic's
+/// `schema_export` discipline). An empty key or coproduct list is
+/// omitted entirely: pre-1.3 and pre-1.5 documents keep their exact
 /// canonical bytes and hash (design Decision 1).
 fn schema_section(schema: &Schema) -> Value {
     let mut equations: Vec<&Equation> = schema.equations.iter().collect();
     equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
     let mut keys: Vec<&Key> = schema.keys.iter().collect();
     keys.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    let coproducts = coproduct_values(schema);
     let arrows: Vec<Value> = schema
         .arrows
         .iter()
@@ -151,7 +153,41 @@ fn schema_section(schema: &Schema) -> Value {
             Value::Array(keys.iter().map(|key| key_value(key)).collect()),
         ));
     }
+    if !coproducts.is_empty() {
+        entries.push(("coproducts", Value::Array(coproducts)));
+    }
     obj_vec(entries)
+}
+
+/// The canonical coproduct entries, sorted by `(object, arrows, status)`
+/// — the parser's storage order, applied defensively to constructed
+/// schemas.
+fn coproduct_values(schema: &Schema) -> Vec<Value> {
+    let mut coproducts: Vec<&Coproduct> = schema.coproducts.iter().collect();
+    coproducts.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    coproducts
+        .iter()
+        .map(|coproduct| coproduct_value(coproduct))
+        .collect()
+}
+
+/// One canonical coproduct entry: the object, its injection arrows in
+/// declared order, and the constraint status.
+fn coproduct_value(coproduct: &Coproduct) -> Value {
+    obj([
+        ("object", string(&coproduct.object.0)),
+        (
+            "arrows",
+            Value::Array(
+                coproduct
+                    .arrows
+                    .iter()
+                    .map(|arrow| string(&arrow.0))
+                    .collect(),
+            ),
+        ),
+        ("status", string(coproduct.status.as_str())),
+    ])
 }
 
 /// One canonical key entry: the object, its arrow sequence in declared

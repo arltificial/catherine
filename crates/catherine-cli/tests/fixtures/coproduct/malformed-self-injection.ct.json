@@ -1,0 +1,19 @@
+{
+  "format_version": "1.5",
+  "schema": {
+    "objects": ["C", "V1", "V2"],
+    "arrows": [
+      {"name": "i1", "src": "V1", "tgt": "C"},
+      {"name": "i2", "src": "V2", "tgt": "C"},
+      {"name": "loop", "src": "C", "tgt": "C"}
+    ],
+    "equations": [],
+    "coproducts": [
+      {"object": "C", "arrows": ["loop"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"C": [], "V1": [], "V2": []},
+    "tables": {"i1": {}, "i2": {}, "loop": {}}
+  }
+}

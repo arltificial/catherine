@@ -57,10 +57,9 @@ modes are existing finding kinds, so no new epistemic machinery.
 - Affected specs: `model-document` (additive section + versioning
   minor), `kernel-checks` (execution), `analysis` (enforced set — its
   MODIFIED delta is authored at apply, after `add-declarative-keys`
-  archives; shared-requirement rule, design Decision 6);
-  `findings` untouched (no new kinds — witness via the existing
-  violation payload with the declaring constraint named, the keys
-  precedent).
+  archives; shared-requirement rule, design Decision 6), and `findings`
+  (no new kinds — the witness-shape requirement gains the coproduct arm
+  over the existing violation payload, the keys precedent).
 - Affected code: `crates/catherine-core/src/{model,parse,checks,
   canonical}`, `crates/catherine-analysis/src/schema_diff.rs`,
   `crates/catherine-cli/src/render`, `schema/ct-schema-v1.json` +

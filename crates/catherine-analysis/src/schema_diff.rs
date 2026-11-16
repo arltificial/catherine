@@ -45,11 +45,12 @@ use catherine_core::instance::TypedInstance;
 use catherine_core::model::{ConstraintStatus, Ident, Instance, Path, Schema};
 use std::collections::BTreeMap;
 
-/// One enforced constraint: an accepted equation's two path sides, or an
-/// accepted key's object and arrow tuple. Rationale, document order, and
-/// proposed status are presentation and deliberately absent — they cannot
-/// change the instance space. The variant order is the enforced set's
-/// canonical order (equations before keys).
+/// One enforced constraint: an accepted equation's two path sides, an
+/// accepted key's object and arrow tuple, or an accepted coproduct's
+/// object and injection tuple. Rationale, document order, and proposed
+/// status are presentation and deliberately absent — they cannot change
+/// the instance space. The variant order is the enforced set's canonical
+/// order (equations before keys before coproducts).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EnforcedConstraint {
     /// An accepted equation's two path sides.
@@ -64,6 +65,13 @@ pub enum EnforcedConstraint {
         /// The key's object.
         object: Ident,
         /// The key's arrows, in declared order.
+        arrows: Vec<Ident>,
+    },
+    /// An accepted coproduct's coverage-and-disjointness claim.
+    Coproduct {
+        /// The coproduct's object.
+        object: Ident,
+        /// The coproduct's injection arrows, in declared order.
         arrows: Vec<Ident>,
     },
 }
@@ -211,10 +219,11 @@ fn report(
 }
 
 /// The enforced constraints as a multiset: accepted equations'
-/// `(lhs, rhs)` pairs and accepted keys' `(object, arrows)` tuples, with
-/// duplicate declarations counted (presentation can repeat a constraint;
-/// the instance space cannot distinguish the copies). Proposed keys are
-/// presentation, exactly like proposed equations (design Decision 5).
+/// `(lhs, rhs)` pairs, accepted keys' `(object, arrows)` tuples, and
+/// accepted coproducts' `(object, arrows)` tuples, with duplicate
+/// declarations counted (presentation can repeat a constraint; the
+/// instance space cannot distinguish the copies). Proposed keys and
+/// coproducts are presentation, exactly like proposed equations.
 fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
     let mut multiset = BTreeMap::new();
     for equation in &schema.equations {
@@ -231,6 +240,15 @@ fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
             let enforced = EnforcedConstraint::Key {
                 object: key.object.clone(),
                 arrows: key.arrows.clone(),
+            };
+            *multiset.entry(enforced).or_insert(0) += 1;
+        }
+    }
+    for coproduct in &schema.coproducts {
+        if coproduct.status == ConstraintStatus::Accepted {
+            let enforced = EnforcedConstraint::Coproduct {
+                object: coproduct.object.clone(),
+                arrows: coproduct.arrows.clone(),
             };
             *multiset.entry(enforced).or_insert(0) += 1;
         }

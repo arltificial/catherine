@@ -16,8 +16,8 @@
 //! equations are then stored in canonical order, exactly as one document's
 //! parse stores them.
 
-use super::{CompositionError, Document, EquationSource, KeySource};
-use crate::model::{Arrow, Equation, Ident, Key, Path};
+use super::{CompositionError, CoproductSource, Document, EquationSource, KeySource};
+use crate::model::{Arrow, Coproduct, Equation, Ident, Key, Path};
 use std::collections::BTreeMap;
 
 /// Merge every input's equations in canonical order, resolving each
@@ -88,6 +88,31 @@ pub(super) fn merge_keys(
                     KeySource {
                         declaring: doc.name.clone(),
                         arrows: path_sources(&Path(key.arrows.clone()), arrow_sources),
+                    },
+                )
+            })
+        })
+        .collect();
+    pairs.sort_by(|(a, _), (b, _)| a.sort_key().cmp(&b.sort_key()));
+    pairs.into_iter().unzip()
+}
+
+/// Coproducts are never merged away: every declaration is kept in
+/// canonical order and attributed to its declaring document (the keys
+/// rule, reused verbatim).
+pub(super) fn merge_coproducts(
+    documents: &[Document],
+    arrow_sources: &BTreeMap<Ident, Vec<String>>,
+) -> (Vec<Coproduct>, Vec<CoproductSource>) {
+    let mut pairs: Vec<(Coproduct, CoproductSource)> = documents
+        .iter()
+        .flat_map(|doc| {
+            doc.model.schema.coproducts.iter().map(move |coproduct| {
+                (
+                    coproduct.clone(),
+                    CoproductSource {
+                        declaring: doc.name.clone(),
+                        arrows: path_sources(&Path(coproduct.arrows.clone()), arrow_sources),
                     },
                 )
             })

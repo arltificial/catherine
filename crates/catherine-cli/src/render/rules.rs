@@ -112,6 +112,12 @@ fn finding_line(finding: &Finding, presentation: &RulePresentation) -> String {
             "violation: naturality of {} at row #{}",
             witness.arrow.0, witness.source_row.0
         ),
+        // The rule lens emits equation witnesses only; a programmatically
+        // assembled coproduct violation still renders its row (totality).
+        FindingKind::Violation(ViolationWitness::Coproduct(witness)) => format!(
+            "violation: coproduct-{} at row #{}",
+            witness.coproduct, witness.row.0
+        ),
         FindingKind::Underconstraint(witness) => underconstraint_head(&witness.case),
         FindingKind::Redundant(witness) => format!(
             "redundant: {} derives from {}",

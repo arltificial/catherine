@@ -141,6 +141,18 @@ proptest! {
                     prop_assert!(false, "check never emits naturality witnesses");
                 }
 
+                FindingKind::Violation(ViolationWitness::Coproduct(w)) => {
+                    prop_assert!(w.coproduct < schema.coproducts.len(), "coproduct index valid");
+                    let coproduct = &schema.coproducts[w.coproduct];
+                    let n = built.rows().get(&coproduct.object).map(Vec::len).unwrap_or(0);
+                    prop_assert!(w.row.0 < n, "witness row is a row of the coproduct's object");
+                    prop_assert_eq!(
+                        finding.label == EpistemicLabel::Hypothesized,
+                        coproduct.status == ConstraintStatus::Proposed,
+                        "the label mirrors the coproduct's status"
+                    );
+                }
+
                 FindingKind::Violation(ViolationWitness::Key(w)) => {
                     prop_assert!(w.key < schema.keys.len(), "key index valid");
                     let key = &schema.keys[w.key];
@@ -301,6 +313,7 @@ fn self_loop_schema() -> Schema {
         arrows,
         equations,
         keys: Vec::new(),
+        coproducts: Vec::new(),
     }
 }
 

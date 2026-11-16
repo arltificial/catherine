@@ -10,12 +10,15 @@
 //! stderr — never silence.
 //!
 //! Rationale: the parse discipline mirrors `invalid_key` (design
-//! Decision 1), so an undeclared object or arrow, a non-injection arrow,
-//! an empty arrow list, and a duplicate arrow are one stable code at the
-//! offending node, while a bad status reuses the shared `invalid_status`
-//! (the keys precedent). A bad flag is clap's usage error. Position
-//! assertions stay at the message level (the envelope carries the
-//! kernel's positioned message, never separate line/column fields).
+//! Decision 1), so an undeclared object or arrow, a non-injection arrow
+//! (wrong target, or sourced at the coproduct object itself), an empty
+//! arrow list, and a duplicate arrow are one stable code at the offending
+//! node, while an absent `arrows` field is the positioned serde syntax
+//! error (the keys shape) and a bad status reuses the shared
+//! `invalid_status` (the keys precedent). A bad flag is clap's usage
+//! error. Position assertions stay at the message level (the envelope
+//! carries the kernel's positioned message, never separate line/column
+//! fields).
 
 use std::process::{Command, Output};
 
@@ -30,6 +33,14 @@ const UNDECLARED_ARROW: &str = concat!(
 const WRONG_DIRECTION: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/coproduct/malformed-wrong-direction.ct.json"
+);
+const SELF_INJECTION: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/coproduct/malformed-self-injection.ct.json"
+);
+const MISSING_ARROWS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/coproduct/malformed-missing-arrows.ct.json"
 );
 const EMPTY_ARROWS: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -103,6 +114,12 @@ const MATRIX: &[Row] = &[
     Row { name: "coproduct × wrong-direction arrow (not a V_k -> C injection)",
           args: &["check", WRONG_DIRECTION, "--json"],
           expect: Expect::Error { code: "invalid_coproduct" } },
+    Row { name: "coproduct × self-sourced arrow (an injection cannot start at the coproduct object)",
+          args: &["check", SELF_INJECTION, "--json"],
+          expect: Expect::Error { code: "invalid_coproduct" } },
+    Row { name: "coproduct × absent arrows field (the required injection list)",
+          args: &["check", MISSING_ARROWS, "--json"],
+          expect: Expect::Error { code: "syntax" } },
     Row { name: "coproduct × empty arrow list (a coverage claim needs an injection)",
           args: &["check", EMPTY_ARROWS, "--json"],
           expect: Expect::Error { code: "invalid_coproduct" } },
