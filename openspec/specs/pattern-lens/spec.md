@@ -1,7 +1,10 @@
 # pattern-lens Specification
 
 ## Purpose
-TBD - created by archiving change add-pattern-lenses. Update Purpose after archive.
+Agent-facing pattern lenses: a static registry of GoF-shaped abstractions,
+each carrying its law scope and the disposition that grounds it, so a model
+author can ask which pattern law a claim is asserting before writing the
+claim.
 
 ## Requirements
 

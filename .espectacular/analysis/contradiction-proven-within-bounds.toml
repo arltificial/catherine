@@ -1,5 +1,5 @@
 id = "contradiction-proven-within-bounds"
-description = "Exhausting the declared bound with no instance satisfying the accepted equations yields a contradiction finding with the bound restated - a completed-exhaustion proof, not a witness or UNKNOWN."
+description = "Exhausting the declared bound with no instance satisfying the accepted constraints yields a contradiction finding with the bound restated - a completed-exhaustion proof, not a witness or UNKNOWN."
 archetype = "PF"
 status = "active"
 superseded_by = ""

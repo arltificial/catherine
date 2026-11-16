@@ -1,0 +1,13 @@
+id = "a-finding-always-carries-its-witness"
+description = "Every diagnostic is a Finding whose kind names its shape and whose payload carries the witness; construction without a witness is unrepresentable, and a key collision produces a violation witness rather than a sixth kind."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "every_finding_carries_in_scope_witnesses" },
+    { flags = "violation_from_a_real_kernel_run_carries_label_and_witness" },
+    { flags = "colliding_tuple_carries_its_witness" },
+]

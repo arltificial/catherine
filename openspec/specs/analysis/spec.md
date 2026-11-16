@@ -20,7 +20,7 @@ reported as a proven contradiction.
 
 #### Scenario: Contradiction proven within bounds
 - **WHEN** the search exhausts the declared bound and finds no instance
-  satisfying the accepted equations
+  satisfying the accepted constraints
 - **THEN** the outcome is a `contradiction` finding with the bound restated
 
 #### Scenario: Budget exhaustion is UNKNOWN, not success
@@ -30,14 +30,12 @@ reported as a proven contradiction.
 
 #### Scenario: Accepted equations constrain, proposed equations question
 - **WHEN** the search evaluates a candidate against a schema carrying
-  both accepted and proposed equations
-- **THEN** only the accepted equations judge satisfiability — a
-  candidate the accepted equations admit is clean even when it fails a
-  proposed equation, the failure surfaces as a `hypothesized` finding,
-  and a proposed-equation violation never blocks a witness or turns the
-  outcome into a contradiction
-
-
+  accepted and proposed equations or keys
+- **THEN** only the accepted constraints (equations and keys) judge
+  satisfiability — a candidate the accepted constraints admit is clean even
+  when it fails a proposed equation or key, the failure surfaces as a
+  `hypothesized` finding, and a proposed-constraint violation never blocks a
+  witness or turns the outcome into a contradiction
 
 ### Requirement: Redundancy is proven by derivation
 The system SHALL report a path (or declared equation) as `redundant` only
@@ -75,39 +73,40 @@ never made.
 
 ### Requirement: Schema edits are classified on the enforced constraints
 The system SHALL classify a schema edit v1 → v2 by diffing the enforced
-equation sets — the accepted equations' `(lhs, rhs)` pairs — as
-`cosmetic` (no enforced-constraint change), `accreted` (constraints only
-added), `weakened`, or an equivalence-scoped classification; equation
-rationale, document order, and proposed equations are presentation and
-SHALL NOT classify an edit.
+constraint sets — the accepted equations' `(lhs, rhs)` pairs together with
+the accepted keys' `(object, arrows)` tuples — as `cosmetic` (no
+enforced-constraint change), `accreted` (constraints only added),
+`weakened`, or an equivalence-scoped classification; constraint rationale,
+document order, and proposed equations or keys are presentation and SHALL
+NOT classify an edit.
 
 #### Scenario: Presentation-only edit is silent
-- **WHEN** v2 differs from v1 only in equation rationale or document
-  order
+- **WHEN** v2 differs from v1 only in equation rationale, document
+  order, or a proposed equation or key
 - **THEN** the classification is `cosmetic` and it emits zero findings
 
 #### Scenario: Constraints only added
-- **WHEN** every equation v1 enforces is still enforced in v2 and v2
-  adds enforced equations
-- **THEN** the classification is `accreted` naming the added equations,
+- **WHEN** every equation or key v1 enforces is still enforced in v2 and v2
+  adds enforced constraints, including an accepted key
+- **THEN** the classification is `accreted` naming the added constraints,
   with zero findings — adding a constraint never widens the instance
   space
 
 ### Requirement: Weakening is caught with a witness
-The system SHALL report `weakened` only when a v1-enforced equation is
-no longer enforced in v2 and a bounded search exhibits an instance that
-v2 accepts and v1 rejects; the finding SHALL be the existing
-`violation` kind labeled `executed`, carrying the violated v1 equation's
-canonical index and the composed values at its row. No new finding kind
-is introduced.
+The system SHALL report `weakened` only when a v1-enforced constraint is no
+longer enforced in v2 and a bounded search exhibits an instance that v2
+accepts and v1 rejects; the finding SHALL be the existing `violation` kind
+labeled `executed`, carrying the violated v1 constraint — the equation's
+canonical index and the composed values at its row, or the key's canonical
+index and its two colliding rows. No new finding kind is introduced.
 
 #### Scenario: Silent constraint-weakening detected
-- **WHEN** v2 drops (or weakens) an equation v1 enforced and a
-  fully-resolved bounded instance satisfies every accepted v2 equation
-  while violating the dropped v1 equation
+- **WHEN** v2 drops (or weakens) an equation or an accepted key v1 enforced
+  and a fully-resolved bounded instance satisfies every accepted v2
+  constraint while violating the dropped v1 constraint
 - **THEN** the classification is `weakened` with exactly one
-  `violation`/`executed` finding, and the witness instance re-checks
-  clean under v2 and rejected under v1
+  `violation`/`executed` finding whose witness names the lost v1 constraint,
+  and the witness instance re-checks clean under v2 and rejected under v1
 
 ### Requirement: Equivalence is scope-bounded and never silent
 The system SHALL classify `equivalent-in-scope` only after the bounded

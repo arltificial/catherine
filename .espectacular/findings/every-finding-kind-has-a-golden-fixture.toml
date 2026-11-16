@@ -1,5 +1,5 @@
 id = "every-finding-kind-has-a-golden-fixture"
-description = "The fixture suite pins a golden fixture for each v1 finding kind (violation, dangling, redundant, contradiction, underconstraint) whose assertions check the witness fields structurally, never through snapshots."
+description = "The fixture suite pins a golden fixture for each v1 finding kind (violation, dangling, redundant, contradiction, underconstraint) whose assertions check the witness fields structurally, including both violation witness shapes (equation and key), never through snapshots."
 archetype = "PF"
 status = "active"
 superseded_by = ""
@@ -12,4 +12,5 @@ cargo = [
     { flags = "redundant_shape_is_pinned_for_p4" },
     { flags = "contradiction_shape_is_pinned_for_p4" },
     { flags = "underconstraint_shape_pins_both_witness_arms" },
+    { flags = "key_violation_carries_its_rows" },
 ]
