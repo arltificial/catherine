@@ -93,7 +93,7 @@ pub fn all() -> Vec<Case> {
         },
         Case {
             id: "vacuous-clean-instances",
-            fixtures: &["wrong_shape_instance.ct.json", "zero_rows_instance.ct.json"],
+            fixtures: &["zero_rows_instance.ct.json"],
             observe: migration::vacuous_clean_instances,
         },
         Case {

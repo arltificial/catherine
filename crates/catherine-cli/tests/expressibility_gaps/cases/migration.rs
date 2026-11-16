@@ -85,38 +85,27 @@ pub(super) fn dropped_equations_on_migrate() -> Observation {
 }
 
 pub(super) fn vacuous_clean_instances() -> Observation {
-    let wrong = check_run("wrong_shape_instance.ct.json");
     let zero = check_run("zero_rows_instance.ct.json");
-    match (wrong.is_silent(), zero.is_silent()) {
-        (true, true) => Observation::Limitation,
-        (false, false) => vacuity_fix(&wrong, &zero),
-        _ => panic!(
-            "vacuous-clean-instances: the two fixtures disagree — wrong_shape silent={}, \
-             zero_rows silent={}",
-            wrong.is_silent(),
-            zero.is_silent()
-        ),
+    if zero.is_silent() {
+        return Observation::Limitation;
     }
+    vacuity_fix(&zero)
 }
 
-/// The fixed signature: shape validation on the wrong-shaped instance and a
-/// vacuity diagnostic on the zero-row instance.
-fn vacuity_fix(wrong: &probe::CheckRun, zero: &probe::CheckRun) -> Observation {
-    assert!(
-        wrong.is_labeled() || wrong.is_warning(),
-        "wrong_shape_instance: the fix is shape validation, got {}",
-        wrong.text()
-    );
+/// The fixed signature: a vacuity diagnostic on the zero-row instance. The
+/// legacy wrong-shaped instance this row used to share is no longer part of
+/// it — that shape is refused as `syntax` (catherine-3en, pinned by
+/// `negative_matrix.rs`), while the zero-row half still checks clean.
+fn vacuity_fix(zero: &probe::CheckRun) -> Observation {
     assert!(
         zero.is_warning() || zero.findings().is_some(),
         "zero_rows_instance: the fix is a vacuity diagnostic, got {}",
         zero.text()
     );
-    let text = format!("{}\n{}", wrong.text(), zero.text());
     assert_diagnostic_names(
         "vacuous-clean-instances",
-        &text,
-        &["shape", "instance", "vacuous", "zero", "empty", "no row"],
+        &zero.text(),
+        &["vacuous", "zero", "empty", "no row"],
     );
     Observation::Cleared
 }

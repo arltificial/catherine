@@ -39,6 +39,7 @@
 //! not a matrix row: ignoring them is documented policy (b), not a
 //! fail-open seam; the version gate pins the semantics-bearing half of
 //! that policy (rows below, `unsupported_version`).
+//! The instance-shape boundary lives in `negative_matrix_instance.rs`.
 //!
 //! Review rule (ro5u checklist): a new flag or surface without a
 //! negative-matrix row is incomplete.

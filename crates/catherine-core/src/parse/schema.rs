@@ -71,6 +71,13 @@ pub(super) struct RawInstance {
     pub(super) rows: BTreeMap<String, Vec<String>>,
     #[serde(default)]
     pub(super) tables: BTreeMap<String, BTreeMap<String, Option<String>>>,
+    /// Instance keys this build does not recognize, captured only so the
+    /// shape gate (`instance_shape`) can refuse a section whose whole
+    /// content is unrecognized. They never enter the model: alongside a
+    /// recognizable `rows`/`tables` section they stay ignored, the
+    /// additive-minor policy.
+    #[serde(flatten)]
+    pub(super) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// The highest additive minor this build's parser knows. Additive minors
