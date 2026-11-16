@@ -694,4 +694,20 @@
   Ticket ownership: single-author (sasha/arltificial); nothing in progress.
   Validation (executed at 83651a9): just ci green (fmt, clippy -D warnings, cargo test --workspace, check-gap-claims, wasm check, pretender gate); openspec validate --all --strict 15/15; openspec validate --changes --strict 1/1; ah check + per-change overlays 0 structural; ledger-check green for probes/{coproduct,composition,naturality,migration}; gap-suite 6/6 with 3 closed rows; commit trees for bda3819/36aa11d/0f4f741/9f315fe verified standalone in throwaway worktrees.
   Unresolved: no blocking items. Deferred defects: catherine-3en, catherine-ke1. Push not authorized.
-  Refs: openspec/specs/{gap-suite,instance-morphism,composition}; openspec/changes/archive/2026-11-16-*; ledger/probes/{coproduct,composition,naturality}; docs/ref/expressibility-dispositions.md; .wai/projects/catherine/reviews/ (supersedes 799d72c54f464eb13b8d3364ba8c7e0f5792f809d848bfb13dd5d5b75c4c7c4f)
+  Refs: openspec/specs/{gap-suite,instance-morphism,composition}; openspec/changes/archive/2026-11-16-*; ledger/probes/{coproduct,composition,naturality}; docs/ref/expressibility-dispositions.md; .wai/projects/catherine/reviews/ (supersedes 799d72c54f464eb13b8d3364ba8c7e0f5792f809d848bfb13dd5d5b75c4c7c4f) (superseded by acbe92039aa36b9dae8969bf2f030b2b9dc3f29e0eedc24b21f91e30d2d30d59)
+- 2026-11-16T22:14:08Z [id:acbe92039aa36b9dae8969bf2f030b2b9dc3f29e0eedc24b21f91e30d2d30d59] (#resume-catherine-844) Format: 1
+  Timestamp: 2026-11-16T19:20:00Z
+  Repo: at/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: ede14ac (the whisper mirror commit for this entry follows)
+  Session: omp orchestration session (catherine-844 arc)
+  Previous entry: 756797501adce0adacb64f97a4588c64e338f2a014d1142e157099159ae442b1
+  Objective: implement the four corpus-derived capabilities through TDD + ro5u, then close every finding from the whole-implementation review.
+  Current phase: complete — arc landed, review findings remediated, both filed defects closed.
+  Current state: capability commits 79cef70, bda3819/36aa11d, 0f4f741/df5ba6b, 9f315fe/7aba364, a769357/83651a9; docs refresh 99587df; remediation 7d918c6 (coproduct decidable disjointness), 68c2bf5 (unreadable instance shape refused), 06ea916 (naturality undefined-square + duplicate-path warnings), c3a58ba (probe ratchet, gate narrowing, integration test, doc lows), ede14ac (review closure). Worktree clean.
+  Exact next action: none required. Optional: publish (branch 33 ahead of origin, not pushed — push remains unauthorized).
+  Key decisions/constraints: conservative git (commits only, no push). Coproduct rule: unresolved cell suppresses coverage only; disjointness among complete images is decided; partial images never enter a witness. Unreadable instance shape = structural syntax error; empty sections legal. Naturality undefined square = warning, one-sided = violation. Duplicate input = warning, multiset preserved. Docs gate: generic phrases require limitation context; specific vocabulary unconditional. Probe control re-sealed as 0002-384db903 with canonical fixture hash.
+  Ticket ownership: single-author (sasha/arltificial); epic catherine-844 closed 4/4; catherine-3en and catherine-ke1 closed.
+  Validation (executed at remediation HEAD): just ci green (fmt, clippy -D warnings, workspace tests, check-gap-claims, wasm, pretender); openspec validate --all --strict 15/15; --changes --strict 1/1; ah check clean; ledger-check green for probes/{coproduct,composition,naturality}; behavioral probes: dual-with-unresolved exit 3 with dual witness, wrong-shape syntax error, unresolved_naturality_square warning, duplicate_document_input warning.
+  Unresolved: none. Known tooling: ah check --run-tests reports pre-existing no-tests-ran for deployed contracts. No push.
+  Refs: .wai/projects/catherine/reviews/catherine-844-arc-ro5u.md (post-remediation READY); openspec/specs/{kernel-checks,instance-morphism,cli,gap-suite}; ledger/probes/{coproduct,composition,naturality}; docs/ref/expressibility-dispositions.md (supersedes 756797501adce0adacb64f97a4588c64e338f2a014d1142e157099159ae442b1)
