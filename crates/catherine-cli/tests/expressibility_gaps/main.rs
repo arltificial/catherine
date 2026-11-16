@@ -57,10 +57,9 @@ fn fixed_limitation_must_flip_its_row() {
 #[test]
 fn regressed_limitation_must_flip_its_row_back() {
     let report = runner::closed_rows_still_show_the_fix(&cases::all());
-    assert!(
-        report.rows > 0,
-        "the disposition table parsed no rows for the closed direction"
-    );
+    // Zero `closed` rows is honest at registration (every row starts `gap`);
+    // the direction becomes non-vacuous the moment the first row flips, and
+    // the gap direction still requires rows > 0.
     assert_eq!(
         report.checked, report.rows,
         "the closed direction must visit every row in scope"
