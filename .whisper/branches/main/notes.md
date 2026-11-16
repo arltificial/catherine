@@ -663,3 +663,35 @@
   Unresolved/blockers: ah check --run-tests executor misreports (not fixed, tooling); push not authorized.
   
   Refs: crates/catherine-analysis/src/pattern/; crates/catherine-analysis/tests/pattern*; crates/catherine-cli/src/pattern*; openspec/specs/pattern-lens/spec.md; .espectacular/pattern-lens/; docs/ref/pattern-kata-dispositions.md; ledger/katas/*; .wai/projects/catherine/briefs/catherine-{mx1.*,r5k.*}.md.
+- 2026-11-16T15:02:44Z [id:799d72c54f464eb13b8d3364ba8c7e0f5792f809d848bfb13dd5d5b75c4c7c4f] (#resume-catherine-844) Format: 1
+  Timestamp: 2026-11-16T15:02:25Z
+  Repo: at/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 78861b4
+  Session: pi session 01a1e13e-c145-7394-a903-7419263ef043
+  Previous entry: none
+  Objective: land the corpus-derived capability backlog (cotorreo investigations on catherine: kimi/1a1dee7a G1-G3, claude/b417f19b gap suite) as committed openspec proposals plus a wired beads epic, ready for apply.
+  Current phase: commit — complete. Three commits: 07c88b6 (four review-fixed proposals: add-model-composition G1, add-instance-morphism G2, add-coproduct-exhaustiveness G3, add-expressibility-gap-suite), 4769152 (tracker fixes from the rule-of-5 issue review), 78861b4 (whisper notes mirror). Worktree clean.
+  Current state: epic catherine-844 with feature children catherine-j6g (gap suite, afk/m, READY), catherine-0qz (composition, afk/l, blocked by j6g), catherine-s60 (instance morphism, afk/m, READY — s60-to-0qz dep removed, parallel lane open), catherine-iib (coproduct, afk/l, blocked by s60 + catherine-bvt), chore catherine-bvt (archive the two Complete-but-unarchived changes add-declarative-keys + add-rules-projection; unblocks iib). All features carry files + base_commit=07c88b6 metadata and quantified acceptance lines.
+  Exact next action: claim and start catherine-j6g — RED task 1 is the verify-at-HEAD pass of the chat limitation claims (identity/empty-path equations, optional refs, unknown top-level fields, cones, non-functorial schema_map, dropped equations on migrate, vacuous clean, distinguish observation scope, associativity scaffolding, composition/naturality/coproduct absence), then draft docs/ref/expressibility-dispositions.md. Optional parallel: catherine-s60, or quick win catherine-bvt.
+  Key decisions/constraints: conservative git — commits fine, NO push/deploy (branch ~16 ahead of origin); bd invariant: bd export -o .beads/issues.jsonl + git add -f + commit; no new finding kinds (taxonomy closed, R1); additive format minors only (4 at RED, 5 next); shared-requirement MODIFIED deltas: one pending change owns it, siblings author at apply (coproduct analysis delta deferred accordingly — ah overlay composes all pending changes, same-id-different-body conflicts); probe verdicts recorded whatever they are (killed probe stops coproduct pre-merge, kills the claim not the project); composition probe expects detection parity — workflow-elimination recorded as named gap; sealed ledger model_hashes must not move.
+  Ticket ownership: nothing claimed; single-author (sasha/arltificial).
+  Validation (executed): openspec validate --strict all 4 proposals valid; ah check --changes x4 — 0 overlay-conflicts, only expected apply-stage no-toml; bd dep cycles clean. NOT run: cargo test/just ci (no code changed in this session).
+  Unresolved: none blocking. Known-in-repo: pattern lens now shipped at HEAD (corpus eval findings were 0.1.0-era — gap suite registers stale claims as closed with fixing commits). catherine-bvt is the quick unblocker for iib.
+  Refs: openspec/changes/{add-model-composition,add-instance-morphism,add-coproduct-exhaustiveness,add-expressibility-gap-suite}/ (proposal, design, tasks, specs deltas), .beads/issues.jsonl (85 issues), corpus: ~/cotorreo/raw/_conversations/{kimi/1a1dee7a*,claude/b417f19b*}, distilled/ct-modelable-domains/. (superseded by 756797501adce0adacb64f97a4588c64e338f2a014d1142e157099159ae442b1)
+- 2026-11-16T18:55:14Z [id:756797501adce0adacb64f97a4588c64e338f2a014d1142e157099159ae442b1] (#resume-catherine-844) Format: 1
+  Timestamp: 2026-11-16T16:05:00Z
+  Repo: at/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 83651a9
+  Session: omp orchestration session (catherine-844 arc, second pass)
+  Previous entry: 799d72c54f464eb13b8d3364ba8c7e0f5792f809d848bfb13dd5d5b75c4c7c4f
+  Objective: implement the four corpus-derived capability changes end-to-end through the TDD + ro5u pipeline, plus the pending archive chore.
+  Current phase: complete — all five tickets committed, changes archived, tickets closed. Epic catherine-844 closed 4/4.
+  Current state: bvt 79cef70; j6g bda3819 + 36aa11d (gap suite, docs claim gate, 3 rows flipped closed); s60 0f4f741 + df5ba6b (instance_map format 1.4, naturality, probe killed/parity); 0qz 9f315fe + 7aba364 (variadic check, glue/conflicts/source attribution, seam underconstraint, probe killed/parity); iib a769357 + 83651a9 (schema.coproducts format 1.5, coverage/disjointness, diff enforced set, findings witness arm, probe survived with 2 unique detections). Worktree clean except the whisper notes mirror.
+  Exact next action: none required for this arc. Optional: publish (branch ~25 ahead of origin, not pushed — push remains unauthorized); catherine-3en (wrong-shaped instance vacuous clean) and catherine-ke1 (undefined naturality square silent clean) are filed defects awaiting a decision.
+  Key decisions/constraints: conservative git — commits only, NO push/deploy. ro5u gate max_critical=0 with every high fixed and mediums fixed-or-deferred-with-reason; artifacts in .wai/projects/catherine/reviews/catherine-{j6g,s60,0qz,iib}-ro5u.md. Composition row-set rule: claiming documents must agree on row-name sets, an empty set is no claim; null is a value claim. Deferred parse keeps parse-equation precedence; single-document bytes untouched. Coproduct probe takes minor 1.5. Gap-suite rows flip only in the commit that lands the capability (3 closed / 9 gap at HEAD). Known tooling: ah check --run-tests reports pre-existing no-tests-ran (~87) for deployed contracts.
+  Ticket ownership: single-author (sasha/arltificial); nothing in progress.
+  Validation (executed at 83651a9): just ci green (fmt, clippy -D warnings, cargo test --workspace, check-gap-claims, wasm check, pretender gate); openspec validate --all --strict 15/15; openspec validate --changes --strict 1/1; ah check + per-change overlays 0 structural; ledger-check green for probes/{coproduct,composition,naturality,migration}; gap-suite 6/6 with 3 closed rows; commit trees for bda3819/36aa11d/0f4f741/9f315fe verified standalone in throwaway worktrees.
+  Unresolved: no blocking items. Deferred defects: catherine-3en, catherine-ke1. Push not authorized.
+  Refs: openspec/specs/{gap-suite,instance-morphism,composition}; openspec/changes/archive/2026-11-16-*; ledger/probes/{coproduct,composition,naturality}; docs/ref/expressibility-dispositions.md; .wai/projects/catherine/reviews/ (supersedes 799d72c54f464eb13b8d3364ba8c7e0f5792f809d848bfb13dd5d5b75c4c7c4f)
