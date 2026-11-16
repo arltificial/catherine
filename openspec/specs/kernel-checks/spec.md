@@ -122,19 +122,32 @@ row. Proposed coproducts SHALL produce the same findings labeled
 ### Requirement: Coproduct disjointness violations name the colliding injections
 The system SHALL produce one `violation` finding labeled `executed` for
 each row of the declared object that lies in the image of two declared
-injections, with a witness naming the row and both injections. An
-injection with a dangling or typing-violated cell has a partial image, so
-coverage and disjointness are undecidable for that declaration: its
-coproduct findings SHALL be suppressed, because the unresolved cell is
-already reported by its own dangling finding — never double-reported.
+injections, with a witness naming the row and both injections. A row
+lying in at least two complete injection images SHALL still produce its
+violation when a sibling injection cell is unresolved, and the witness
+SHALL name only the complete images covering it.
 
 #### Scenario: Dual coverage is a violation naming both injections
 - **WHEN** a row lies in the image of two declared injections
 - **THEN** exactly one `violation`/`executed` finding names the row and
   both injections as the disjointness witness
 
+#### Scenario: Decidable disjointness survives an unresolved sibling
+- **WHEN** a row lies in two complete injection images while another
+  declared injection has a dangling or typing-violated cell
+- **THEN** exactly one `violation`/`executed` finding names the row and
+  the two complete injections — the witness names only complete images —
+  while the unresolved cell still carries only its dangling finding
+
+### Requirement: Unresolved injection cells suppress coverage only
+An injection with a dangling or typing-violated cell has a partial image
+whose unknown target could be any row, so coverage is undecidable for
+every row and uncovered-row findings SHALL be suppressed. The unresolved
+cell is already reported by its own dangling finding — never
+double-reported. An empty coproduct object is vacuously covered.
+
 #### Scenario: Dangling injection cells are not double-reported
 - **WHEN** a variant row's injection cell is dangling
-- **THEN** only the dangling finding is produced — the declaration's
-  coverage and disjointness findings are suppressed (the partial image
-  cannot decide them), so the row is never double-reported
+- **THEN** the unresolved cell carries only its dangling finding —
+  coverage findings are suppressed because the partial image's unknown
+  target could be any row — so the cell is never double-reported

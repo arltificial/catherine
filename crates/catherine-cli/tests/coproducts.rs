@@ -143,3 +143,45 @@ fn proposed_coproduct_is_hypothesized() {
     assert_eq!(found.len(), 1, "exactly one finding: {found:?}");
     assert_eq!(found[0]["label"], "hypothesized");
 }
+
+/// Scenario "Decidable disjointness survives an unresolved sibling": the
+/// `shared` row lies in two complete injection images while two `cash_inj`
+/// cells are dangling, so the run reports the disjointness violation plus
+/// the dangling findings — never a suppressed declaration. The uncovered
+/// `voucher` row stays withheld (coverage is undecidable while a sibling
+/// cell is unresolved), and the violation class still wins the exit code.
+#[test]
+fn dual_coverage_with_unresolved_sibling_exits_3() {
+    let out = run(&["check", &fixture("dual-with-unresolved.ct.json"), "--json"]);
+    assert_eq!(
+        code(&out),
+        3,
+        "the decidable violation outranks the dangling class: {}",
+        stderr(&out)
+    );
+    let envelope = parse_json(&stdout(&out), "the check envelope");
+    let found = findings(&envelope);
+    assert_eq!(found.len(), 3, "violation plus two dangling: {found:?}");
+    let violation = found
+        .iter()
+        .find(|finding| finding["kind"] == "violation")
+        .expect("the disjointness violation is reported");
+    assert_eq!(violation["label"], "executed");
+    let witness = &violation["witness"];
+    assert_eq!(witness["coproduct"], 0, "the declaration's index");
+    assert_eq!(witness["row"], 1, "`shared` is Method row 1");
+    assert_eq!(
+        witness["injections"],
+        serde_json::json!(["card_inj", "transfer_inj"]),
+        "only the complete images covering the row"
+    );
+    let dangling: Vec<_> = found
+        .iter()
+        .filter(|finding| finding["kind"] == "dangling")
+        .collect();
+    assert_eq!(dangling.len(), 2, "the partial image's cells: {found:?}");
+    for (finding, src) in dangling.iter().zip([1, 2]) {
+        assert_eq!(finding["witness"]["arrow"], "cash_inj");
+        assert_eq!(finding["witness"]["src"], src);
+    }
+}

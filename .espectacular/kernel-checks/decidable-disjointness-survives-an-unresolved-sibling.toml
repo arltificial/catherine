@@ -1,0 +1,12 @@
+id = "decidable-disjointness-survives-an-unresolved-sibling"
+description = "A row lying in two complete injection images is still a disjointness violation when a sibling injection cell is unresolved; the witness names only the complete images, while the unresolved cell keeps its own dangling finding and uncovered-row coverage stays suppressed."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "decidable_disjointness_survives_an_unresolved_sibling" },
+    { flags = "dual_coverage_with_unresolved_sibling_exits_3" },
+]
