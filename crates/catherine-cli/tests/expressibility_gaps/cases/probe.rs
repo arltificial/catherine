@@ -122,10 +122,8 @@ fn classify_finding_run(name: &str, out: &Output, value: &Value) -> CheckRun {
 }
 
 fn classify_clean(value: &Value) -> CheckRun {
-    if findings(value).is_empty() {
-        if warnings(value).is_empty() {
-            return CheckRun::Silent;
-        }
+    if findings(value).is_empty() && warnings(value).is_empty() {
+        return CheckRun::Silent;
     }
     CheckRun::Warning(diagnostic_text(value))
 }

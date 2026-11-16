@@ -2,6 +2,7 @@
 //! gate, objects, arrows, equations). Split out of `parse.rs` verbatim
 //! during the mechanical lint refactor; no behavior change.
 
+use super::instance_map::RawInstanceMap;
 use super::keys::RawKey;
 use super::rule_presentation::RawRulePresentation;
 use super::schema_map::RawSchemaMap;
@@ -26,6 +27,8 @@ pub(super) struct RawDoc {
     pub(super) schema_map: Option<RawSchemaMap>,
     #[serde(default)]
     pub(super) rule_presentation: Option<RawRulePresentation>,
+    #[serde(default)]
+    pub(super) instance_map: Option<RawInstanceMap>,
 }
 
 #[derive(Deserialize)]
@@ -72,8 +75,10 @@ pub(super) struct RawInstance {
 /// 1 = the `schema_map` section (add-delta-migration phase A);
 /// 2 = the `rule_presentation` section (add-rule-lens phase A);
 /// 3 = the `schema.keys` section (add-declarative-keys; an absent or
-/// empty list is hash-neutral).
-const KNOWN_MINOR: u64 = 3;
+/// empty list is hash-neutral);
+/// 4 = the `instance_map` section (add-instance-morphism; absent or
+/// empty is hash-neutral).
+const KNOWN_MINOR: u64 = 4;
 
 /// The version gate: `MAJOR.MINOR`, present, well-formed, known major, minor within `KNOWN_MINOR`.
 pub(super) fn check_version(

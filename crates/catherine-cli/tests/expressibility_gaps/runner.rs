@@ -366,7 +366,7 @@ pub fn gate_is_wired_into_ci(_cases: &[Case]) -> Report {
         body.iter().any(|line| {
             let line = line.trim();
             line.starts_with(&format!("just {CLAIM_GATE_RECIPE}"))
-                || line.starts_with(&CLAIM_GATE_RECIPE)
+                || line.starts_with(CLAIM_GATE_RECIPE)
         }),
         "the `ci` recipe never invokes `{CLAIM_GATE_RECIPE}`:\n{}",
         body.join("\n")

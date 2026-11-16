@@ -156,6 +156,22 @@ pub struct Instance {
     pub values: BTreeMap<Ident, Vec<Option<RowId>>>,
 }
 
+/// A claimed instance map (format 1.4, openspec change
+/// `add-instance-morphism`): a total row mapping from this document's
+/// instance to another instance of the same schema. `maps` is keyed by
+/// the source object (canonical object order) and each per-object entry
+/// maps a dense [`RowId`] of that object to the target instance's row
+/// name as declared — target names belong to *another* document, so they
+/// are data here, never resolved by the parser (design Decision 2).
+/// Totality is checked at parse: every row of every object carries an
+/// entry, and an uncovered row is `incomplete_instance_map`. An absent
+/// or empty map is `None` on [`Model`] and omitted from canonical bytes,
+/// so every pre-1.4 document keeps its hash.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct InstanceMap {
+    pub maps: BTreeMap<Ident, BTreeMap<RowId, Ident>>,
+}
+
 /// A declared schema map (Δ migration axis, openspec change
 /// `add-delta-migration` phase A): the total assignment of the document
 /// schema's objects and arrows into the target schema. `target` is the
@@ -349,9 +365,10 @@ pub struct RulePresentation {
 }
 
 /// A parsed `.ct.json` model document: version, schema, and instance.
-/// `schema_map` is the additive 1.1 section and `rule_presentation` the
-/// additive 1.2 section — both absent (`None`) in every earlier document,
-/// and skip-serialized (so hash-neutral) when absent.
+/// `schema_map` is the additive 1.1 section, `rule_presentation` the
+/// additive 1.2 section, and `instance_map` the additive 1.4 section —
+/// all absent (`None`) in every earlier document and omitted from
+/// canonical bytes (so hash-neutral) when absent.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Model {
     pub format_version: Version,
@@ -359,6 +376,7 @@ pub struct Model {
     pub instance: Instance,
     pub schema_map: Option<SchemaMap>,
     pub rule_presentation: Option<RulePresentation>,
+    pub instance_map: Option<InstanceMap>,
 }
 
 impl Model {

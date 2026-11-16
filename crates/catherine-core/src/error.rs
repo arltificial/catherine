@@ -16,8 +16,10 @@
 /// The stable semantic error codes. Closed at P0; extended only by a
 /// named ticket — `partial_schema_map` (openspec change
 /// `add-delta-migration` phase A), the rule-presentation codes
-/// (openspec change `add-rule-lens` phase A), and `invalid_key`
-/// (openspec change `add-declarative-keys`) are the extensions so far.
+/// (openspec change `add-rule-lens` phase A), `invalid_key`
+/// (openspec change `add-declarative-keys`), and
+/// `incomplete_instance_map` (openspec change `add-instance-morphism`)
+/// are the extensions so far.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     DuplicateIdent,
@@ -49,6 +51,10 @@ pub enum ErrorCode {
     /// code because every case is the same defect class — the message
     /// names the exact defect at its node.
     InvalidKey,
+    /// An instance map omits a row of a schema object — a partial map has
+    /// no decidable reading without an implicit identity, so it is a
+    /// malformed claim at the per-object map node, never a default.
+    IncompleteInstanceMap,
 }
 
 impl ErrorCode {
@@ -69,6 +75,7 @@ impl ErrorCode {
             Self::InvalidPolicy => "invalid_policy",
             Self::MissingAction => "missing_action",
             Self::InvalidKey => "invalid_key",
+            Self::IncompleteInstanceMap => "incomplete_instance_map",
         }
     }
 }

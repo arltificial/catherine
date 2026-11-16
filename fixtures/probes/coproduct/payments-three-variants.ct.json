@@ -1,0 +1,31 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["Payment", "Method", "Card", "Transfer", "Cash"],
+    "arrows": [
+      {"name": "method", "src": "Payment", "tgt": "Method"},
+      {"name": "card_inj", "src": "Card", "tgt": "Method"},
+      {"name": "transfer_inj", "src": "Transfer", "tgt": "Method"},
+      {"name": "cash_inj", "src": "Cash", "tgt": "Method"}
+    ],
+    "equations": [],
+    "coproducts": [
+      {"object": "Method", "arrows": ["card_inj", "transfer_inj", "cash_inj"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Payment": ["p1", "p2", "p3"],
+      "Method": ["card", "transfer", "cash"],
+      "Card": ["card"],
+      "Transfer": ["transfer"],
+      "Cash": ["cash"]
+    },
+    "tables": {
+      "method": {"p1": "card", "p2": "transfer", "p3": "cash"},
+      "card_inj": {"card": "card"},
+      "transfer_inj": {"transfer": "transfer"},
+      "cash_inj": {"cash": "cash"}
+    }
+  }
+}

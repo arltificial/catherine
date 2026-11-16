@@ -1,0 +1,11 @@
+id = "commuting-map-checks-clean"
+description = "A declared instance map that commutes with every arrow of the schema on the given instances produces zero findings and the naturality run exits clean (0)."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "naturality_commuting_map_checks_clean" },
+]

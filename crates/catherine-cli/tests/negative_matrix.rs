@@ -10,17 +10,16 @@
 //! stdout, `warnings` naming the ignored input) — NEVER silence (no
 //! exit-0-without-warning, no silently-ignored input).
 //!
-//! Surfaces × classes: every CLI surface (check, findings, search,
-//! redundant, underconstraint, distinguish, diff, query, migrate, rules)
-//! gets a row for every malformed-input class that applies to it — undeclared
-//! object/arrow names in flags, second-doc schema mismatch, out-of-range
-//! `format_version`, unknown seed, uncomposable observation, partial or
-//! absent schema map, absent rule presentation, unknown predicate
-//! column, invalid policy, garbage rules, garbage instance rows, bad flag
-//! syntax (unknown flag → clap exit 2; malformed flag value →
-//! `bad_argument` exit 1). The `rules --project` surface keeps its own
-//! matrix binary (`negative_matrix_projection.rs`), split out to stay
-//! inside the file-size gate.
+//! Surfaces × classes: every CLI surface (check, findings, search, redundant,
+//! underconstraint, distinguish, diff, query, migrate, rules) gets a row for
+//! every malformed-input class that applies to it — undeclared object/arrow names
+//! in flags, second-doc schema mismatch, out-of-range `format_version`, unknown
+//! seed, uncomposable observation, partial or absent schema map, absent rule
+//! presentation, unknown predicate column, invalid policy, garbage rules, garbage
+//! instance rows, bad flag syntax (unknown flag → clap exit 2; malformed flag
+//! value → `bad_argument` exit 1). The `rules --project` and `naturality`
+//! surfaces keep their own matrix binaries (`negative_matrix_projection.rs`,
+//! `negative_matrix_naturality.rs`), split out to stay inside the file-size gate.
 //! Behavior is probed live against the real binary
 //! (`CARGO_BIN_EXE_catherine`); assertions are structural
 //! (`serde_json::Value`) and numeric (exit codes), never snapshots.

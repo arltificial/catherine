@@ -92,10 +92,7 @@ fn stale_claim_registers_closed_not_as_a_gap() {
 #[test]
 fn unregistered_case_fails_the_suite() {
     let report = runner::every_case_is_registered(&cases::all());
-    assert!(
-        report.rows > 0,
-        "registration parsed no disposition rows"
-    );
+    assert!(report.rows > 0, "registration parsed no disposition rows");
     assert_eq!(
         report.checked, report.rows,
         "registration must visit every row"
@@ -110,10 +107,7 @@ fn unregistered_case_fails_the_suite() {
 #[test]
 fn claim_without_a_row_fails_the_gate() {
     let report = runner::limitation_claims_name_a_disposition_row(&cases::all());
-    assert!(
-        report.rows > 0,
-        "the claim gate parsed no disposition rows"
-    );
+    assert!(report.rows > 0, "the claim gate parsed no disposition rows");
     assert_eq!(
         report.checked, report.rows,
         "the claim gate must consult every row"

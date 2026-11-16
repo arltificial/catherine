@@ -90,4 +90,10 @@ export type CtSchemaV1Document = {
   "rules": Array<Rule>;
   "policy"?: "PriorityOrder" | "FirstMatch" | "DeclaredDisjoint";
 };
+  "instance_map"?: {
+  "maps": Array<{
+  "object": Ident;
+  "rows": Record<string, Ident>;
+}>;
+};
 };

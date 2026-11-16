@@ -9,5 +9,5 @@ authored_with = "0.12.0"
 cargo = [
     { flags = "empty_schema_and_empty_instance_parse_cleanly" },
     { flags = "roundtrip_preserves_the_model" },
-    { flags = "current_major_parses_a_1_3_document" },
+    { flags = "current_major_parses_a_1_4_document" },
 ]

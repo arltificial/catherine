@@ -46,8 +46,8 @@ pub use crate::render::analysis::{
 pub use crate::render::diff::{diff_envelope, render_diff, ConstraintView, DiffData};
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::envelope::{
-    config_warning, error_envelope, findings_envelope, unknown_follow_warning,
-    unknown_rows_warning, FindingsData,
+    config_warning, error_envelope, findings_envelope, missing_instance_map_warning,
+    unknown_follow_warning, unknown_rows_warning, FindingsData,
 };
 pub use crate::render::errors::LabeledError;
 #[allow(unused_imports)] // pub surface kept stable at `render::`
@@ -57,7 +57,7 @@ pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, Rule
 
 use catherine_core::findings::{
     DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding, FindingKind,
-    KeyWitness, ViolationWitness,
+    KeyWitness, NaturalityWitness, ViolationWitness,
 };
 use catherine_core::model::{Ident, Path, RowId, Schema};
 
@@ -129,6 +129,39 @@ fn render_violation(w: &ViolationWitness, schema: &Schema, label: &str) -> Vec<S
     match w {
         ViolationWitness::Equation(witness) => render_equation_violation(witness, schema, label),
         ViolationWitness::Key(witness) => render_key_violation(witness, schema, label),
+        ViolationWitness::Naturality(witness) => {
+            render_naturality_violation(witness, schema, label)
+        }
+    }
+}
+
+/// The naturality violation block: the arrow, the source row, and both
+/// composed values in the transcript's `Object#n` spelling (the §5
+/// `at row …: lhs=… rhs=…` line).
+fn render_naturality_violation(w: &NaturalityWitness, schema: &Schema, label: &str) -> Vec<String> {
+    let arrow = schema.arrows.get(&w.arrow);
+    let (src_object, tgt_object) = match arrow {
+        Some(arrow) => (Some(arrow.src.0.as_str()), Some(arrow.tgt.0.as_str())),
+        None => (None, None),
+    };
+    vec![
+        format!("violation: naturality of {}{}", w.arrow.0, label),
+        format!(
+            "  at row {}: lhs={} rhs={}",
+            row_at(src_object, w.source_row),
+            naturality_value(tgt_object, w.lhs),
+            naturality_value(tgt_object, w.rhs),
+        ),
+    ]
+}
+
+/// A composed naturality value as the transcript spells it: `Object#n`
+/// when resolved, `unresolved` when the composition has no value.
+fn naturality_value(object: Option<&str>, value: Option<RowId>) -> String {
+    match (object, value) {
+        (Some(name), Some(row)) => format!("{name}#{}", row.0),
+        (_, Some(row)) => row.0.to_string(),
+        _ => "unresolved".to_string(),
     }
 }
 

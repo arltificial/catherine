@@ -5,7 +5,9 @@
 //! is this declaration derivable (redundancy via normal-form rewriting),
 //! which parallel paths were never reconciled (underconstraint,
 //! hypothesized), where do two instances differ (distinguish over an
-//! explicit observation set), the query traversals (reachability,
+//! explicit observation set), whether a declared instance map commutes
+//! with every arrow (naturality over two same-schema instances), the
+//! query traversals (reachability,
 //! blast radius, fan-in/fan-out) ported from specodelic behind the parity
 //! gate, and the rule lens (P8: effective regions and the four rule-table
 //! bug classes over a declared finite domain, mapped onto the taxonomy),
@@ -33,6 +35,7 @@
 
 pub mod bounds;
 pub mod distinguish;
+pub mod naturality;
 pub mod parallel;
 pub mod pattern;
 pub mod query;

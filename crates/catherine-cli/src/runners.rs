@@ -25,6 +25,9 @@ use genesis::envelope::Warning;
 use std::collections::BTreeMap;
 use std::io::Write;
 
+mod naturality;
+pub use naturality::run_naturality;
+
 /// catherine-uh0: run-level warnings reach stderr in human mode too —
 /// the same `warning: <message>` line `main.rs` prints for config
 /// warnings; JSON mode keeps them on the envelope only (pinned by

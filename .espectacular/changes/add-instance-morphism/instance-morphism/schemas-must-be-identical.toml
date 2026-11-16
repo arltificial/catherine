@@ -1,0 +1,11 @@
+id = "schemas-must-be-identical"
+description = "Two documents declaring different schemas fail with the existing schema_mismatch labeled error (exit 1) before any finding is produced — never a guessed alignment or a partial comparison."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "naturality_schemas_must_be_identical" },
+]

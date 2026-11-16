@@ -22,6 +22,7 @@ mod cli;
 mod config;
 mod diff;
 mod migrate;
+mod naturality;
 mod pattern;
 mod projection;
 mod render;
@@ -56,6 +57,7 @@ fn did_you_mean(err: &clap::error::Error) -> Option<String> {
             "redundant".to_string(),
             "underconstraint".to_string(),
             "distinguish".to_string(),
+            "naturality".to_string(),
             "query".to_string(),
             "migrate".to_string(),
             "rules".to_string(),
@@ -151,6 +153,7 @@ fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl 
             second,
             observe,
         } => distinguish_command(model, second, observe, ctx),
+        C::Naturality { model, second } => naturality::run(model, second, ctx),
         C::Diff {
             model,
             second,

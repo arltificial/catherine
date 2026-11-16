@@ -1,30 +1,29 @@
 {
-  "format_version": "1.3",
-  "instance_map": {
-    "maps": [
-      {"object": "Account", "rows": {"a1": "w1", "a2": "w2", "a3": "w3"}},
-      {"object": "Rep", "rows": {"r1": "s1", "r2": "s2"}},
-      {"object": "Region", "rows": {"north": "north", "south": "south"}}
-    ]
-  },
+  "format_version": "1.4",
   "schema": {
-    "objects": ["Account", "Rep", "Region"],
+    "objects": ["account", "owner", "tier"],
     "arrows": [
-      {"name": "owner", "src": "Account", "tgt": "Rep"},
-      {"name": "rep_region", "src": "Rep", "tgt": "Region"},
-      {"name": "acct_region", "src": "Account", "tgt": "Region"}
+      {"name": "account_owner", "src": "account", "tgt": "owner"},
+      {"name": "owner_tier", "src": "owner", "tgt": "tier"}
     ],
-    "equations": [
-      {"lhs": ["owner", "rep_region"], "rhs": ["acct_region"],
-       "rationale": "an account's region is its owner's region", "status": "accepted"}
-    ]
+    "equations": []
   },
   "instance": {
-    "rows": {"Account": ["a1", "a2", "a3"], "Rep": ["r1", "r2"], "Region": ["north", "south"]},
+    "rows": {
+      "account": ["a1", "a2", "a3"],
+      "owner": ["o1", "o2"],
+      "tier": ["t1", "t2"]
+    },
     "tables": {
-      "owner": {"a1": "r1", "a2": "r2", "a3": "r1"},
-      "rep_region": {"r1": "north", "r2": "south"},
-      "acct_region": {"a1": "north", "a2": "south", "a3": "north"}
+      "account_owner": {"a1": "o1", "a2": "o2", "a3": "o2"},
+      "owner_tier": {"o1": "t1", "o2": "t2"}
     }
+  },
+  "instance_map": {
+    "maps": [
+      {"object": "account", "rows": {"a1": "w1", "a2": "w2", "a3": "w3"}},
+      {"object": "owner", "rows": {"o1": "p1", "o2": "p2"}},
+      {"object": "tier", "rows": {"t1": "u1", "t2": "u2"}}
+    ]
   }
 }

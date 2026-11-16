@@ -212,6 +212,10 @@ proptest! {
                     prop_assert!(w.lhs.0 < tgt && w.rhs.0 < tgt, "composed values are rows of the path's target");
                 }
 
+                FindingKind::Violation(ViolationWitness::Naturality(_)) => {
+                    prop_assert!(false, "check never emits naturality witnesses");
+                }
+
                 FindingKind::Violation(ViolationWitness::Key(w)) => {
                     prop_assert!(w.key < schema.keys.len(), "key index valid");
                     let key = &schema.keys[w.key];

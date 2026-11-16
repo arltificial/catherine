@@ -2,7 +2,8 @@
 //! verbatim (mechanical lint refactor); no behavior change.
 
 use crate::model::{
-    Equation, Key, Literal, Model, Predicate, RowId, Rule, RulePresentation, Schema, SchemaMap,
+    Equation, InstanceMap, Key, Literal, Model, Predicate, RowId, Rule, RulePresentation, Schema,
+    SchemaMap,
 };
 use serde_json::{Map, Value};
 
@@ -40,7 +41,37 @@ pub fn canonical_value(model: &Model) -> Value {
     if let Some(presentation) = &model.rule_presentation {
         sections.push(("rule_presentation", rule_presentation_value(presentation)));
     }
+    // The additive 1.4 section is emitted only when present and non-empty:
+    // an absent or empty map is invisible to canonical bytes, so
+    // pre-instance-map documents keep their identity.
+    if let Some(map) = &model.instance_map {
+        if !map.maps.is_empty() {
+            sections.push(("instance_map", instance_map_value(map)));
+        }
+    }
     obj_vec(sections)
+}
+
+/// The canonical `instance_map` section: entries in object order, each
+/// entry's rows keyed by the source instance's dense row name and carrying
+/// the declared target row name verbatim.
+fn instance_map_value(map: &InstanceMap) -> Value {
+    let maps: Vec<Value> = map
+        .maps
+        .iter()
+        .filter(|(_, rows)| !rows.is_empty())
+        .map(|(object, rows)| {
+            let mut emitted = Map::new();
+            for (row, target) in rows {
+                emitted.insert(row_name(row.0), string(&target.0));
+            }
+            obj([
+                ("object", string(&object.0)),
+                ("rows", Value::Object(emitted)),
+            ])
+        })
+        .collect();
+    obj([("maps", Value::Array(maps))])
 }
 
 /// The canonical `instance` section: dense per-object row names and total

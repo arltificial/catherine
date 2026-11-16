@@ -5,8 +5,8 @@
 
 use super::rows::{self, RowNames};
 use crate::model::{
-    Arrow, Equation, Ident, Instance, Key, Model, RowId, RulePresentation, Schema, SchemaMap,
-    Version,
+    Arrow, Equation, Ident, Instance, InstanceMap, Key, Model, RowId, RulePresentation, Schema,
+    SchemaMap, Version,
 };
 use std::collections::BTreeMap;
 
@@ -25,6 +25,7 @@ pub(super) fn build_model(
     values: BTreeMap<Ident, Vec<Option<RowId>>>,
     schema_map: Option<SchemaMap>,
     rule_presentation: Option<RulePresentation>,
+    instance_map: Option<InstanceMap>,
 ) -> (Model, RowNames) {
     let names = rows::row_names(&objects, &row_index);
     let rows_out = objects
@@ -48,6 +49,7 @@ pub(super) fn build_model(
         },
         schema_map,
         rule_presentation,
+        instance_map,
     };
     (model, names)
 }

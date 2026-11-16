@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Instance morphism check (`add-instance-morphism`, `catherine-s60`): the
+  additive `instance_map` section (format 1.4) declares a claimed row
+  mapping from the document's instance to another instance of the same
+  schema — hashed model evidence, omitted from canonical bytes when empty,
+  so pre-1.4 hashes and sealed ledger `model_hashes` are untouched. Totality
+  is enforced at parse (`incomplete_instance_map`), a cell naming a missing
+  target row is a construction-time `unknown_map_target` error, and
+  `catherine naturality <src> <tgt>` executes every schema arrow against
+  every mapped row: a non-commuting square is one `violation`/`executed`
+  naming the arrow, source row, and both composed values (no new finding
+  kinds). The surface verifies a given map only — no synthesis, no search.
+  Probe: `ledger/probes/naturality/` records the executed `distinguish`
+  baseline (which answers "instances differ", never "this map cell is
+  incoherent").
 - Expressibility gap suite (`add-expressibility-gap-suite`, `catherine-j6g`):
   `docs/ref/expressibility-dispositions.md` is the registry of the twelve
   known expressibility limitations, each row pairing a corpus-sourced claim
@@ -23,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fails until its row flips, a regression fails until it flips back — and
   `just check-gap-claims` (inside `just ci`) rejects a limitation claim in
   README, CHANGELOG, `docs/**` or an openspec close note that names no row
-  id. All twelve rows register `gap` at this HEAD.
+  id. Rows register verified-at-HEAD behavior; the change that fixes a
+  limitation flips its row in the same commit.
 - Pattern lenses (`add-pattern-lenses`, `catherine-mx1`): the twelve
   executed rows of `docs/ref/pattern-kata-dispositions.md` ship as
   registered, law-scoped checks (`catherine pattern <model> [--id <pattern>]

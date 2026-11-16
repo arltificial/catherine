@@ -187,6 +187,34 @@
           "description": "Absent means no declared precedence — never a default."
         }
       }
+    },
+    "instance_map": {
+      "type": "object",
+      "description": "Additive 1.4 (instance morphism, add-instance-morphism): a claimed, total row mapping from this document's instance to another instance of the same schema. Totality over every declared row is kernel-side (incomplete_instance_map); target row existence is an operation construction-time check (unknown_map_target) because target names belong to the other document. An absent or empty map is hash-neutral.",
+      "required": ["maps"],
+      "additionalProperties": false,
+      "properties": {
+        "maps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["object", "rows"],
+            "additionalProperties": false,
+            "properties": {
+              "object": {
+                "$ref": "#/$defs/ident",
+                "description": "A declared schema object; declaredness and row coverage are kernel-side (incomplete_instance_map)."
+              },
+              "rows": {
+                "type": "object",
+                "propertyNames": { "$ref": "#/$defs/ident" },
+                "additionalProperties": { "$ref": "#/$defs/ident" },
+                "description": "Source row name to target instance row name. Target rows are external to this document; resolution is operation construction-time (unknown_map_target)."
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

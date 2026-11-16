@@ -1,0 +1,11 @@
+id = "absent-map-is-hash-neutral"
+description = "A document without an instance_map section parses under the new additive minor with canonical bytes and model_hash exactly unchanged, so every sealed ledger model_hashes entry stays valid; an empty map over an empty instance is omitted just the same."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "absent_instance_map_hashes_as_before" },
+]

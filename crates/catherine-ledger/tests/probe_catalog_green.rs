@@ -108,7 +108,11 @@ fn recomputed_hash(rows: &[Expectation]) -> String {
 /// recomputable from the catalog, never string-formatted.
 #[test]
 fn catalog_hash_is_content_addressed() {
-    for probe_id in ["probe-migration", "probe-rule-lens-extracted"] {
+    for probe_id in [
+        "probe-migration",
+        "probe-rule-lens-extracted",
+        "probe-naturality",
+    ] {
         let hash = probe_catalog_hash(probe_id).expect("registered probe has a catalog");
         let expected = recomputed_hash(&probe_expectations(probe_id));
         assert_eq!(hash, expected, "catalog hash for {probe_id}");
@@ -153,7 +157,15 @@ fn registered_probes_carry_their_pre_registered_rows() {
         ]
     );
 
-    for row in migration.iter().chain(rule_lens.iter()) {
+    let naturality = probe_expectations("probe-naturality");
+    let faults: Vec<&str> = naturality.iter().map(|row| row.fault.as_str()).collect();
+    assert_eq!(faults, vec!["floor-sync-defect", "wrong-question"]);
+
+    for row in migration
+        .iter()
+        .chain(rule_lens.iter())
+        .chain(naturality.iter())
+    {
         assert!(
             !row.detail.trim().is_empty(),
             "row {} states its mapping",

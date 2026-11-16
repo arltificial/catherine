@@ -1,14 +1,15 @@
 //! Purpose: the clap wiring — the `check`/`findings` subcommands over a
-//! positional model path plus P4's one-subcommand-per-analysis-op set
-//! (`search`, `redundant`, `underconstraint`, `distinguish`, `query`),
-//! P7's `migrate`, and P8's `rules` (the rule lens, plus the
+//! positional model path plus the one-subcommand-per-analysis-op set
+//! (`search`, `redundant`, `underconstraint`, `distinguish`,
+//! `naturality`, `query`), P7's `migrate`, and P8's `rules` (the rule
+//! lens, plus the
 //! `add-rules-projection` bridge's `--project`/`--columns`/`--action`
 //! flags), the genesis guide's verbosity/format structs, and the
 //! exit-code table the help text carries verbatim.
 //!
 //! Responsibilities: define [`Cli`] (genesis `CliVerbosity` + `CliFormat`
 //! flattened, so `-v`/`-q` and `--json`/`--human` behave exactly as in
-//! every suite tool) and [`Commands`] (`check`, `findings`, the five
+//! every suite tool) and [`Commands`] (`check`, `findings`, the
 //! analysis commands, `migrate`, and `rules`; positional model paths);
 //! publish
 //! [`EXIT_CODE_TABLE`] — the adjudicated exit-code contract, its shipped
@@ -154,6 +155,24 @@ pub enum Commands {
         /// observation set is the scope of the verdict).
         #[arg(long = "observe", value_name = "PATH@OBJECT#ROW", required = true)]
         observe: Vec<String>,
+    },
+    /// Naturality: execute the source document's declared `instance_map`
+    /// against a target instance of the identical schema. For every arrow
+    /// and every mapped source row, `map ∘ arrow` is compared with
+    /// `arrow ∘ map`; a break is one `violation`/`executed` finding naming
+    /// the arrow, the source row, and both composed values (exit 3).
+    /// Identical schemas are required (the existing `schema_mismatch`
+    /// refusal); a map cell naming a missing target row is a labeled
+    /// `unknown_map_target` error before any finding. A source document
+    /// without an `instance_map` warns and exits 0 — never a silent
+    /// empty verification.
+    #[command(after_help = EXIT_CODE_TABLE)]
+    Naturality {
+        /// Path to the source .ct.json model document (its
+        /// `instance_map` is the claim being executed).
+        model: String,
+        /// Path to the target model document (same schema).
+        second: String,
     },
     /// Schema diff: classify a v1→v2 schema edit on the *enforced*
     /// constraints — cosmetic (presentation only: zero findings),

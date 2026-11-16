@@ -1,0 +1,11 @@
+id = "unknown-target-is-a-construction-time-error"
+description = "A map cell naming a target row that does not exist in the target instance fails with the labeled unknown_map_target error naming the object, the mapped source row, and the missing target row — before any findings are produced."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "naturality_unknown_target_is_a_construction_time_error" },
+]

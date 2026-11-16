@@ -1,0 +1,25 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["account", "owner"],
+    "arrows": [
+      {"name": "account_owner", "src": "account", "tgt": "owner"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "account": ["a1", "a2"],
+      "owner": ["o1"]
+    },
+    "tables": {
+      "account_owner": {"a1": "o1", "a2": "o1"}
+    }
+  },
+  "instance_map": {
+    "maps": [
+      {"object": "account", "rows": {"a1": "a1", "a2": "a2"}},
+      {"object": "owner", "rows": {"o1": "o1"}}
+    ]
+  }
+}

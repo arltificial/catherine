@@ -104,12 +104,31 @@ pub struct KeyWitness {
     pub rows: [RowId; 2],
 }
 
-/// The violation witness's two shapes: an equation failure or a key
-/// collision (design Decision 3). Serialized untagged — the serialized
-/// field sets are disjoint (`equation`/`row`/`lhs`/`rhs` versus
-/// `key`/`rows`), so the equation JSON stays byte-identical and
-/// deserialization is unambiguous. The variant order is the taxonomy's
-/// kind-internal order: equations before keys.
+/// The naturality witness: a declared instance map's square fails for one
+/// arrow on one source row. The arrow, the source row (dense id of the
+/// arrow's source object), and both composed values are carried; a
+/// composition that cannot resolve (a dangling cell on either side) is
+/// `None`, rendered as a non-answer, never silently skipped.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct NaturalityWitness {
+    /// The arrow whose commutation square breaks.
+    pub arrow: Ident,
+    /// The source row of the arrow's source object.
+    pub source_row: RowId,
+    /// `map ∘ arrow` on the source row — `None` when unresolved.
+    pub lhs: Option<RowId>,
+    /// `arrow ∘ map` on the source row — `None` when unresolved.
+    pub rhs: Option<RowId>,
+}
+
+/// The violation witness's shapes: an equation failure, a key collision,
+/// or a naturality square (design Decision 3; the naturality arm is the
+/// additive 1.4 shape from `add-instance-morphism`). Serialized untagged
+/// — the serialized field sets are disjoint (`equation`/`row`/`lhs`/
+/// `rhs`, `key`/`rows`, `arrow`/`source_row`/`lhs`/`rhs`), so the
+/// equation JSON stays byte-identical and deserialization is
+/// unambiguous. The variant order is the taxonomy's kind-internal order:
+/// equations before keys before naturality.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ViolationWitness {
@@ -117,6 +136,8 @@ pub enum ViolationWitness {
     Equation(EquationWitness),
     /// A key's arrow tuple collided on two rows.
     Key(KeyWitness),
+    /// An instance map's commutation square failed.
+    Naturality(NaturalityWitness),
 }
 
 /// The dangling witness: an arrow cell that holds no row, naming the

@@ -1,0 +1,12 @@
+id = "naturality-break-is-a-violation-with-a-witness"
+description = "A map cell whose compositions differ for one arrow and one source row yields exactly one violation labeled executed, whose witness names the arrow, the source row, and both composed values; the run exits with the violation code (3)."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "naturality_break_is_a_violation_with_a_witness" },
+    { flags = "naturality_break_renders_arrow_row_and_composed_values" },
+]

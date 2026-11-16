@@ -131,7 +131,11 @@ pub fn expectations(kata_id: &str) -> Vec<Expectation> {
 /// The registered domain-probe ids. Probes ride the kata entry shape in
 /// their own ledger directory (design Decision 1 revised); this list is
 /// the closed set the validator recognizes.
-pub const PROBE_IDS: [&str; 2] = ["probe-migration", "probe-rule-lens-extracted"];
+pub const PROBE_IDS: [&str; 3] = [
+    "probe-migration",
+    "probe-rule-lens-extracted",
+    "probe-naturality",
+];
 
 /// probe-migration: Δ migration at real scale — the pre-registered
 /// lost-data and non-invertibility expectations, plus the floor control
@@ -231,6 +235,39 @@ fn probe_rule_lens_witnesses() -> Vec<Expectation> {
     ]
 }
 
+/// probe-naturality: the declared instance map against the crm/warehouse
+/// sync defect — the floor control where `distinguish` already catches
+/// the fault, plus the wrong-question arm where the same fault is
+/// detected but the mapping-cell incoherence is not named. The uniqueness
+/// axis cannot credit a better answer: with both arms firing, parity
+/// derives `killed`, and the named gap is the recorded contribution.
+fn probe_naturality() -> Vec<Expectation> {
+    vec![
+        Expectation {
+            fault: "floor-sync-defect".into(),
+            series_class: "behavioral".into(),
+            catherine_class: "finding".into(),
+            detail: "floor control — the crm/warehouse `a3→w3` sync defect is already \
+                     detected by the executed `distinguish` baseline (it reports the pair \
+                     distinguishable on `account#2`, left=1, right=0); the naturality probe \
+                     must show zero unique detections here (design Decision 5)"
+                .into(),
+        },
+        Expectation {
+            fault: "wrong-question".into(),
+            series_class: "behavioral".into(),
+            catherine_class: "finding".into(),
+            detail: "the same `a3→w3` fault: `distinguish` answers \"instances differ\" on \
+                     `account#2` but never says which claimed mapping cell is incoherent; \
+                     naturality names arrow `account_owner` and source row `account#2`. \
+                     Detection is parity (both arms fire), so the uniqueness axis derives \
+                     `killed`; the wrong-question gap is the recorded contribution and no \
+                     unique detection is claimed"
+                .into(),
+        },
+    ]
+}
+
 /// Whether the id names a registered domain probe.
 pub fn is_probe(id: &str) -> bool {
     PROBE_IDS.contains(&id)
@@ -243,6 +280,7 @@ pub fn probe_expectations(probe_id: &str) -> Vec<Expectation> {
     match probe_id {
         "probe-migration" => probe_migration(),
         "probe-rule-lens-extracted" => probe_rule_lens_extracted(),
+        "probe-naturality" => probe_naturality(),
         _ => Vec::new(),
     }
 }

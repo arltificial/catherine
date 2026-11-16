@@ -1,0 +1,126 @@
+{
+  "purpose": "Pre-registered fault catalog for probe-coproduct (add-coproduct-exhaustiveness RED task 1, design Decision 5). Committed before any run; a correction is a superseding ledger entry, never an edit. Responsibilities: name each fault, its committed fixture, the pre-registered probe elements, the incumbent arm's expected detections, and the arithmetic a later run derives from. Rationale: the G3 claim that rogue and dual-covered coproduct rows are silently accepted is judged against this file, not against prose written after the run.",
+  "probe": "probe-coproduct",
+  "status": "pre-registration",
+  "records": "catalog + fixtures + floor control + the executed baseline arm pinning today's silent acceptance (binary sha256:819d798f808ef2935a3e44b718eb56461821ef43409073cec22bf346f4b4844c, observed identical before and after the batch). No probe verdict is recorded here: the kernel carries no executable `schema.coproducts` section, so the expectation rows below are un-reached pre-capability observations, not findings.",
+  "probe_entry": "appended by GREEN task 11 (openspec/changes/add-coproduct-exhaustiveness/tasks.md) after the kernel check lands; it re-runs these frozen fixtures and embeds these same rows",
+  "pre_registered": "2026-11-16",
+  "series_report": "openspec/changes/add-coproduct-exhaustiveness/design.md (Decision 5); openspec/specs/domain-probes/spec.md",
+  "comparison_rule": "unique = probe elements minus baseline-identified elements; an element is named only by an executed arm's output (coproduct:Method@<row>:uncovered, coproduct:Method@<row>:dual(<inj_a>,<inj_b>), keys:<object>:<arrow>@rows<i,j>); an arm that emits no finding identifies no element",
+  "faults": [
+    {
+      "id": "floor-keys-caught",
+      "fixture": "floor-keys-caught.ct.json",
+      "fixture_model_hash": "sha256:76dbedc228187a05fc6d606680f91f5b2cc23a509c844f9b41e2bf40e1e26fe2",
+      "fixture_sha256": "566ba17799c006dbf1147e96d7e0ef3658b99a1775eea839a140031c7b1d5c01",
+      "catalog_fault": "floor-keys-caught",
+      "control": true,
+      "defect": "two Card rows (c1, c2) collapse onto the single coproduct row Method/card; the injection card_inj is not injective",
+      "probe_expected": [
+        "keys:Card:card_inj@rows0,1"
+      ],
+      "baseline_expected": [
+        "keys:Card:card_inj@rows0,1"
+      ],
+      "baseline_identified": [
+        "keys:Card:card_inj@rows0,1"
+      ],
+      "unique_when_probe_executes": 0,
+      "red_observation": {
+        "command": "./target/debug/catherine check fixtures/probes/coproduct/floor-keys-caught.ct.json --json",
+        "exit": 3,
+        "findings": [
+          {
+            "label": "executed",
+            "kind": "violation",
+            "witness": {
+              "key": 0,
+              "rows": [
+                0,
+                1
+              ]
+            }
+          }
+        ]
+      },
+      "red_unique": 0
+    },
+    {
+      "id": "rogue-variant",
+      "fixture": "payments-rogue-voucher.ct.json",
+      "fixture_model_hash": "sha256:2e10d916c73f13383e706a8ff2396c76f24aabf827df2272bebefe939e225f47",
+      "fixture_sha256": "97c13fd59668a7a65cbdb4ee3bea17486f7a52ce018f2b6358435710cd879553",
+      "catalog_fault": "rogue-variant",
+      "control": false,
+      "defect": "the fourth Method row voucher is in the image of none of the accepted coproduct's injections card_inj, transfer_inj, cash_inj",
+      "probe_expected": [
+        "coproduct:Method@voucher:uncovered"
+      ],
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "unique_when_probe_executes": 1,
+      "red_observation": {
+        "command": "./target/debug/catherine check fixtures/probes/coproduct/payments-rogue-voucher.ct.json --json",
+        "exit": 0,
+        "findings": []
+      },
+      "red_unique": 0
+    },
+    {
+      "id": "dual-covered",
+      "fixture": "payments-dual-covered.ct.json",
+      "fixture_model_hash": "sha256:1a55c46fd9e0a7c06dd95ad055f572d1a89cd31f7d0c2ab75e6054fea7fc5246",
+      "fixture_sha256": "2238252e54ee2c24450d8778565e6d35c619e6cd86511e3af921f958cdb1b0c9",
+      "catalog_fault": "dual-covered",
+      "control": false,
+      "defect": "the Method row shared is in the image of both card_inj and transfer_inj, falsifying the accepted coproduct's declared disjointness",
+      "probe_expected": [
+        "coproduct:Method@shared:dual(card_inj,transfer_inj)"
+      ],
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "unique_when_probe_executes": 1,
+      "red_observation": {
+        "command": "./target/debug/catherine check fixtures/probes/coproduct/payments-dual-covered.ct.json --json",
+        "exit": 0,
+        "findings": []
+      },
+      "red_unique": 0
+    },
+    {
+      "id": "clean-closed-table",
+      "fixture": "payments-three-variants.ct.json",
+      "fixture_model_hash": "sha256:e7a06c0b6a572e29c1a719ad4d5dffb0de056ca0516ce4764163a443303011ab",
+      "fixture_sha256": "f68f291a41480aea3c5c6c5988368a865b80afa1d36859a8f22ccb03e399a791",
+      "catalog_fault": "clean-closed-table",
+      "control": false,
+      "defect": "none — Method = card | transfer | cash with every row covered exactly once; the negative side of both defect arms",
+      "probe_expected": [],
+      "baseline_expected": [],
+      "baseline_identified": [],
+      "unique_when_probe_executes": 0,
+      "red_observation": {
+        "command": "./target/debug/catherine check fixtures/probes/coproduct/payments-three-variants.ct.json --json",
+        "exit": 0,
+        "findings": []
+      },
+      "red_unique": 0
+    }
+  ],
+  "baseline_arms": {
+    "conventional": {
+      "artifact": "crates/catherine-cli/tests/expressibility_gaps/cases.rs sha256:2630d4bef49070497986042b50aa2def003847ac3f4e77197077f76ddf5928a1 (hand-authored `coproduct-absence` case), crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json sha256:95fc2ac80cd192b784c675e0889e08467fd16a37f3864ced433c9a484702dc62, docs/ref/expressibility-dispositions.md sha256:a97df1237d2399656acb43f29d539d68406a83d9c47baede4caec91d672fd341",
+      "mode": "executed",
+      "command": "./target/debug/catherine check crates/catherine-cli/tests/fixtures/gap_suite/coproduct_payments.ct.json --json  # exit 0, findings [], warnings []",
+      "detections": []
+    },
+    "incumbent_keys": {
+      "artifact": "catherine 0.1.0 `schema.keys` injectivity check, binary sha256:819d798f808ef2935a3e44b718eb56461821ef43409073cec22bf346f4b4844c (revision 79cef70); pinned by crates/catherine-cli/tests/fixtures/key_violation.ct.json sha256:10f9fbe10766322d6c60dbf165a82e21831e38bfbf7ae30e4caf47d9e666a9f6 and crates/catherine-core/tests/keys_checks.rs sha256:6044d0ac4ed6e580d82635c76d207aee5ceed264c38c9e84b96bbcdc9d3f894c",
+      "mode": "executed",
+      "command": "./target/debug/catherine check fixtures/probes/coproduct/floor-keys-caught.ct.json --json  # exit 3, one violation/executed {key: 0, rows: [0, 1]}",
+      "detections": [
+        "keys:Card:card_inj@rows0,1"
+      ]
+    }
+  }
+}

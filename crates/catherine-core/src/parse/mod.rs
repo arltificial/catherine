@@ -31,6 +31,7 @@
 //! equality, the canonical bytes, and the model hash remain name-blind.
 
 mod build;
+mod instance_map;
 mod keys;
 mod predicate;
 mod rows;
@@ -40,7 +41,7 @@ mod schema_map;
 mod spans;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
-use crate::model::{Arrow, Ident, Model, RowId, RulePresentation, SchemaMap};
+use crate::model::{Arrow, Ident, InstanceMap, Model, RowId, RulePresentation, SchemaMap};
 pub use rows::RowNames;
 
 use build::build_model;
@@ -50,7 +51,7 @@ use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
 
 /// Parse a `.ct.json` v1 model document. Accepted additive minors of the
-/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 3);
+/// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 4);
 /// higher minors are rejected with `unsupported_version` — never guessed.
 /// Malformed presentations rejected with line-accurate
 /// errors. Check order (documented in the crate README): version →
@@ -93,12 +94,14 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 ///    idents checked per list;
 /// 8. instance tables — repeated keys, declared arrows, declared src
 ///    rows, values that are declared target rows or `null`;
-/// 9. schema map (additive 1.1) — declared data only, totality over the
-///    declared source elements, targets declared (absent = hash-neutral);
-/// 10. rule presentation (additive 1.2) — declared domain, typed columns,
+/// 9. instance map (additive 1.4) — declared target names preserved as
+///    data, total coverage of every declared row (absent = hash-neutral);
+/// 10. schema map (additive 1.1) — declared data only, totality over the
+///     declared source elements, targets declared (absent = hash-neutral);
+/// 11. rule presentation (additive 1.2) — declared domain, typed columns,
 ///     decidable predicates, required actions, declared policy (absent =
 ///     hash-neutral);
-/// 11. the normalized model — dense rows, total value vectors, canonical
+/// 12. the normalized model — dense rows, total value vectors, canonical
 ///     equation and key order — plus the [`RowNames`] side table (the
 ///     presentation names, indexed by those dense ids); the names never
 ///     enter the model.
@@ -116,6 +119,7 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError>
     let keys = check_keys(&schema, &objects, &arrows, spans)?;
     let row_index = check_rows(&instance, &objects, spans)?;
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
+    let instance_map = declared_instance_map(&doc.instance_map, &objects, &row_index, spans)?;
     let schema_map = declared_schema_map(&doc.schema_map, &objects, &arrows, spans)?;
     let rule_presentation = declared_rule_presentation(&doc.rule_presentation, &objects, spans)?;
     Ok(build_model(
@@ -128,7 +132,22 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError>
         values,
         schema_map,
         rule_presentation,
+        instance_map,
     ))
+}
+
+/// The document's declared instance map, validated (additive 1.4) —
+/// `None` for every pre-map document (hash-neutral).
+fn declared_instance_map(
+    doc_instance_map: &Option<instance_map::RawInstanceMap>,
+    objects: &BTreeMap<Ident, ()>,
+    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
+    spans: &Spans,
+) -> Result<Option<InstanceMap>, ParseError> {
+    match doc_instance_map {
+        Some(raw) => instance_map::build_instance_map(raw, objects, row_index, spans),
+        None => Ok(None),
+    }
 }
 
 /// The document's declared schema map, validated (additive 1.1) —

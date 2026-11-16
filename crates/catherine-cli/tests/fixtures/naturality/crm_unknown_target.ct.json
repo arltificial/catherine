@@ -1,0 +1,29 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["account", "owner", "tier"],
+    "arrows": [
+      {"name": "account_owner", "src": "account", "tgt": "owner"},
+      {"name": "owner_tier", "src": "owner", "tgt": "tier"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "account": ["a1", "a2", "a3"],
+      "owner": ["o1", "o2"],
+      "tier": ["t1", "t2"]
+    },
+    "tables": {
+      "account_owner": {"a1": "o1", "a2": "o2", "a3": "o2"},
+      "owner_tier": {"o1": "t1", "o2": "t2"}
+    }
+  },
+  "instance_map": {
+    "maps": [
+      {"object": "account", "rows": {"a1": "w1", "a2": "w9", "a3": "w3"}},
+      {"object": "owner", "rows": {"o1": "p1", "o2": "p2"}},
+      {"object": "tier", "rows": {"t1": "u1", "t2": "u2"}}
+    ]
+  }
+}

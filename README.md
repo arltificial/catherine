@@ -65,6 +65,20 @@ is the installed inventory:
 catherine pattern fixtures/katas/visitor-sum-types/visitor.ct.json --list
 ```
 
+The `naturality` surface verifies a *given* row mapping between two
+instances of identical schema — `catherine naturality <src> <tgt>
+[--json]`. The map is declared in the source document's additive
+`instance_map` section (`{"maps": [{"object": O, "rows": {"src": "tgt"}}]}`,
+format 1.4), so the claim is hashed, diffable, and sealed model evidence.
+Every schema arrow is executed against every mapped row: `map∘a` and
+`a∘map` must agree, and a break is one `violation`/`executed` naming the
+arrow, the source row, and both composed values. Totality is enforced at
+parse (`incomplete_instance_map`); a cell naming a missing target row is
+a construction-time `unknown_map_target` error; schemas must be
+identical (the `distinguish` check). The surface verifies a mapping —
+it never synthesizes or searches for one, and it emits no merged
+document.
+
 Exit codes mirror finding classes — CI and agents branch on exit
 status without parsing any text:
 

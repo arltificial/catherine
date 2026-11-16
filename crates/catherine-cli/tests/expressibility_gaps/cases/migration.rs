@@ -33,11 +33,7 @@ fn migrate_without_loss(name: &str, expected_objects: &[&str]) -> Observation {
                 "{code}: {}",
                 value["data"]["message"].as_str().unwrap_or_default()
             );
-            assert_diagnostic_names(
-                name,
-                &text,
-                &["map", "functor", "equation", "endpoint"],
-            );
+            assert_diagnostic_names(name, &text, &["map", "functor", "equation", "endpoint"]);
             Observation::Cleared
         }
         _ => migrated_loss(name, &out, &value),
@@ -49,7 +45,10 @@ fn migrate_without_loss(name: &str, expected_objects: &[&str]) -> Observation {
 fn migrated_loss(name: &str, out: &std::process::Output, value: &serde_json::Value) -> Observation {
     if common::code(out) == 8 {
         let lost = value["data"]["lost"].as_array().expect("lost array");
-        assert!(!lost.is_empty(), "{name}: the fixed migration reports lost data");
+        assert!(
+            !lost.is_empty(),
+            "{name}: the fixed migration reports lost data"
+        );
         return Observation::Cleared;
     }
     panic!(

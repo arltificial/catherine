@@ -75,9 +75,9 @@ Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
 
 - **Additive change = minor version** (new optional fields, new instance
   sections that old parsers may ignore). The parser accepts additive
-  minors of the current major **only up to `KNOWN_MINOR`** (currently 3,
-  i.e. `1.3` — 1.1 added `schema_map`, 1.2 added `rule_presentation`, 1.3
-  added `schema.keys`): a
+  minors of the current major **only up to `KNOWN_MINOR`** (currently 4,
+  i.e. `1.4` — 1.1 added `schema_map`, 1.2 added `rule_presentation`, 1.3
+  added `schema.keys`, 1.4 added `instance_map`): a
   minor greater than `KNOWN_MINOR` means semantics this
   build doesn't know, so it is rejected with `unsupported_version`
   (no-guessed-parse rule) until the build is updated.

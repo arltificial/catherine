@@ -30,9 +30,12 @@ naming a target row that does not exist fails before any check runs,
 never silently followed.
 
 #### Scenario: Same document twice is trivially clean
-- **WHEN** the source and target paths name the same document
+- **WHEN** the source and target paths name the same document whose
+  declared `instance_map` is the identity
 - **THEN** every commutation square holds by construction, the operation
-  reports zero findings, and exits clean — accepted, not an error
+  reports zero findings, and exits clean — accepted, not an error; a
+  same-document run whose map targets rows of another instance is a
+  construction-time `unknown_map_target`, not a degenerate clean
 
 #### Scenario: Schemas must be identical
 - **WHEN** the two documents declare different schemas

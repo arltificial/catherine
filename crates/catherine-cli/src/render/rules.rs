@@ -108,6 +108,10 @@ fn finding_line(finding: &Finding, presentation: &RulePresentation) -> String {
             "violation: key-{} collides on rows #{} and #{}",
             witness.key, witness.rows[0].0, witness.rows[1].0
         ),
+        FindingKind::Violation(ViolationWitness::Naturality(witness)) => format!(
+            "violation: naturality of {} at row #{}",
+            witness.arrow.0, witness.source_row.0
+        ),
         FindingKind::Underconstraint(witness) => underconstraint_head(&witness.case),
         FindingKind::Redundant(witness) => format!(
             "redundant: {} derives from {}",

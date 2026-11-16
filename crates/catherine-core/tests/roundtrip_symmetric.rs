@@ -95,6 +95,7 @@ fn cycle_model(n: usize) -> Model {
         },
         schema_map: None,
         rule_presentation: None,
+        instance_map: None,
     }
 }
 
@@ -122,6 +123,7 @@ fn involution_model(n: usize) -> Model {
         },
         schema_map: None,
         rule_presentation: None,
+        instance_map: None,
     }
 }
 
@@ -143,6 +145,7 @@ fn twins_model(n: usize) -> Model {
         },
         schema_map: None,
         rule_presentation: None,
+        instance_map: None,
     }
 }
 
@@ -163,6 +166,7 @@ fn collapse_model(n: usize) -> Model {
         },
         schema_map: None,
         rule_presentation: None,
+        instance_map: None,
     }
 }
 

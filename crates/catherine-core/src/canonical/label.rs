@@ -60,7 +60,13 @@ fn solve(model: &Model, cls: &mut BTreeMap<RowKey, usize>) -> Model {
         seeded.insert((object.clone(), r), INDIVIDUALIZED);
         while refine(model, &mut seeded) {}
         let key = partition_key(&seeded);
-        if explored.contains(&key) {
+        // The refined partition ignores the instance map (target names
+        // are external data), so two branches with equal partitions can
+        // still serialize differently once map cells are relabeled. When
+        // a map is present, explore every branch: the serialization
+        // tie-break (which includes the map) picks the canonical
+        // labeling, and the minimum stays rename-invariant.
+        if !has_instance_map(model) && explored.contains(&key) {
             continue;
         }
         explored.push(key.clone());
@@ -71,6 +77,16 @@ fn solve(model: &Model, cls: &mut BTreeMap<RowKey, usize>) -> Model {
         }
     }
     best.expect("the first branch always runs").1
+}
+
+/// Whether the model declares an instance map whose source rows the
+/// canonical labeling must relabel. An absent/empty map keeps the
+/// pre-1.4 labeling path byte-identical.
+fn has_instance_map(model: &Model) -> bool {
+    model
+        .instance_map
+        .as_ref()
+        .is_some_and(|map| !map.maps.is_empty())
 }
 
 /// The exact refined partition: one sorted `RowKey` block per class,
@@ -236,7 +252,24 @@ fn apply_labeling(model: &Model, cls: &BTreeMap<RowKey, usize>) -> Model {
     for (arrow, cells) in out.instance.values.iter_mut() {
         relabel_cells(model, cls, arrow, cells);
     }
+    relabel_map(cls, &mut out);
     out
+}
+
+/// Remap the instance map's source ids through the chosen classes;
+/// target names are external declarations and stay verbatim.
+fn relabel_map(cls: &BTreeMap<RowKey, usize>, out: &mut Model) {
+    let Some(out_map) = &mut out.instance_map else {
+        return;
+    };
+    for (object, rows) in &mut out_map.maps {
+        let mut relabeled: BTreeMap<RowId, crate::model::Ident> = BTreeMap::new();
+        for (row, target) in rows.iter() {
+            let new = cls[&(object.0.clone(), row.0)];
+            relabeled.insert(RowId(new), target.clone());
+        }
+        *rows = relabeled;
+    }
 }
 
 /// Remap one arrow's cells through both endpoints' classes.

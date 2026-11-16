@@ -1,0 +1,11 @@
+id = "incomplete-map-is-rejected-at-its-node"
+description = "A map that omits a row of any schema object fails to parse with incomplete_instance_map carrying the line and column of the offending per-object map node, naming the object and the uncovered row — never an implicit identity on the uncovered rows."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "incomplete_map_is_rejected_at_its_node" },
+]

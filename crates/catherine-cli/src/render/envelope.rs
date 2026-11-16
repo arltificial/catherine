@@ -82,6 +82,23 @@ pub fn unknown_rows_warning(object: &str) -> Warning {
     }
 }
 
+/// A naturality warning: the source document declares no `instance_map`,
+/// so there is no claim to execute. Named on the warnings channel instead
+/// of returning a silent clean run (the negative matrix's never-silence
+/// rule); exit semantics are unchanged.
+pub fn missing_instance_map_warning() -> Warning {
+    Warning {
+        rule_name: "naturality".to_string(),
+        entity_id: None,
+        message: "the source document declares no `instance_map`; there is no claimed mapping to verify"
+            .to_string(),
+        suggested_remediation: Some(
+            "add an `instance_map` section to the source document (format 1.4), or use `catherine distinguish` for an observational comparison"
+                .to_string(),
+        ),
+    }
+}
+
 /// A `--follow` warning: an arrow name matching no declared arrow
 /// (catherine-348) — the name contributes no edges, so the typo is
 /// named on the warnings channel instead of silently vanishing.

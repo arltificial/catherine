@@ -120,7 +120,11 @@ pub fn all() -> Vec<Case> {
         },
         Case {
             id: "naturality-absence",
-            fixtures: &["naturality_crm.ct.json", "naturality_warehouse.ct.json"],
+            fixtures: &[
+                "naturality_crm.ct.json",
+                "naturality_warehouse.ct.json",
+                "naturality_warehouse_break.ct.json",
+            ],
             observe: analysis::naturality_absence,
         },
         Case {
@@ -129,10 +133,15 @@ pub fn all() -> Vec<Case> {
             observe: analysis::coproduct_absence,
         },
     ];
+    assert_count(cases.len());
+    cases
+}
+
+/// The registration count is deliberate: a registry change must update
+/// [`EXPECTED_ROWS`] in the same edit.
+fn assert_count(registered: usize) {
     assert_eq!(
-        cases.len(),
-        EXPECTED_ROWS,
+        registered, EXPECTED_ROWS,
         "the disposition table registers twelve rows at registration time"
     );
-    cases
 }

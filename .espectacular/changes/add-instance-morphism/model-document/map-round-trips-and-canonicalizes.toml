@@ -1,0 +1,11 @@
+id = "map-round-trips-and-canonicalizes"
+description = "A document declaring an instance map in an arbitrary input order parses, the map is stored in canonical (object, rows) order, and canonical serialization is byte-identical to the same map declared in another input order and under a renamed source instance."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "instance_map_round_trips_and_canonicalizes" },
+]

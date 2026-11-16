@@ -12,6 +12,7 @@ use super::probe::{self, envelope, findings, warnings};
 use super::Observation;
 use crate::common;
 use serde_json::Value;
+use std::process::Output;
 
 /// The three `distinguish` invocations behind the scope row: the bare form
 /// (no observation set) and the `f`-only and `g`-only forms.
@@ -161,9 +162,9 @@ fn scaffold_cost(out: &std::process::Output, value: &Value) -> bool {
     if found.len() != 18 {
         return false;
     }
-    found.iter().all(|finding| {
-        finding["kind"] == "violation" && finding["witness"]["equation"] == 7
-    })
+    found
+        .iter()
+        .all(|finding| finding["kind"] == "violation" && finding["witness"]["equation"] == 7)
 }
 
 /// The claimed signature: omitting the failing triples makes the model clean.
@@ -204,86 +205,90 @@ fn carrier_completeness(out: &std::process::Output, value: &Value) -> bool {
 
 pub(super) fn naturality_absence() -> Observation {
     let crm = probe::fixture("naturality_crm.ct.json");
-    let warehouse = probe::fixture("naturality_warehouse.ct.json");
-
-    let check = common::run(&["check", &crm, "--json"]);
-    let check_value = envelope(&check, "claimed instance map");
-    let map_silent = check_was_silent(&check, &check_value);
-
-    let operation = common::run(&["naturality", &crm, &warehouse, "--json"]);
-    let operation_exit = common::code(&operation);
-    if operation_exit == 2 {
-        assert!(
-            common::stderr(&operation).contains("unrecognized subcommand"),
-            "naturality: exit 2 for a reason other than the missing subcommand: {}",
-            common::stderr(&operation)
-        );
-        assert!(
-            map_silent,
-            "naturality-absence: the subcommand is absent but the instance map is no longer \
-             silently dropped"
-        );
+    let commuting = naturality_pair(&crm, "naturality_warehouse.ct.json");
+    let broken = naturality_pair(&crm, "naturality_warehouse_break.ct.json");
+    if absence_signature(&crm, &commuting) {
         return Observation::Limitation;
     }
-    let value = envelope(&operation, "naturality");
-    naturality_fix(operation_exit, &value).unwrap_or_else(|| {
-        panic!(
-            "naturality: unexpected exit {operation_exit}: {}",
-            common::stderr(&operation)
-        )
-    })
+    if fixed_signature(&commuting, &broken) {
+        return Observation::Cleared;
+    }
+    panic!(
+        "naturality-absence: unexpected behavior — commuting exit {}: {}; break exit {}: {}",
+        common::code(&commuting),
+        common::stderr(&commuting),
+        common::code(&broken),
+        common::stderr(&broken)
+    )
 }
 
-fn check_was_silent(out: &std::process::Output, value: &Value) -> bool {
-    if common::code(out) != 0 {
+fn naturality_pair(crm: &str, target: &str) -> Output {
+    common::run(&["naturality", crm, &probe::fixture(target), "--json"])
+}
+
+/// The claimed limitation: `check` stays silent about the map *and* the
+/// subcommand itself does not exist.
+fn absence_signature(crm: &str, operation: &Output) -> bool {
+    if common::code(operation) != 2 {
         return false;
     }
-    if !findings(value).is_empty() {
+    if !common::stderr(operation).contains("unrecognized subcommand") {
         return false;
     }
-    warnings(value).is_empty()
+    check_was_silent(crm)
 }
 
-/// The fixed signature: a clean commuting run, or the violation findings
-/// with the naturality witness `{arrow, source_row, lhs, rhs}`.
-fn naturality_fix(exit: i32, value: &Value) -> Option<Observation> {
-    match exit {
-        0 => clean_fix(value),
-        3 => violation_fix(value),
-        _ => None,
+/// The fixed signature: the commuting pair is quiet and the break pair is
+/// the single `violation`/`executed` the row quotes.
+fn fixed_signature(commuting: &Output, broken: &Output) -> bool {
+    if common::code(commuting) != 0 {
+        return false;
     }
+    quiet(&envelope(commuting, "commuting naturality run")) && break_witness(broken)
 }
 
-fn clean_fix(value: &Value) -> Option<Observation> {
-    if findings(value).is_empty() {
-        if warnings(value).is_empty() {
-            return Some(Observation::Cleared);
-        }
+fn check_was_silent(crm: &str) -> bool {
+    let out = common::run(&["check", crm, "--json"]);
+    if common::code(&out) != 0 {
+        return false;
     }
-    None
+    quiet(&envelope(&out, "claimed instance map"))
 }
 
-fn violation_fix(value: &Value) -> Option<Observation> {
-    let found = findings(value);
-    if found.is_empty() {
-        return None;
+/// Exit 0 with no findings and no warnings: the signature is completely
+/// quiet, not merely finding-free.
+fn quiet(value: &Value) -> bool {
+    findings(value).is_empty() && warnings(value).is_empty()
+}
+
+/// The break signature: exit 3 with exactly one finding, whose witness is
+/// the `account_owner` cell at source row 2 with the two composed values
+/// that differ — the row's quoted observation, never a bare exit code.
+fn break_witness(broken: &Output) -> bool {
+    if common::code(broken) != 3 {
+        return false;
     }
-    for finding in found {
-        assert_eq!(finding["kind"], "violation", "naturality finding kind");
-        assert_eq!(finding["label"], "executed", "naturality finding label");
-        let witness = &finding["witness"];
-        assert!(witness["arrow"].is_string(), "naturality witness arrow");
-        assert!(witness["source_row"].is_number(), "naturality witness source_row");
-        assert!(
-            witness["lhs"].is_number() || witness["lhs"].is_null(),
-            "naturality witness lhs"
-        );
-        assert!(
-            witness["rhs"].is_number() || witness["rhs"].is_null(),
-            "naturality witness rhs"
-        );
+    let value = envelope(broken, "break naturality run");
+    let found = findings(&value);
+    found.len() == 1 && quoted_break(&found[0])
+}
+
+fn quoted_break(finding: &Value) -> bool {
+    if finding["kind"] != "violation" {
+        return false;
     }
-    Some(Observation::Cleared)
+    finding["label"] == "executed" && quoted_witness(&finding["witness"])
+}
+
+fn quoted_witness(witness: &Value) -> bool {
+    if witness["arrow"].as_str() != Some("account_owner") {
+        return false;
+    }
+    witness["source_row"].as_i64() == Some(2) && composed_values(witness)
+}
+
+fn composed_values(witness: &Value) -> bool {
+    witness["lhs"].as_i64() == Some(1) && witness["rhs"].as_i64() == Some(0)
 }
 
 pub(super) fn coproduct_absence() -> Observation {

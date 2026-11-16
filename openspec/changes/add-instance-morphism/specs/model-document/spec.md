@@ -30,3 +30,32 @@ without it keep their hash.
   the new minor
 - **THEN** canonical bytes, hash, and every sealed ledger `model_hashes`
   entry are unchanged
+
+## MODIFIED Requirements
+
+### Requirement: The model document format is versioned and additive-only
+The system SHALL parse `.ct.json` model documents carrying a required
+`format_version` field, SHALL accept additive minor versions of the
+current major, and SHALL reject unknown major versions with a labeled
+error — breaking changes ship as a new extension, never as in-place
+mutation of v1 (wild accretion-laws discipline).
+
+#### Scenario: Current major parses
+- **WHEN** a `.ct.json` document with `format_version` of the current
+  major is parsed and its minor is one this build knows
+  (minor <= `KNOWN_MINOR`, currently 4: 1.1 adds `schema_map`, 1.2 adds
+  `rule_presentation`, 1.3 adds `schema.keys`, 1.4 adds `instance_map`)
+- **THEN** parsing succeeds and the document's schema and instance are
+  fully represented
+
+#### Scenario: Unknown additive minor is rejected
+- **WHEN** a document declares `format_version` of the current major
+  with a minor greater than the build's `KNOWN_MINOR`
+- **THEN** parsing fails with `unsupported_version` carrying line/column
+  of the `format_version` node — never a partial or guessed parse
+
+#### Scenario: Unknown major is rejected
+- **WHEN** a document declares a `format_version` major the parser does
+  not know, or omits the field
+- **THEN** parsing fails with `unsupported_version` carrying line/column
+  of the `format_version` node — never a partial or guessed parse
