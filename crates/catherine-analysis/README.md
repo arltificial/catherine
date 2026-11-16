@@ -155,7 +155,9 @@ against an independent BFS reference on generated instances and re-pin
   identical-schema check, construction-time target resolution, and the
   commutation sweep over a declared total `instance_map`
   (one `violation`/`executed` per broken square with `{arrow,
-  source_row, lhs, rhs}`); the map is verified, never synthesized.
+  source_row, lhs, rhs}`; a square undefined on both sides is returned
+  as an `UndefinedSquare` so the caller can warn instead of claiming a
+  clean); the map is verified, never synthesized.
 
 Build: part of the workspace; `cargo test -p catherine-analysis` runs
 the fixture suites (including `tests/schema_diff.rs`), the

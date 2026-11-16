@@ -24,7 +24,7 @@ arithmetic instead of rhetorical.
 |---|---|
 | Pre-registered | 2026-11-16 (RED task 1, `add-coproduct-exhaustiveness`) |
 | Catalog | `fixtures/probes/coproduct/faults.json`, sha256 `388cefe6e8a894be114e7eccc87393e00850ecdde94078c027a9e05b4ebf0e4b` |
-| Ledger entry | seq 1 (`0001-84847b2d.json`) the RED control; seq 2 (`0002-d717d7fa.json`) the re-recorded control pinning the registered catalog; seq 3 (`0003-2709a990.json`) the probe entry, `survived` |
+| Ledger entry | seq 1 (`0001-84847b2d.json`) the RED control; seq 2 (`0002-384db903.json`) the re-recorded control pinning the registered catalog and the canonical fixture hash; seq 3 (`0003-2709a990.json`) the probe entry, `survived` |
 | Probe entry | recorded as seq 3 against the same frozen rows: two unique detections, verdict `survived` |
 | Kernel state | `schema.coproducts` is executable (format 1.5): coverage and disjointness failures fire `violation` findings |
 | Frozen | an edit to a fixture or a catalog row is a superseding ledger entry, never a silent change |
@@ -43,10 +43,10 @@ digest above.
 
 | Fixture | Fault | Defect | Model hash | File sha256 |
 |---|---|---|---|---|
-| `payments-three-variants.ct.json` | `clean-closed-table` | `Method = card \| transfer \| cash`, every row covered exactly once | `sha256:e7a06c0b6a572e29c1a719ad4d5dffb0de056ca0516ce4764163a443303011ab` | `f68f291a41480aea3c5c6c5988368a865b80afa1d36859a8f22ccb03e399a791` |
-| `payments-rogue-voucher.ct.json` | `rogue-variant` | fourth `Method` row `voucher` in no injection's image | `sha256:2e10d916c73f13383e706a8ff2396c76f24aabf827df2272bebefe939e225f47` | `97c13fd59668a7a65cbdb4ee3bea17486f7a52ce018f2b6358435710cd879553` |
-| `payments-dual-covered.ct.json` | `dual-covered` | `Method` row `shared` in the image of both `card_inj` and `transfer_inj` | `sha256:1a55c46fd9e0a7c06dd95ad055f572d1a89cd31f7d0c2ab75e6054fea7fc5246` | `2238252e54ee2c24450d8778565e6d35c619e6cd86511e3af921f958cdb1b0c9` |
-| `floor-keys-caught.ct.json` | `floor-keys-caught` (control) | `Card` rows `c1`, `c2` both collapse onto `Method/card` — `card_inj` not injective | `sha256:76dbedc228187a05fc6d606680f91f5b2cc23a509c844f9b41e2bf40e1e26fe2` | `566ba17799c006dbf1147e96d7e0ef3658b99a1775eea839a140031c7b1d5c01` |
+| `payments-three-variants.ct.json` | `clean-closed-table` | `Method = card \| transfer \| cash`, every row covered exactly once | `sha256:ede094298d1041ca8c13c6b8d9786086b9616f6d4a848b006e3dbf525fe64593` | `f68f291a41480aea3c5c6c5988368a865b80afa1d36859a8f22ccb03e399a791` |
+| `payments-rogue-voucher.ct.json` | `rogue-variant` | fourth `Method` row `voucher` in no injection's image | `sha256:999d9c5e60070197f52b2b34ceda66187ebdf2ba560c661333fcc31ceadc14b0` | `97c13fd59668a7a65cbdb4ee3bea17486f7a52ce018f2b6358435710cd879553` |
+| `payments-dual-covered.ct.json` | `dual-covered` | `Method` row `shared` in the image of both `card_inj` and `transfer_inj` | `sha256:c953da599e293a516e1785a213242304d9ac6fdbafd27fff6917cf9a19f2677a` | `2238252e54ee2c24450d8778565e6d35c619e6cd86511e3af921f958cdb1b0c9` |
+| `floor-keys-caught.ct.json` | `floor-keys-caught` (control) | `Card` rows `c1`, `c2` both collapse onto `Method/card` — `card_inj` not injective | `sha256:0517667d8f596dcf4f7fd0c912e4787b36377df6add2c53ea4fe859b2ef3032a` | `566ba17799c006dbf1147e96d7e0ef3658b99a1775eea839a140031c7b1d5c01` |
 
 The three payments documents are re-authored from the same corpus
 transcripts the gap suite's `coproduct_payments.ct.json` encodes

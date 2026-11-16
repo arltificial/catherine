@@ -1,0 +1,46 @@
+{
+  "format_version": "1.5",
+  "schema": {
+    "objects": ["Order", "Region", "Tier", "Method", "Card", "Transfer"],
+    "arrows": [
+      {"name": "invoice_region", "src": "Order", "tgt": "Region"},
+      {"name": "dispatch_region", "src": "Order", "tgt": "Region"},
+      {"name": "region_tier", "src": "Region", "tgt": "Tier"},
+      {"name": "invoice_tier", "src": "Order", "tgt": "Tier"},
+      {"name": "card_inj", "src": "Card", "tgt": "Method"},
+      {"name": "transfer_inj", "src": "Transfer", "tgt": "Method"}
+    ],
+    "equations": [
+      {
+        "lhs": ["invoice_region", "region_tier"],
+        "rhs": ["invoice_tier"],
+        "rationale": "the invoiced tier follows the invoicing region",
+        "status": "accepted"
+      }
+    ],
+    "keys": [
+      {"object": "Order", "arrows": ["invoice_tier"], "status": "accepted"}
+    ],
+    "coproducts": [
+      {"object": "Method", "arrows": ["card_inj", "transfer_inj"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Order": ["o1", "o2"],
+      "Region": ["north", "south"],
+      "Tier": ["basic", "pro"],
+      "Method": ["card", "transfer", "voucher"],
+      "Card": ["card"],
+      "Transfer": ["transfer"]
+    },
+    "tables": {
+      "invoice_region": {"o1": "north", "o2": "south"},
+      "dispatch_region": {"o1": "south", "o2": "south"},
+      "region_tier": {"north": "pro", "south": "basic"},
+      "invoice_tier": {"o1": "pro", "o2": "basic"},
+      "card_inj": {"card": "card"},
+      "transfer_inj": {"transfer": "transfer"}
+    }
+  }
+}

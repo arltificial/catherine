@@ -1,0 +1,11 @@
+id = "absent-map-warns-never-clean"
+description = "A naturality run whose source document declares no instance_map exits 0 with a success envelope carrying a labeled warning that names the absent map — never a silent, warning-free clean (a vacation clean) indistinguishable from a verified map."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "naturality_negative_matrix_rows_surface_honestly" },
+]

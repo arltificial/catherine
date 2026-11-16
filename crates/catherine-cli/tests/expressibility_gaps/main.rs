@@ -73,7 +73,7 @@ fn regressed_limitation_must_flip_its_row_back() {
 
 #[test]
 fn stale_claim_registers_closed_not_as_a_gap() {
-    let report = runner::closed_rows_cite_fixing_evidence(&cases::all());
+    let report = runner::closed_rows_cite_fixing_evidence();
     assert!(
         report.rows > 0,
         "the evidence check parsed no disposition rows"
@@ -106,7 +106,7 @@ fn unregistered_case_fails_the_suite() {
 
 #[test]
 fn claim_without_a_row_fails_the_gate() {
-    let report = runner::limitation_claims_name_a_disposition_row(&cases::all());
+    let report = runner::limitation_claims_name_a_disposition_row();
     assert!(report.rows > 0, "the claim gate parsed no disposition rows");
     assert_eq!(
         report.checked, report.rows,
@@ -121,7 +121,7 @@ fn claim_without_a_row_fails_the_gate() {
 
 #[test]
 fn gate_runs_in_ci() {
-    let report = runner::gate_is_wired_into_ci(&cases::all());
+    let report = runner::gate_is_wired_into_ci();
     assert!(
         report.rows > 0,
         "the CI wiring check parsed no disposition rows"

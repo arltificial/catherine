@@ -28,17 +28,35 @@
 # rebuilt from the openspec sources, which are not docs claims).
 #
 # Rationale: the suite's value is completeness under drift; without the gate
-# the table decays back to chat-only knowledge. The phrase list is fixed and
-# case-insensitive, chosen so every `Claimed limitation` cell in the table is
-# itself rejected when fed as an unattributed claim (a non-tautological
-# coverage test, `crates/catherine-cli/tests/expressibility_gate_rows.rs`):
-#   cannot be expressed | can't be expressed | cannot be stated |
-#   cannot be declared | cannot be represented | nothing can express |
-#   not expressible | no way to express | inexpressible |
-#   silently ignored | is silently dropped | accepted and ignored |
-#   accepted without a finding | is not checked | checks clean |
-#   is never evaluated | hand-picked | expressible only with |
-#   cannot be checked jointly
+# the table decays back to chat-only knowledge. Two fixed, case-insensitive
+# phrase groups keep every `Claimed limitation` cell in the table rejected
+# when fed as an unattributed claim (a non-tautological coverage test,
+# `crates/catherine-cli/tests/expressibility_gate_rows.rs`):
+#
+#   Specific vocabulary (a claim on its own):
+#     cannot be expressed | can't be expressed | cannot be stated |
+#     cannot be declared | cannot be represented | nothing can express |
+#     not expressible | no way to express | inexpressible |
+#     silently ignored | is silently dropped | cannot be checked jointly
+#
+#   Generic phrases (a claim only in limitation context):
+#     accepted and ignored | accepted without a finding | is not checked |
+#     checks clean | is never evaluated | hand-picked |
+#     expressible only with
+#
+# Context rule: a generic phrase fires only when the *same line* also carries
+# a limitation cue — a tool subject (`catherine`, `the tool`, `the parser`,
+# `the checker`, `the check`, `this tool`), a limitation subject (`nothing`,
+# `no way`, `silently`), or a bounded modal/negation/limitation word (`not`,
+# `never`, `no`, `none`, `without`, `cannot`, `can't`, `unable`, `absent`,
+# `missing`, `unobserved`, `unchecked`, `unsupported`, `dangling`, `wrong`,
+# `omitted`, `fails`, `only`, `requires`). "Bounded" means the cue must stand
+# as a word: `no` does not fire on `north`, `not` does not fire on
+# `annotation`. This keeps ordinary prose such as "the run checks clean on
+# the fixture" or "a hand-picked observation" out of the gate while a real
+# claim ("the instance checks clean with no warning") is still rejected.
+# The synthetic path applies the same rule, so `CLAIM_GATE_SYNTHETIC` cannot
+# launch a rejection from a line that is not a limitation claim.
 # `CLAIM_GATE_SYNTHETIC=<line>` scans only that synthetic line — used by the
 # test to prove the gate is not a no-op. `CLAIM_GATE_ROOT=<dir>` is a
 # test-only override of the repository root so the close-note scanner can be
@@ -49,12 +67,26 @@ set -euo pipefail
 ROOT="${CLAIM_GATE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 TABLE="$ROOT/docs/ref/expressibility-dispositions.md"
 
-CLAIM_PATTERN="cannot be expressed|can't be expressed|cannot be stated|cannot be declared"
-CLAIM_PATTERN+="|cannot be represented|nothing can express|not expressible"
-CLAIM_PATTERN+="|no way to express|inexpressible|silently ignored"
-CLAIM_PATTERN+="|is silently dropped|accepted and ignored|accepted without a finding"
-CLAIM_PATTERN+="|is not checked|checks clean|is never evaluated|hand-picked"
-CLAIM_PATTERN+="|expressible only with|cannot be checked jointly"
+# Unconditional limitation vocabulary: a line carrying one of these is a
+# limitation claim whatever the surrounding sentence.
+SPECIFIC_PATTERN="cannot be expressed|can't be expressed|cannot be stated"
+SPECIFIC_PATTERN+="|cannot be declared|cannot be represented|nothing can express"
+SPECIFIC_PATTERN+="|not expressible|no way to express|inexpressible"
+SPECIFIC_PATTERN+="|silently ignored|is silently dropped|cannot be checked jointly"
+
+# Generic phrases are ordinary English on their own; they count only on a
+# line that also carries a limitation cue (CONTEXT_PATTERN).
+GENERIC_PATTERN="accepted and ignored|accepted without a finding|is not checked"
+GENERIC_PATTERN+="|checks clean|is never evaluated|hand-picked|expressible only with"
+
+# The limitation cue for generic phrases: a tool subject, a limitation
+# subject, or a bounded modal/negation word. The boundary group keeps `no`
+# from matching `north` and `not` from matching `annotation`.
+CONTEXT_PATTERN="catherine|the tool|the parser|the checker|the check"
+CONTEXT_PATTERN+="|this tool|nothing|no way|silently"
+CONTEXT_PATTERN+="|(^|[^[:alnum:]])(not|never|no|none|without|cannot|can't|unable"
+CONTEXT_PATTERN+="|absent|missing|unobserved|unchecked|unsupported|dangling"
+CONTEXT_PATTERN+="|wrong|omitted|fails?|only|requires?)([^[:alnum:]]|$)"
 
 if [[ ! -f "$TABLE" ]]; then
 	echo "check-expressibility-claims: missing disposition table: $TABLE" >&2
@@ -87,7 +119,32 @@ check_line() {
 	return 1
 }
 
+# claim_hits FILE — print `LINE:TEXT` for every limitation claim in FILE.
+# Specific vocabulary stands alone; a generic phrase must share its line with
+# a limitation cue. The generic branch drops lines the specific branch already
+# emitted, so each claim line is reported once.
+claim_hits() {
+	{
+		grep -inE "$SPECIFIC_PATTERN" "$1" || true
+		grep -inE "$CONTEXT_PATTERN" "$1" \
+			| grep -iE "$GENERIC_PATTERN" \
+			| grep -ivE "$SPECIFIC_PATTERN" || true
+	}
+}
+
+# is_claim_line TEXT — succeed when TEXT is a limitation claim under the
+# same specific/generic/context rule the file scan uses.
+is_claim_line() {
+	printf '%s\n' "$1" | grep -qiE "$SPECIFIC_PATTERN" && return 0
+	printf '%s\n' "$1" | grep -qiE "$CONTEXT_PATTERN" \
+		&& printf '%s\n' "$1" | grep -qiE "$GENERIC_PATTERN"
+}
+
 if [[ -n ${CLAIM_GATE_SYNTHETIC:-} ]]; then
+	if ! is_claim_line "$CLAIM_GATE_SYNTHETIC"; then
+		echo "✅ synthetic line is not a limitation claim"
+		exit 0
+	fi
 	if check_line "<synthetic>" 1 "$CLAIM_GATE_SYNTHETIC"; then
 		echo "✅ synthetic limitation claim names a disposition row id"
 		exit 0
@@ -162,13 +219,22 @@ record_hits() {
 }
 
 for file in "${plain_files[@]}"; do
-	record_hits "$file" "$(grep -inE "$CLAIM_PATTERN" "$file" || true)"
+	record_hits "$file" "$(claim_hits "$file")"
 done
 
 for file in "${close_note_files[@]}"; do
 	case "$file" in
-		*/close-note*.md) record_hits "$file" "$(grep -inE "$CLAIM_PATTERN" "$file" || true)" ;;
-		*) record_hits "$file" "$(close_note_lines "$file" | grep -iE "$CLAIM_PATTERN" || true)" ;;
+		*/close-note*.md) record_hits "$file" "$(claim_hits "$file")" ;;
+		*)
+			record_hits "$file" "$(
+				{
+					close_note_lines "$file" | grep -iE "$SPECIFIC_PATTERN" || true
+					close_note_lines "$file" | grep -iE "$CONTEXT_PATTERN" \
+						| grep -iE "$GENERIC_PATTERN" \
+						| grep -ivE "$SPECIFIC_PATTERN" || true
+				}
+			)"
+			;;
 	esac
 done
 

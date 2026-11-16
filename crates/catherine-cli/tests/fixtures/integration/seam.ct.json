@@ -1,0 +1,19 @@
+{
+  "format_version": "1.5",
+  "schema": {
+    "objects": ["Order", "Region", "Tier"],
+    "arrows": [],
+    "equations": [
+      {
+        "lhs": ["dispatch_region", "region_tier"],
+        "rhs": ["invoice_region", "region_tier"],
+        "rationale": "SEAM: an order is invoiced in the tier of the region it is dispatched from",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {},
+    "tables": {}
+  }
+}

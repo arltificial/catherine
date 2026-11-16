@@ -212,7 +212,8 @@ pub fn closed_rows_still_show_the_fix(cases: &[Case]) -> Report {
 }
 
 /// `closed` rows cite fixing evidence; `gap` rows name the missing capability.
-pub fn closed_rows_cite_fixing_evidence(_cases: &[Case]) -> Report {
+/// Registration is [`every_case_is_registered`]'s invariant, not this check's.
+pub fn closed_rows_cite_fixing_evidence() -> Report {
     let rows = table();
     let mut report = Report::new(rows.len());
     let mut closed = 0;
@@ -294,7 +295,7 @@ pub fn every_case_is_registered(cases: &[Case]) -> Report {
 
 /// The docs gate: run the script over the real docs, then prove it rejects a
 /// synthetic claim with no row id and accepts the same claim with one.
-pub fn limitation_claims_name_a_disposition_row(_cases: &[Case]) -> Report {
+pub fn limitation_claims_name_a_disposition_row() -> Report {
     let rows = table();
     let clean = run_claim_gate(None);
     assert!(
@@ -352,7 +353,7 @@ fn gate_text(output: &Output) -> String {
 }
 
 /// `just ci` must keep invoking the claim gate recipe.
-pub fn gate_is_wired_into_ci(_cases: &[Case]) -> Report {
+pub fn gate_is_wired_into_ci() -> Report {
     let path = repo_root().join("justfile");
     let text = std::fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("read {}: {error}", path.display()));

@@ -6,12 +6,14 @@
 //!
 //! Responsibilities: parse `docs/ref/expressibility-dispositions.md`, feed
 //! each row's claim cell through `CLAIM_GATE_SYNTHETIC` and require exit 1
-//! (un-cited) and exit 0 once the same sentence cites the row id; build a
-//! temporary repository root through the test-only `CLAIM_GATE_ROOT` hook and
-//! assert a claim inside a `## Close note` section (including its nested
-//! sub-sections) is rejected while sibling sections stay out of scope, and
-//! that the same claim accepted when cited; and assert the plain real-tree
-//! invocation exits 0.
+//! (un-cited) and exit 0 once the same sentence cites the row id; prove the
+//! generic-phrase context rule both ways — ordinary prose using a generic
+//! phrase ("the run checks clean on the fixture") exits 0 while the same
+//! phrase in a limitation context exits 1; build a temporary repository root
+//! through the test-only `CLAIM_GATE_ROOT` hook and assert a claim inside a
+//! `## Close note` section (including its nested sub-sections) is rejected
+//! while sibling sections stay out of scope, and that the same claim accepted
+//! when cited; and assert the plain real-tree invocation exits 0.
 //!
 //! Rationale: the gate's previous phrase list caught only 4 of the 12
 //! registered claims, so a real limitation could be restated in the docs and
@@ -20,7 +22,9 @@
 //! rather than `close-note*.md` files — review finding HIGH-002. Feeding the
 //! registry's own wording through the gate makes phrase coverage
 //! non-tautological: adding a row with unfamiliar phrasing fails this test
-//! until the fixed, documented list learns it.
+//! until the fixed, documented list learns it. Generic phrases are narrowed
+//! to a limitation context so ordinary prose in README/CHANGELOG/`docs/**`
+//! does not trip the gate — review finding CLAR-001.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -149,6 +153,39 @@ fn every_claim_cell_is_rejected_without_a_row_id() {
             "row `{}`: the same claim is rejected once cited:\n{}",
             row.id,
             gate_text(&accepted)
+        );
+    }
+}
+
+/// A generic phrase is a claim only in a limitation context: ordinary prose is
+/// accepted, the same phrase next to a limitation cue is rejected. Guards
+/// review finding CLAR-001.
+#[test]
+fn generic_phrases_require_limitation_context() {
+    for ordinary in [
+        "the run checks clean on the fixture",
+        "a hand-picked observation set",
+        "trailing whitespace is accepted and ignored",
+    ] {
+        let output = run_gate(None, Some(ordinary));
+        assert!(
+            output.status.success(),
+            "ordinary prose is treated as a limitation claim: {ordinary}\n{}",
+            gate_text(&output)
+        );
+    }
+
+    for claim in [
+        "the instance checks clean with no warning",
+        "the tool requires a hand-picked observation set",
+        "the parser accepts the declaration; it is accepted and ignored",
+    ] {
+        let output = run_gate(None, Some(claim));
+        assert_eq!(
+            output.status.code(),
+            Some(1),
+            "a limitation-context generic phrase is not detected: {claim}\n{}",
+            gate_text(&output)
         );
     }
 }
