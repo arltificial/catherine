@@ -1,0 +1,11 @@
+id = "absent-coproducts-are-hash-neutral"
+description = "A document without a coproducts section keeps its exact canonical bytes and model hash, and an empty coproducts list is omitted from canonical bytes exactly like an absent one, so every pre-change identity is untouched."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "absent_coproducts_are_hash_neutral" },
+]

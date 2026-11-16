@@ -33,7 +33,7 @@ pub(super) struct RawSchemaMap {
 fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::error::ParseError> {
     let objects = check_objects(raw, spans)?;
     let arrows = check_arrows(raw, &objects, spans)?;
-    let equations = check_equations(raw, &arrows, spans)?;
+    let equations = check_equations(&raw.equations, &arrows, spans)?;
     let keys = check_keys(raw, &objects, &arrows, spans)?;
     Ok(Schema {
         objects,

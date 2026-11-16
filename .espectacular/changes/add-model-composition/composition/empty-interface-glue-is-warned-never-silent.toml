@@ -1,0 +1,15 @@
+id = "empty-interface-glue-is-warned-never-silent"
+description = "Two or more jointly checked documents that share no declared identity (no object, no arrow, no `(object, row)` pair) still glue and exit clean, but the run emits a labeled warning (empty_composition_interface) naming both inputs on the envelope and on stderr in human mode, so a typo'd interface name is never presented as a signal-free seam check; a bare row name reused across objects is not a shared identity."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "disjoint_documents_warn_empty_composition_interface" },
+    { flags = "disjoint_documents_flag_an_empty_interface" },
+    { flags = "human_mode_joint_run_prints_the_warning_on_stderr" },
+    { flags = "disjoint_documents_sharing_a_row_name_are_warned" },
+    { flags = "the_empty_interface_is_namespaced" },
+]

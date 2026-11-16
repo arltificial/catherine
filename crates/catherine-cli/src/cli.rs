@@ -84,18 +84,23 @@ pub struct Cli {
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Parse, build, and execute all checks; print every finding with
-    /// its kind, epistemic label, and witness.
+    /// its kind, epistemic label, and witness. Two or more documents are
+    /// glued by declared name and checked jointly (the composition
+    /// surface); one document is the unchanged single-document run.
     #[command(after_help = EXIT_CODE_TABLE)]
     Check {
-        /// Path to the .ct.json model document.
-        model: String,
+        /// Paths to one or more .ct.json model documents.
+        #[arg(required = true, num_args = 1.., value_name = "MODEL")]
+        models: Vec<String>,
     },
     /// The findings-only view: same execution, same presentation, same
     /// exit contract — one execution path with `check`, never a re-run.
+    /// Two or more documents run the joint (composition) check.
     #[command(after_help = EXIT_CODE_TABLE)]
     Findings {
-        /// Path to the .ct.json model document.
-        model: String,
+        /// Paths to one or more .ct.json model documents.
+        #[arg(required = true, num_args = 1.., value_name = "MODEL")]
+        models: Vec<String>,
     },
     /// Bounded instance search: explicit bounds in, an honest outcome
     /// out — a witness instance, a contradiction finding (exhaustion
@@ -127,11 +132,14 @@ pub enum Commands {
     },
     /// Raise the parallel-path domain question: paths with identical
     /// endpoints and no declared equation relating them, hypothesized —
-    /// never a violation.
+    /// never a violation. Two or more documents are glued first, so a
+    /// question that exists only at the seam is raised with source
+    /// attribution naming the documents whose union created it.
     #[command(after_help = EXIT_CODE_TABLE)]
     Underconstraint {
-        /// Path to the .ct.json model document.
-        model: String,
+        /// Paths to one or more .ct.json model documents.
+        #[arg(required = true, num_args = 1.., value_name = "MODEL")]
+        models: Vec<String>,
         /// Maximum path length to enumerate (a cyclic schema generates
         /// unboundedly many paths; the cap keeps the op total).
         #[arg(long = "max-path-length", default_value_t = default_scope_caps().max_path_length)]

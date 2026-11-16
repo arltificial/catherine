@@ -26,6 +26,7 @@ use std::collections::BTreeMap;
 use std::io::Write;
 
 mod naturality;
+mod underconstraint;
 pub use naturality::run_naturality;
 
 /// catherine-uh0: run-level warnings reach stderr in human mode too —
@@ -147,10 +148,12 @@ pub fn run_redundant(
 
 /// `underconstraint`: findings-bearing op — exits 6 when a hypothesis is
 /// raised, 0 when the schema has no unconstrained parallel paths within
-/// the cap.
+/// the cap. One path is the unchanged single-document run; two or more
+/// are glued first, so a question that exists only at the seam carries
+/// source attribution.
 #[allow(clippy::too_many_arguments)]
 pub fn run_underconstraint(
-    model_path: &str,
+    model_paths: &[String],
     max_path_length: usize,
     json: bool,
     quiet: bool,
@@ -158,6 +161,18 @@ pub fn run_underconstraint(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
+    if model_paths.len() > 1 {
+        return underconstraint::composition(
+            model_paths,
+            max_path_length,
+            json,
+            quiet,
+            warnings,
+            stdout,
+            stderr,
+        );
+    }
+    let model_path = model_paths.first().map(String::as_str).unwrap_or_default();
     findings_runner(
         model_path,
         json,
@@ -168,10 +183,7 @@ pub fn run_underconstraint(
         |schema| {
             catherine_analysis::parallel::underconstraint(
                 schema,
-                &ScopeCaps {
-                    max_path_length,
-                    ..ScopeCaps::default()
-                },
+                &underconstraint::path_caps(max_path_length),
             )
         },
     )

@@ -1,0 +1,12 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Alpha"],
+    "arrows": [{"name": "alpha_loop", "src": "Alpha", "tgt": "Alpha"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Alpha": ["a1"]},
+    "tables": {"alpha_loop": {"a1": "a1"}}
+  }
+}

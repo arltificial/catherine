@@ -30,20 +30,20 @@ change; single-document behavior is byte-identical to today.
 
 ## GREEN
 
-- [ ] 6. Kernel: `glue(doc_a, doc_b)` — schema/instance union with the
+- [x] 6. Kernel: `glue(doc_a, doc_b)` — schema/instance union with the
       Decision-2 conflict checks; n-ary fold; post-glue name resolution
       for deferred equations
-- [ ] 7. Findings: `source` attribution threaded through witness payloads
+- [x] 7. Findings: `source` attribution threaded through witness payloads
       (additive, canonical order stable)
-- [ ] 8. CLI: variadic `check` path (>1 document → glue then check; 1
+- [x] 8. CLI: variadic `check` path (>1 document → glue then check; 1
       document → today's path untouched)
-- [ ] 9. Probe: commit `ledger/probes/composition/` catalog + fixtures
+- [x] 9. Probe: commit `ledger/probes/composition/` catalog + fixtures
       (billing/shipping from the gap suite), floor control, and the
       executed hand-merged baseline arm; record the run
 
 ## REFACTOR
 
-- [ ] 10. Gate caps: split any file/function the strict pretender gate
+- [x] 10. Gate caps: split any file/function the strict pretender gate
       rejects, without behavior change
 - [ ] 11. Docs: CHANGELOG entry; README/USING note that `check` is
       variadic and the scope guardrail (findings only, no model algebra)

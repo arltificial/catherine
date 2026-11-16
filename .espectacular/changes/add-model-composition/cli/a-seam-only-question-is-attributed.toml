@@ -1,0 +1,11 @@
+id = "a-seam-only-question-is-attributed"
+description = "Two documents that each raise no parallel-path question alone are glued; their shared-subschema union creates two parallel paths, and the joint `underconstraint` run emits one hypothesized finding naming both documents, exiting with the underconstraint class code (6)."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "post_glue_parallel_paths_are_attributed" },
+]

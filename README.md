@@ -79,6 +79,27 @@ identical (the `distinguish` check). The surface verifies a mapping —
 it never synthesizes or searches for one, and it emits no merged
 document.
 
+`check` and `findings` are variadic over documents — `catherine check
+a.ct.json b.ct.json …` glues the inputs by shared declared name and runs
+every input's equations and keys over the merged instance, with findings
+carrying an additive `source` attribution naming the declaring documents.
+Overlapping declarations must agree: disagreeing arrow endpoints are a
+labeled `schema_conflict`; a shared object's differing row sets, or a
+commonly-declared cell valued differently (including `null` against a
+value), a `row_conflict`; and a glue sharing no object, no arrow, and no
+`(object, row)` pair emits the `empty_composition_interface` warning
+(stderr in human mode) rather than passing silently. A cross-document
+equation lives in an input document, so the seam claim is versioned,
+reviewed, and enforced by the joint run with source attribution — and the
+same document alone is rejected with `unknown_arrow` unless it also
+declares every arrow it names, so only that self-contained form carries an
+ordinary model hash and the `diff` surface. A document whose equations
+resolve alone reports the same first error whether it is run alone or
+jointly, and single-document runs keep today's bytes and exit codes
+exactly. The surface reports findings — it never emits a merged document.
+`underconstraint` accepts the same joint form for seam-only parallel-path
+questions and labels a disjoint union the same way.
+
 Exit codes mirror finding classes — CI and agents branch on exit
 status without parsing any text:
 

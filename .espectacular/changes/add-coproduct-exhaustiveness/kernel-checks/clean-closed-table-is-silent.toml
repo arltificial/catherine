@@ -1,0 +1,11 @@
+id = "clean-closed-table-is-silent"
+description = "A closed table in which every row of the declared object lies in exactly one injection image produces zero coproduct findings."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "clean_closed_table_is_silent" },
+]

@@ -1,0 +1,15 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Order", "Region"],
+    "arrows": [
+      {"name": "invoice_region", "src": "Order", "tgt": "Region"},
+      {"name": "dispatch_region", "src": "Order", "tgt": "Region"}
+    ],
+    "equations": [
+      {"lhs": ["invoice_region"], "rhs": ["ghost"], "rationale": "undeclared element"},
+      {"lhs": ["invoice_region"], "rhs": ["dispatch_region"], "rationale": "bad status", "status": "bogus"}
+    ]
+  },
+  "instance": {"rows": {}, "tables": {}}
+}

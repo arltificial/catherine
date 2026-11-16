@@ -1,0 +1,13 @@
+id = "two-documents-run-the-joint-check"
+description = "An agent running `catherine check billing.ct.json shipping.ct.json --json` over two documents sharing a sub-schema executes the glued constraints of both documents; findings carry source attribution naming the declaring documents, the exit code follows the existing precedence contract, and a joint run that produces both a violation and a dangling finding still exits 3."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "joint_check_runs_over_billing_and_shipping" },
+    { flags = "joint_findings_carry_source_attribution" },
+    { flags = "joint_runs_keep_the_exit_code_precedence" },
+]

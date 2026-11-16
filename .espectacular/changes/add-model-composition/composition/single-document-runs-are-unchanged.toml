@@ -1,0 +1,14 @@
+id = "single-document-runs-are-unchanged"
+description = "A check run with exactly one document path keeps the single-document behavior: the same findings, the same exit codes, and the same --json envelope bytes as the pre-change binary, including the parse-time unknown_arrow error's code, offending-node position, and message shape."
+archetype = "NR"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "single_document_invocations_are_byte_identical" },
+    { flags = "single_document_unknown_arrow_error_is_unchanged" },
+    { flags = "single_document_unknown_arrow_matches_the_parse_time_error" },
+    { flags = "a_single_document_glue_preserves_the_parsed_model" },
+]

@@ -50,7 +50,9 @@ pub(super) struct RawArrow {
     pub(super) tgt: String,
 }
 
-#[derive(Deserialize)]
+/// One raw equation entry: cloned into a deferred resolution when its
+/// paths may name a sibling document's arrows.
+#[derive(Debug, Deserialize, Clone)]
 pub(super) struct RawEquation {
     pub(super) lhs: Vec<String>,
     pub(super) rhs: Vec<String>,
@@ -180,12 +182,12 @@ pub(super) fn check_arrows(
 
 /// Equations: path idents, declared arrows, endpoint typing, status.
 pub(super) fn check_equations(
-    schema: &RawSchema,
+    raw_equations: &[RawEquation],
     arrows: &BTreeMap<Ident, Arrow>,
     spans: &Spans,
 ) -> Result<Vec<Equation>, crate::error::ParseError> {
     let mut equations = Vec::new();
-    for (i, raw) in schema.equations.iter().enumerate() {
+    for (i, raw) in raw_equations.iter().enumerate() {
         let base = format!("/schema/equations/{i}");
         let lhs = check_path(spans, &format!("{base}/lhs"), &raw.lhs, arrows)?;
         let rhs = check_path(spans, &format!("{base}/rhs"), &raw.rhs, arrows)?;

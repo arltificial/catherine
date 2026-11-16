@@ -1,0 +1,28 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Method", "Card", "Transfer", "Cash"],
+    "arrows": [
+      {"name": "card_inj", "src": "Card", "tgt": "Method"},
+      {"name": "transfer_inj", "src": "Transfer", "tgt": "Method"},
+      {"name": "cash_inj", "src": "Cash", "tgt": "Method"}
+    ],
+    "equations": [],
+    "coproducts": [
+      {"object": "Method", "arrows": ["card_inj", "transfer_inj", "cash_inj"], "status": "proposed"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Method": ["card", "transfer", "cash", "voucher"],
+      "Card": ["card"],
+      "Transfer": ["transfer"],
+      "Cash": ["cash"]
+    },
+    "tables": {
+      "card_inj": {"card": "card"},
+      "transfer_inj": {"transfer": "transfer"},
+      "cash_inj": {"cash": "cash"}
+    }
+  }
+}

@@ -38,6 +38,60 @@ pub fn findings_envelope(
     )
 }
 
+/// One finding with its composition source attribution: the finding's
+/// fields flattened verbatim (the single-document encoding is unchanged),
+/// plus an additive `source` list naming the documents that declared the
+/// violated constraint and its referenced paths. Absent for
+/// single-document runs.
+#[derive(Serialize)]
+pub struct SourcedFinding {
+    #[serde(flatten)]
+    pub finding: Finding,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<Vec<String>>,
+}
+
+/// The multi-document findings payload (the same `data.findings` array,
+/// each element carrying the additive `source` field).
+#[derive(Serialize)]
+pub struct SourcedFindingsData {
+    pub findings: Vec<SourcedFinding>,
+}
+
+/// The multi-document findings envelope: the same kind and warnings
+/// channels as [`findings_envelope`], with source attribution added to
+/// every finding the glue can attribute.
+pub fn sourced_findings_envelope(
+    findings: Vec<SourcedFinding>,
+    warnings: Vec<Warning>,
+) -> Envelope<SourcedFindingsData> {
+    Envelope::success(
+        CLI_VERSION,
+        EnvelopeKind::Check,
+        SourcedFindingsData { findings },
+        warnings,
+        Vec::new(),
+    )
+}
+
+/// The disjoint-union warning: two or more jointly checked documents share
+/// no declared name, so the run is a union, never a seam check. Named on
+/// the envelope's warnings channel instead of a signal-free clean exit.
+pub fn empty_composition_warning(documents: &[String]) -> Warning {
+    Warning {
+        rule_name: "empty_composition_interface".to_string(),
+        entity_id: None,
+        message: format!(
+            "the composition of {} shares no declared names; this is a disjoint union, not a seam check",
+            documents.join(", ")
+        ),
+        suggested_remediation: Some(
+            "check that the interface names are spelled identically across the documents, or run each document alone"
+                .to_string(),
+        ),
+    }
+}
+
 /// The one error-envelope path: the envelope's error form with the
 /// kernel's labeled error data under it — stable code, message with
 /// position, remediation hint (Invariant 3.2.5: remediation non-empty).

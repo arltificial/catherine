@@ -1,0 +1,12 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Order", "Region"],
+    "arrows": [{"name": "ledger_region", "src": "Order", "tgt": "Region"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Order": ["o1", "o2"], "Region": ["north"]},
+    "tables": {"ledger_region": {"o1": "north", "o2": "north"}}
+  }
+}

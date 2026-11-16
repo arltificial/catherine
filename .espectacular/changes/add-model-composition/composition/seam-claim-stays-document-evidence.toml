@@ -1,0 +1,11 @@
+id = "seam-claim-stays-document-evidence"
+description = "A seam equation over names defined in another input lives in an input document, so the claim is versioned, reviewed, and enforced as document content: the joint run executes it and attributes the violation to the declaring document, while the same document alone is rejected with the parser's unknown_arrow because it names an arrow it does not declare — joint-run evidence, never a CLI flag or a third unhashed file."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "a_cross_document_claim_is_joint_run_evidence" },
+]

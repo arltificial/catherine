@@ -112,6 +112,7 @@ fn catalog_hash_is_content_addressed() {
         "probe-migration",
         "probe-rule-lens-extracted",
         "probe-naturality",
+        "probe-composition",
     ] {
         let hash = probe_catalog_hash(probe_id).expect("registered probe has a catalog");
         let expected = recomputed_hash(&probe_expectations(probe_id));

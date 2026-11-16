@@ -1,0 +1,17 @@
+id = "arity-does-not-change-the-first-error"
+description = "One equation phase serves every arity: `check` calls the parser's own resolver over the document's arrows, and the post-glue stage calls it again over the pushout, so a document whose equations resolve alone reports the same first error (code, offending-node position, message) whether checked alone or jointly; a failure the pushout cannot satisfy (`ill_typed_equation` over local arrows, `invalid_status`, `invalid_ident`, syntax) is raised in the slot rather than deferred, and a later error that only becomes reachable once the pushout satisfies a seam path is still raised, never swallowed."
+archetype = "NR"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "arity_does_not_change_the_first_error" },
+    { flags = "a_resolved_status_error_is_still_reported" },
+    { flags = "deferred_resolution_keeps_parse_precedence" },
+    { flags = "a_status_error_is_raised_in_the_equation_slot" },
+    { flags = "a_status_error_behind_a_resolved_seam_is_still_raised" },
+    { flags = "a_seam_document_keeps_its_later_errors" },
+    { flags = "a_local_endpoint_mismatch_is_raised_in_the_equation_slot" },
+]

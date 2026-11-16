@@ -1,0 +1,11 @@
+id = "a-disjoint-union-on-the-analysis-surface-is-warned"
+description = "A joint `underconstraint` run over two documents that share no declared identity proceeds, reports its per-document questions, and labels the disjoint reading with the empty_composition_interface warning — the weakened seam presentation is never silent on the analysis surface either."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "the_joint_underconstraint_run_warns_on_a_disjoint_union" },
+]

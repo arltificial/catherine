@@ -1,0 +1,11 @@
+id = "rogue-variant-is-a-violation-with-a-witness"
+description = "An instance carrying a row of the declared object outside every injection image produces exactly one violation labeled executed naming the uncovered row, and the run exits with the violation code — never a clean exit on a declared-closed type."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "rogue_variant_is_one_executed_violation" },
+]

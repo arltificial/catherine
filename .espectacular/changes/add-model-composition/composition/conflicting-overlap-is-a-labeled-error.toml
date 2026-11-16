@@ -1,0 +1,17 @@
+id = "conflicting-overlap-is-a-labeled-error"
+description = "When two inputs declare the same arrow with different endpoints, the same object with different row sets, or the same row valued differently (including `null` against a value) in a commonly declared arrow, the glue fails before any check with a stable conflict code (schema_conflict / row_conflict) carrying the offending node, the differing names, and both document names, and nothing is silently merged or fabricated."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "disagreeing_arrow_endpoints_are_a_schema_conflict" },
+    { flags = "disagreeing_row_values_are_a_row_conflict" },
+    { flags = "differing_row_sets_are_a_row_conflict" },
+    { flags = "a_dangling_cell_against_a_value_is_a_row_conflict" },
+    { flags = "a_shared_object_with_different_row_sets_is_a_labeled_conflict" },
+    { flags = "a_null_cell_against_a_value_is_a_labeled_conflict" },
+    { flags = "composition_negative_matrix_rows_surface_honestly" },
+]

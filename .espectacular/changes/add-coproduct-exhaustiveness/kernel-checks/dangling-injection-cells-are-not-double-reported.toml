@@ -1,0 +1,11 @@
+id = "dangling-injection-cells-are-not-double-reported"
+description = "A variant row whose injection cell is dangling already carries its dangling finding, so the incomplete declaration produces no coverage or disjointness finding — the row is excluded and never double-reported."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "dangling_injection_cell_is_not_double_reported" },
+]

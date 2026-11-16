@@ -13,13 +13,16 @@ pub(super) type Pos = (usize, usize);
 /// JSON pointer, every object key's location keyed by (object pointer,
 /// key), and keys repeated inside one object — which serde_json's
 /// last-wins maps would otherwise silently drop.
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub(super) struct Spans {
     pub(super) nodes: BTreeMap<String, Pos>,
     pub(super) keys: BTreeMap<(String, String), Pos>,
     pub(super) dup_keys: Vec<DupKey>,
 }
 
+/// Cloned with the scan: a deferred equation carries the spans into the
+/// post-glue resolution pass.
+#[derive(Debug, Clone)]
 pub(super) struct DupKey {
     pub(super) object: String,
     pub(super) key: String,
@@ -36,6 +39,11 @@ impl Spans {
             code,
             message,
         })
+    }
+
+    /// The node position, when the span scan recorded one.
+    pub(super) fn position(&self, pointer: &str) -> Option<(usize, usize)> {
+        self.nodes.get(pointer).copied()
     }
 
     pub(super) fn syntax(&self, pointer: &str, message: impl Into<String>) -> ParseError {

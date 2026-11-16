@@ -1,0 +1,11 @@
+id = "coproducts-round-trip-and-canonicalize"
+description = "A document declaring several coproducts in arbitrary input order parses successfully, the schema carries them in canonical (object, arrows, status) order, a repeated declaration is kept as presentation, and canonical serialization is byte-identical to the same declarations in another input order."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "coproducts_round_trip_and_canonicalize" },
+]

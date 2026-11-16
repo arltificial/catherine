@@ -1,0 +1,51 @@
+{
+  "probe": "probe-composition",
+  "comparison_rule": "unique = probe findings minus baseline-identified faults; the baseline arm is the hand-merged document executed by the same `check` binary. A fault is identified when the same row/cell is named with the same witness values. Detection parity (both arms fire) leaves unique empty; the eliminated hand-merge step is a workflow gap, never a detection.",
+  "faults": [
+    {
+      "id": "floor-dangling-cell",
+      "control": true,
+      "documents": ["fixtures/probes/composition/floor_dangling.ct.json"],
+      "baseline": ["fixtures/probes/composition/floor_dangling.ct.json"],
+      "catalog_fault": "floor-dangling-cell",
+      "probe_expected": {
+        "findings": [
+          {"kind": "dangling", "label": "executed", "witness": {"arrow": "invoice_region", "src": 0}}
+        ]
+      },
+      "baseline_expected": [
+        "dangling:invoice_region@row0"
+      ],
+      "baseline_identified": {
+        "fault:dangling-cell": ["dangling:invoice_region@row0"]
+      },
+      "unique_expected": 0,
+      "verdict_expected": "killed"
+    },
+    {
+      "id": "seam-violation",
+      "control": false,
+      "documents": [
+        "crates/catherine-cli/tests/fixtures/gap_suite/composition_billing.ct.json",
+        "crates/catherine-cli/tests/fixtures/gap_suite/composition_shipping.ct.json",
+        "crates/catherine-cli/tests/fixtures/gap_suite/composition_seam_claim.ct.json"
+      ],
+      "baseline": ["fixtures/probes/composition/hand_merged_seam.ct.json"],
+      "catalog_fault": "seam-violation",
+      "probe_expected": {
+        "findings": [
+          {"kind": "violation", "label": "executed", "witness": {"equation": 0, "row": 2, "lhs": 0, "rhs": 1}}
+        ]
+      },
+      "baseline_expected": [
+        "violation:eq0@row2:lhs=0:rhs=1"
+      ],
+      "baseline_identified": {
+        "fault:seam-violation": ["violation:eq0@row2:lhs=0:rhs=1"]
+      },
+      "unique_expected": 0,
+      "verdict_expected": "killed",
+      "gap": "the joint run finds the same row as the hand-merged baseline; the probe cannot claim a unique detection. Its contribution is eliminating the manual merge step (Recipe D), which is a workflow change, not a detection — recorded as a named gap on the entry."
+    }
+  ]
+}

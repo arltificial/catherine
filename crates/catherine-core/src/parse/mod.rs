@@ -31,6 +31,7 @@
 //! equality, the canonical bytes, and the model hash remain name-blind.
 
 mod build;
+mod deferred;
 mod instance_map;
 mod keys;
 mod predicate;
@@ -45,6 +46,7 @@ use crate::model::{Arrow, Ident, InstanceMap, Model, RowId, RulePresentation, Sc
 pub use rows::RowNames;
 
 use build::build_model;
+pub(crate) use deferred::{parse_deferred, PendingEquations};
 use keys::check_keys;
 use schema::{check_arrows, check_equations, check_ident, check_objects, check_version, RawDoc};
 use spans::{scan_spans, Spans};
@@ -68,7 +70,8 @@ pub fn parse(text: &str) -> Result<Model, ParseError> {
 pub fn parse_with_rows(text: &str) -> Result<(Model, RowNames), ParseError> {
     let doc: RawDoc = serde_json::from_str(text).map_err(syntax_err)?;
     let spans = scan_spans(text);
-    validate(doc, &spans)
+    let (model, rows, _) = validate_with(doc, &spans, false)?;
+    Ok((model, rows))
 }
 
 /// A labeled rejection at the offending node, shared by the additive-section
@@ -85,7 +88,10 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 /// 4. schema arrows — name charset + duplicates, src/tgt charset and
 ///    declaredness (the stable `unknown_arrow` is about equation paths);
 /// 5. equations — path idents, declared arrows, endpoint typing, status,
-///    canonical order (file order is presentation — Decision 4);
+///    canonical order (file order is presentation — Decision 4); in the
+///    composition mode ([`parse_deferred`]) this slot runs against the
+///    document's own arrows and a path naming a sibling document's arrow
+///    is carried to the post-glue resolution instead of rejected;
 /// 6. keys (additive 1.3) — object declaredness, a non-empty
 ///    duplicate-free arrow tuple sourced at the object, status, canonical
 ///    order (absent/empty = hash-neutral);
@@ -105,7 +111,11 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 ///     equation and key order — plus the [`RowNames`] side table (the
 ///     presentation names, indexed by those dense ids); the names never
 ///     enter the model.
-fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError> {
+fn validate_with(
+    doc: RawDoc,
+    spans: &Spans,
+    defer_equations: bool,
+) -> Result<(Model, RowNames, Option<PendingEquations>), ParseError> {
     let version = check_version(&doc, spans)?;
     let Some(schema) = doc.schema else {
         return Err(spans.syntax("", "missing required field `schema`"));
@@ -115,14 +125,18 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError>
     };
     let objects = check_objects(&schema, spans)?;
     let arrows = check_arrows(&schema, &objects, spans)?;
-    let equations = check_equations(&schema, &arrows, spans)?;
+    let (equations, pending) = if defer_equations {
+        deferred::check_equations(&schema.equations, &arrows, spans)?
+    } else {
+        (check_equations(&schema.equations, &arrows, spans)?, None)
+    };
     let keys = check_keys(&schema, &objects, &arrows, spans)?;
     let row_index = check_rows(&instance, &objects, spans)?;
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
     let instance_map = declared_instance_map(&doc.instance_map, &objects, &row_index, spans)?;
     let schema_map = declared_schema_map(&doc.schema_map, &objects, &arrows, spans)?;
     let rule_presentation = declared_rule_presentation(&doc.rule_presentation, &objects, spans)?;
-    Ok(build_model(
+    let (model, rows) = build_model(
         version,
         objects,
         arrows,
@@ -133,7 +147,8 @@ fn validate(doc: RawDoc, spans: &Spans) -> Result<(Model, RowNames), ParseError>
         schema_map,
         rule_presentation,
         instance_map,
-    ))
+    );
+    Ok((model, rows, pending))
 }
 
 /// The document's declared instance map, validated (additive 1.4) —

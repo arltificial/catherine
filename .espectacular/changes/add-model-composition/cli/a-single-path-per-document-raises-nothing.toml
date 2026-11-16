@@ -1,0 +1,11 @@
+id = "a-single-path-per-document-raises-nothing"
+description = "Each input document contributes only one path between its shared endpoints, so running either document alone through `underconstraint` raises no question and exits 0; only the glued union creates the parallel-path pair."
+archetype = "NR"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "post_glue_parallel_paths_are_attributed" },
+]

@@ -62,12 +62,15 @@ pub fn class_code(kind: &FindingKind) -> i32 {
     }
 }
 
-/// Execute `model_path` once and render. Returns the process exit code.
+/// Execute `model_paths` once and render. One path is the unchanged
+/// single-document run; two or more are glued by declared name and
+/// checked jointly (design Decision 1). Returns the process exit code.
 /// `quiet` suppresses the human finding lines (never the exit decision,
 /// never errors, never the machine envelope).
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     surface: Surface,
-    model_path: &str,
+    model_paths: &[String],
     json: bool,
     quiet: bool,
     warnings: Vec<Warning>,
@@ -75,6 +78,10 @@ pub fn run(
     stderr: &mut impl Write,
 ) -> i32 {
     let _ = surface; // one path for both names — see the module docs.
+    if model_paths.len() > 1 {
+        return run_composition(model_paths, json, quiet, warnings, stdout, stderr);
+    }
+    let model_path = model_paths.first().map(String::as_str).unwrap_or_default();
 
     let model = match load_model(model_path) {
         Ok(model) => model,
@@ -99,6 +106,27 @@ pub fn run(
     }
 
     exit_code(&findings)
+}
+
+/// The joint (composition) check: load and glue every input, execute the
+/// kernel checks over the merged model, warn on a disjoint union, and
+/// render the findings with source attribution.
+fn run_composition(
+    model_paths: &[String],
+    json: bool,
+    quiet: bool,
+    mut warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> i32 {
+    let glued = match crate::composition::load_glued(model_paths) {
+        Ok(glued) => glued,
+        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+    };
+    crate::composition::warn_empty_interface(&glued, json, &mut warnings, stderr);
+    let typed = TypedInstance::build(&glued.schema, &glued.instance);
+    let findings = checks::check(&glued.schema, &typed);
+    crate::composition::emit_findings(&findings, &glued, json, quiet, warnings, stdout, stderr)
 }
 
 /// Emit a labeled error on the error stream — human two-liner, or the

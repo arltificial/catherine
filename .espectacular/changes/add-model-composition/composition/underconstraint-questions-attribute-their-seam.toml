@@ -1,0 +1,11 @@
+id = "underconstraint-questions-attribute-their-seam"
+description = "Two documents that each raise no parallel-path question are glued; the union creates two parallel paths, and the resulting underconstraint finding is reported with seam attribution naming both documents whose union created the paths, exiting with the underconstraint class code (6)."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "post_glue_parallel_paths_are_attributed" },
+]

@@ -131,10 +131,11 @@ pub fn expectations(kata_id: &str) -> Vec<Expectation> {
 /// The registered domain-probe ids. Probes ride the kata entry shape in
 /// their own ledger directory (design Decision 1 revised); this list is
 /// the closed set the validator recognizes.
-pub const PROBE_IDS: [&str; 3] = [
+pub const PROBE_IDS: [&str; 4] = [
     "probe-migration",
     "probe-rule-lens-extracted",
     "probe-naturality",
+    "probe-composition",
 ];
 
 /// probe-migration: Δ migration at real scale — the pre-registered
@@ -268,6 +269,39 @@ fn probe_naturality() -> Vec<Expectation> {
     ]
 }
 
+/// probe-composition: the billing/shipping seam — the floor control on a
+/// dangling cell the single-document check already reports, plus the
+/// seam-violation arm whose hand-merged baseline detects the same row.
+/// Detection parity is the pinned expectation: the value claim under probe
+/// is eliminating the error-prone merge step, which is a named gap on the
+/// entry, never a detection claim (design Decision 5).
+fn probe_composition() -> Vec<Expectation> {
+    vec![
+        Expectation {
+            fault: "floor-dangling-cell".into(),
+            series_class: "behavioral".into(),
+            catherine_class: "finding".into(),
+            detail: "floor control — a dangling `invoice_region` cell is already \
+                     reported by the single-document check (exit 4); gluing the \
+                     document with itself must show zero unique detections here \
+                     (design Decision 5)"
+                .into(),
+        },
+        Expectation {
+            fault: "seam-violation".into(),
+            series_class: "behavioral".into(),
+            catherine_class: "finding".into(),
+            detail: "the billing/shipping seam: each document alone is clean, the \
+                     joint run reports order `o3` invoiced north and dispatched \
+                     south with the seam equation's declaring document attributed. \
+                     The committed hand-merged baseline detects the same row, so the \
+                     uniqueness axis derives parity (killed); the eliminated \
+                     hand-merge step is recorded as a named gap, never a detection"
+                .into(),
+        },
+    ]
+}
+
 /// Whether the id names a registered domain probe.
 pub fn is_probe(id: &str) -> bool {
     PROBE_IDS.contains(&id)
@@ -281,6 +315,7 @@ pub fn probe_expectations(probe_id: &str) -> Vec<Expectation> {
         "probe-migration" => probe_migration(),
         "probe-rule-lens-extracted" => probe_rule_lens_extracted(),
         "probe-naturality" => probe_naturality(),
+        "probe-composition" => probe_composition(),
         _ => Vec::new(),
     }
 }

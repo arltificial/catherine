@@ -1,0 +1,11 @@
+id = "a-self-contained-seam-claim-is-standalone-parseable"
+description = "Only a claim that also declares every arrow it names (the committed gap-suite seam-claim document declares all six) is standalone-parseable, and only that self-contained form carries a sealed model hash and the diff surface; a genuinely cross-document claim has no standalone parse and is enforced on the joint run instead."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "the_committed_seam_claim_is_standalone_parseable" },
+]

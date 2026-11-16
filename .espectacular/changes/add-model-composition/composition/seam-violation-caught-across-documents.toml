@@ -1,0 +1,12 @@
+id = "seam-violation-caught-across-documents"
+description = "Two documents that each check clean alone, plus a document declaring the seam equation over shared names, are glued by name; the joint run executes the seam equation and reports the violated row as one violation/executed finding whose witness names the declaring document and the row, exiting with the violation code (3)."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "seam_violation_is_caught_across_documents" },
+    { flags = "cross_document_equation_resolves_after_glue" },
+]

@@ -19,6 +19,7 @@
 
 mod args;
 mod cli;
+mod composition;
 mod config;
 mod diff;
 mod migrate;
@@ -136,8 +137,8 @@ fn dispatch(
 fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
     use cli::Commands as C;
     match command {
-        C::Check { model } => check_command(run::Surface::Check, model, ctx),
-        C::Findings { model } => check_command(run::Surface::Findings, model, ctx),
+        C::Check { models } => check_command(run::Surface::Check, models, ctx),
+        C::Findings { models } => check_command(run::Surface::Findings, models, ctx),
         C::Search {
             model,
             rows,
@@ -145,9 +146,9 @@ fn dispatch_command(command: &cli::Commands, ctx: &mut Ctx<'_, impl Write, impl 
         } => search_command(model, rows, *max_candidates, ctx),
         C::Redundant { model } => redundant_command(model, ctx),
         C::Underconstraint {
-            model,
+            models,
             max_path_length,
-        } => underconstraint_command(model, *max_path_length, ctx),
+        } => underconstraint_command(models, *max_path_length, ctx),
         C::Distinguish {
             model,
             second,
@@ -235,12 +236,12 @@ fn redundant_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -
 
 /// Forward [`runners::run_underconstraint`] on the shared execution path.
 fn underconstraint_command<O: Write, E: Write>(
-    model: &str,
+    models: &[String],
     max_path_length: usize,
     ctx: &mut Ctx<'_, O, E>,
 ) -> i32 {
     runners::run_underconstraint(
-        model,
+        models,
         max_path_length,
         ctx.json,
         ctx.quiet,
@@ -314,12 +315,12 @@ fn query_command<O: Write, E: Write>(
 /// The check/findings pair: one execution path under two names.
 fn check_command<O: Write, E: Write>(
     surface: run::Surface,
-    model: &str,
+    models: &[String],
     ctx: &mut Ctx<'_, O, E>,
 ) -> i32 {
     run::run(
         surface,
-        model,
+        models,
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),

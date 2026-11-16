@@ -16,6 +16,7 @@
 
 pub mod canonical;
 pub mod checks;
+pub mod composition;
 pub mod error;
 pub mod findings;
 pub mod hash;

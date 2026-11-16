@@ -1,0 +1,12 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Order", "Region"],
+    "arrows": [{"name": "invoice_region", "src": "Order", "tgt": "Region"}],
+    "equations": [
+      {"lhs": ["invoice_region"], "rhs": ["ghost"],
+       "rationale": "SEAM: invoiced where dispatched", "status": "accepted"}
+    ]
+  },
+  "instance": {"rows": {}, "tables": {}}
+}

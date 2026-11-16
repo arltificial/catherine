@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Joint check at a seam (`add-model-composition`, `catherine-0qz`):
+  `catherine check`/`findings` accept two or more documents, gluing them by
+  shared declared name (objects, arrows, rows) and executing every input's
+  equations and keys over the merged instance; `underconstraint` likewise
+  accepts the joint form for seam-only parallel-path questions. Overlapping
+  declarations are claims and must agree — disagreeing arrow endpoints are a
+  labeled `schema_conflict`; differing row sets on a shared object, or a
+  commonly-declared cell valued differently (including `null` against a
+  value), a `row_conflict`; both name the documents and node; and a glue
+  sharing no object, arrow, or `(object, row)` pair warns
+  `empty_composition_interface` on the envelope and on stderr instead of
+  passing silently. Cross-document equations live in an input document
+  (versioned, reviewed, enforced evidence) and resolve post-glue with the
+  same resolver the parser uses, with spans surviving, so a document that
+  resolves alone reports the same first error at any arity and
+  single-document output stays byte-identical; a claim naming a sibling's
+  arrows is joint-run evidence, and only the self-contained form is
+  standalone-parseable (hence model-hashable and diffable). Findings gain an
+  additive `source` attribution on multi-document runs only. Composition
+  produces findings, never a merged document. Probe:
+  `ledger/probes/composition/` records the executed hand-merged baseline
+  (parity; merge-step elimination named as a gap).
 - Instance morphism check (`add-instance-morphism`, `catherine-s60`): the
   additive `instance_map` section (format 1.4) declares a claimed row
   mapping from the document's instance to another instance of the same

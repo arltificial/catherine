@@ -1,0 +1,11 @@
+id = "dual-coverage-is-a-violation-naming-both-injections"
+description = "A row of the declared object lying in the image of two declared injections produces exactly one violation labeled executed whose witness names the row and both injections."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "dual_coverage_names_both_injections" },
+]

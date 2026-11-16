@@ -1,0 +1,12 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Beta"],
+    "arrows": [{"name": "beta_loop", "src": "Beta", "tgt": "Beta"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Beta": ["b1"]},
+    "tables": {"beta_loop": {"b1": "b1"}}
+  }
+}
