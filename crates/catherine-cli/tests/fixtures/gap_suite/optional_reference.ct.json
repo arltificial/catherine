@@ -1,0 +1,23 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["Person", "Address", "Country"],
+    "arrows": [
+      {"name": "address", "src": "Person", "tgt": "Address", "optional": true},
+      {"name": "addr_country", "src": "Address", "tgt": "Country"},
+      {"name": "country", "src": "Person", "tgt": "Country"}
+    ],
+    "equations": [
+      {"lhs": ["address", "addr_country"], "rhs": ["country"],
+       "rationale": "if a person has an address, its country is the person's country", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"Person": ["p1", "p2"], "Address": ["ad1"], "Country": ["AR"]},
+    "tables": {
+      "address": {"p1": "ad1", "p2": null},
+      "addr_country": {"ad1": "AR"},
+      "country": {"p1": "AR", "p2": "AR"}
+    }
+  }
+}

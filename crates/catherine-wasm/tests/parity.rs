@@ -42,10 +42,25 @@ fn fixture_documents() -> Vec<PathBuf> {
     let cli = fs::read_dir(Path::new(WORKSPACE_ROOT).join("crates/catherine-cli/tests/fixtures"))
         .expect("cli fixtures present");
     for file in cli {
-        docs.push(file.expect("fixture entry").path());
+        push_fixture(file.expect("fixture entry").path(), &mut docs);
     }
     docs.sort();
     docs
+}
+
+/// One CLI fixture entry: a document, or a subdirectory whose documents
+/// (gap suite, naturality, …) are covered under the same contract —
+/// parse-error documents go through the fail-closed branch.
+fn push_fixture(path: PathBuf, docs: &mut Vec<PathBuf>) {
+    if path.is_dir() {
+        docs.extend(
+            fs::read_dir(&path)
+                .expect("fixture subdirectory present")
+                .map(|nested| nested.expect("nested fixture entry").path()),
+        );
+    } else {
+        docs.push(path);
+    }
 }
 
 /// The kernel path's findings encoding — what the CLI forwards in

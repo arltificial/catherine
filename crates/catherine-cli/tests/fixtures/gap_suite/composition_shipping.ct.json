@@ -1,0 +1,23 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["Order", "Warehouse", "Region"],
+    "arrows": [
+      {"name": "warehouse", "src": "Order", "tgt": "Warehouse"},
+      {"name": "wh_region", "src": "Warehouse", "tgt": "Region"},
+      {"name": "dispatch_region", "src": "Order", "tgt": "Region"}
+    ],
+    "equations": [
+      {"lhs": ["warehouse", "wh_region"], "rhs": ["dispatch_region"],
+       "rationale": "an order dispatches from its warehouse's region", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"Order": ["o1", "o2", "o3"], "Warehouse": ["wh_north", "wh_south"], "Region": ["north", "south"]},
+    "tables": {
+      "warehouse": {"o1": "wh_north", "o2": "wh_south", "o3": "wh_south"},
+      "wh_region": {"wh_north": "north", "wh_south": "south"},
+      "dispatch_region": {"o1": "north", "o2": "south", "o3": "south"}
+    }
+  }
+}

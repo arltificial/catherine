@@ -1,0 +1,17 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["Doc", "Snap"],
+    "arrows": [
+      {"name": "save", "src": "Doc", "tgt": "Snap"},
+      {"name": "restore", "src": "Snap", "tgt": "Doc"}
+    ],
+    "equations": [
+      {"lhs": ["save", "restore"], "rhs": [], "rationale": "restore after save is the identity on Doc", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"Doc": ["d1", "d2"], "Snap": ["s1", "s2"]},
+    "tables": {"save": {"d1": "s1", "d2": "s1"}, "restore": {"s1": "d1", "s2": "d2"}}
+  }
+}

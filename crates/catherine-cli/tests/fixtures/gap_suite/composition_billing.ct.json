@@ -1,0 +1,23 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["Order", "Ledger", "Region"],
+    "arrows": [
+      {"name": "ledger", "src": "Order", "tgt": "Ledger"},
+      {"name": "ledger_region", "src": "Ledger", "tgt": "Region"},
+      {"name": "invoice_region", "src": "Order", "tgt": "Region"}
+    ],
+    "equations": [
+      {"lhs": ["ledger", "ledger_region"], "rhs": ["invoice_region"],
+       "rationale": "an order is invoiced in its ledger's region", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"Order": ["o1", "o2", "o3"], "Ledger": ["led_north", "led_south"], "Region": ["north", "south"]},
+    "tables": {
+      "ledger": {"o1": "led_north", "o2": "led_south", "o3": "led_north"},
+      "ledger_region": {"led_north": "north", "led_south": "south"},
+      "invoice_region": {"o1": "north", "o2": "south", "o3": "north"}
+    }
+  }
+}

@@ -1,0 +1,11 @@
+id = "fixed-limitation-must-flip-its-row"
+description = "Every `gap` row's executable case still exhibits its claimed limitation: a case that no longer does fails the suite naming the row, and passes only after the row flips to `closed` citing the fixing evidence in the same change."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "fixed_limitation_must_flip_its_row" },
+]

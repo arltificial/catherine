@@ -96,6 +96,12 @@ fabricated end-to-end.
 | [`docs/ref/category_theoretic_modeling_methodology.md`](docs/ref/category_theoretic_modeling_methodology.md) | the modeling methodology the tool serves (vendored) |
 | [`docs/ref/ct_methodology_playbook.md`](docs/ref/ct_methodology_playbook.md) | the methodology by problem type — drills, witnesses, stop rules; **works with no tool at all** |
 | [`docs/ref/pattern-kata-dispositions.md`](docs/ref/pattern-kata-dispositions.md) | GoF pattern → abstraction disposition table: which equivalences became executable katas, which were killed, and which patterns have no law on this surface |
+| [`docs/ref/expressibility-dispositions.md`](docs/ref/expressibility-dispositions.md) | the registry of known expressibility limitations: each row pairs a limitation claim with an executable CLI case and a `gap`/`closed` disposition, checked in both directions by the gap suite |
+
+Known expressibility limitations live **only** in that disposition table.
+A claim that the tool cannot state or see something without naming a row
+id fails `just check-gap-claims`, which runs as part of `just ci`; fixing a
+limitation flips its row in the same change that lands the capability.
 
 ## Status & roadmap
 

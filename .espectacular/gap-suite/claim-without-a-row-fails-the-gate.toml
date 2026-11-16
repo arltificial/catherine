@@ -1,0 +1,11 @@
+id = "claim-without-a-row-fails-the-gate"
+description = "A doc, CHANGELOG entry or close note that registers an expressibility limitation without naming a disposition row id fails the docs gate naming the file and line."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "claim_without_a_row_fails_the_gate" },
+]

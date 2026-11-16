@@ -1,0 +1,11 @@
+id = "unregistered-case-fails-the-suite"
+description = "Every executable case has a disposition row and every row has a case: an unregistered fixture or a table row without a case fails the suite naming the missing side."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "unregistered_case_fails_the_suite" },
+]

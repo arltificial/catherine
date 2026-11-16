@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Expressibility gap suite (`add-expressibility-gap-suite`, `catherine-j6g`):
+  `docs/ref/expressibility-dispositions.md` is the registry of the twelve
+  known expressibility limitations, each row pairing a corpus-sourced claim
+  (`identity-empty-path-equations`, `optional-references`,
+  `unknown-top-level-fields`, `declared-cones-ignored`,
+  `non-functorial-schema-map`, `dropped-equations-on-migrate`,
+  `vacuous-clean-instances`, `distinguish-observation-scope`,
+  `associativity-scaffolding`, `composition-absence`, `naturality-absence`,
+  `coproduct-absence`) with an executable CLI case under
+  `crates/catherine-cli/tests/expressibility_gaps/`. Each row's `gap` or
+  `closed` disposition is asserted in both directions — a fixed limitation
+  fails until its row flips, a regression fails until it flips back — and
+  `just check-gap-claims` (inside `just ci`) rejects a limitation claim in
+  README, CHANGELOG, `docs/**` or an openspec close note that names no row
+  id. All twelve rows register `gap` at this HEAD.
 - Pattern lenses (`add-pattern-lenses`, `catherine-mx1`): the twelve
   executed rows of `docs/ref/pattern-kata-dispositions.md` ship as
   registered, law-scoped checks (`catherine pattern <model> [--id <pattern>]

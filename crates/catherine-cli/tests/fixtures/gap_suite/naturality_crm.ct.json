@@ -1,0 +1,30 @@
+{
+  "format_version": "1.3",
+  "instance_map": {
+    "maps": [
+      {"object": "Account", "rows": {"a1": "w1", "a2": "w2", "a3": "w3"}},
+      {"object": "Rep", "rows": {"r1": "s1", "r2": "s2"}},
+      {"object": "Region", "rows": {"north": "north", "south": "south"}}
+    ]
+  },
+  "schema": {
+    "objects": ["Account", "Rep", "Region"],
+    "arrows": [
+      {"name": "owner", "src": "Account", "tgt": "Rep"},
+      {"name": "rep_region", "src": "Rep", "tgt": "Region"},
+      {"name": "acct_region", "src": "Account", "tgt": "Region"}
+    ],
+    "equations": [
+      {"lhs": ["owner", "rep_region"], "rhs": ["acct_region"],
+       "rationale": "an account's region is its owner's region", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"Account": ["a1", "a2", "a3"], "Rep": ["r1", "r2"], "Region": ["north", "south"]},
+    "tables": {
+      "owner": {"a1": "r1", "a2": "r2", "a3": "r1"},
+      "rep_region": {"r1": "north", "r2": "south"},
+      "acct_region": {"a1": "north", "a2": "south", "a3": "north"}
+    }
+  }
+}

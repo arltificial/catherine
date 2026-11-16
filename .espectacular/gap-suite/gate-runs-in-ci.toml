@@ -1,0 +1,11 @@
+id = "gate-runs-in-ci"
+description = "`just ci` executes the limitation-claim gate with the other mechanical gates, and the gate passes when every limitation claim names a registered disposition row."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "gate_runs_in_ci" },
+]

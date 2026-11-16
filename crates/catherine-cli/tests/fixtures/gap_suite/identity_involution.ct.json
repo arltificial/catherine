@@ -1,0 +1,14 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["N"],
+    "arrows": [{"name": "neg", "src": "N", "tgt": "N"}],
+    "equations": [
+      {"lhs": ["neg", "neg"], "rhs": [], "rationale": "neg is an involution: neg∘neg = id", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"N": ["a", "b", "c", "d"]},
+    "tables": {"neg": {"a": "b", "b": "a", "c": "d", "d": "d"}}
+  }
+}

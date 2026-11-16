@@ -3,10 +3,21 @@ ci:
     cargo fmt --all -- --check
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
+    # Expressibility-claim gate (openspec change add-expressibility-gap-suite):
+    # every limitation claim in the docs must name a disposition row id.
+    just check-gap-claims
     just check-wasm
     # Fail-closed complexity gate, full tree, no baseline (same command as
     # the lefthook pretender-strict hook and the CI workflow step).
     pretender check --mode gate
+
+# Expressibility-claim docs gate (openspec change
+# `add-expressibility-gap-suite`, beads `catherine-j6g`): every limitation
+# claim in README.md, CHANGELOG.md, `docs/**/*.md` or an openspec close note
+# must name a row id from `docs/ref/expressibility-dispositions.md`. Textual
+# and model-free by design (design Decision 4).
+check-gap-claims:
+    scripts/check-expressibility-claims.sh
 
 # wasm32 compile-only gate (openspec change `add-wasm-web-view`, task 4):
 # the kernel crates stay wasm-optional — compilation is the gate, no

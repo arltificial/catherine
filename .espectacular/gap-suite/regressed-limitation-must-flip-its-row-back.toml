@@ -1,0 +1,11 @@
+id = "regressed-limitation-must-flip-its-row-back"
+description = "Every `closed` row's executable case still exhibits the fixed behavior: a limitation that reappears fails the suite naming the row, and passes only after the row records the regression and flips back to `gap`."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "regressed_limitation_must_flip_its_row_back" },
+]

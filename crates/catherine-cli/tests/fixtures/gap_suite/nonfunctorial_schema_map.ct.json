@@ -1,0 +1,64 @@
+{
+ "format_version": "1.1",
+ "schema": {
+  "objects": [
+   "A",
+   "B"
+  ],
+  "arrows": [
+   {
+    "name": "f",
+    "src": "A",
+    "tgt": "B"
+   }
+  ],
+  "equations": []
+ },
+ "instance": {
+  "rows": {
+   "A": [
+    "a1",
+    "a2"
+   ],
+   "B": [
+    "b1"
+   ]
+  },
+  "tables": {
+   "f": {
+    "a1": "b1",
+    "a2": "b1"
+   }
+  }
+ },
+ "schema_map": {
+  "target_schema": {
+   "objects": [
+    "X",
+    "Y"
+   ],
+   "arrows": [
+    {
+     "name": "g",
+     "src": "X",
+     "tgt": "Y"
+    },
+    {
+     "name": "h",
+     "src": "Y",
+     "tgt": "Y"
+    }
+   ],
+   "equations": []
+  },
+  "objects": {
+   "A": "X",
+   "B": "Y"
+  },
+  "arrows": {
+   "f": [
+    "h"
+   ]
+  }
+ }
+}

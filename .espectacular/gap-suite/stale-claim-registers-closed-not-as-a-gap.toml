@@ -1,0 +1,11 @@
+id = "stale-claim-registers-closed-not-as-a-gap"
+description = "A row registered `closed` carries fixing evidence and its case asserts the current behavior: a stale claim that HEAD no longer exhibits is recorded `closed`, never imported as a `gap`."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "stale_claim_registers_closed_not_as_a_gap" },
+]
