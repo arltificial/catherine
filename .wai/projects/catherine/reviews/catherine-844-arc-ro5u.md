@@ -196,3 +196,26 @@ Production Ready: WITH_NOTES
 **READY (WITH_NOTES)**
 
 **Rationale:** no critical or high finding survived any stage and the full gate set is green at `08bf44f` (`just ci`, `openspec validate --all/--changes --strict`, `ah check`, four probe ledgers), so the arc is production-ready as landed; the notes are one over-broad coproduct suppression whose spec rationale overstates undecidability, one user-facing version-policy drift, one missing probe ratchet, and a docs-gate scoping risk — all MEDIUM/LOW and individually small.
+## Remediation (post-review)
+
+Addressed in commit `99587df` (docs-only; `just check-gap-claims` green,
+`openspec validate --all --strict` 15/15, mdBook build resolves):
+
+- **CORR-002 / EXCL-002** — core README version policy now 5/1.5
+  (`schema.coproducts` listed); the duplicated-list risk is noted but the
+  spec remains the single contract source.
+- **CLAR-002 / DRAFT-002** — USING gets the joint-check paragraph in
+  Recipe D and a new Recipe E for `naturality`/`instance_map`; the stale
+  "once P10 lands" clause is replaced by the executed weakening witness.
+- **README producer claim** — the exit-code section no longer says the
+  analysis classes have "no producer until P4"; the roadmap records P12 and
+  the two filed defects.
+- **Book completeness** — SUMMARY gains the expressibility-dispositions
+  reference and the four missing generated spec pages.
+- **THEORY** — new section 10 (instance morphisms, coproducts, composition)
+  with glossary entries; DESIGN and PROPOSAL are annotated as historical
+  design records pointing at `openspec/specs/`.
+- **DRAFT-001** and **CORR-001 / CORR-003 / CLAR-001 / EDGE-001** remain
+  open as recorded (cross-capability integration test; coproduct
+  suppression semantics; coproduct probe ratchet; docs-gate phrase
+  scoping; duplicate-path warning).
