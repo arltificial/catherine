@@ -1,6 +1,6 @@
 [package]
 name = "catherine-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "The catherine CLI: check and findings over .ct.json model documents"

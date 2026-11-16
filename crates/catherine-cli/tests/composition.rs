@@ -48,6 +48,31 @@ fn without_duration(text: &str) -> String {
     format!("{before}{marker}0{}", &rest[digits..])
 }
 
+/// The build's own version string is not part of the document-path
+/// contract: a release bump must not force re-capturing this baseline. The
+/// value is blanked, the key and every other byte stay pinned.
+fn without_cli_version(text: &str) -> String {
+    const MARKER: &str = "\"cli_version\":\"";
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(index) = rest.find(MARKER) {
+        let (head, tail) = rest.split_at(index + MARKER.len());
+        out.push_str(head);
+        let end = tail
+            .find('"')
+            .expect("the cli_version value is a JSON string");
+        rest = &tail[end..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Every byte the contract pins: `meta.duration_ms` varies per run and
+/// `cli_version` tracks the build, not the document path.
+fn stable_envelope(text: &str) -> String {
+    without_cli_version(&without_duration(text))
+}
+
 fn gap(name: &str) -> String {
     format!("{GAP_SUITE}/{name}")
 }
@@ -143,8 +168,8 @@ fn single_document_invocations_are_byte_identical() {
     let out = run(&["check", &bowling, "--json"]);
     assert_eq!(code(&out), 3, "the violation exit is unchanged");
     assert_eq!(
-        without_duration(&stdout(&out)),
-        without_duration(&baseline()),
+        stable_envelope(&stdout(&out)),
+        stable_envelope(&baseline()),
         "the single-document --json envelope is byte-identical to the captured baseline"
     );
 }
