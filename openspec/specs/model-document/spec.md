@@ -17,8 +17,8 @@ mutation of v1 (wild accretion-laws discipline).
 #### Scenario: Current major parses
 - **WHEN** a `.ct.json` document with `format_version` of the current
   major is parsed and its minor is one this build knows
-  (minor <= `KNOWN_MINOR`, currently 3: 1.1 adds `schema_map`, 1.2 adds
-  `rule_presentation`, 1.3 adds `schema.keys`)
+  (minor <= `KNOWN_MINOR`, currently 4: 1.1 adds `schema_map`, 1.2 adds
+  `rule_presentation`, 1.3 adds `schema.keys`, 1.4 adds `instance_map`)
 - **THEN** parsing succeeds and the document's schema and instance are
   fully represented
 
@@ -141,3 +141,32 @@ reinterpretation of this section.
 - **WHEN** a key declares `status: "proposed"`
 - **THEN** the parsed schema carries it like any other key, and the schema's
   accepted-key set is unchanged
+
+### Requirement: Instance maps declare claimed row mappings
+The system SHALL accept an additive `instance_map` section of
+declarations `{"maps": [{"object": O, "rows": {"src": "tgt"}}]}` — a
+claimed, total row mapping from the document's instance to another
+instance of the same schema. The map SHALL be total over every object
+of the schema (an uncovered row is a labeled parse error at that row's
+node) and SHALL be stored in canonical `(object, rows)` order. The
+section is omitted from canonical bytes when empty, so documents
+without it keep their hash.
+
+#### Scenario: Map round-trips and canonicalizes
+- **WHEN** a document declares an `instance_map` in an arbitrary input
+  order
+- **THEN** parsing succeeds, the map is stored in canonical order, and
+  canonical serialization is byte-identical to the same map declared in
+  another input order
+
+#### Scenario: Incomplete map is rejected at its node
+- **WHEN** a map omits a row of any schema object
+- **THEN** parsing fails with `incomplete_instance_map` carrying the
+  line/column of the offending map node — never an implicit identity on
+  the uncovered rows
+
+#### Scenario: Absent map is hash-neutral
+- **WHEN** a document without an `instance_map` section is parsed under
+  the new minor
+- **THEN** canonical bytes, hash, and every sealed ledger `model_hashes`
+  entry are unchanged
