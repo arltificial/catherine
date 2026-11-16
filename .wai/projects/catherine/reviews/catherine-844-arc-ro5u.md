@@ -196,26 +196,59 @@ Production Ready: WITH_NOTES
 **READY (WITH_NOTES)**
 
 **Rationale:** no critical or high finding survived any stage and the full gate set is green at `08bf44f` (`just ci`, `openspec validate --all/--changes --strict`, `ah check`, four probe ledgers), so the arc is production-ready as landed; the notes are one over-broad coproduct suppression whose spec rationale overstates undecidability, one user-facing version-policy drift, one missing probe ratchet, and a docs-gate scoping risk — all MEDIUM/LOW and individually small.
+
+**Post-remediation verdict: READY** — every finding below is closed; the
+gate set is re-verified green on the remediation HEAD.
+
 ## Remediation (post-review)
 
-Addressed in commit `99587df` (docs-only; `just check-gap-claims` green,
-`openspec validate --all --strict` 15/15, mdBook build resolves):
+All findings are closed. Documentation fixes landed in `99587df`; the
+behavioural/test fixes landed in `7d918c6`, `68c2bf5`, `06ea916`, `c3a58ba`.
 
-- **CORR-002 / EXCL-002** — core README version policy now 5/1.5
-  (`schema.coproducts` listed); the duplicated-list risk is noted but the
-  spec remains the single contract source.
-- **CLAR-002 / DRAFT-002** — USING gets the joint-check paragraph in
-  Recipe D and a new Recipe E for `naturality`/`instance_map`; the stale
-  "once P10 lands" clause is replaced by the executed weakening witness.
-- **README producer claim** — the exit-code section no longer says the
-  analysis classes have "no producer until P4"; the roadmap records P12 and
-  the two filed defects.
+Documentation (commit `99587df`, review remediation `6571f8f`):
+
+- **CORR-002 / EXCL-002** — core README version policy is 5/1.5 and now
+  points at the single authoritative list in the deployed model-document
+  spec.
+- **CLAR-002 / DRAFT-002** — USING gains the joint-check paragraph in
+  Recipe D and Recipe E for `naturality`/`instance_map`; the stale "once
+  P10 lands" clause is replaced by the executed weakening witness.
+- **README producer claim** — the analysis classes have real producers;
+  the roadmap records P12 and the remaining work.
 - **Book completeness** — SUMMARY gains the expressibility-dispositions
-  reference and the four missing generated spec pages.
-- **THEORY** — new section 10 (instance morphisms, coproducts, composition)
-  with glossary entries; DESIGN and PROPOSAL are annotated as historical
-  design records pointing at `openspec/specs/`.
-- **DRAFT-001** and **CORR-001 / CORR-003 / CLAR-001 / EDGE-001** remain
-  open as recorded (cross-capability integration test; coproduct
-  suppression semantics; coproduct probe ratchet; docs-gate phrase
-  scoping; duplicate-path warning).
+  reference and the four missing generated spec pages; mdBook builds.
+- **THEORY** — new §10 (instance morphisms, coproducts, composition) and
+  glossary entries; DESIGN/PROPOSAL annotated as historical records.
+
+Behaviour and tests (commits `7d918c6`, `68c2bf5`, `06ea916`, `c3a58ba`):
+
+- **CORR-001 / EDGE-002** (`7d918c6`) — an unresolved injection cell makes
+  coverage undecidable, but a row in two complete images is now a decided
+  disjointness violation; partial images never join a witness; the deployed
+  requirement states the precise rule and notes the empty-object vacuity.
+- **catherine-3en / CORR-005** (`68c2bf5`) — a non-empty `instance` object
+  with neither `rows` nor `tables` is refused with the structural `syntax`
+  error naming the keys (the legacy shape can no longer read as empty); the
+  gap row is re-scoped to zero-row vacuity; the registration-count sentence
+  is marked as history.
+- **catherine-ke1 / EDGE-001** (`06ea916`) — `naturality` reports
+  both-sides-undefined squares as `unresolved_naturality_square` warnings
+  (arrow + row, JSON and human) instead of a silent clean; variadic
+  surfaces warn `duplicate_document_input` on repeated paths without
+  deduplicating findings.
+- **CORR-003 / CLAR-001 / DRAFT-001 / EXCL-001 / EXCL-003 / CORR-006**
+  (`c3a58ba`) — probe-coproduct regression test + catalog ratchet, the
+  re-sealed control `0002-384db903` with the canonical fixture hash, shared
+  probe-test plumbing, context-scoped generic gate phrases with a
+  false-positive test, the combined-surface integration test, the
+  absent-map requirement + contract, and the gap-runner signature cleanup.
+
+- **CORR-004** — superseded by the follow-up handoff entry that cites the
+  post-remediation HEAD and commit count.
+- **EDGE-003** accepted as documented (`coproducts: []` = omitted, the keys
+  precedent).
+
+Verification at remediation HEAD: `just ci` green (fmt, clippy -D warnings,
+workspace tests, check-gap-claims, wasm, pretender); `openspec validate
+--all --strict` 15/15; `--changes --strict` 1/1; `ah check` clean; all four
+probe ledgers valid. Defects `catherine-3en` and `catherine-ke1` closed.
