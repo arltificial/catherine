@@ -30,12 +30,13 @@ reported as a proven contradiction.
 
 #### Scenario: Accepted equations constrain, proposed equations question
 - **WHEN** the search evaluates a candidate against a schema carrying
-  accepted and proposed equations or keys
-- **THEN** only the accepted constraints (equations and keys) judge
-  satisfiability — a candidate the accepted constraints admit is clean even
-  when it fails a proposed equation or key, the failure surfaces as a
-  `hypothesized` finding, and a proposed-constraint violation never blocks a
-  witness or turns the outcome into a contradiction
+  accepted and proposed equations, keys, or coproducts
+- **THEN** only the accepted constraints (equations, keys, and
+  coproducts) judge satisfiability — a candidate the accepted constraints
+  admit is clean even when it fails a proposed equation, key, or
+  coproduct, the failure surfaces as a `hypothesized` finding, and a
+  proposed-constraint violation never blocks a witness or turns the
+  outcome into a contradiction
 
 ### Requirement: Redundancy is proven by derivation
 The system SHALL report a path (or declared equation) as `redundant` only
@@ -73,21 +74,22 @@ never made.
 
 ### Requirement: Schema edits are classified on the enforced constraints
 The system SHALL classify a schema edit v1 → v2 by diffing the enforced
-constraint sets — the accepted equations' `(lhs, rhs)` pairs together with
-the accepted keys' `(object, arrows)` tuples — as `cosmetic` (no
-enforced-constraint change), `accreted` (constraints only added),
+constraint sets — accepted equations' `(lhs, rhs)` pairs together with
+accepted keys' and coproducts' `(object, arrows)` tuples — as `cosmetic`
+(no enforced-constraint change), `accreted` (constraints only added),
 `weakened`, or an equivalence-scoped classification; constraint rationale,
-document order, and proposed equations or keys are presentation and SHALL
-NOT classify an edit.
+document order, and proposed constraints are presentation and SHALL NOT
+classify an edit.
 
 #### Scenario: Presentation-only edit is silent
 - **WHEN** v2 differs from v1 only in equation rationale, document
-  order, or a proposed equation or key
+  order, or a proposed equation, key, or coproduct
 - **THEN** the classification is `cosmetic` and it emits zero findings
 
 #### Scenario: Constraints only added
-- **WHEN** every equation or key v1 enforces is still enforced in v2 and v2
-  adds enforced constraints, including an accepted key
+- **WHEN** every equation, key, or coproduct v1 enforces is still enforced
+  in v2 and v2 adds enforced constraints, including an accepted key or an
+  accepted coproduct
 - **THEN** the classification is `accreted` naming the added constraints,
   with zero findings — adding a constraint never widens the instance
   space
@@ -96,14 +98,14 @@ NOT classify an edit.
 The system SHALL report `weakened` only when a v1-enforced constraint is no
 longer enforced in v2 and a bounded search exhibits an instance that v2
 accepts and v1 rejects; the finding SHALL be the existing `violation` kind
-labeled `executed`, carrying the violated v1 constraint — the equation's
-canonical index and the composed values at its row, or the key's canonical
-index and its two colliding rows. No new finding kind is introduced.
+labeled `executed`, carrying the violated v1 constraint's witness in its
+equation, key, or coproduct shape. No new finding kind is introduced.
 
 #### Scenario: Silent constraint-weakening detected
-- **WHEN** v2 drops (or weakens) an equation or an accepted key v1 enforced
-  and a fully-resolved bounded instance satisfies every accepted v2
-  constraint while violating the dropped v1 constraint
+- **WHEN** v2 drops (or weakens) an equation, an accepted key, or an
+  accepted coproduct v1 enforced and a fully-resolved bounded instance
+  satisfies every accepted v2 constraint while violating the dropped v1
+  constraint
 - **THEN** the classification is `weakened` with exactly one
   `violation`/`executed` finding whose witness names the lost v1 constraint,
   and the witness instance re-checks clean under v2 and rejected under v1

@@ -1,5 +1,5 @@
 id = "constraints-only-added"
-description = "When every equation or key v1 enforces is still enforced in v2 and v2 adds enforced constraints, including an accepted key, the classification is accreted naming the added constraints with zero findings, since adding a constraint never widens the instance space."
+description = "When every equation, key, or coproduct v1 enforces is still enforced in v2 and v2 adds enforced constraints, including an accepted key or an accepted coproduct, the classification is accreted naming the added constraints with zero findings, since adding a constraint never widens the instance space."
 archetype = "PF"
 status = "active"
 superseded_by = ""
@@ -9,4 +9,5 @@ authored_with = "0.12.0"
 cargo = [
     { flags = "refactor_is_equivalent_in_scope_and_cosmetic_edit_is_silent" },
     { flags = "added_key_is_accreted" },
+    { flags = "added_coproduct_is_accreted" },
 ]

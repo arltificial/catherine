@@ -24,17 +24,20 @@ violation-shaped, never a sixth kind.
 
 ### Requirement: Witness shapes are fixed per finding kind
 Each kind's witness shape SHALL be fixed: a violation carries the
-equation witness (equation id, row, both path values) or the key witness
-(key index, both colliding rows); dangling carries arrow and source row;
-redundant carries derivable and reducing path; contradiction carries
+equation, key, or coproduct witness; dangling carries arrow and source
+row; redundant carries derivable and reducing path; contradiction carries
 explicit scope; underconstraint carries a domain question
-(`ParallelPaths{lhs, rhs}` or `UncoveredInputs{class, examples}`).
+(`ParallelPaths{lhs, rhs}` or `UncoveredInputs{class, examples}`). No new
+finding kind is introduced.
 
 #### Scenario: Witness encodings are stable
 - **WHEN** findings serialize
 - **THEN** the equation witness encodes byte-identically to its pre-key
-  form and the key witness encodes as `{"key": n, "rows": [lo, hi]}`, so
-  both remain distinguishable without consulting the schema
+  form, the key witness encodes as `{"key": n, "rows": [lo, hi]}`, and
+  the coproduct witness encodes as `{"coproduct": n, "row": r}` with
+  `injections` omitted for a coverage failure and naming both injections
+  for a doubly covered row, so the shapes remain distinguishable without
+  consulting the schema
 
 #### Scenario: Violation finding carries row and values
 - **WHEN** a kernel check produces a violation
@@ -47,6 +50,13 @@ explicit scope; underconstraint carries a domain question
 - **THEN** the finding is `Violation` carrying the key's canonical index and
   both colliding row ids, and the encoding is distinguishable from an
   equation witness without consulting the schema
+
+#### Scenario: Coproduct violation carries its row and injections
+- **WHEN** a kernel check produces a coproduct violation
+- **THEN** the finding is `Violation` carrying the coproduct's canonical
+  index and the offending row id, plus both injection names when the row
+  lies in two injection images — assertable structurally, not by output
+  text
 
 #### Scenario: Every finding kind has a golden fixture
 - **WHEN** the fixture suite runs

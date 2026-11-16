@@ -1,5 +1,5 @@
 id = "accepted-equations-constrain-proposed-equations-question"
-description = "Bounded search judges satisfiability by the accepted constraints only (equations and keys): a candidate the accepted constraints admit is clean even when it fails a proposed equation or key, the failure surfaces as a hypothesized finding, and a proposed-constraint violation never blocks a witness or turns the outcome into a contradiction."
+description = "Bounded search judges satisfiability by the accepted constraints only (equations, keys, and coproducts): a candidate the accepted constraints admit is clean even when it fails a proposed equation, key, or coproduct, the failure surfaces as a hypothesized finding, and a proposed-constraint violation never blocks a witness or turns the outcome into a contradiction."
 archetype = "PF"
 status = "active"
 superseded_by = ""
@@ -10,4 +10,6 @@ cargo = [
     { flags = "is_clean_accepts_accepted_clean_proposed_dirty" },
     { flags = "search_returns_witness_despite_proposed_violations" },
     { flags = "proposed_key_does_not_block_search_cleanliness" },
+    { flags = "proposed_coproduct_does_not_block_search_cleanliness" },
+    { flags = "dropped_coproduct_is_weakened_with_a_rogue_variant_witness" },
 ]
