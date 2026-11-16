@@ -119,6 +119,7 @@ fn run_composition(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
+    crate::composition::warn_duplicate_inputs(model_paths, json, &mut warnings, stderr);
     let glued = match crate::composition::load_glued(model_paths) {
         Ok(glued) => glued,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),

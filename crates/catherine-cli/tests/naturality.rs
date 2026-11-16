@@ -4,13 +4,13 @@
 //! commutation break is one `violation`/`executed` finding with the
 //! arrow, the source row, and both composed values in its witness.
 //!
-//! Responsibilities: probe the real binary (`CARGO_BIN_EXE_catherine`)
-//! over the committed crm/warehouse fixtures — the commuting map (exit 0,
-//! zero findings), the same document twice (trivially clean), the
-//! `a3→w3` break (exit 3, exactly one violation, witness shape), the
-//! human witness rendering, the reused `schema_mismatch` refusal, the
-//! construction-time `unknown_map_target` refusal, and the additive-only
-//! envelope shape.
+//! Responsibilities: probe the real binary over the committed
+//! crm/warehouse fixtures — the commuting map, the same document twice,
+//! the `a3→w3` break and its human witness, a square undefined on both
+//! sides (exit 0, `unresolved_naturality_square` warning naming arrow and
+//! row), a one-sided undefined square (violation with a null composed
+//! value), the reused `schema_mismatch` refusal, the construction-time
+//! `unknown_map_target` refusal, and the additive-only envelope shape.
 //!
 //! Rationale: design Decisions 2/3/4 — breaks are violations with a
 //! witness (no new finding kinds), malformed claims are labeled errors
@@ -57,6 +57,18 @@ const SCHEMA_MISMATCH: &str = concat!(
 const UNKNOWN_TARGET: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/naturality/crm_unknown_target.ct.json"
+);
+/// A source instance whose `account_owner` cell at `a2` dangles while the
+/// map stays total.
+const CRM_UNDEFINED: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/naturality/crm_undefined.ct.json"
+);
+/// The target whose matching `account_owner` cell at `w2` also dangles:
+/// exactly the `a2→w2` square is undefined on both sides.
+const WAREHOUSE_UNDEFINED: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/naturality/warehouse_undefined.ct.json"
 );
 
 /// Scenario "Commuting map checks clean": zero findings, exit 0, the
@@ -165,6 +177,109 @@ fn naturality_break_renders_arrow_row_and_composed_values() {
     );
 }
 
+/// Scenario "Undefined square is a non-answer": when both `map ∘ arrow`
+/// and `arrow ∘ map` are undefined for a square, the run exits 0 with no
+/// findings but a `unresolved_naturality_square` warning naming the arrow
+/// and source row — never a silent, warning-free clean.
+#[test]
+fn naturality_undefined_square_warns_instead_of_silent_clean() {
+    let out = run(&["naturality", CRM_UNDEFINED, WAREHOUSE_UNDEFINED, "--json"]);
+    assert_eq!(
+        code(&out),
+        0,
+        "an undefined square is a warning, never a violation: stdout={} stderr={}",
+        stdout(&out),
+        stderr(&out)
+    );
+    assert_eq!(stderr(&out), "", "the warning rides the envelope");
+    let envelope = parse_json(&stdout(&out), "the naturality envelope");
+    assert_eq!(envelope["ok"], true, "a warning run is a success envelope");
+    assert!(
+        findings(&envelope).is_empty(),
+        "an undefined square is not a witnessed break: {:?}",
+        findings(&envelope)
+    );
+    let warnings = envelope["warnings"].as_array();
+    assert_eq!(warnings.map(Vec::len), Some(1), "one undefined square");
+    let warning = &warnings.expect("warnings array")[0];
+    assert_eq!(
+        warning["rule_name"], "unresolved_naturality_square",
+        "the stable warning rule name"
+    );
+    let message = warning["message"]
+        .as_str()
+        .expect("a warning carries a message");
+    assert!(
+        message.contains("account_owner")
+            && message.contains("source row 1")
+            && message.contains("undefined on both sides")
+            && message.contains("cannot be verified"),
+        "the warning names the arrow, source row, and non-answer: {message}"
+    );
+}
+
+/// The human surface: the same undefined square prints one `warning:`
+/// line on stderr (stdout stays empty, since there is no finding), and
+/// the exit stays 0.
+#[test]
+fn naturality_undefined_square_warns_on_stderr() {
+    let out = run(&["naturality", CRM_UNDEFINED, WAREHOUSE_UNDEFINED]);
+    assert_eq!(
+        code(&out),
+        0,
+        "the human run keeps the warning class: stderr={}",
+        stderr(&out)
+    );
+    assert_eq!(stdout(&out), "", "there is no finding to print");
+    let text = stderr(&out);
+    assert!(
+        text.contains("warning:") && text.contains("account_owner"),
+        "the warning names the arrow on stderr: {text}"
+    );
+    assert!(
+        text.contains("source row 1") && text.contains("undefined on both sides"),
+        "the warning names the source row and the non-answer: {text}"
+    );
+}
+
+/// A one-sided undefined square is still witnessed: the source cell
+/// resolves while the target cell dangles, so `lhs` is the composed
+/// target row and `rhs` is null — a `violation`/`executed` finding,
+/// exit 3, no warning.
+#[test]
+fn naturality_one_sided_undefined_is_a_violation_with_a_null_side() {
+    let out = run(&["naturality", CRM, WAREHOUSE_UNDEFINED, "--json"]);
+    assert_eq!(
+        code(&out),
+        3,
+        "a one-sided undefined square breaks the equation: stdout={} stderr={}",
+        stdout(&out),
+        stderr(&out)
+    );
+    let envelope = parse_json(&stdout(&out), "the naturality envelope");
+    assert_eq!(
+        envelope["warnings"].as_array().map(Vec::len),
+        Some(0),
+        "a witnessed break is not a warning"
+    );
+    let findings = findings(&envelope);
+    assert_eq!(findings.len(), 1, "exactly one square breaks: {findings:?}");
+    let witness = &findings[0]["witness"];
+    assert_eq!(witness["arrow"], "account_owner", "the broken arrow");
+    assert_eq!(
+        witness["source_row"], 1,
+        "the source row is `a2`, dense id 1 of `account`"
+    );
+    assert_eq!(
+        witness["lhs"], 1,
+        "`map ∘ account_owner` lands on `p2`, dense id 1 of `owner`"
+    );
+    assert!(
+        witness["rhs"].is_null(),
+        "`account_owner ∘ map` traverses the target's dangling `w2` cell"
+    );
+}
+
 /// Scenario "Schemas must be identical": the existing `schema_mismatch`
 /// labeled error is reused, exit 1, before any finding is emitted.
 #[test]
@@ -270,6 +385,8 @@ fn naturality_fixtures_are_present() {
         "identity_map.ct.json",
         "schema_mismatch.ct.json",
         "crm_unknown_target.ct.json",
+        "crm_undefined.ct.json",
+        "warehouse_undefined.ct.json",
         "crm_incomplete_map.ct.json",
         "crm_no_map.ct.json",
     ] {

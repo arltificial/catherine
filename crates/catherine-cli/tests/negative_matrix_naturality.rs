@@ -5,8 +5,9 @@
 //! Responsibilities:
 //!   - The naturality fixture paths: the commuting crm → warehouse map, the
 //!     target document, and the malformed-claim variants (an incomplete map,
-//!     a duplicate entry, an undeclared object, an ill-formed target, and a
-//!     source document that does not parse at all).
+//!     a duplicate entry, an undeclared object, an ill-formed target, a
+//!     source document that does not parse at all, and a square undefined on
+//!     both sides).
 //!   - The `Expect` vocabulary shared by the matrix (labeled error, usage
 //!     error, envelope warning) and the row table over it.
 //!   - The recurrence gate: every row surfaces its malformed input from
@@ -65,6 +66,16 @@ const NATURALITY_NO_MAP: &str = concat!(
 const NATURALITY_SCHEMA_MISMATCH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/naturality/schema_mismatch.ct.json"
+);
+/// A pair whose `account_owner` square at `a2→w2` dangles on both sides:
+/// the operation can verify nothing there and must warn.
+const NATURALITY_UNDEFINED_SOURCE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/naturality/crm_undefined.ct.json"
+);
+const NATURALITY_UNDEFINED_TARGET: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/naturality/warehouse_undefined.ct.json"
 );
 /// A parseable document whose schema is malformed (duplicate arrow ident).
 const MALFORMED: &str = concat!(
@@ -149,6 +160,9 @@ const MATRIX: &[Row] = &[
     Row { name: "naturality × source document without an instance_map (no silent empty verification)",
           args: &["naturality", NATURALITY_NO_MAP, NATURALITY_WAREHOUSE, "--json"],
           expect: Expect::Warning { exit: 0, contains: "instance_map" } },
+    Row { name: "naturality × square undefined on both sides (a non-answer warns, never a silent clean)",
+          args: &["naturality", NATURALITY_UNDEFINED_SOURCE, NATURALITY_UNDEFINED_TARGET, "--json"],
+          expect: Expect::Warning { exit: 0, contains: "undefined on both sides" } },
     Row { name: "naturality × second-doc schema mismatch (the distinguish check, reused)",
           args: &["naturality", NATURALITY_CRM, NATURALITY_SCHEMA_MISMATCH, "--json"],
           expect: Expect::Error { code: "schema_mismatch" } },

@@ -1,0 +1,22 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["account", "owner", "tier"],
+    "arrows": [
+      {"name": "account_owner", "src": "account", "tgt": "owner"},
+      {"name": "owner_tier", "src": "owner", "tgt": "tier"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "account": ["w1", "w2", "w3"],
+      "owner": ["p1", "p2"],
+      "tier": ["u1", "u2"]
+    },
+    "tables": {
+      "account_owner": {"w1": "p1", "w3": "p2"},
+      "owner_tier": {"p1": "u1", "p2": "u2"}
+    }
+  }
+}

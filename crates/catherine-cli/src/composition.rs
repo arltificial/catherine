@@ -235,6 +235,46 @@ pub(crate) fn warn_empty_interface(
     warnings.push(warning);
 }
 
+/// Warn once per document path the invocation passed more than once, in
+/// human mode printing each to stderr (the JSON envelope carries them).
+/// Detection is by canonicalized path (byte-identical when the filesystem
+/// cannot resolve it); the repetition itself is preserved — the documented
+/// multiset rule still counts every occurrence, so nothing is deduplicated.
+pub(crate) fn warn_duplicate_inputs<S: AsRef<str>>(
+    model_paths: &[S],
+    json: bool,
+    warnings: &mut Vec<Warning>,
+    stderr: &mut impl Write,
+) {
+    for path in duplicate_paths(model_paths) {
+        let warning = render::duplicate_document_warning(&path);
+        crate::runners::print_run_warnings(json, std::slice::from_ref(&warning), stderr);
+        warnings.push(warning);
+    }
+}
+
+/// The repeated input paths, deduplicated and in first-repetition order.
+/// The canonicalized key decides identity; the reported spelling is the
+/// repeated occurrence as written, so a warning names what the user typed.
+fn duplicate_paths<S: AsRef<str>>(paths: &[S]) -> Vec<String> {
+    let keys: Vec<String> = paths.iter().map(|path| input_key(path.as_ref())).collect();
+    let mut duplicates = Vec::new();
+    for (index, key) in keys.iter().enumerate() {
+        if keys[..index].contains(key) {
+            duplicates.push(paths[index].as_ref().to_string());
+        }
+    }
+    dedup(&duplicates)
+}
+
+/// The identity used for duplicate detection: the canonicalized path when
+/// the filesystem can resolve it, else the path string as written.
+fn input_key(path: &str) -> String {
+    std::fs::canonicalize(path)
+        .map(|canonical| canonical.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| path.to_string())
+}
+
 /// Emit findings with glue source attribution: the sourced `--json`
 /// envelope, or the human lines (quiet suppresses the human output only).
 /// Returns the exit code from the findings.

@@ -92,6 +92,24 @@ pub fn empty_composition_warning(documents: &[String]) -> Warning {
     }
 }
 
+/// A repeated-input warning: the same document path was passed more than
+/// once (canonicalized, or byte-identical when canonicalization fails).
+/// The repetition is preserved — the documented multiset rule still counts
+/// every occurrence — so this names the duplicate instead of deduplicating
+/// it silently.
+pub fn duplicate_document_warning(path: &str) -> Warning {
+    Warning {
+        rule_name: "duplicate_document_input".to_string(),
+        entity_id: None,
+        message: format!(
+            "document path `{path}` was passed more than once; each occurrence is still checked and findings are not deduplicated"
+        ),
+        suggested_remediation: Some(
+            "remove the repeated document path unless the repetition is intentional".to_string(),
+        ),
+    }
+}
+
 /// The one error-envelope path: the envelope's error form with the
 /// kernel's labeled error data under it — stable code, message with
 /// position, remediation hint (Invariant 3.2.5: remediation non-empty).
@@ -148,6 +166,24 @@ pub fn missing_instance_map_warning() -> Warning {
             .to_string(),
         suggested_remediation: Some(
             "add an `instance_map` section to the source document (format 1.4), or use `catherine distinguish` for an observational comparison"
+                .to_string(),
+        ),
+    }
+}
+
+/// A naturality warning: an arrow's commutation square is undefined on
+/// both sides (a dangling cell lies on each composition), so nothing was
+/// verified there. Named on the warnings channel instead of reporting a
+/// silent clean for an unexecuted square; exit semantics are unchanged.
+pub fn unresolved_naturality_square_warning(arrow: &str, source_row: usize) -> Warning {
+    Warning {
+        rule_name: "unresolved_naturality_square".to_string(),
+        entity_id: None,
+        message: format!(
+            "the commutation square for arrow `{arrow}` at source row {source_row} is undefined on both sides; it cannot be verified"
+        ),
+        suggested_remediation: Some(
+            "declare the arrow's cell on both instances so the square composes, or adjust the instance map"
                 .to_string(),
         ),
     }

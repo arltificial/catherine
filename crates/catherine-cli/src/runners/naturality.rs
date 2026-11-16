@@ -5,8 +5,10 @@
 //! Responsibilities: load both documents with their presentation names,
 //! reuse `distinguish`'s schema refusal, report construction-time
 //! resolution failures as labeled errors, warn on an absent map (never a
-//! silent clean), render the sweep's findings through the shared
-//! envelope/§5 renderers, and exit through the existing class decision.
+//! silent clean), warn per square undefined on both sides (an unexecuted
+//! square is a non-answer, not a clean), render the sweep's findings
+//! through the shared envelope/§5 renderers, and exit through the
+//! existing class decision.
 //!
 //! Rationale: no second pipeline — the loader, envelope constructors, and
 //! exit decision are the check path's; only the operation differs.
@@ -14,7 +16,7 @@
 use super::{print_run_warnings, schema_mismatch};
 use crate::render::{self, LabeledError};
 use crate::run::{emit_error, exit_code, load_model_with_rows, write_envelope};
-use catherine_analysis::naturality::{self, NaturalityError};
+use catherine_analysis::naturality::{self, NaturalityError, NaturalityOutcome};
 use catherine_core::findings::Finding;
 use catherine_core::model::{Model, Schema};
 use catherine_core::parse::RowNames;
@@ -32,10 +34,16 @@ pub fn run_naturality(
     second_path: &str,
     json: bool,
     quiet: bool,
-    warnings: Vec<Warning>,
+    mut warnings: Vec<Warning>,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
+    crate::composition::warn_duplicate_inputs(
+        &[model_path, second_path],
+        json,
+        &mut warnings,
+        stderr,
+    );
     let (source, source_names) = match load_model_with_rows(model_path) {
         Ok(pair) => pair,
         Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
@@ -72,7 +80,7 @@ fn naturality_outcome(
     second_path: &str,
     json: bool,
     quiet: bool,
-    warnings: Vec<Warning>,
+    mut warnings: Vec<Warning>,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
@@ -80,15 +88,18 @@ fn naturality_outcome(
         return missing_map(source, json, quiet, warnings, stdout, stderr);
     }
     match naturality::naturality(source, target, source_names, target_names) {
-        Ok(findings) => render_findings(
-            &findings,
-            &source.schema,
-            json,
-            quiet,
-            warnings,
-            stdout,
-            stderr,
-        ),
+        Ok(outcome) => {
+            warn_undefined_squares(&outcome, &mut warnings);
+            render_findings(
+                &outcome.findings,
+                &source.schema,
+                json,
+                quiet,
+                warnings,
+                stdout,
+                stderr,
+            )
+        }
         Err(NaturalityError::MissingInstanceMap) => {
             missing_map(source, json, quiet, warnings, stdout, stderr)
         }
@@ -96,6 +107,17 @@ fn naturality_outcome(
             let labeled = naturality_error(&error, second_path);
             emit_error(&labeled, json, warnings, stdout, stderr)
         }
+    }
+}
+
+/// Name every square undefined on both sides on the warnings channel; the
+/// warning never changes the exit class (findings alone decide it).
+fn warn_undefined_squares(outcome: &NaturalityOutcome, warnings: &mut Vec<Warning>) {
+    for square in &outcome.undefined {
+        warnings.push(render::unresolved_naturality_square_warning(
+            &square.arrow.0,
+            square.source_row.0,
+        ));
     }
 }
 

@@ -1,0 +1,14 @@
+id = "duplicate-document-paths-are-warned"
+description = "Passing the same document path more than once to `check`, `findings`, or `underconstraint` — or the same path twice to `naturality` — proceeds with the documented multiset semantics (every occurrence is checked, findings are not deduplicated) and names the repeated path on the warnings channel under the stable `duplicate_document_input` rule; canonicalized duplicates are detected, and a single document never warns."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "repeated_document_paths_warn_without_deduplicating_findings" },
+    { flags = "only_repeated_document_paths_warn" },
+    { flags = "findings_and_underconstraint_warn_on_repeated_documents" },
+    { flags = "naturality_warns_when_both_documents_are_identical" },
+]

@@ -39,6 +39,17 @@ are unchanged.
   findings carry source attribution naming the declaring document, and
   the exit code follows the existing precedence contract
 
+#### Scenario: Duplicate document paths are warned
+- **WHEN** the same document path is passed more than once to `check`,
+  `findings`, or `underconstraint` (including paths that canonicalize to
+  the same file), or `naturality` receives the same path for both
+  documents
+- **THEN** the run proceeds with the documented repeated-declaration
+  multiset semantics — every occurrence is still checked and findings are
+  not deduplicated — and names the repeated path on the warnings channel
+  under the stable `duplicate_document_input` rule in both JSON and human
+  modes, never deduplicating the input silently
+
 ### Requirement: Exit codes mirror finding classes with defined precedence
 The system SHALL define stable exit codes per finding class (clean = 0;
 parse/build failure distinct from any finding) so CI and agents can branch

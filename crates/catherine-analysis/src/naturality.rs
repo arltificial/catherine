@@ -10,8 +10,11 @@
 //! finding), then sweep every schema arrow and every source row comparing
 //! `map ∘ arrow` with `arrow ∘ map`. A mismatch emits one
 //! `violation`/`executed` finding whose witness names the arrow, the
-//! source row, and both composed values. No new finding kinds are
-//! introduced.
+//! source row, and both composed values. A square undefined on *both*
+//! sides — a dangling cell lies on each composition — is not a clean
+//! result: it is reported separately in [`NaturalityOutcome::undefined`]
+//! so the caller can warn instead of claiming a verified clean. No new
+//! finding kinds are introduced.
 //!
 //! Rationale: design Decisions 2-4 — malformed claims are labeled errors
 //! before any check runs, breaks are violations with a witness (the
@@ -56,6 +59,30 @@ pub enum NaturalityError {
     },
 }
 
+/// One commutation square that could not be verified: both
+/// `map ∘ arrow` and `arrow ∘ map` are undefined, because a dangling
+/// cell lies on each side. An undefined square is neither clean nor a
+/// witnessed break; the caller names it on its warning channel.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UndefinedSquare {
+    /// The schema arrow whose square is undefined.
+    pub arrow: Ident,
+    /// The source row at which the square is undefined.
+    pub source_row: RowId,
+}
+
+/// The sweep's result: witnessed breaks (`findings`) and unverifiable
+/// squares (`undefined`), disjoint. A square appears in exactly one of
+/// the two, so a caller can never report a both-undefined square as a
+/// silent clean.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NaturalityOutcome {
+    /// One `violation`/`executed` finding per breaking square, sorted.
+    pub findings: Vec<Finding>,
+    /// One entry per square undefined on both sides, sorted.
+    pub undefined: Vec<UndefinedSquare>,
+}
+
 /// Resolve and execute the source document's instance map against the
 /// target instance. The source and target schemas are the caller's
 /// precondition (the CLI reuses its `schema_mismatch` check); this
@@ -65,7 +92,7 @@ pub fn naturality(
     target: &Model,
     source_names: &RowNames,
     target_names: &RowNames,
-) -> Result<Vec<Finding>, NaturalityError> {
+) -> Result<NaturalityOutcome, NaturalityError> {
     let map = source
         .instance_map
         .as_ref()
@@ -128,33 +155,55 @@ fn source_row_name(source_names: &RowNames, object: &Ident, row: RowId) -> Strin
 /// The commutation sweep: for every arrow and every source row, compare
 /// `map ∘ arrow` (lhs) with `arrow ∘ map` (rhs). A composition through a
 /// dangling cell is `None`; two unequal values — including one unresolved
-/// side — are a witnessed break.
-fn sweep(source: &Model, target: &Model, resolved: &BTreeMap<Ident, Vec<RowId>>) -> Vec<Finding> {
-    let mut findings = Vec::new();
+/// side — are a witnessed break, while two `None`s are an undefined
+/// square (neither witnessed nor clean).
+fn sweep(
+    source: &Model,
+    target: &Model,
+    resolved: &BTreeMap<Ident, Vec<RowId>>,
+) -> NaturalityOutcome {
+    let mut outcome = NaturalityOutcome::default();
     for (arrow_name, arrow) in &source.schema.arrows {
         let Some(rows) = source.instance.rows.get(&arrow.src) else {
             continue;
         };
         for row in rows {
-            if let Some(finding) = square(source, target, arrow_name, *row, resolved) {
-                findings.push(finding);
+            match square(source, target, arrow_name, *row, resolved) {
+                Some(Square::Violation(finding)) => outcome.findings.push(finding),
+                Some(Square::Undefined) => outcome.undefined.push(UndefinedSquare {
+                    arrow: arrow_name.clone(),
+                    source_row: *row,
+                }),
+                Some(Square::Clean) | None => {}
             }
         }
     }
-    findings.sort();
-    findings
+    outcome.findings.sort();
+    outcome.undefined.sort();
+    outcome
+}
+
+/// One commutation square's classification.
+enum Square {
+    /// Both compositions resolve to the same row.
+    Clean,
+    /// The compositions differ (one side may be unresolved).
+    Violation(Finding),
+    /// Both compositions are unresolved: nothing was verified.
+    Undefined,
 }
 
 /// One commutation square: `map ∘ arrow` (lhs) against `arrow ∘ map`
-/// (rhs). A composition through a dangling cell is `None`; two unequal
-/// values — including one unresolved side — are a witnessed break.
+/// (rhs). A composition through a dangling cell is `None`. Two equal
+/// values are clean, two `None`s are undefined (never clean), and every
+/// other pair — including one unresolved side — is a witnessed break.
 fn square(
     source: &Model,
     target: &Model,
     arrow_name: &Ident,
     row: RowId,
     resolved: &BTreeMap<Ident, Vec<RowId>>,
-) -> Option<Finding> {
+) -> Option<Square> {
     let arrow = source.schema.arrows.get(arrow_name)?;
     let src_map = resolved.get(&arrow.src)?;
     let tgt_map = resolved.get(&arrow.tgt);
@@ -168,18 +217,19 @@ fn square(
         .flatten()
         .and_then(|image| tgt_map.and_then(|map| map.get(image.0)).copied());
     let rhs = arrow_image(target, arrow_name, mapped_row);
-    if lhs == rhs {
-        return None;
-    }
-    Some(Finding {
-        label: EpistemicLabel::Executed,
-        kind: FindingKind::Violation(ViolationWitness::Naturality(NaturalityWitness {
-            arrow: arrow_name.clone(),
-            source_row: row,
-            lhs,
-            rhs,
+    match (lhs, rhs) {
+        (None, None) => Some(Square::Undefined),
+        (lhs, rhs) if lhs == rhs => Some(Square::Clean),
+        (lhs, rhs) => Some(Square::Violation(Finding {
+            label: EpistemicLabel::Executed,
+            kind: FindingKind::Violation(ViolationWitness::Naturality(NaturalityWitness {
+                arrow: arrow_name.clone(),
+                source_row: row,
+                lhs,
+                rhs,
+            })),
         })),
-    })
+    }
 }
 
 /// One arrow's image at a row of another instance's object; `None` for a

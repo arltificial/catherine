@@ -1,0 +1,13 @@
+id = "unresolved-square-is-a-non-answer"
+description = "When both map(a(x)) and a(map(x)) are undefined for a square, the naturality run emits one labeled unresolved_naturality_square warning naming the arrow and the source row, produces no finding for that square, and exits 0 unless there are violations — never a warning-free clean that claims the square was verified. A one-sided undefined square remains a violation with a null witness side."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "naturality_undefined_square_warns_instead_of_silent_clean" },
+    { flags = "naturality_undefined_square_warns_on_stderr" },
+    { flags = "naturality_one_sided_undefined_is_a_violation_with_a_null_side" },
+]

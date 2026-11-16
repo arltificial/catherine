@@ -46,9 +46,10 @@ pub use crate::render::analysis::{
 pub use crate::render::diff::{diff_envelope, render_diff, ConstraintView, DiffData};
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::envelope::{
-    config_warning, empty_composition_warning, error_envelope, findings_envelope,
-    missing_instance_map_warning, sourced_findings_envelope, unknown_follow_warning,
-    unknown_rows_warning, FindingsData, SourcedFinding, SourcedFindingsData,
+    config_warning, duplicate_document_warning, empty_composition_warning, error_envelope,
+    findings_envelope, missing_instance_map_warning, sourced_findings_envelope,
+    unknown_follow_warning, unknown_rows_warning, unresolved_naturality_square_warning,
+    FindingsData, SourcedFinding, SourcedFindingsData,
 };
 pub use crate::render::errors::LabeledError;
 #[allow(unused_imports)] // pub surface kept stable at `render::`

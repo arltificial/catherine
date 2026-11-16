@@ -156,6 +156,9 @@ const WARNING_MATRIX: &[WarnRow] = &[
     WarnRow { name: "composition × disjoint documents (findings) — the variadic findings surface carries the same label",
               args: &["findings", BILLING, DISJOINT_A, "--json"],
               rule: "empty_composition_interface" },
+    WarnRow { name: "composition × repeated document path (check) — the duplicate input is named, never silently deduplicated",
+              args: &["check", DISJOINT_A, DISJOINT_A, "--json"],
+              rule: "duplicate_document_input" },
 ];
 
 /// The recurrence gate: every row must surface its malformed input

@@ -294,3 +294,65 @@ fn single_document_unknown_arrow_error_is_unchanged() {
         "the offending node position is unchanged: {message}"
     );
 }
+
+/// Whether the envelope's warnings channel carries `rule`.
+fn warns(value: &serde_json::Value, rule: &str) -> bool {
+    value["warnings"].to_string().contains(rule)
+}
+
+#[test]
+fn repeated_document_paths_warn_without_deduplicating_findings() {
+    let bowling = fixture("bowling.ct.json");
+    let out = run(&["check", &bowling, &bowling, "--json"]);
+    assert_eq!(code(&out), 3, "still exits 3");
+    assert_eq!(stderr(&out), "", "JSON warnings stay on the envelope");
+    let value = parse_json(&stdout(&out), "duplicated check");
+    let found = findings(&value);
+    assert_eq!(found.len(), 2, "both occurrences execute");
+    for finding in found {
+        assert_eq!(finding["kind"], "violation", "never deduplicated");
+    }
+    assert!(warns(&value, "duplicate_document_input"), "labeled");
+    assert!(warns(&value, "bowling.ct.json"), "names the path");
+    let human = run(&["check", &bowling, &bowling]);
+    assert!(
+        stderr(&human).contains("passed more than once"),
+        "human warning: {}",
+        stderr(&human)
+    );
+}
+
+#[test]
+fn only_repeated_document_paths_warn() {
+    let bowling = fixture("bowling.ct.json");
+    let single = run(&["check", &bowling, "--json"]);
+    let value = parse_json(&stdout(&single), "single document");
+    assert!(!warns(&value, "duplicate_document_input"), "no warning");
+    let disguised = fixture("./bowling.ct.json");
+    let repeated = run(&["check", &bowling, &disguised, "--json"]);
+    let value = parse_json(&stdout(&repeated), "canonicalized repeat");
+    assert!(warns(&value, "duplicate_document_input"), "canonicalized");
+}
+
+#[test]
+fn findings_and_underconstraint_warn_on_repeated_documents() {
+    let bowling = fixture("bowling.ct.json");
+    let found = run(&["findings", &bowling, &bowling, "--json"]);
+    let value = parse_json(&stdout(&found), "duplicated findings");
+    assert!(warns(&value, "duplicate_document_input"), "findings");
+    let parallel = fixture("composition/parallel_a.ct.json");
+    let joint = run(&["underconstraint", &parallel, &parallel, "--json"]);
+    assert_eq!(code(&joint), 0, "raises nothing");
+    let value = parse_json(&stdout(&joint), "duplicated underconstraint");
+    assert!(warns(&value, "duplicate_document_input"), "warns");
+}
+
+#[test]
+fn naturality_warns_when_both_documents_are_identical() {
+    let identity = fixture("naturality/identity_map.ct.json");
+    let out = run(&["naturality", &identity, &identity, "--json"]);
+    assert_eq!(code(&out), 0, "degenerate map is clean");
+    let value = parse_json(&stdout(&out), "identical naturality paths");
+    assert!(warns(&value, "duplicate_document_input"), "warned");
+    assert!(findings(&value).is_empty(), "map holds");
+}
