@@ -151,6 +151,11 @@ against an independent BFS reference on generated instances and re-pin
   observation sets (task 10).
 - `schema_diff.rs` — v1→v2 edit classification (P10): cosmetic /
   accreted / weakened-with-witness / equivalent-in-scope.
+- `naturality.rs` — instance-morphism verification (`add-instance-morphism`):
+  identical-schema check, construction-time target resolution, and the
+  commutation sweep over a declared total `instance_map`
+  (one `violation`/`executed` per broken square with `{arrow,
+  source_row, lhs, rhs}`); the map is verified, never synthesized.
 
 Build: part of the workspace; `cargo test -p catherine-analysis` runs
 the fixture suites (including `tests/schema_diff.rs`), the

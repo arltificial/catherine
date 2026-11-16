@@ -125,10 +125,10 @@ status without parsing any text:
 | 7 | redundant | lowest severity |
 
 Multi-class runs exit with the **minimum** present class code; the full
-class set is always in the payload. The three analysis classes
-(contradiction/underconstraint/redundant) have no producer until P4 —
-their exit codes and renderings are pinned by unit tests, never
-fabricated end-to-end.
+class set is always in the payload. The three analysis classes have real
+producers: `search` (contradiction), `underconstraint` (parallel paths),
+and `redundant` (derivable paths), with `distinguish` and the pattern/
+rule lenses alongside them.
 
 ## Documentation map
 
@@ -150,9 +150,11 @@ limitation flips its row in the same change that lands the capability.
 
 ## Status & roadmap
 
-P0–P10 are closed (each phase ran its red→green→refactor cycle as a beads
-ticket), and P11's domain-probe validation is recorded in
-`ledger/probes/`. The phase map, for orientation:
+P0–P11 are closed (each phase ran its red→green→refactor cycle as a beads
+ticket), P11's domain-probe validation is recorded in `ledger/probes/`, and
+the corpus-derived capability backlog (P12) landed the four G1–G3 changes:
+the expressibility gap suite, instance morphisms (`naturality`), joint
+composition, and coproduct exhaustiveness. The phase map, for orientation:
 
 ```
 P0 kernel skeleton → P1 executed checks → P2 findings → P3 CLI (genesis)
@@ -160,10 +162,12 @@ P0 kernel skeleton → P1 executed checks → P2 findings → P3 CLI (genesis)
 scoped) → P7 migration Δ → P8 rule lens (pre-registered validation,
 survived scoped) → P9 bogart pilot (first real-domain dogfood)
 → P10 schema diff → P11 domain probes (baseline-armed, recorded)
+→ P12 gap suite + composition + instance morphisms + coproducts
 ```
 
-`bd ready` lists the remaining work (docs drift, seam recipe, positioning
-notes, the pattern-kata suite). P6's ledger verdict gates P7/P8 — it came
+`bd ready` lists the remaining work (seam/naturality recipes in USING,
+positioning notes, and the two filed defects `catherine-3en` and
+`catherine-ke1`). P6's ledger verdict gates P7/P8 — it came
 back `survived (scoped)`, so both proceeded by the recorded procedure; had
 it been `killed`, the project would have stopped and recorded the negative
 result.

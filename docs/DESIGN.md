@@ -3,6 +3,14 @@
 Status: draft v2 · 2026-11-10 · evidence-linked design for a browser-runnable,
 agent-usable category-theory modeling tool, deliberately simpler than Catlab.
 
+**Historical design record.** The living contracts are `openspec/specs/`
+plus `README.md`; this document records the design as of 2026-11-10. In
+particular, §4.1's "entire kernel surface in v1" predates the additive
+`schema.keys` (1.3), `instance_map` (1.4), and `schema.coproducts` (1.5)
+sections and the findings kind/witness/label taxonomy; §6's P0–P11 plan
+predates the P12 arc (gap suite, instance morphisms, composition,
+coproducts). Read those sections as design history, not current API.
+
 Naming: *catherine* — cat, from *categories*. The pun is the scope warning:
 this is the small cat, not the whole zoo.
 

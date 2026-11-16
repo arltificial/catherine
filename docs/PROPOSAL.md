@@ -6,6 +6,13 @@ tool is, who it is for, and why it deserves to exist, without reading code.
 Companions: `DESIGN.md` (the how), `docs/ref/category_theoretic_modeling_
 methodology.md` (the method the tool serves).
 
+**Scope note (2026-11-16).** The v1 scope in §3 predates the G1–G3
+additions: the shipped tool now also declares `schema.keys` (1.3),
+`instance_map` with `naturality` (1.4), and `schema.coproducts` (1.5), and
+`check` composes documents jointly. The authoritative capability list is
+`openspec/specs/` plus `README.md`; this proposal records the original
+case, which the additions extend rather than replace.
+
 ## 1. The problem
 
 Modeling a problem before building it is still an artisanal act. When an

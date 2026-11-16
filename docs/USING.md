@@ -150,6 +150,40 @@ agreement, where dbt has no operator. This is a modelling check on a
 declarative document, not a drop-in warehouse test — extraction from the
 warehouse is your adapter's job (`catherine` does not connect to SQL).
 
+When the halves of the seam live in different documents, pass them
+together: `catherine check billing.ct.json shipping.ct.json seam.ct.json`.
+The inputs glue over their shared declared names, every input's equations
+and keys run over the merged instance, and each finding carries an additive
+`source` naming the declaring documents. Overlapping declarations must
+agree (`schema_conflict` / `row_conflict`), and a run that shares no names
+warns `empty_composition_interface` rather than passing silently. The seam
+equation itself lives in one input document; it resolves after gluing and
+is rejected when that document runs alone (`unknown_arrow`) unless every
+name it references is declared locally. Single-document runs are unchanged.
+
+### Recipe E — verify a given mapping between two instances
+
+The mapping question a sync/ETL job leaves implicit: *does this row map
+commute with the schema?* Declare it as data in the source document's
+additive `instance_map` section (format 1.4) — a total per-object map of
+row names — then run:
+
+```console
+$ catherine naturality crm.ct.json warehouse.ct.json --json
+{"ok":true,...,"data":{"findings":[{"label":"executed","kind":"violation",
+ "witness":{"arrow":"account_owner","source_row":2,"lhs":1,"rhs":0}}]}}
+```
+
+Every schema arrow is executed against every mapped row: `map∘a` must equal
+`a∘map`, and a break is one `violation`/`executed` naming the arrow, the
+source row, and both composed values. The map must cover every row
+(`incomplete_instance_map` at the uncovered node), a cell naming a missing
+target row is a construction-time `unknown_map_target` error, and the two
+documents must have identical schemas (the `distinguish` schema check).
+The surface verifies a given map — it never synthesizes or searches for
+one. Probe: `ledger/probes/naturality/` (a `distinguish` baseline answers
+"instances differ", never "this map cell is incoherent").
+
 ## For humans
 
 - **Review models like code.** `.ct.json` files live in the repo; they diff
@@ -222,7 +256,8 @@ Equally load-bearing — each line with its source:
   *outside* the kernel — bogart's job, C4/E2).
 - **No silent anything.** No silent lost data, no silent scope collapse, no
   silently re-run invalid experiments (ledger anti-goal), no silent
-  constraint-weakening once P10 lands.
+  constraint-weakening — the schema diff executes a witness for a dropped
+  equation, key, or coproduct (`weakened`).
 - **No knowledge-store ambitions.** Claims, lineage, provenance ledgers live
   in bajan/wild, which consume catherine verdicts — catherine emits verdicts
   only (program boundary, `bd memory: program-boundary`).

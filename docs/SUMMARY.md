@@ -18,6 +18,7 @@
 - [Category-theoretic modeling methodology](./ref/category_theoretic_modeling_methodology.md)
 - [CT methodology playbook](./ref/ct_methodology_playbook.md)
 - [Pattern-kata dispositions](./ref/pattern-kata-dispositions.md)
+- [Expressibility dispositions](./ref/expressibility-dispositions.md)
 - [ploeh grounding](./ref/ploeh-grounding.md)
 - [Rule-of-5 checklist](./ro5u-checklist.md)
 
@@ -25,11 +26,15 @@
 
 - [`analysis`](./generated/specs/analysis.md)
 - [`cli`](./generated/specs/cli.md)
+- [`composition`](./generated/specs/composition.md)
 - [`domain-probes`](./generated/specs/domain-probes.md)
 - [`findings`](./generated/specs/findings.md)
+- [`gap-suite`](./generated/specs/gap-suite.md)
+- [`instance-morphism`](./generated/specs/instance-morphism.md)
 - [`kata-validation`](./generated/specs/kata-validation.md)
 - [`kernel-checks`](./generated/specs/kernel-checks.md)
 - [`migration`](./generated/specs/migration.md)
 - [`model-document`](./generated/specs/model-document.md)
+- [`pattern-lens`](./generated/specs/pattern-lens.md)
 - [`rule-lens`](./generated/specs/rule-lens.md)
 - [`wasm-ui`](./generated/specs/wasm-ui.md)

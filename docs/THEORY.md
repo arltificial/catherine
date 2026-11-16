@@ -256,7 +256,47 @@ implement Spivak's model — *not* the full Johnson sketch methodology — which
 is why enforcement and findings are catherine's contribution rather than
 redundant with any of them.
 
-## 10. Glossary
+## 10. Constructions shipped beyond path equations
+
+Three constructions from the original theory map are now executable. They
+share one rule: the tool audits a *declared* claim; it never searches for
+one.
+
+**Instance morphisms (naturality).** An instance is a functor `𝒞 → Set`.
+A mapping between two instances of the same schema is a natural
+transformation η: for every arrow `a : X → Y` and every source row `x`,
+the square `η_Y(a(x)) = a(η_X(x))` must commute. The tool takes the map as
+data (an additive `instance_map` section: a total per-object row mapping)
+and executes every square; a break is one `violation`/`executed` naming
+the arrow, the source row, and both composed values. Totality is a parse
+obligation and target resolution a construction-time one, so a partial or
+dangling-claim map is refused rather than defaulted. What is deliberately
+absent: mapping *between different schemas* (that is Δ migration's job)
+and searching for a map that happens to commute.
+
+**Coproducts (closed variants).** `Method ≅ Card ⊔ Transfer` is a colimit:
+injection arrows `V_k → C` whose images are total and pairwise disjoint
+over `C`'s rows. A declaration is executed exactly as stated — an
+uncovered row falsifies coverage, a row in two injection images falsifies
+disjointness — and both are existing `violation` findings with the row (and
+the colliding injections) as witness. This is the mono/colimit dual of
+`keys`, which asserts injectivity; limits are still absent: no pullbacks,
+no cones, no defaults. A declared totality claim that fails is a
+violation, not a gap to be patched.
+
+**Composition (the pushout at a seam).** Two documents that share a
+declared sub-schema compose over it: objects, arrows, and rows identified
+by name, with every input's equations and keys executed on the pushed-out
+instance. The pushout is the mathematically forced reading of "the same
+`Order`/`Region` in both halves" — which is why a disagreeing overlap is a
+labeled conflict instead of a last-writer-wins merge. The output is
+findings with source attribution; there is no serialized merged document,
+because the value under test is the *executed seam claim*, not a new
+artifact. The probe records parity on detections against a hand-merged
+baseline and books the eliminated merge step as a workflow gain, not as a
+detection claim.
+
+## 11. Glossary
 
 | Term | One-liner |
 |---|---|
@@ -270,4 +310,7 @@ redundant with any of them.
 | Δ / Σ / Π | the migration functors induced by a schema map: reindex / aggregate / pair-and-filter — with Σ ⊣ Δ ⊣ Π forming an adjoint triple (Σ and Π are left/right Kan extensions along Δ) |
 | Kan extension | the universal "best approximation" of extending data along a map — Σ and Π are left/right Kan extensions along Δ |
 | fibration | the machinery for view updates: which base changes lift to a view change, uniquely or at all (post-v1) |
+| natural transformation | a coherent mapping between two instances of one schema: every arrow square commutes (`η_Y(a(x)) = a(η_X(x))`); shipped as `naturality` over a declared `instance_map` |
+| coproduct | a colimit `C ≅ V₁ ⊔ … ⊔ Vₙ` declared by injection arrows `V_k → C`; shipped as `schema.coproducts` with executed coverage and disjointness |
+| pushout | the composed schema/instance of documents sharing a sub-schema; shipped as variadic `check`, findings only (no merged document) |
 | epistemic label | how an answer was established: PROVED / EXECUTED (in scope) / ILLUSTRATED / HYPOTHESIZED / UNKNOWN |
