@@ -29,6 +29,22 @@ check-wasm:
     rustup target add wasm32-unknown-unknown
     cargo check -p catherine-wasm --target wasm32-unknown-unknown
 
+# Lean assurance twin gate (openspec change `add-lean-kernel-model`, task
+# 11): build the twin, run both parity oracles over the
+# check-applicable fixture corpus (`lean-parity` for findings,
+# `lean-parity --check-build` for the builders' instance/dangling/typing
+# tables), then audit the proofs — the build's `sorry` warnings, each
+# audited declaration's axiom set, and every module source for `axiom`
+# declarations. Deliberately NOT part of `just ci` — the Lean toolchain is
+# provisioned separately (elan, pinned by the committed
+# `lean/lean-toolchain`), and `just ci` stays the gate every checkout can
+# run with just the Rust toolchain.
+lean:
+    cd lean && lake build
+    cd lean && lake exe lean-parity
+    cd lean && lake exe lean-parity --check-build
+    scripts/check-lean-axioms.sh
+
 # Everything .github/workflows/ci.yml runs, for local pre-push parity. The
 # bd-export freshness gate lives inside `cargo test --workspace` (the
 # standard_conformance test) — CI never runs dolt.

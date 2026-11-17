@@ -45,6 +45,26 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo check -p catherine-wasm --target wasm32-unknown-unknown
 
+      - name: Install pinned Lean toolchain (elan 4.2.4; lean/lean-toolchain)
+        # `--default-toolchain none` keeps the runner free of a floating
+        # default: the committed `lean/lean-toolchain` (v4.36.0) is the only
+        # pin, and `lake` fetches exactly that version on first use.
+        # The installer itself is pinned to the elan v4.2.4 release tag (the
+        # version provisioned locally), not the moving `master` branch, and
+        # is downloaded to a file before execution: with `set -euo pipefail`
+        # a failed download fails THIS step, rather than vanishing into a
+        # `curl | sh` pipeline and resurfacing later as "lake not found".
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/elan-init.sh \
+            https://raw.githubusercontent.com/leanprover/elan/v4.2.4/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Gate — Lean twin build, parity oracle, axiom audit (add-lean-kernel-model task 11)
+        run: just lean
+
       - name: Gate — openspec validate, all changes, strict
         run: openspec validate --changes --strict --no-interactive
 
