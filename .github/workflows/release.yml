@@ -3,14 +3,17 @@
 #
 # Triggered by pushing a version tag (e.g., `git tag v0.1.0 && git push
 # --tags`). Creates a GitHub Release with pre-built `catherine` binaries
-# for Linux, macOS, and Windows. crates.io publication is deliberately
-# deferred (beads catherine-t9w) — the workspace publishes binaries only.
+# for Linux, macOS, and Windows, and publishes the workspace crates to
+# crates.io (beads catherine-qmc) in dependency order.
 #
 # Differences from the ddl pattern:
-#   * No crates.io publish, no Homebrew tap / Scoop bucket channels yet;
-#   when crates publication lands it goes in dependency order (core →
-#   analysis → ledger → cli) and skips catherine-wasm (wasm boundary
-#   crate, consumed via the web bundle).
+#   * crates.io publication covers core → analysis → ledger → cli and
+#     skips catherine-wasm (wasm boundary crate, consumed via the web
+#     bundle); each crate is skipped when that version already exists,
+#     so a re-run of a partially published tag is idempotent.
+#   * The release body comes from the CHANGELOG section for the tag plus
+#     a compare link (beads catherine-ply), not `--generate-notes`.
+#   * Homebrew tap / Scoop bucket channels do not exist yet.
 #   * rust-toolchain.toml pins 1.98.1, so cross targets are installed
 #   for THAT toolchain (`rustup target add --toolchain …`), not for
 #   whatever `rustup default` points at.
@@ -266,11 +269,59 @@ jobs:
           bad = [f'{p["name"]}: {p["version"]} != {want}'
                  for p in meta["packages"]
                  if p["name"] in published and p["version"] != want]
+          # Intra-workspace dependency requirements must move with the
+          # package versions: a published crate resolves its siblings from
+          # crates.io, so a stale `version = "0.1.0"` requirement would make
+          # the new tag install an old dependency.
+          for p in meta["packages"]:
+              if p["name"] not in published:
+                  continue
+              for dep in p["dependencies"]:
+                  if dep["name"] not in published:
+                      continue
+                  if dep.get("kind") not in (None, "normal"):
+                      continue
+                  required = dep.get("req", "").lstrip("^=")
+                  if required != want:
+                      bad.append(
+                          f'{p["name"]} depends on {dep["name"]} '
+                          f'{dep.get("req", "?")} (want ^{want})')
           if bad:
               print("::error::crate versions do not match tag " + os.environ["TAG"] + ":")
               print("\n".join(bad))
               sys.exit(1)
           EOF
+
+      - name: Publish crates to crates.io (dependency order)
+        # Publishing is per-crate and idempotent: a tag re-run skips versions
+        # that already exist. The index sleep gives crates.io time to resolve
+        # the just-published dependency when the next crate is verified, and
+        # catherine-wasm is deliberately absent (wasm boundary crate, not a
+        # published artifact).
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION: ${{ steps.pkg.outputs.version }}
+        run: |
+          set -euo pipefail
+          for crate in catherine-core catherine-analysis catherine-ledger catherine-cli; do
+            status=$(curl -s -o /dev/null -w '%{http_code}' \
+              -A 'catherine-release-workflow' \
+              "https://crates.io/api/v1/crates/${crate}/${VERSION}")
+            case "${status}" in
+              200)
+                echo "::notice::${crate} ${VERSION} already on crates.io — skipping"
+                continue
+                ;;
+              404) ;;
+              *)
+                echo "::error::crates.io lookup for ${crate} ${VERSION} returned HTTP ${status}"
+                exit 1
+                ;;
+            esac
+            echo "Publishing ${crate} ${VERSION}"
+            cargo publish -p "${crate}"
+            sleep 20
+          done
 
       # DDL-wof (SEC-03/06): publish cryptographically verifiable provenance
       # for every supported binary. provenance.json binds each artifact's
@@ -308,6 +359,24 @@ jobs:
               f.write("\n")
           EOF
 
+      - name: Extract release body from CHANGELOG
+        # The body is the reviewed CHANGELOG section for this version plus the
+        # compare link (catherine-ply). `--generate-notes` walked merge commits
+        # and published an empty body because nothing is merged via PRs here; a
+        # missing or empty section fails the job by name instead of shipping a
+        # blank release.
+        env:
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.pkg.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 scripts/release-notes.py \
+            --version "${VERSION}" \
+            --tag "${TAG}" \
+            --repo "${REPO}" \
+            --changelog CHANGELOG.md > dist/release-notes.md
+          test -s dist/release-notes.md
+
       - name: Create GitHub release (idempotent on retry)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -321,7 +390,7 @@ jobs:
           else
             gh release create "${TAG}" \
               --title "${TAG}" \
-              --generate-notes \
+              --notes-file dist/release-notes.md \
               $PRERELEASE \
               dist/catherine_${VERSION}_linux_amd64.tar.gz \
               dist/catherine_${VERSION}_linux_arm64.tar.gz \
