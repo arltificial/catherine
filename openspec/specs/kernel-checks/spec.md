@@ -140,10 +140,10 @@ SHALL name only the complete images covering it.
   while the unresolved cell still carries only its dangling finding
 
 ### Requirement: Unresolved injection cells suppress coverage only
-An injection with a dangling or typing-violated cell has a partial image
-whose unknown target could be any row, so coverage is undecidable for
-every row and uncovered-row findings SHALL be suppressed. The unresolved
-cell is already reported by its own dangling finding — never
+Uncovered-row findings SHALL be suppressed for every row when any
+declared injection has a dangling or typing-violated cell: the partial
+image's unknown target could be any row, so coverage is undecidable. The
+unresolved cell is already reported by its own dangling finding — never
 double-reported. An empty coproduct object is vacuously covered.
 
 #### Scenario: Dangling injection cells are not double-reported
