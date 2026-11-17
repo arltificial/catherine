@@ -28,6 +28,9 @@
 # file_lines; beads catherine-z91, first v0.1.0 release run).
 /target
 
+# Lean toolchain build artifacts (lean/ assurance twin, beads catherine-xvh)
+lean/.lake/
+
 # mdBook build output (docs.yml / just docs deploy from here, never commit)
 /book/
 
