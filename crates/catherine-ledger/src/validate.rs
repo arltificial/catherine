@@ -2,37 +2,34 @@
 //! ledger refuses bad science. A kata entry without a prior negative
 //! control, a verdict outside the closed vocabulary, an entry without
 //! model-hash references — each is a named rejection, never a warning;
-//! plus the content-address integrity checks (id recomputation, seq
-//! order, supersession targets) that make the ledger append-only.
+//! plus the content-address integrity checks that keep it append-only.
 //!
 //! Responsibilities: [`validate_dir`] reads a ledger directory through
-//! small phase checks — per-entry integrity, control self-negation,
+//! phase checks — per-entry integrity, control self-negation,
 //! control-first ordering, baseline-arm claims, catalog hashes, rollup
 //! placement/coverage — and refuses the ledger when any phase reports.
+//! The integrity phase asks [`crate::decision`] about decision entries.
 //! The Green shape is control-first, contiguous seqs, sealed ids, and a
-//! trailing rollup.
+//! trailing rollup (terminal decisions may follow it).
 //!
 //! Rationale: ct-catlab's own failure mode was verdict/record
 //! contradictions (REPORT methodology §1) — the validator exists so the
-//! tool cannot quietly do that to itself. Rejections are total (any
-//! violation fails the ledger): partial ledgers never pass. The
-//! baseline-arm refusals ([`Violation::UniqueWithoutBaseline`],
-//! [`Violation::CitedBaselineCannotSurvive`]) are wired: a uniqueness
-//! claim needs an executed, committed baseline arm, and a cited-only arm
-//! caps the verdict at inconclusive. The catalog-hash rule
-//! ([`Violation::CatalogHashMismatch`]) pins a probe entry to the
-//! pre-registered catalog it ran against. Supersession is the correction path
-//! (a new entry whose `supersedes` names the old id, never an edit), so
-//! claim-bearing rules run on the EFFECTIVE entries while the integrity
-//! pins (id, seq, model hashes, verdict vocabulary, supersession
-//! targets) run on all of them.
+//! tool cannot quietly do that to itself, and rejections are total. A
+//! uniqueness claim needs an executed baseline arm
+//! ([`Violation::UniqueWithoutBaseline`]) and a cited-only arm caps the
+//! verdict ([`Violation::CitedBaselineCannotSurvive`]); a probe entry's
+//! `catalog_hash` must match the pre-registered catalog
+//! ([`Violation::CatalogHashMismatch`]). Supersession is the correction
+//! path (a new entry whose `supersedes` names the old id, never an
+//! edit), so claim-bearing rules run on the EFFECTIVE entries while the
+//! integrity pins run on all of them.
 
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
 use crate::catalog::{is_probe, probe_catalog_hash};
-use crate::entry::{entry_id, BaselineMode, Entry, EntryContent};
+use crate::entry::{entry_id, BaselineMode, Entry};
 
 /// The closed verdict vocabulary, as the stable spellings.
 const VERDICTS: [&str; 4] = ["killed", "survived", "inconclusive", "invalid-run"];
@@ -70,6 +67,11 @@ pub enum Violation {
     /// The entry's `catalog_hash` does not match the committed catalog
     /// for its id, or names an unregistered probe.
     CatalogHashMismatch { seq: u32 },
+    /// A decision outcome outside `extend|hold|retire`.
+    InvalidDecisionOutcome { seq: u32, outcome: String },
+    /// The `decision` kind and its payload disagree: kind `decision`
+    /// without a record, or a record on a non-decision kind.
+    MalformedDecision { seq: u32, reason: String },
 }
 
 /// A ledger that passed validation.
@@ -111,12 +113,10 @@ pub fn read_entry_file(path: &Path) -> Result<Entry, Violation> {
         fs::read_to_string(path).map_err(|e| Violation::Unreadable(format!("{file}: {e}")))?;
     let value: serde_json::Value =
         serde_json::from_str(&bytes).map_err(|e| Violation::Unreadable(format!("{file}: {e}")))?;
-    let content: EntryContent = serde_json::from_value(value.clone())
-        .map_err(|_| Violation::IdMismatch { file: file.clone() })?;
     let entry: Entry =
         serde_json::from_value(value).map_err(|_| Violation::IdMismatch { file: file.clone() })?;
     let recomputed =
-        entry_id(&content).map_err(|e| Violation::Unreadable(format!("{file}: {e}")))?;
+        entry_id(&entry.content).map_err(|e| Violation::Unreadable(format!("{file}: {e}")))?;
     if entry.id != recomputed {
         return Err(Violation::IdMismatch { file });
     }
@@ -141,11 +141,7 @@ fn verdict_spelling(entry: &Entry) -> Option<&str> {
     if let Some(kata) = &entry.content.kata {
         return Some(kata.verdict.as_str());
     }
-    entry
-        .content
-        .rollup
-        .as_ref()
-        .map(|rollup| rollup.verdict.as_str())
+    entry.content.rollup.as_ref().map(|r| r.verdict.as_str())
 }
 
 /// Whether the entry is a negative-control kata entry.
@@ -189,14 +185,15 @@ fn integrity_violations(entries: &[Entry]) -> Vec<Violation> {
                 seq: entry.content.seq,
             });
         }
-        if let Some(verdict) = verdict_spelling(entry) {
-            if !VERDICTS.contains(&verdict) {
-                violations.push(Violation::InvalidVerdict {
-                    seq: entry.content.seq,
-                    verdict: verdict.to_string(),
-                });
-            }
+        if let Some(verdict) = verdict_spelling(entry).filter(|v| !VERDICTS.contains(v)) {
+            violations.push(Violation::InvalidVerdict {
+                seq: entry.content.seq,
+                verdict: verdict.to_string(),
+            });
         }
+        // Decisions: kind, payload, and outcome vocabulary — the rules
+        // live with the schema (`crate::decision`).
+        violations.extend(crate::decision::decision_violations(entry));
         if let Some(target) = &entry.content.supersedes {
             let exists = entries
                 .iter()
@@ -252,12 +249,11 @@ fn control_first_violations(entries: &[&Entry]) -> Vec<Violation> {
         }
         let controlled = entries.iter().any(|earlier| {
             earlier.content.seq < entry.content.seq
-                && is_control(earlier)
                 && earlier
                     .content
                     .kata
                     .as_ref()
-                    .is_some_and(|kata| kata.verdict.as_str() == "killed")
+                    .is_some_and(|kata| kata.control && kata.verdict == "killed")
         });
         if !controlled {
             violations.push(Violation::NegativeControlMissing {
@@ -321,62 +317,66 @@ fn catalog_violations(entries: &[&Entry]) -> Vec<Violation> {
     violations
 }
 
-/// The effective rollup, when present: last entry, covering exactly the
-/// effective kata entries (set equality between `kata_entry_ids` and
-/// the effective kata ids). A ledger WITHOUT a rollup is a valid
-/// append-only intermediate state — entries land before the rollup is
-/// derived. A stale rollup that was not superseded is misplaced.
+/// The effective rollup, when present: last non-decision entry,
+/// covering exactly the effective kata entries (set equality between
+/// `kata_entry_ids` and the effective kata ids). A ledger WITHOUT a
+/// rollup is a valid append-only intermediate state — entries land
+/// before the rollup is derived. A stale rollup that was not superseded
+/// is misplaced. Terminal decision entries may follow the rollup without
+/// displacing it (design Decision 5).
 fn rollup_violations(entries: &[&Entry]) -> Vec<Violation> {
-    let mut violations = Vec::new();
     let rollups: Vec<&Entry> = entries
         .iter()
         .copied()
         .filter(|entry| entry.content.kind == "rollup")
         .collect();
     let Some(rollup) = rollups.last().copied() else {
-        return violations;
+        return Vec::new();
     };
-    let last_seq = entries.last().map(|last| last.content.seq);
-    for candidate in &rollups {
-        if last_seq != Some(candidate.content.seq) {
-            violations.push(Violation::RollupMisplaced {
-                seq: candidate.content.seq,
-                reason: "the rollup must be the last entry".into(),
-            });
-        }
-    }
+    // Decisions are terminal (appended after the rollup), so they do not
+    // displace it: the rollup is the last non-decision entry.
+    let last_seq = entries
+        .iter()
+        .rev()
+        .find(|entry| entry.content.kind != "decision")
+        .map(|entry| entry.content.seq);
+    let misplaced = rollups
+        .iter()
+        .filter(|candidate| last_seq != Some(candidate.content.seq))
+        .map(|candidate| Violation::RollupMisplaced {
+            seq: candidate.content.seq,
+            reason: "the rollup must be the last entry".into(),
+        });
     let recorded: BTreeSet<&str> = rollup
         .content
         .rollup
-        .as_ref()
-        .map(|record| record.kata_entry_ids.iter().map(String::as_str).collect())
-        .unwrap_or_default();
+        .iter()
+        .flat_map(|record| record.kata_entry_ids.iter().map(String::as_str))
+        .collect();
     let actual: BTreeSet<&str> = entries
         .iter()
         .filter(|entry| entry.content.kind == "kata")
         .map(|entry| entry.id.as_str())
         .collect();
-    if recorded != actual {
-        violations.push(Violation::RollupIncomplete {
-            seq: rollup.content.seq,
-        });
-    }
-    violations
+    let incomplete = (recorded != actual).then_some(Violation::RollupIncomplete {
+        seq: rollup.content.seq,
+    });
+    misplaced.chain(incomplete).collect()
 }
 
 /// Validate the ledger directory through the phase checks: file-level
-/// integrity, per-entry pins, control self-negation, control-first
-/// ordering, baseline-arm claims, catalog hashes, and rollup
-/// placement/coverage. The integrity phases see every entry; the
-/// claim-bearing phases see only the effective entries (superseded ones
-/// are corrections, not claims).
+/// integrity, per-entry pins (including decision kind/payload agreement
+/// and the closed `extend | hold | retire` outcome vocabulary),
+/// control self-negation, control-first ordering, baseline-arm claims,
+/// catalog hashes, and rollup placement/coverage. The integrity phases
+/// see every entry; the claim-bearing phases see only the effective
+/// entries (superseded ones are corrections, not claims).
 pub fn validate_dir(dir: &Path) -> Result<ValidLedger, Vec<Violation>> {
     let files = match ledger_files(dir) {
         Ok(files) => files,
         Err(violation) => return Err(vec![violation]),
     };
-    let read: Vec<Result<Entry, Violation>> =
-        files.iter().map(|path| read_entry_file(path)).collect();
+    let read: Vec<_> = files.iter().map(|path| read_entry_file(path)).collect();
     let mut violations: Vec<Violation> = read
         .iter()
         .filter_map(|result| result.as_ref().err().cloned())

@@ -3,11 +3,16 @@
 //! entry carries and its content address.
 //!
 //! Responsibilities: define [`EntryContent`] (the hashed content: kata
-//! record or project rollup), [`Entry`] (content + computed `id`), the
-//! closed [`Verdict`] vocabulary, and the id computation: canonical JSON
+//! record, project rollup, or stop-gate decision), [`Entry`] (content +
+//! computed `id`), the closed [`Verdict`] vocabulary, the closed
+//! [`DecisionRecord::outcome`] vocabulary (see [`crate::decision`]), and the id
+//! computation: canonical JSON
 //! bytes (the kernel's normative writer) over the content, sha256 on
-//! top — the P0 hash port. Entries are append-only; a correction is a
-//! new entry whose `supersedes` names the old id, never an edit.
+//! top — the P0 hash port. [`seal_parsed`] turns a hand-authored entry
+//! JSON into that entry (the `ledger-record` authoring seam), and
+//! [`declared_id`] says whether an id was stated or is still a
+//! placeholder. Entries are append-only; a correction is a new entry
+//! whose `supersedes` names the old id, never an edit.
 //!
 //! Rationale: identity is the digest of the canonical form (design
 //! Decision 4, via `catherine_core::hash`): equal contents hash equal
@@ -15,6 +20,10 @@
 //! from the bytes on disk. `Verdict` is exactly the four words the
 //! series ledger uses (`killed | survived | inconclusive |
 //! invalid-run`) — the closed vocabulary of design Decision 3. The
+//! stop-gate decision payload is [`DecisionRecord`] (openspec change
+//! `add-lean-kernel-model`, design Decision 5; defined in [`crate::decision`]):
+//! its content field is skipped when absent, so adding it cannot rewrite
+//! the canonical bytes (or ids) of any pre-existing entry. The
 //! epistemic fields (`expected`, `comparison`, `expressibility_gap`,
 //! `discrepancies`) exist because gaps and proposal-vs-series conflicts
 //! are ledger data, not footnotes (design Decision 5; brief NOTE).
@@ -24,6 +33,8 @@ use serde_json::Value;
 
 use catherine_core::canonical::write_value;
 use catherine_core::hash::sha256_digest;
+
+pub use crate::decision::DecisionRecord;
 
 /// The closed verdict vocabulary (design Decision 3) — exactly four.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -252,7 +263,7 @@ pub struct EntryContent {
     /// The -based run order — part of the evidence that the negative
     /// control went first.
     pub seq: u32,
-    /// `kata` or `rollup`.
+    /// `kata`, `rollup`, or `decision`.
     pub kind: String,
     /// Recording date (YYYY-MM-DD).
     pub recorded: String,
@@ -260,6 +271,10 @@ pub struct EntryContent {
     pub kata: Option<KataRecord>,
     /// Present iff `kind == "rollup"`.
     pub rollup: Option<RollupRecord>,
+    /// Present iff `kind == "decision"`. Skipped when absent so the
+    /// pre-existing canonical bytes (and entry ids) are untouched.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision: Option<DecisionRecord>,
     /// The model-document hashes this entry validated (fixture + probes).
     pub model_hashes: Vec<String>,
     /// The id of the entry this one corrects, when superseding.
@@ -293,6 +308,32 @@ pub fn seal(content: EntryContent) -> Result<Entry, serde_json::Error> {
     Ok(Entry { content, id })
 }
 
+/// Seal a parsed entry JSON by computing its content address: the object
+/// is read as [`EntryContent`] (an `id` key, if any, is ignored — the
+/// address is derived from the content, never read from the file), and
+/// the returned [`Entry`] serializes as the flattened content plus the
+/// computed `id`, the same shape the validator reads back.
+///
+/// Rationale: the id is the digest of the canonical bytes, so authoring
+/// an entry means writing the content and letting this function compute
+/// the rest. Callers that must honour a declared id do not call this:
+/// they validate it, so a stated address that disagrees with the bytes is
+/// refused rather than rewritten.
+pub fn seal_parsed(value: serde_json::Value) -> Result<Entry, serde_json::Error> {
+    let content: EntryContent = serde_json::from_value(value)?;
+    seal(content)
+}
+
+/// The id a parsed entry JSON declares, when it declares one. A missing
+/// `id`, the empty string, and the literal `auto` are the three ways
+/// authoring says "not sealed yet" and are all reported as `None`.
+pub fn declared_id(value: &serde_json::Value) -> Option<&str> {
+    match value.get("id").and_then(serde_json::Value::as_str) {
+        Some(id) if !id.trim().is_empty() && id != "auto" => Some(id),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -307,6 +348,7 @@ mod tests {
             rollup: None,
             model_hashes: vec!["sha256:aa".into()],
             supersedes: None,
+            decision: None,
         }
     }
 

@@ -125,6 +125,7 @@ fn kata(seq: u32, kata_id: &str, control: bool, verdict: &str) -> EntryContent {
         rollup: None,
         model_hashes: vec!["sha256:fixture".into()],
         supersedes: None,
+        decision: None,
     }
 }
 

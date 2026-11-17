@@ -94,6 +94,7 @@ fn kata(
         rollup: None,
         model_hashes: vec!["sha256:fixture".into()],
         supersedes: None,
+        decision: None,
     }
 }
 

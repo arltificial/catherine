@@ -86,6 +86,7 @@ fn kata(seq: u32, kata_id: &str, control: bool, verdict: &str) -> EntryContent {
         rollup: None,
         model_hashes: vec!["sha256:fixture".into()],
         supersedes: None,
+        decision: None,
     }
 }
 
@@ -142,6 +143,7 @@ fn rollup(seq: u32, per_kata: &[(&str, &str, &str)]) -> EntryContent {
         }),
         model_hashes: vec!["sha256:rollup".into()],
         supersedes: None,
+        decision: None,
     }
 }
 
