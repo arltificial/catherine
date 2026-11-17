@@ -246,3 +246,6 @@ counterfactuals).
   `openspec/specs/findings/spec.md`.
 - Fixture expectations: `fixtures/parity/*/expected.json`; the trusted
   mirror contract is implemented by `Catherine.Mirror`.
+- Implementation learnings (what the twin taught about parity, proof
+  cost, and gate review):
+  `.wai/projects/catherine/research/2026-11-17-lean-twin-implementation-learnings-catherine-xv.md`.
