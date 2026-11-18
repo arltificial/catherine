@@ -7,9 +7,10 @@
 //! Responsibilities: pin the canonical `(apex, legs, cospan, status)`
 //! order, the repeated-declaration rule, the 1.6 minor and the accepted
 //! status default, every `invalid_pullback` class at its offending node
-//! (undeclared apex/arrow, leg sourcing, leg and cospan list lengths,
-//! unequal cospan targets, repeated arrow), the absent/empty hash guard,
-//! and the continued rejection of a `cones` namespace.
+//! (undeclared apex/arrow, leg sourcing, leg/cospan composability, leg
+//! and cospan list lengths, unequal cospan targets, repeated arrow), the
+//! absent/empty hash guard, and the continued rejection of a `cones`
+//! namespace.
 //!
 //! Rationale: a pullback is a schema constraint: presence moves the model
 //! hash, absence must not, and a malformed declaration is never repaired
@@ -25,8 +26,8 @@ use catherine_core::parse::parse;
 /// A format 1.6 template with one `__SECTION__` slot (the pullback
 /// section or nothing). Every arrow the malformed cases name is declared
 /// here: `p1`/`p2`/`r1`/`r2` are apex legs, `f`/`g`/`h` share target
-/// `C`, `q` is a third apex leg, and `k` is a cospan-shaped arrow whose
-/// target differs from `f`'s.
+/// `C`, `q` is a third apex leg targeting `C` (not composable with `g`),
+/// and `k` is a cospan-shaped arrow whose target differs from `f`'s.
 const DOC: &str = r#"{
   "format_version": "1.6",
   "schema": {
@@ -191,62 +192,82 @@ fn pullback_status_defaults_to_accepted_and_proposed_fails_as_hypothesized() {
 }
 
 /// Scenario "Malformed pullback is rejected at its node": each defect is
-/// `invalid_pullback` at the line of the offending JSON node, never a
-/// silent repair. The baseline is otherwise valid; only the declaration
-/// under test changes.
+/// `invalid_pullback` at the line/column of the offending JSON node,
+/// never a silent repair. The baseline is otherwise valid; only the
+/// declaration under test changes.
 #[test]
 fn malformed_pullback_is_rejected_at_its_node() {
     let cases = [
         (
             r#"{"apex": "Nope", "legs": ["p1", "p2"], "cospan": ["f", "g"]}"#,
+            16,
             "undeclared object",
         ),
         (
             r#"{"apex": "P", "legs": ["zz", "p2"], "cospan": ["f", "g"]}"#,
+            30,
             "undeclared arrow",
         ),
         (
             r#"{"apex": "P", "legs": ["f", "p2"], "cospan": ["f", "g"]}"#,
+            30,
             "apex",
         ),
         (
             r#"{"apex": "P", "legs": ["p1"], "cospan": ["f", "g"]}"#,
+            29,
             "exactly two",
         ),
         (
             r#"{"apex": "P", "legs": ["p1", "p2", "q"], "cospan": ["f", "g"]}"#,
+            29,
             "exactly two",
         ),
         (
             r#"{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "zz"]}"#,
+            59,
             "undeclared arrow",
         ),
         (
             r#"{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f"]}"#,
+            53,
             "exactly two",
         ),
         (
             r#"{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "g", "h"]}"#,
+            53,
             "exactly two",
         ),
         (
             r#"{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "k"]}"#,
+            59,
             "target",
         ),
         (
             r#"{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "f"]}"#,
+            59,
             "duplicate",
         ),
+        (
+            r#"{"apex": "P", "legs": ["p2", "p1"], "cospan": ["f", "g"]}"#,
+            30,
+            "targets `B`, not the source `A`",
+        ),
+        (
+            r#"{"apex": "P", "legs": ["p1", "q"], "cospan": ["f", "g"]}"#,
+            36,
+            "targets `C`, not the source `B`",
+        ),
     ];
-    assert_eq!(cases.len(), 10, "every malformed-pullback class is pinned");
-    for (raw, fragment) in cases {
-        assert_invalid(raw, fragment);
+    assert_eq!(cases.len(), 12, "every malformed-pullback class is pinned");
+    for (raw, column, fragment) in cases {
+        assert_invalid(raw, column, fragment);
     }
 }
 
-/// One malformed declaration: the stable code, the offending node's line,
-/// and a message fragment naming the defect.
-fn assert_invalid(raw: &str, fragment: &str) {
+/// One malformed declaration: the stable code, the offending node's line
+/// and column, and a message fragment naming the defect.
+fn assert_invalid(raw: &str, column: usize, fragment: &str) {
     let text = fill(&section(raw));
     let expected_line = line_of(&text, raw);
     let ParseError::Semantic(error) = parse(&text).expect_err(raw) else {
@@ -259,7 +280,8 @@ fn assert_invalid(raw: &str, fragment: &str) {
         error.message
     );
     assert_eq!(
-        error.line, expected_line,
+        (error.line, error.column),
+        (expected_line, column),
         "`{raw}`: the error points at the offending node"
     );
     assert!(

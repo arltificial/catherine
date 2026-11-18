@@ -119,7 +119,7 @@ fn hint_for_code(code: ErrorCode) -> &'static str {
         }
         ErrorCode::IncompleteInstanceMap => "an instance map must be total: map every row of every schema object (no implicit identity on the rest)",
         ErrorCode::InvalidCoproduct => "a coproduct names a declared object and a non-empty, duplicate-free list of injections V_k → C",
-        ErrorCode::InvalidPullback => "a pullback names a declared apex and exactly two legs sourced at it, plus two cospan arrows sharing a target; arrow names are not repeated",
+        ErrorCode::InvalidPullback => "a pullback names a declared apex and exactly two legs sourced at it, each targeting its paired cospan arrow's source, plus two cospan arrows sharing a target; arrow names are not repeated",
         ErrorCode::UnknownField => {
             "remove the field or fix its spelling; the accepted format version defines no such field, and unknown fields are never silently dropped"
         }

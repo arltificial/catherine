@@ -5,7 +5,8 @@
 //! Responsibilities: validate `schema.pullbacks` — the apex's ident and
 //! declaredness, exactly two legs and two cospan arrows (arity checked
 //! before the elements), every arrow declared and not repeated across the
-//! four positions, each leg sourced at the apex, the two cospan arrows
+//! four positions, each leg sourced at the apex, each leg targeting the
+//! source of the cospan arrow in its position, the two cospan arrows
 //! sharing a target, and the shared status enum — and store the
 //! declarations in canonical `(apex, legs, cospan, status)` order. Every
 //! defect is `invalid_pullback` at its offending node; a malformed
@@ -13,13 +14,12 @@
 //! `invalid_coproduct` discipline, design Decision 1).
 //!
 //! Rationale: one declaration grammar with keys and coproducts means one
-//! parse discipline and one canonicalization path. The kernel check can
-//! then trust the parsed shape: a square with two apex-sourced legs and a
-//! same-target cospan, so commutes/covers/unique are decidable over the
-//! instance tables alone. Leg-target and cospan-source composability is
-//! deliberately not enforced here — the spec names exactly the causes
-//! above, and a schema-map transport may make the composed paths total
-//! later.
+//! parse discipline and one canonicalization path. Because the parse
+//! guarantees the composed paths are type-composable — two apex-sourced
+//! legs, each targeting the source of its paired cospan arrow, over a
+//! same-target cospan — commutes/covers/unique are decidable over the
+//! instance tables alone, with each cospan table indexed by its paired
+//! leg's target row.
 
 use super::schema::{check_ident, check_status, RawSchema};
 use super::spans::Spans;
@@ -42,8 +42,8 @@ pub(super) struct RawPullback {
 }
 
 /// Pullbacks (additive 1.6): the apex ident and declaredness, exactly two
-/// apex-sourced legs, exactly two cospan arrows sharing a target, no
-/// repeated arrow name, and the shared status enum.
+/// apex-sourced and composable legs, exactly two cospan arrows sharing a
+/// target, no repeated arrow name, and the shared status enum.
 pub(super) fn check_pullbacks(
     schema: &RawSchema,
     objects: &BTreeMap<Ident, ()>,
@@ -67,6 +67,7 @@ pub(super) fn check_pullbacks(
         let legs = check_legs(&base, raw, &apex, arrows, &mut seen, spans)?;
         let cospan = check_cospan(&base, raw, arrows, &mut seen, spans)?;
         check_cospan_targets(&base, &cospan, arrows, spans)?;
+        check_composability(&base, &legs, &cospan, arrows, spans)?;
         let status = check_status(raw.status.as_deref(), &base, spans, "pullback")?;
         pullbacks.push(Pullback {
             apex,
@@ -213,6 +214,35 @@ fn check_cospan_targets(
                 cospan[0].0, cospan[1].0, first.tgt.0, second.tgt.0
             ),
         ));
+    }
+    Ok(())
+}
+
+/// Positional composability: `leg[i]` targets the source of `cospan[i]`,
+/// so both composed paths are typed and the kernel check may index each
+/// cospan table by the paired leg's target row. The offending leg carries
+/// the defect.
+fn check_composability(
+    base: &str,
+    legs: &[Ident],
+    cospan: &[Ident],
+    arrows: &BTreeMap<Ident, Arrow>,
+    spans: &Spans,
+) -> Result<(), crate::error::ParseError> {
+    for (i, (leg, cos)) in legs.iter().zip(cospan).enumerate() {
+        let leg_arrow = &arrows[leg];
+        let cospan_arrow = &arrows[cos];
+        if leg_arrow.tgt != cospan_arrow.src {
+            return Err(spans.semantic(
+                &format!("{base}/legs/{i}"),
+                ErrorCode::InvalidPullback,
+                format!(
+                    "pullback leg `{}` targets `{}`, not the source `{}` of its paired cospan \
+                     arrow `{}`",
+                    leg.0, leg_arrow.tgt.0, cospan_arrow.src.0, cos.0
+                ),
+            ));
+        }
     }
     Ok(())
 }

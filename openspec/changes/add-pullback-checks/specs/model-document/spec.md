@@ -5,12 +5,11 @@
 ### Requirement: Pullbacks declare pullback squares over leg and cospan arrows
 The system SHALL accept an additive `schema.pullbacks` list of
 declarations `{"apex": P, "legs": [p1, p2], "cospan": [f, g],
-"status": "accepted" | "proposed"}` where the legs source at the apex
-and the cospan arrows share a target. The declaration asserts the
-pullback universal property over the instance (commutes, covers,
-unique); it is stored in canonical `(apex, legs, cospan, status)`
-order and omitted from canonical bytes when empty, keeping every
-document without it hash-identical.
+"status": "accepted" | "proposed"}` asserting the pullback universal
+property over the instance (commutes, covers, unique). Declarations are
+stored in canonical `(apex, legs, cospan, status)` order and omitted
+from canonical bytes when empty, keeping every document without the
+section hash-identical.
 
 #### Scenario: Pullbacks round-trip and canonicalize
 - **WHEN** a document declares several pullbacks in an arbitrary input
@@ -41,14 +40,16 @@ document without it hash-identical.
 ### Requirement: Malformed pullbacks are rejected at their nodes
 The system SHALL reject a pullback declaration that names an undeclared
 object, names an undeclared arrow, names a leg not sourced at the
-declared apex, names cospan arrows whose targets differ, carries fewer
+declared apex, names a leg whose target is not the paired cospan
+arrow's source, names cospan arrows whose targets differ, carries fewer
 or more than two legs or two cospan arrows, or repeats an arrow name,
 with one new stable code `invalid_pullback` at the offending node,
 mirroring the `invalid_coproduct` discipline.
 
 #### Scenario: Malformed pullback is rejected at its node
 - **WHEN** a pullback names an undeclared object or arrow, names a leg
-  not sourced at the apex, names cospan arrows with different targets,
+  not sourced at the apex, names a leg whose target is not the paired
+  cospan arrow's source, names cospan arrows with different targets,
   carries a leg or cospan list whose length is not exactly two, or
   repeats an arrow name
 - **THEN** parsing fails with `invalid_pullback` carrying the

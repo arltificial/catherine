@@ -1,5 +1,5 @@
 id = "malformed-pullback-is-rejected-at-its-node"
-description = "A pullback naming an undeclared object or arrow, a leg not sourced at the apex, cospan arrows with different targets, a leg or cospan list whose length is not exactly two, or a repeated arrow name fails parsing with invalid_pullback at the offending node, silently repairing nothing."
+description = "A pullback naming an undeclared object or arrow, a leg not sourced at the apex, a leg whose target is not the paired cospan arrow's source, cospan arrows with different targets, a leg or cospan list whose length is not exactly two, or a repeated arrow name fails parsing with invalid_pullback at the offending node, silently repairing nothing."
 archetype = "PF"
 status = "active"
 superseded_by = ""
