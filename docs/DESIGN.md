@@ -55,7 +55,7 @@ The finding taxonomy (which layer computes what — see §4):
 | Finding | Meaning | Computed in |
 |---|---|---|
 | violation | a declared path equation fails on a row | core (P1–P2) |
-| dangling | an arrow value points to no existing row | core (P1) |
+| dangling | an arrow has no value at a source row (a partial map) | core (P1) |
 | contradiction | declared constraints admit no instance (bounded search) | analysis (P4) |
 | underconstraint | parallel paths exist with no declared equation; domain question raised | inquiry (P4/P6) |
 | missing | domain concept absent — heuristic scaffold, hypothesis-labeled | inquiry (post-v1, spec-only in v1) |

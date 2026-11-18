@@ -80,10 +80,10 @@ only, zero findings). A weakened edit is a finding-bearing run (exit 3).
 | Finding | Meaning | What to do |
 |---|---|---|
 | `violation` | a declared equation is false at a concrete row, a declared key (`schema.keys`, 1.3) repeats a tuple, or a declared coproduct (`schema.coproducts`, 1.5) leaves a row outside every injection image or in two images | fix the data or the declaration; the witness names the row/equation, the two colliding rows, or the row and both covering injections |
-| `dangling` | an arrow points at a row that does not exist | the claim references something absent — missing FK, dead reference |
+| `dangling` | a declared arrow has no value at a source row — an absent cell or an explicit `null` (a partial map) | fill the missing cell, or make the arrow total if the domain says every row has one. The witness names the arrow and the source row. An arrow naming a row that does not exist is *not* this finding: it is rejected at parse time with a labeled error (exit 1), before any check runs |
 | `contradiction` | no instance can satisfy the constraints (bounded search) | the *spec* is impossible as declared; negotiate which constraint yields |
 | `underconstraint` | parallel paths exist with no declared equation *(hypothesis)* | a domain question: must they agree, might they, or should they differ? Declare an equation only if the domain says so |
-| `redundancy` | a declared path is derivable from others | simplification candidate — remove only if observable meaning is preserved |
+| `redundant` | a declared path is derivable from others | simplification candidate — remove only if observable meaning is preserved |
 | `UNKNOWN {scope}` | bounded search hit its cap | the honest answer; widen scope explicitly or record it as unknown. Never reported as "clean" |
 
 **Agent etiquette.** Do not add an equation just to silence an

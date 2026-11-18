@@ -39,10 +39,16 @@ name only — `findings` is the findings-only entry point for agents,
 never a divergent re-run:
 
 ```
-catherine check <model.ct.json>      # every finding with kind, label, witness
+catherine check <model.ct.json>      # execution findings — violation (equation,
+                                     # key or coproduct), dangling — with kind, label, witness
 catherine check <model.ct.json> --json   # the genesis-vibes JSON envelope, findings under data.findings
 catherine findings <model.ct.json> [--json]
 ```
+
+`check` executes the checks that need no search. The analysis classes are
+separate subcommands — `search` (contradiction), `underconstraint`,
+`redundant`, `distinguish` — and return their own exit codes; the exit
+table below lists them.
 
 Human output implements the DESIGN §5 transcript (kind label, `eq-<n>`,
 paths joined with `∘`/`≠`, witness on the indented continuation line);

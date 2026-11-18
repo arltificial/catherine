@@ -19,7 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reported a violated model as clean at exit 0 (external black-box
   probe). The instance-shape gate and its tolerance tests are gone: an
   unknown instance key is now rejected by name.
-
+- The findings tables in `docs/USING.md`, `docs/DESIGN.md` and
+  `docs/THEORY.md` define `dangling` as a partial map — a declared arrow
+  with no value at a source row — and name the kind `redundant`; an arrow
+  naming a nonexistent row is a parse error, not a finding
+  (`catherine-f9z`).
+- `README.md` scopes `catherine check`'s findings to the execution
+  classes and points at the analysis subcommands (`catherine-4pc`).
 
 ## [0.3.0] - 2026-11-17
 

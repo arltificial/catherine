@@ -117,7 +117,7 @@ methodology v1.0 "distinguish the findings"):
 | Finding | Meaning | What mathematics can establish |
 |---|---|---|
 | violation | a declared equation fails on a row | witness row + both path values |
-| dangling | an arrow points to nothing | reference integrity as a *value*, not an exception |
+| dangling | an arrow has no value at a source row | reference integrity as a *value*, not an exception |
 | contradiction | constraints admit no instance | bounded search: no model satisfies the declarations |
 | underconstraint | parallel paths, no declared equation | multiple interpretations remain possible — needs a domain decision |
 | missing | no representation of a needed concept | *requires domain knowledge* — only hypothesized, never deduced |
