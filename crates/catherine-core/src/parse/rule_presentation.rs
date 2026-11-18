@@ -29,6 +29,7 @@ use std::collections::BTreeMap;
 
 /// The raw 1.2 section: presentation strings and untyped predicates.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawRulePresentation {
     pub(super) domain: String,
     pub(super) columns: Vec<RawColumn>,
@@ -38,6 +39,7 @@ pub(super) struct RawRulePresentation {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawColumn {
     pub(super) name: String,
     #[serde(rename = "type")]
@@ -45,6 +47,7 @@ pub(super) struct RawColumn {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawRule {
     pub(super) name: String,
     #[serde(default)]

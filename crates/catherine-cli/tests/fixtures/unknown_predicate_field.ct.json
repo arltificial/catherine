@@ -1,0 +1,13 @@
+{
+  "format_version": "1.5",
+  "schema": {"objects": ["A"], "arrows": [], "equations": []},
+  "instance": {"rows": {"A": []}, "tables": {}},
+  "rule_presentation": {
+    "domain": "A",
+    "columns": [{"name": "n", "type": "int"}],
+    "rules": [{"name": "r",
+               "predicate": {"kind": "cmp", "column": "n", "op": "gt",
+                             "value": 1, "threshold": 2},
+               "action": "a"}]
+  }
+}

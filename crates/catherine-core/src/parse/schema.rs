@@ -17,6 +17,7 @@ use std::collections::BTreeMap;
 /// no interpretation. Semantic validation runs against the span scan of
 /// the same text, so every error can point at its node.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawDoc {
     #[serde(default)]
     pub(super) format_version: Option<String>,
@@ -33,6 +34,7 @@ pub(super) struct RawDoc {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawSchema {
     #[serde(default)]
     pub(super) objects: Vec<String>,
@@ -47,6 +49,7 @@ pub(super) struct RawSchema {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawArrow {
     pub(super) name: String,
     pub(super) src: String,
@@ -56,6 +59,7 @@ pub(super) struct RawArrow {
 /// One raw equation entry: cloned into a deferred resolution when its
 /// paths may name a sibling document's arrows.
 #[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawEquation {
     pub(super) lhs: Vec<String>,
     pub(super) rhs: Vec<String>,
@@ -66,18 +70,12 @@ pub(super) struct RawEquation {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawInstance {
     #[serde(default)]
     pub(super) rows: BTreeMap<String, Vec<String>>,
     #[serde(default)]
     pub(super) tables: BTreeMap<String, BTreeMap<String, Option<String>>>,
-    /// Instance keys this build does not recognize, captured only so the
-    /// shape gate (`instance_shape`) can refuse a section whose whole
-    /// content is unrecognized. They never enter the model: alongside a
-    /// recognizable `rows`/`tables` section they stay ignored, the
-    /// additive-minor policy.
-    #[serde(flatten)]
-    pub(super) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// The highest additive minor this build's parser knows. Additive minors

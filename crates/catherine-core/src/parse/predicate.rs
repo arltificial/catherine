@@ -42,6 +42,7 @@ pub(super) fn compile_predicate(
         let pointer = format!("{pointer}/kind");
         return Err(invalid(spans, &pointer, message));
     };
+    reject_unknown_fields(object, kind, pointer, rule, spans)?;
     match kind {
         "cmp" => compile_cmp(object, columns, pointer, rule, spans),
         "mod" => compile_mod(object, columns, pointer, rule, spans),
@@ -60,6 +61,51 @@ pub(super) fn compile_predicate(
             Err(invalid(spans, &pointer, message))
         }
     }
+}
+
+/// The fields each predicate kind defines. A field outside this set is
+/// `unknown_field`, never silently dropped — a mistyped field would
+/// otherwise compile into a predicate the author did not write.
+fn allowed_fields(kind: &str) -> Option<&'static [&'static str]> {
+    match kind {
+        "cmp" => Some(&["kind", "column", "op", "value"]),
+        "mod" => Some(&["kind", "column", "modulus", "equals"]),
+        "and" | "or" => Some(&["kind", "args"]),
+        "not" => Some(&["kind", "arg"]),
+        _ => None,
+    }
+}
+
+/// Refuse a predicate field its kind does not define, at the first
+/// offending key (a `BTreeMap` walk is alphabetical, so the choice is
+/// deterministic).
+fn reject_unknown_fields(
+    object: &Map<String, Value>,
+    kind: &str,
+    pointer: &str,
+    rule: &str,
+    spans: &Spans,
+) -> Result<(), ParseError> {
+    let Some(allowed) = allowed_fields(kind) else {
+        return Ok(()); // unknown `kind` is the stronger error below
+    };
+    let unknown: Vec<&str> = object
+        .keys()
+        .map(String::as_str)
+        .filter(|key| !allowed.contains(key))
+        .collect();
+    let Some(first) = unknown.first() else {
+        return Ok(());
+    };
+    let message = format!(
+        "rule `{rule}`: predicate kind `{kind}` does not define field `{first}`; allowed fields: {}",
+        allowed
+            .iter()
+            .map(|field| format!("`{field}`"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    Err(spans.semantic_key(pointer, first, ErrorCode::UnknownField, message))
 }
 
 /// `not`: exactly one operand.

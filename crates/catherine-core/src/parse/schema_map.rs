@@ -19,6 +19,7 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawSchemaMap {
     #[serde(default)]
     pub(super) target_schema: Option<RawSchema>,

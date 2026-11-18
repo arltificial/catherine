@@ -63,6 +63,12 @@ pub enum ErrorCode {
     /// because every case is the same defect class — the message names
     /// the exact defect at its node (the `invalid_key` discipline).
     InvalidCoproduct,
+    /// A field the accepted format version does not define appeared at a
+    /// known document node (top level, schema, equation, key, coproduct,
+    /// instance, additive section, predicate). Rejected, never silently
+    /// dropped: a dropped semantics-bearing key can turn a violated
+    /// constraint into a false clean.
+    UnknownField,
 }
 
 impl ErrorCode {
@@ -85,6 +91,7 @@ impl ErrorCode {
             Self::InvalidKey => "invalid_key",
             Self::IncompleteInstanceMap => "incomplete_instance_map",
             Self::InvalidCoproduct => "invalid_coproduct",
+            Self::UnknownField => "unknown_field",
         }
     }
 }

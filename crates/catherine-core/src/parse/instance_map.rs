@@ -26,6 +26,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// The raw additive section: `{"maps": [{"object": O, "rows": {...}}]}`.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawInstanceMap {
     #[serde(default)]
     pub(super) maps: Vec<RawInstanceMapEntry>,
@@ -34,6 +35,7 @@ pub(super) struct RawInstanceMap {
 /// One declared per-object map. `rows` is keyed by the source document's
 /// presentation row names; each value names a row of the target instance.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawInstanceMapEntry {
     pub(super) object: String,
     #[serde(default)]

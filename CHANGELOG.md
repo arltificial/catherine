@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The parser rejects a field the accepted format version does not define
+  with a labeled `unknown_field` error at the field's line
+  (`catherine-bak`): serde `deny_unknown_fields` on every raw document
+  struct plus a per-kind predicate field whitelist. Unknown-key tolerance
+  was the documented additive-minor policy, but an unknown minor already
+  fails the version gate, so the only thing tolerance bought was typo
+  silence — a misspelled `equations` key dropped the equation and
+  reported a violated model as clean at exit 0 (external black-box
+  probe). The instance-shape gate and its tolerance tests are gone: an
+  unknown instance key is now rejected by name.
+
+
 ## [0.3.0] - 2026-11-17
 
 ### Added

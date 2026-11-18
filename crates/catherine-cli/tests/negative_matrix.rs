@@ -1,45 +1,25 @@
-//! The negative-input matrix (catherine-348, PREVENTION-A): the
-//! recurrence gate for class-A fail-open boundaries. Bugs
-//! catherine-18t / 51v / 0kw shared one shape — malformed or
-//! context-mismatched input at a layer seam was silently dropped or
-//! reinterpreted instead of surfacing as a labeled error or an envelope
-//! warning. One table-driven test walks every row below and asserts the
-//! honest outcome per row: a labeled error (exit 1, error envelope on
-//! stderr, stable code, non-empty message) or a usage error (exit 2,
-//! clap's error on stderr) or an envelope warning (success envelope on
-//! stdout, `warnings` naming the ignored input) — NEVER silence (no
-//! exit-0-without-warning, no silently-ignored input).
+//! The negative-input matrix (catherine-348, PREVENTION-A): the recurrence
+//! gate for class-A fail-open boundaries. catherine-18t/51v/0kw shared one
+//! shape — malformed or context-mismatched input at a seam was silently
+//! dropped or reinterpreted. Every row below asserts the honest outcome:
+//! labeled error (exit 1, error envelope, stable code, message), usage error
+//! (exit 2), or envelope warning — NEVER silence.
 //!
-//! Surfaces × classes: every CLI surface (check, findings, search, redundant,
-//! underconstraint, distinguish, diff, query, migrate, rules) gets a row for
-//! every malformed-input class that applies to it — undeclared object/arrow names
-//! in flags, second-doc schema mismatch, out-of-range `format_version`, unknown
-//! seed, uncomposable observation, partial or absent schema map, absent rule
-//! presentation, unknown predicate column, invalid policy, garbage rules, garbage
-//! instance rows, bad flag syntax (unknown flag → clap exit 2; malformed flag
-//! value → `bad_argument` exit 1). The `rules --project` and `naturality`
-//! surfaces keep their own matrix binaries (`negative_matrix_projection.rs`,
-//! `negative_matrix_naturality.rs`), split out to stay inside the file-size gate.
-//! Behavior is probed live against the real binary
-//! (`CARGO_BIN_EXE_catherine`); assertions are structural
-//! (`serde_json::Value`) and numeric (exit codes), never snapshots.
+//! Surfaces × classes: each surface (check, findings, search, redundant,
+//! underconstraint, distinguish, diff, query, migrate, rules) carries a row
+//! per applicable malformed-input class; `rules --project` and `naturality`
+//! have their own binaries to stay inside the file-size gate. Probes run the
+//! real binary; assertions are structural and numeric, never snapshots.
 //!
-//! `deny_unknown_fields` audit (catherine-348 item 2), adjudicated
-//! keep-and-document per the catherine-51v precedent: the parse-layer
-//! raw structs (`crates/catherine-core/src/parse/schema.rs`,
-//! `RawDoc`/`RawSchema`/`RawArrow`/`RawEquation`/`RawInstance`) are
-//! serde `Deserialize` WITHOUT `deny_unknown_fields` (zero occurrences
-//! workspace-wide), so unknown JSON keys are silently ignored — and
-//! that is the deliberate additive-minor policy, documented user-facing
-//! in `crates/catherine-core/README.md` ("Unknown top-level or section
-//! keys are ignored: additive minors of v1 may introduce optional
-//! fields without breaking this parser" + the `format_version` policy
-//! section: additive minors above `KNOWN_MINOR` are *rejected* with
-//! `unsupported_version`, never guessed). Unknown keys are therefore
-//! not a matrix row: ignoring them is documented policy (b), not a
-//! fail-open seam; the version gate pins the semantics-bearing half of
-//! that policy (rows below, `unsupported_version`).
-//! The instance-shape boundary lives in `negative_matrix_instance.rs`.
+//! Unknown-field policy (catherine-bak): the parser rejects a field the
+//! accepted format version does not define with `unknown_field` at its line
+//! (serde `deny_unknown_fields` on every raw struct plus a predicate field
+//! whitelist). Additive minors above `KNOWN_MINOR` already fail the version
+//! gate, so inside an accepted version an unknown key can only be a mistake:
+//! a misspelled `equations` key once turned a violated model into a silent
+//! clean. Document-level (`check`) and predicate-level (`rules`) rows below;
+//! the other nodes are pinned by `crates/catherine-core/tests/unknown_fields.rs`.
+//! Instance-shape row: `negative_matrix_instance.rs`.
 //!
 //! Review rule (ro5u checklist): a new flag or surface without a
 //! negative-matrix row is incomplete.
@@ -116,6 +96,16 @@ const RULES_UNKNOWN_COLUMN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/rules_unknown_column.ct.json"
 );
+/// Unknown-field fixtures (catherine-bak): a misspelled `equations` key
+/// and a predicate field its kind does not define.
+const UNKNOWN_FIELD: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/unknown_field.ct.json"
+);
+const UNKNOWN_PREDICATE_FIELD: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/unknown_predicate_field.ct.json"
+);
 const RULES_BAD_POLICY: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/rules_bad_policy.ct.json"
@@ -188,6 +178,9 @@ const MATRIX: &[Row] = &[
           expect: Expect::Error { code: "unsupported_version" } },
     Row { name: "check × ill-formed key (arrow not sourced at the key's object)",
           args: &["check", concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/bad_key.ct.json"), "--json"], expect: Expect::Error { code: "invalid_key" } },
+    Row { name: "check × unknown field (misspelled `equations` key — never a silent clean)",
+          args: &["check", UNKNOWN_FIELD, "--json"],
+          expect: Expect::Error { code: "unknown_field" } },
     Row { name: "check × bad flag syntax (unknown flag)",
           args: &["check", ANALYSIS_CONTRADICTION, "--bogus", "--json"],
           expect: Expect::Usage },
@@ -337,6 +330,9 @@ const MATRIX: &[Row] = &[
     Row { name: "rules × out-of-range format_version",
           args: &["rules", BAD_VERSION, "--values", "n=1", "--json"],
           expect: Expect::Error { code: "unsupported_version" } },
+    Row { name: "rules × unknown predicate field (kind does not define it)",
+          args: &["rules", UNKNOWN_PREDICATE_FIELD, "--values", "n=1", "--json"],
+          expect: Expect::Error { code: "unknown_field" } },
     Row { name: "rules × bad flag syntax (unknown flag)",
           args: &["rules", RULE_LENS_GAP, "--values", "age=1", "--bogus", "--json"],
           expect: Expect::Usage },

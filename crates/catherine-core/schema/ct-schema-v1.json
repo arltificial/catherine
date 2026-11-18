@@ -2,9 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "catherine/ct-schema-v1.json",
   "title": "Catherine model document v1 (.ct.json)",
-  "description": "Syntactic surface of the Catherine model document format v1. This artifact covers ONLY the schema-expressible checks: missing required fields, JSON type mismatches, the equation status enum, ident-pattern violations, and duplicate array-identifiers (via uniqueItems). Semantic checks that cross-reference user declarations — unknown arrows in equation paths (unknown_arrow), ill-typed equations whose path endpoints do not match (ill_typed_equation), key declaredness/source typing (invalid_key), and coproduct declaredness/injection typing (invalid_coproduct) — remain kernel-side (crates/catherine-core parse). Unknown major format_version values are also kernel-side: this artifact accepts any MAJOR.MINOR shape, the parser accepts only majors it knows (v1), so editors can validate shape offline while the kernel remains the version authority.",
+  "description": "Syntactic surface of the Catherine model document format v1. This artifact covers ONLY the schema-expressible checks: missing required fields, JSON type mismatches, the equation status enum, ident-pattern violations, and duplicate array-identifiers (via uniqueItems). Semantic checks that cross-reference user declarations — unknown arrows in equation paths (unknown_arrow), ill-typed equations whose path endpoints do not match (ill_typed_equation), key declaredness/source typing (invalid_key), and coproduct declaredness/injection typing (invalid_coproduct) — remain kernel-side (crates/catherine-core parse). Unknown major format_version values are also kernel-side: this artifact accepts any MAJOR.MINOR shape, the parser accepts only majors it knows (v1), so editors can validate shape offline while the kernel remains the version authority. Unknown fields are rejected with the kernel-side `unknown_field` code at every defined node; `additionalProperties: false` mirrors that rule wherever the artifact declares an object shape (map-valued sections stay open by design).",
   "type": "object",
   "required": ["format_version", "schema", "instance"],
+  "additionalProperties": false,
   "properties": {
     "format_version": {
       "type": "string",
@@ -14,6 +15,7 @@
     "schema": {
       "type": "object",
       "required": ["objects", "arrows", "equations"],
+      "additionalProperties": false,
       "properties": {
         "objects": {
           "type": "array",
@@ -66,6 +68,7 @@
     "instance": {
       "type": "object",
       "required": ["rows", "tables"],
+      "additionalProperties": false,
       "properties": {
         "rows": {
           "type": "object",
@@ -101,6 +104,7 @@
         "target_schema": {
           "type": "object",
           "required": ["objects", "arrows", "equations"],
+          "additionalProperties": false,
           "properties": {
             "objects": {
               "type": "array",

@@ -19,6 +19,7 @@ use std::collections::{BTreeMap, BTreeSet};
 /// One raw key declaration (format 1.3): the object, its arrow tuple, and
 /// the optional status (absent means accepted — the equation rule).
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawKey {
     pub(super) object: String,
     pub(super) arrows: Vec<String>,

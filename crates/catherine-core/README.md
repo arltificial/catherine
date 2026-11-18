@@ -54,8 +54,13 @@ Implemented per openspec changes `add-model-document-kernel` (beads
   row name or `null`. **`null` is a dangling reference — a representable
   value the parser never drops, repairs, or errors on** (dangling
   classification is a check, P1). An unspecified cell parses as `null`.
-- Unknown top-level or section keys are ignored: additive minors of v1
-  may introduce optional fields without breaking this parser.
+- Unknown top-level or section keys are **rejected**, never ignored: a
+  field the accepted format version does not define is a labeled
+  `unknown_field` error at its line (catherine-bak). Additive minors are
+  how the format grows, and a minor above `KNOWN_MINOR` already fails the
+  version gate — so inside an accepted version an unknown key can only be
+  a typo, and dropping it could turn a violated constraint into a false
+  clean.
 - `rule_presentation` — the additive **1.2** section (rule lens):
   `domain` names a declared schema object, `columns` declares the typed
   attribute alphabet (`int` | `bool` | `string`; string order is byte-wise,
@@ -88,18 +93,20 @@ Identifiers match `[A-Za-z_][A-Za-z0-9_]*` everywhere.
   `format_version` with `unsupported_version` at the version node (or at
   the document root when the field is absent) — never a partial or
   guessed parse.
-- **Audit (catherine-348):** the raw document structs
-  (`src/parse/schema.rs`: `RawDoc`, `RawSchema`, `RawArrow`,
-  `RawEquation`, `RawInstance`; `src/parse/schema_map.rs`:
-  `RawSchemaMap`; `src/parse/rule_presentation.rs`: `RawRulePresentation`)
-  are serde `Deserialize` **without**
-  `deny_unknown_fields` (zero occurrences workspace-wide), so unknown
-  JSON keys are silently ignored — the deliberate additive-minor policy
-  above, kept and documented per the catherine-51v precedent (no
-  parse-behavior change). The negative-input matrix
-  (`crates/catherine-cli/tests/negative_matrix.rs`) pins the
-  semantics-bearing half of this policy: unknown *versions* are rejected
-  with `unsupported_version`, never guessed.
+- **Strictness (catherine-bak, superseding the catherine-348/51v
+  tolerance audit):** every raw document struct carries serde
+  `deny_unknown_fields` (`src/parse/schema.rs` `RawDoc`, `RawSchema`,
+  `RawArrow`, `RawEquation`, `RawInstance`; `keys.rs` `RawKey`;
+  `coproducts.rs` `RawCoproduct`; `schema_map.rs` `RawSchemaMap`;
+  `instance_map.rs` `RawInstanceMap`/`RawInstanceMapEntry`;
+  `rule_presentation.rs` `RawRulePresentation`/`RawColumn`/`RawRule`),
+  and the predicate compiler whitelists fields per kind. A field outside
+  the accepted version's surface is `unknown_field` with line/column —
+  serde's position on the offending key. There is no tolerance mode:
+  forward compatibility belongs to the version gate
+  (`unsupported_version`), not to silent dropping. Pinned by
+  `tests/unknown_fields.rs` and the `unknown_field` rows of
+  `crates/catherine-cli/tests/negative_matrix.rs`.
 
 ## Errors
 
@@ -122,6 +129,7 @@ stable, closed set:
 | `invalid_column_type` | a rule presentation column's `type` is outside `{int, bool, string}` |
 | `unknown_column` | a predicate references a column the presentation does not declare |
 | `invalid_predicate` | a predicate is malformed or ill-typed: unknown `kind`/operator, a literal of the wrong JSON type, `mod` outside int columns, a non-positive modulus, or an empty `and`/`or` |
+| `unknown_field` | a field the accepted format version does not define appears at a known node — top level, schema/equation/arrow/key/coproduct, instance, an additive section, or a predicate node the field's `kind` does not define (catherine-bak; rejected, never silently dropped) |
 | `invalid_policy` | a present `policy` is outside `{PriorityOrder, FirstMatch, DeclaredDisjoint}` (an absent or `null` policy is legal and means no precedence) |
 | `missing_action` | a rule has no action (or an empty one) — the action assignment must be total on X |
 

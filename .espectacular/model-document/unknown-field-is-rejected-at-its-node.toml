@@ -1,0 +1,11 @@
+id = "unknown-field-is-rejected-at-its-node"
+description = "A document declaring a field the accepted format version does not define — top level, schema section or declaration, instance, additive section, or a predicate field its kind does not define — fails parsing with unknown_field carrying the line and column of the offending field, and the field is never silently dropped."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.0"
+
+[tests]
+cargo = [
+    { flags = "unknown_fields_are_rejected_at_their_nodes" },
+]

@@ -87,9 +87,7 @@ impl LabeledError {
 /// The remediation hints, keyed by the closed error-code enum.
 fn hint_for_code(code: ErrorCode) -> &'static str {
     match code {
-        ErrorCode::DuplicateIdent => {
-            "idents must be unique within their collection — rename one of the duplicates"
-        }
+        ErrorCode::DuplicateIdent => "idents must be unique within their collection — rename a duplicate",
         ErrorCode::UnknownArrow => "declare the arrow in schema.arrows, or fix the path spelling",
         ErrorCode::IllTypedEquation => {
             "both paths must start at the same object and end at the same object"
@@ -121,5 +119,8 @@ fn hint_for_code(code: ErrorCode) -> &'static str {
         }
         ErrorCode::IncompleteInstanceMap => "an instance map must be total: map every row of every schema object (no implicit identity on the rest)",
         ErrorCode::InvalidCoproduct => "a coproduct names a declared object and a non-empty, duplicate-free list of injections V_k → C",
+        ErrorCode::UnknownField => {
+            "remove the field or fix its spelling; the accepted format version defines no such field, and unknown fields are never silently dropped"
+        }
     }
 }

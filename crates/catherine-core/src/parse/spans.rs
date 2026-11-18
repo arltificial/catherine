@@ -67,6 +67,28 @@ impl Spans {
             message,
         }
     }
+
+    /// A labeled rejection positioned at one object key rather than at a
+    /// value node — the unknown-field discipline.
+    pub(super) fn semantic_key(
+        &self,
+        object: &str,
+        key: &str,
+        code: ErrorCode,
+        message: String,
+    ) -> ParseError {
+        let (line, column) = self
+            .keys
+            .get(&(object.to_string(), key.to_string()))
+            .copied()
+            .unwrap_or((1, 1));
+        ParseError::Semantic(SemanticError {
+            line,
+            column,
+            code,
+            message,
+        })
+    }
 }
 
 /// Scan the (already syntax-validated) text and record every node and key

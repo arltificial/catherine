@@ -1,28 +1,29 @@
-//! The instance-shape extension of the negative-input matrix
-//! (catherine-3en, arc-review MEDIUM-005): the same recurrence gate, probing
-//! the legacy per-object instance spelling against the real binary. Split out
+//! The instance-key extension of the negative-input matrix
+//! (catherine-3en, arc-review MEDIUM-005; tightened by catherine-bak): the
+//! same recurrence gate, probing the legacy per-object instance spelling
+//! against the real binary. Split out
 //! of `negative_matrix.rs` so both files stay inside the file-size gate; the
 //! row is unweakened and the shared surfaces keep their rows there.
 //!
 //! Rows: `check` on a document whose `instance` object carries neither
 //! `rows` nor `tables` — only the unrecognized key `N` with per-object row
-//! lists (the legacy spelling). The parser must refuse the shape as a
-//! labeled `syntax` error (exit 1, error envelope on stderr, non-empty
-//! message naming the missing keys and the key it saw) — never read it as
-//! an empty instance and check clean.
+//! lists (the legacy spelling). Under the strict unknown-field policy
+//! (catherine-bak) the parser refuses the key itself as a labeled
+//! `unknown_field` error (exit 1, error envelope on stderr, non-empty
+//! message naming `N`) — never read as an empty instance and check clean.
 //!
-//! Rationale: unknown keys are deliberately ignored (additive minors add
-//! optional fields), but that tolerance presupposes recognizable content
-//! alongside them. An instance object whose whole content is unrecognized
-//! is a shape this build cannot read; reporting it as empty is a class-A
-//! silent reinterpretation, not tolerance. The message half is pinned
-//! separately below so the diagnosis, not just the channel, is a contract.
+//! Rationale: an instance object whose whole content is unrecognized is a
+//! shape this build cannot read; reporting it as empty is a class-A silent
+//! reinterpretation. The strict unknown-field policy (catherine-bak) closes
+//! the same seam one level up — the key is refused by name before any shape
+//! interpretation. The message half is pinned separately below so the
+//! diagnosis, not just the channel, is a contract.
 
 use std::process::{Command, Output};
 
 /// The gap-suite fixture for the legacy per-object instance spelling
-/// (`instance.N: [{id, f}]`, no `rows`/`tables`): a shape this build cannot
-/// read, refused as `syntax`, never an empty instance.
+/// (`instance.N: [{id, f}]`, no `rows`/`tables`): a key this build does not
+/// define, refused as `unknown_field`, never an empty instance.
 const WRONG_SHAPE_INSTANCE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/gap_suite/wrong_shape_instance.ct.json"
@@ -66,15 +67,15 @@ struct Row {
 /// envelope is assertable.
 #[rustfmt::skip]
 const MATRIX: &[Row] = &[
-    Row { name: "check × unreadable instance shape (legacy per-object keys, no `rows`/`tables`)",
+    Row { name: "check × unknown instance key (legacy per-object spelling, no `rows`/`tables`)",
           args: &["check", WRONG_SHAPE_INSTANCE, "--json"],
-          code: "syntax" },
+          code: "unknown_field" },
 ];
 
 /// The recurrence gate: every row must surface its malformed input
 /// honestly — a labeled error, never silence.
 #[test]
-fn instance_shape_negative_matrix_rows_surface_honestly() {
+fn unknown_instance_key_negative_matrix_row_surfaces_honestly() {
     for Row {
         name,
         args,
@@ -95,19 +96,19 @@ fn instance_shape_negative_matrix_rows_surface_honestly() {
     }
 }
 
-/// The shape row's message half: the rejection must name the missing
-/// `rows`/`tables` keys *and* the key it saw instead, so a reader can tell
-/// the shape was refused rather than the document being unreadable JSON.
-/// The row above pins exit/code/channel; this pins the diagnosis.
+/// The row's message half: the rejection must name the key it saw, so a
+/// reader can tell the field was refused rather than the document being
+/// unreadable JSON. The row above pins exit/code/channel; this pins the
+/// diagnosis.
 #[test]
-fn unreadable_instance_shape_names_the_rejected_keys() {
+fn unknown_instance_key_is_named() {
     let out = run(&["check", WRONG_SHAPE_INSTANCE, "--json"]);
-    assert_eq!(code(&out), 1, "an unreadable instance shape exits 1");
-    let v = parse_json(&stderr(&out), "wrong-shape instance");
-    assert_eq!(v["data"]["code"], "syntax");
+    assert_eq!(code(&out), 1, "an unknown instance key exits 1");
+    let v = parse_json(&stderr(&out), "unknown instance key");
+    assert_eq!(v["data"]["code"], "unknown_field");
     let message = v["data"]["message"].as_str().unwrap_or_default();
     assert!(
-        message.contains("no `rows` or `tables`") && message.contains("unrecognized keys: `N`"),
-        "the rejection names the shape and its keys: {message}"
+        message.contains("unknown field `N`"),
+        "the rejection names the key it saw: {message}"
     );
 }

@@ -25,7 +25,7 @@
 
 use super::schema::{RawDoc, RawEquation, RawSchema};
 use super::spans::{scan_spans, Spans};
-use super::{syntax_err, validate_with, RowNames};
+use super::{doc_err, validate_with, RowNames};
 use crate::error::{ErrorCode, ParseError};
 use crate::model::{Arrow, Equation, Ident, Model};
 use std::collections::BTreeMap;
@@ -69,7 +69,7 @@ impl PendingEquations {
 /// slot runs the parser's checks against the document's own arrows and
 /// defers only a failure the pushout may satisfy.
 pub(crate) fn parse_deferred(text: &str) -> Result<DeferredModel, ParseError> {
-    let doc: RawDoc = serde_json::from_str(text).map_err(syntax_err)?;
+    let doc: RawDoc = serde_json::from_str(text).map_err(doc_err)?;
     let spans = scan_spans(text);
     let arrow_positions = arrow_positions(doc.schema.as_ref(), &spans);
     let cell_positions = cell_positions(doc.instance.as_ref(), &spans);

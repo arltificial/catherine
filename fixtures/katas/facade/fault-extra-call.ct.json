@@ -125,7 +125,6 @@
           "call_facade",
           "call_action"
         ],
-        "rationale": "trace multiplicity: an entry point makes a given subsystem call at most once, so a duplicated call row is a collision",
         "status": "accepted"
       }
     ]

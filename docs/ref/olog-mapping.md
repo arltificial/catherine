@@ -85,12 +85,14 @@ the tool raises it as a finding, with source attribution.
   change — executed). Adding labels is an open *decision*, not a missing
   feature: it earns kernel surface only if tied to a check (e.g. a
   label-presence lint, or English rendering of `underconstraint` questions).
-  Open item: beads `catherine-c65` (label-surface decision).
-- **Unknown-field tolerance.** Unknown JSON fields on arrows currently parse
-  silently (executed: an extra `label` field is ignored, exit 0) — against
-  the spec's no-silent-drop principle (`openspec/specs/model-document/spec.md`,
-  "never contain a silently-repaired or dropped element"). Filed as a kernel
-  finding: beads `catherine-bak`.
+  Open item: beads `catherine-c65` (label-surface decision). Since
+  catherine-bak an arrow `label` field is a labeled `unknown_field`
+  rejection, so a label surface would have to be a minor-version format
+  change, not a tolerated extra.
+- **Unknown fields are rejected** (catherine-bak, executed: an extra
+  `label` on an arrow is `error[unknown_field]`, exit 1). The parser no
+  longer contradicts the spec's no-silent-drop principle; a field the
+  accepted version does not define is refused by name at its line.
 - **Value-typed aspects.** The paper's `string`-valued aspects (§3.2: first
   name, last name, name) map to objects-with-rows (the `Pins` convention in
   `bowling.ct.json`); typed columns (`ColumnType`) are rule-lens-only

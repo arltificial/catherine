@@ -3,7 +3,7 @@
   "schema": {
     "objects": ["Person", "Address", "Country"],
     "arrows": [
-      {"name": "address", "src": "Person", "tgt": "Address", "optional": true},
+      {"name": "address", "src": "Person", "tgt": "Address"},
       {"name": "addr_country", "src": "Address", "tgt": "Country"},
       {"name": "country", "src": "Person", "tgt": "Country"}
     ],

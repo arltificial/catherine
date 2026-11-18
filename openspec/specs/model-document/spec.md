@@ -38,10 +38,11 @@ mutation of v1 (wild accretion-laws discipline).
 ### Requirement: Malformed presentations are rejected with line-accurate errors
 The system SHALL reject malformed presentations at parse time —
 duplicate or ill-patterned identifiers, equations that are unresolved or
-ill-typed, a `status` outside {proposed, accepted}, and invalid keys —
-each with the line and column of the offending JSON node and a stable
-error code. A parsed document SHALL never contain a silently-repaired or
-dropped element. The rejection classes are pinned by the scenarios below.
+ill-typed, a `status` outside {proposed, accepted}, invalid keys, and
+fields the accepted format version does not define — each with the line
+and column of the offending JSON node and a stable error code. A parsed
+document SHALL never contain a silently-repaired or dropped element. The
+rejection classes are pinned by the scenarios below.
 
 #### Scenario: Duplicate identifier
 - **WHEN** two objects (or two arrows) share one identifier
@@ -60,6 +61,18 @@ dropped element. The rejection classes are pinned by the scenarios below.
   name
 - **THEN** parsing fails with `invalid_key` at the key's node, naming
   the exact defect
+
+#### Scenario: Unknown field is rejected at its node
+- **WHEN** a document declares a field the accepted format version does
+  not define — at the top level, in a schema section or declaration, in
+  the instance, in an additive section, or in a predicate where the
+  field's `kind` does not define it
+- **THEN** parsing fails with `unknown_field` carrying the line and
+  column of the offending field, and the field is never silently
+  dropped: a misspelled key can no longer turn a violated model into a
+  clean result. Additive growth happens by minor version, and a minor
+  above `KNOWN_MINOR` is already rejected with `unsupported_version`, so
+  tolerance inside an accepted version buys no forward compatibility
 
 ### Requirement: Dangling references are preserved as values
 The system SHALL store every instance arrow value, including unresolved

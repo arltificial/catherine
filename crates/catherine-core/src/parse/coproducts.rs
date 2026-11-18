@@ -28,6 +28,7 @@ use std::collections::{BTreeMap, BTreeSet};
 /// arrows, and the optional status (absent means accepted — the equation
 /// and key rule).
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct RawCoproduct {
     pub(super) object: String,
     pub(super) arrows: Vec<String>,

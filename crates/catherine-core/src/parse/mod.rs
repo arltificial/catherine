@@ -6,8 +6,9 @@
 //! semantic errors carry the line/column of the *offending node*, and
 //! enforce the stable semantic error codes (`duplicate_ident`,
 //! `unknown_arrow`, `ill_typed_equation`, `invalid_ident`,
-//! `invalid_status`, `unsupported_version`, plus the named additive-section
-//! extensions) — the fixture harness's expected shape. Parse
+//! `invalid_status`, `unsupported_version`, `unknown_field`, plus the
+//! named additive-section extensions) — the fixture harness's expected
+//! shape. Parse
 //! normalizes presentation away: row names become dense per-object ids in
 //! sorted order, equations, keys, and coproducts are stored in canonical
 //! sorted order,
@@ -17,13 +18,15 @@
 //! Rationale: design Decision 3 — "line-accurate" means the line/column of
 //! the offending JSON node, not of a bespoke text syntax. Structural
 //! malformations outside the stable codes (missing required fields, JSON
-//! type mismatches, references to undeclared objects/arrows/rows, an
-//! instance section whose only content is unrecognized keys) surface
+//! type mismatches, references to undeclared objects/arrows/rows) surface
 //! as `ParseError::Syntax` with a human message; the codes are the stable
-//! semantic contract the golden fixtures pin. Dangling `null`
-//! references parse as `None` — a representable value, never dropped or
-//! repaired (acset-core `dangling_is_a_value`). Check order is the
-//! document order documented in the crate README, so an error is
+//! semantic contract the golden fixtures pin. A field the accepted format
+//! version does not define is `unknown_field`, never dropped: additive
+//! minors above `KNOWN_MINOR` fail the version gate, so tolerance inside
+//! an accepted version could only hide typos (catherine-bak). Dangling
+//! `null` references parse as `None` — a representable value, never
+//! dropped or repaired (acset-core `dangling_is_a_value`). Check order is
+//! the document order documented in the crate README, so an error is
 //! predictable, never order-dependent on the walk.
 //!
 //! Names stay outside the parsed model by construction: [`parse_with_rows`]
@@ -36,7 +39,6 @@ mod build;
 mod coproducts;
 mod deferred;
 mod instance_map;
-mod instance_shape;
 mod keys;
 mod predicate;
 mod rows;
@@ -55,7 +57,6 @@ pub use rows::RowNames;
 use build::build_model;
 use coproducts::check_coproducts;
 pub(crate) use deferred::{parse_deferred, PendingEquations};
-use instance_shape::check_instance_shape;
 use keys::check_keys;
 use schema::{check_arrows, check_equations, check_objects, check_version, RawDoc};
 use spans::{scan_spans, Spans};
@@ -77,7 +78,7 @@ pub fn parse(text: &str) -> Result<Model, ParseError> {
 /// result — the names are a side table, not part of the model, so hash
 /// and canonical form are untouched.
 pub fn parse_with_rows(text: &str) -> Result<(Model, RowNames), ParseError> {
-    let doc: RawDoc = serde_json::from_str(text).map_err(syntax_err)?;
+    let doc: RawDoc = serde_json::from_str(text).map_err(doc_err)?;
     let spans = scan_spans(text);
     let (model, rows, _) = validate_with(doc, &spans, false)?;
     Ok((model, rows))
@@ -107,11 +108,10 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 /// 7. coproducts (additive 1.5) — object declaredness, a non-empty
 ///    duplicate-free injection list `V_k → C`, status, canonical order
 ///    (absent/empty = hash-neutral);
-/// 8. instance shape and rows — an `instance` object carrying neither
-///    `rows` nor `tables` content is refused (never read as empty), then
-///    repeated JSON keys caught from the span scan before serde's
-///    last-wins map can drop them; object keys declared; row idents
-///    checked per list;
+/// 8. instance rows — repeated JSON keys caught from the span scan before
+///    serde's last-wins map can drop them; object keys declared; row idents
+///    checked per list (unknown instance keys already failed
+///    deserialization, never read as an empty section);
 /// 9. instance tables — repeated keys, declared arrows, declared src
 ///    rows, values that are declared target rows or `null`;
 /// 10. instance map (additive 1.4) — declared target names preserved as
@@ -142,7 +142,6 @@ fn validate_with(
     let (equations, pending) = resolved_equations(&schema, &arrows, spans, defer_equations)?;
     let keys = check_keys(&schema, &objects, &arrows, spans)?;
     let coproducts = check_coproducts(&schema, &objects, &arrows, spans)?;
-    check_instance_shape(&instance, spans)?;
     let row_index = check_rows(&instance, &objects, spans)?;
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
     let instance_map = declared_instance_map(&doc.instance_map, &objects, &row_index, spans)?;
@@ -353,19 +352,44 @@ fn check_dup_keys(spans: &Spans, pointer: &str, where_: &str) -> Result<(), Pars
     Ok(())
 }
 
-/// Convert a serde_json error into the structural `Syntax` shape, keeping
-/// serde_json's own line/column and stripping its location suffix from the
-/// message (the position travels in the fields, not the text).
-fn syntax_err(err: serde_json::Error) -> ParseError {
-    let message = err.to_string();
-    let message = message
-        .split(" at line ")
-        .next()
-        .unwrap_or(&message)
-        .to_string();
-    ParseError::Syntax {
-        line: err.line(),
-        column: err.column(),
-        message,
+/// Convert a serde_json deserialization error into a `ParseError`,
+/// keeping serde_json's own line/column and stripping its location suffix
+/// from the message (the position travels in the fields, not the text).
+/// A field the accepted format version does not define is promoted to the
+/// stable `unknown_field` code: the parser refuses it, never drops it
+/// (catherine-bak; a dropped constraint key can turn a violated model
+/// into a false clean).
+fn doc_err(err: serde_json::Error) -> ParseError {
+    let text = err.to_string();
+    let message = text.split(" at line ").next().unwrap_or(&text);
+    match unknown_field_parts(message) {
+        Some((field, expected)) => ParseError::Semantic(SemanticError {
+            line: err.line(),
+            column: err.column(),
+            code: ErrorCode::UnknownField,
+            message: format!(
+                "unknown field `{field}`: the accepted format version does not define it{expected}"
+            ),
+        }),
+        None => ParseError::Syntax {
+            line: err.line(),
+            column: err.column(),
+            message: message.to_string(),
+        },
     }
+}
+
+/// Split serde's `unknown field `x`, expected one of ...` message into
+/// the field name and a `; expected ...` suffix (empty when serde named
+/// no expectation).
+fn unknown_field_parts(message: &str) -> Option<(&str, String)> {
+    let rest = message.strip_prefix("unknown field `")?;
+    let (field, tail) = rest.split_once('`')?;
+    let expected = tail.trim_start_matches(", ").trim();
+    let suffix = if expected.is_empty() {
+        String::new()
+    } else {
+        format!("; {expected}")
+    };
+    Some((field, suffix))
 }

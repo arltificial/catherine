@@ -1,0 +1,10 @@
+{
+  "format_version": "1.5",
+  "schema": {
+    "objects": ["A"],
+    "arrows": [{"name": "f", "src": "A", "tgt": "A"}],
+    "equations": [{"lhs": ["f"], "rhs": ["f"], "status": "accepted"}],
+    "equtions": [{"lhs": ["f", "f"], "rhs": ["f"], "status": "accepted"}]
+  },
+  "instance": {"rows": {"A": ["a1"]}, "tables": {"f": {"a1": "a1"}}}
+}
