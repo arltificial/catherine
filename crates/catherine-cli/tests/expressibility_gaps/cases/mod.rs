@@ -49,11 +49,11 @@ pub struct Case {
     pub observe: fn() -> Observation,
 }
 
-/// The disposition table's expected registration count: thirteen rows
-/// (seven `gap` and six `closed` at this revision). This is the one
+/// The disposition table's expected registration count: fourteen rows
+/// (eight `gap` and six `closed` at this revision). This is the one
 /// place the number is written down; [`all`] cross-checks it against the
 /// registry length so a registration change must update it deliberately.
-pub const EXPECTED_ROWS: usize = 13;
+pub const EXPECTED_ROWS: usize = 14;
 
 /// Every registered case, in disposition-table order.
 pub fn all() -> Vec<Case> {
@@ -113,6 +113,11 @@ fn execution_cases() -> Vec<Case> {
             observe: migration::dropped_equations_on_migrate,
         },
         Case {
+            id: "dropped-pullbacks-on-migrate",
+            fixtures: &["dropped_pullback_migration.ct.json"],
+            observe: migration::dropped_pullbacks_on_migrate,
+        },
+        Case {
             id: "vacuous-clean-instances",
             fixtures: &["zero_rows_instance.ct.json"],
             observe: migration::vacuous_clean_instances,
@@ -161,6 +166,6 @@ fn execution_cases() -> Vec<Case> {
 fn assert_count(registered: usize) {
     assert_eq!(
         registered, EXPECTED_ROWS,
-        "the disposition table registers thirteen rows at this revision"
+        "the disposition table registers fourteen rows at this revision"
     );
 }

@@ -40,7 +40,8 @@ never a divergent re-run:
 
 ```
 catherine check <model.ct.json>      # execution findings — violation (equation,
-                                     # key or coproduct), dangling — with kind, label, witness
+                                     # key, coproduct or pullback), dangling — with
+                                     # kind, label, witness
 catherine check <model.ct.json> --json   # the genesis-vibes JSON envelope, findings under data.findings
 catherine findings <model.ct.json> [--json]
 ```
@@ -115,6 +116,20 @@ image is one `violation`/`executed` naming the row, a row in two images one
 naming the row and both injections; `proposed` declarations fire
 `hypothesized`. A malformed declaration is `invalid_coproduct` at its node,
 and documents without the section keep their exact bytes and hash.
+
+Pullback squares are declared, not inferred: the additive
+`schema.pullbacks` section (format 1.6) lists
+`{"apex": P, "legs": [p1, p2], "cospan": [f, g], "status": "accepted" | "proposed"}`
+— the `keys` grammar with universal-property semantics. An accepted
+declaration is executed by `check` on three separately decidable
+verdicts: `commutes` (an apex row's two leg compositions disagree),
+`covers` (a fiber pair over a common cospan target has no apex row
+projecting to it), and `unique` (two apex rows project to the same pair);
+`proposed` declarations fire `hypothesized`. A malformed declaration —
+undeclared object or arrow, a leg not sourced at the apex, cospan targets
+that differ, wrong arity, or a repeated arrow — is `invalid_pullback` at
+its node, and documents without the section keep their exact bytes and
+hash.
 
 Exit codes mirror finding classes — CI and agents branch on exit
 status without parsing any text:

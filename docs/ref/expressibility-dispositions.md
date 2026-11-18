@@ -1,7 +1,7 @@
 # Expressibility dispositions: known limitation → executable case
 
-Status: every row below pairs a limitation claim from the corpus
-investigations with an executable case under
+Status: every row below pairs a limitation claim from an investigation
+with an executable case under
 `crates/catherine-cli/tests/expressibility_gaps/`. The suite runs each
 case's fixtures through the real `catherine` binary and compares the
 structural observation (exit code, finding kinds/labels, labeled-error
@@ -9,9 +9,9 @@ codes) against the row's disposition — in both directions. A row is
 **truth at registration time**: the observation records what HEAD does,
 not what the 0.1.0-era chat believed (openspec design Decision 2).
 
-Provenance: the claims come from the corpus investigations cited per row
-(provider/conversation-id or synthesis note): two conversation
-transcripts in the research corpus,
+Provenance: the claims come from the investigations cited per row
+(provider/conversation-id, synthesis note, or review finding): two
+conversation transcripts in the research corpus,
 `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (the 15-case runnable
 suite) and `kimi/1a1dee7a-3ad2-8579-8000-0999f885b87d` (gaps G1–G3:
 composition, naturality, coproduct), plus the synthesis notes
@@ -53,6 +53,7 @@ executed at RED time.
 | pullback-absence | A pullback-shaped claim cannot be declared or executed; `schema.cones` is rejected as `unknown_field` | `aleandro-2bc` (docs/synthesis.org §3) | `catherine check pullback_claims.ct.json` → exit 3, one `violation`/`executed` finding with the commutes witness `{pullback: 0, row: 0, lhs: 0, rhs: 1}` over the square's only apex row; previously a pullback claim was unstatable (`pullback-absence`), so the square could not be written down | closed | `crates/catherine-core/tests/pullbacks_checks.rs` |
 | non-functorial-schema-map | `schema_map` is not checked for functoriality: an arrow may map to a path with the wrong endpoints | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g2a) | `catherine migrate nonfunctorial_schema_map.ct.json` → exit 0, `data.lost: []` (0 lost data findings) though `f: A→B` maps to `h: Y→Y` under `A↦X, B↦Y` | gap | Missing: endpoint checking of mapped arrow paths and equation preservation across the map |
 | dropped-equations-on-migrate | A schema map whose target forgets a source equation is accepted without a finding | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g2b) | `catherine migrate dropped_equation_migration.ct.json` → exit 0, `data.lost: []` though the target declares `equations: []` and drops the source triangle | gap | Missing: a migration requirement that the target schema preserve the source's accepted equations |
+| dropped-pullbacks-on-migrate | A schema map that drops a pullback support arrow whose cells are all null is accepted without a finding | rule-of-5 review 2026-11-18 | `catherine migrate dropped_pullback_migration.ct.json` → exit 0, `data.lost: []` (0 lost data findings) though the map assigns the square's `p1` leg to `null` and the target schema carries no `pullbacks` | gap | Missing: a migration finding for a lost constraint declaration |
 | vacuous-clean-instances | A zero-row instance checks clean with no warning; an equation evaluated over zero rows is never evaluated | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (cases g3a, g3b) | `catherine check zero_rows_instance.ct.json` → exit 0, `findings: []`, `warnings: []` | gap | Missing: a vacuity diagnostic for equations evaluated over zero rows. The wrong-shaped instance this row used to cover is now refused as `unknown_field` naming the unrecognized key (catherine-bak; originally `syntax` under catherine-3en, pinned by `crates/catherine-cli/tests/negative_matrix_instance.rs`), not a gap |
 | distinguish-observation-scope | `distinguish` requires a hand-picked observation set and reports `equivalent-in-scope` even when an unobserved arrow differs | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (cases g7a, g7b) | `catherine distinguish distinguish_left.ct.json distinguish_right.ct.json` → exit 2 (missing `--observe`); `--observe 'f@a#0'` → exit 0 `equivalent-in-scope`; `--observe 'g@a#0'` → exit 0 `distinguishable` | gap | Missing: an automatic or reported observation scope (path enumeration up to a declared depth) |
 | associativity-scaffolding | Associativity is expressible only with hand-built Triple rows and wiring equations; omitting the failing triples makes the model clean | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (cases g6a, g6b) | `catherine check associativity_scaffolded.ct.json` → exit 3, 18 `violation` findings at equation 7 over the 27 hand-built Triple rows; `catherine check associativity_omitted_triples.ct.json` → exit 0, `findings: []` | gap | Missing: a finite-carrier operation declaration with an executable associativity law and carrier completeness |

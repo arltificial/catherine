@@ -6,10 +6,11 @@
 //! Responsibilities: [`pullback_findings`] walks every declared pullback
 //! and emits one witness-bearing violation per offending apex row
 //! (commutes) and per offending row pair (unique), plus one per uncovered
-//! fiber pair (covers). A dangling leg cell leaves commutativity and
-//! uniqueness undecidable for its row — the row is simply absent from the
-//! projection buckets, and its dangling finding already names the cell —
-//! while coverage for the whole declaration waits until every apex leg
+//! fiber pair (covers). A dangling leg cell withholds that row's own
+//! commutativity and uniqueness contribution — the row is absent from the
+//! projection buckets and its dangling finding already names the cell —
+//! while uniqueness findings for the complete projection pairs still
+//! emit. Coverage for the whole declaration waits until every apex leg
 //! cell resolves (an unknown projection could occupy any fiber pair). A
 //! dangling cospan cell only removes its pair from the decidable fiber:
 //! the fiber is a function of the cospan alone.

@@ -1,0 +1,38 @@
+{
+  "format_version": "1.6",
+  "schema": {
+    "objects": ["P", "A", "B", "C"],
+    "arrows": [
+      {"name": "p1", "src": "P", "tgt": "A"},
+      {"name": "p2", "src": "P", "tgt": "B"},
+      {"name": "f", "src": "A", "tgt": "C"},
+      {"name": "g", "src": "B", "tgt": "C"}
+    ],
+    "equations": [],
+    "pullbacks": [
+      {"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "g"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"P": ["r1", "r2"], "A": ["a1"], "B": ["b1"], "C": ["c1"]},
+    "tables": {
+      "p1": {"r1": null, "r2": null},
+      "p2": {"r1": "b1", "r2": "b1"},
+      "f": {"a1": "c1"},
+      "g": {"b1": "c1"}
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["P2", "A2", "B2", "C2"],
+      "arrows": [
+        {"name": "p2_2", "src": "P2", "tgt": "B2"},
+        {"name": "f2", "src": "A2", "tgt": "C2"},
+        {"name": "g2", "src": "B2", "tgt": "C2"}
+      ],
+      "equations": []
+    },
+    "objects": {"P": "P2", "A": "A2", "B": "B2", "C": "C2"},
+    "arrows": {"p1": null, "p2": ["p2_2"], "f": ["f2"], "g": ["g2"]}
+  }
+}

@@ -63,10 +63,12 @@
 - [x] 4.2 Bounded search judges candidates against accepted pullbacks
       (proposed failures surface as `hypothesized`, never blocking)
 - [x] 4.3 Schema-map transport parity with coproducts: target schemas
-      may declare pullbacks, validated by the same passes; a map
-      dropping an apex or cospan arrow is loud (dropped-equations
-      discipline) — implementation task only, no migration spec delta
-      (design Decision 5)
+      may declare pullbacks, validated by the same passes. Dropping a
+      support arrow is loud only through its valued cells (one lost-cell
+      finding per cell, the dropped-equations discipline); a declaration
+      whose support cells are all null is lost silently, recorded as the
+      `dropped-pullbacks-on-migrate` gap — implementation task only, no
+      migration spec delta (design Decision 5)
 - [x] 4.4 Expressibility-gap suite: the RED evidence row flips to
       closed; `declared-cones-ignored` stays (cones remain rejected —
       model-document delta scenario); gap-suite observer asserts the

@@ -4,10 +4,10 @@
 //! failure is a `violation` carrying the matching `PullbackWitness`.
 //!
 //! Responsibilities: pin the kernel-checks scenarios (commutes with both
-//! composed values, canonical-order coverage, uniqueness as an unordered
-//! row pair, dangling cells leaving verdicts undecidable, evaluated
-//! silence), the accepted/proposed label split, and the witness's
-//! structural JSON.
+//! composed values, canonical-order coverage — including the non-empty
+//! fiber of a zero-row apex — uniqueness as an unordered row pair,
+//! dangling cells leaving verdicts undecidable, evaluated silence), the
+//! accepted/proposed label split, and the witness's structural JSON.
 //!
 //! Rationale: the parsed declaration guarantees two apex-sourced legs and
 //! a same-target cospan, so the check decides the three claims over the
@@ -286,6 +286,17 @@ fn evaluated_pullback_silence_is_real_success() {
         findings.is_empty(),
         "a zero-row apex over an empty fiber is clean"
     );
+}
+
+/// Scenario "A zero-row apex over a non-empty fiber covers nothing": with
+/// no apex rows nothing projects, so the one shared target is uncovered.
+#[test]
+fn zero_apex_over_nonempty_fiber_covers_every_pair() {
+    let rows = r#"{"P": [], "A": ["a1"], "B": ["b1"], "C": ["c1"]}"#;
+    let tables = r#"{"p1": {}, "p2": {}, "f": {"a1": "c1"}, "g": {"b1": "c1"}}"#;
+    let (model, findings) = checked(ACCEPTED, rows, tables);
+    let pair = [row(&model, "A", 0), row(&model, "B", 0)];
+    assert_eq!(findings, vec![covers(pair)], "the whole fiber is uncovered");
 }
 
 /// Scenario "Status defaults to accepted; proposed pullbacks are

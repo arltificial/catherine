@@ -7,10 +7,10 @@ methodology.md` (the modeling procedure), `DESIGN.md` §5 (validation plan).
 
 > **Epistemic status of this document.** The runs in §Probe evidence are
 > **EXECUTED** — captured from the shipped CLI on 2026-11-13 and cited to
-> the ledger entries they produced. The worked equipment example below is
-> still an **ILLUSTRATED** pre-format sketch (it predates the `.ct.json`
-> format and is not runnable); it is marked as such and must not be cited
-> as EXECUTED.
+> the ledger entries they produced. The worked examples below are
+> **ILLUSTRATED**: the equipment sketch predates the `.ct.json` format and
+> is not runnable, and the pullback square is correct-format prose rather
+> than a shipped fixture. Neither may be cited as EXECUTED.
 
 ## The one mental model
 
@@ -371,8 +371,10 @@ hypothesized. This clean instance exits 0 with `findings: []`:
               "g": {"b1": "c1", "b2": "c2"}}}}
 ```
 
-Its non-commuting twin keeps the schema and changes only the instance
-(`B` has one row, and `r2` maps to it):
+Its non-commuting twin is illustrative, not a shipped fixture: it keeps
+the schema above and replaces only the `instance` section (`B` has one
+row, and `r2` maps to it). Save the clean document with this section
+substituted as `pullback_square_fault.ct.json` to reproduce the run:
 
 ```json
 {"instance": {"rows": {"P": ["r1", "r2"], "A": ["a1", "a2"],

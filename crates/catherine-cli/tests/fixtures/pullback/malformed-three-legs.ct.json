@@ -1,0 +1,21 @@
+{
+  "format_version": "1.6",
+  "schema": {
+    "objects": ["P", "A", "B", "C"],
+    "arrows": [
+      {"name": "p1", "src": "P", "tgt": "A"},
+      {"name": "p2", "src": "P", "tgt": "B"},
+      {"name": "p3", "src": "P", "tgt": "C"},
+      {"name": "f", "src": "A", "tgt": "C"},
+      {"name": "g", "src": "B", "tgt": "C"}
+    ],
+    "equations": [],
+    "pullbacks": [
+      {"apex": "P", "legs": ["p1", "p2", "p3"], "cospan": ["f", "g"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"P": [], "A": [], "B": [], "C": []},
+    "tables": {"p1": {}, "p2": {}, "p3": {}, "f": {}, "g": {}}
+  }
+}

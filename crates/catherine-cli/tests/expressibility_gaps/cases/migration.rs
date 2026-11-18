@@ -1,9 +1,10 @@
 //! Purpose: the migration rows — what `migrate` loses or accepts without
 //! checking.
 //! Responsibilities: one observation per row about non-functorial schema maps,
-//! dropped equations, and vacuous clean instances. Each row returns
-//! `Limitation` only for its exact claimed signature and `Cleared` only for
-//! its exact fixed signature; every other outcome panics.
+//! dropped equations, dropped pullback support arrows, and vacuous clean
+//! instances. Each row returns `Limitation` only for its exact claimed
+//! signature and `Cleared` only for its exact fixed signature; every other
+//! outcome panics.
 //! Rationale: grouped out of `cases.rs` at the file-line gate; the narrow
 //! exit mapping stops an unrelated exit 3/8 from reading as a fix.
 
@@ -33,7 +34,11 @@ fn migrate_without_loss(name: &str, expected_objects: &[&str]) -> Observation {
                 "{code}: {}",
                 value["data"]["message"].as_str().unwrap_or_default()
             );
-            assert_diagnostic_names(name, &text, &["map", "functor", "equation", "endpoint"]);
+            assert_diagnostic_names(
+                name,
+                &text,
+                &["map", "functor", "equation", "pullback", "endpoint"],
+            );
             Observation::Cleared
         }
         _ => migrated_loss(name, &out, &value),
@@ -82,6 +87,18 @@ pub(super) fn non_functorial_schema_map() -> Observation {
 
 pub(super) fn dropped_equations_on_migrate() -> Observation {
     migrate_without_loss("dropped_equation_migration.ct.json", &["A2", "B2", "C2"])
+}
+
+/// The same lossless signature over a dropped pullback support arrow: the
+/// map assigns the accepted square's `p1` leg to `null` while every `p1`
+/// cell is already null, so no lost cell exists to report and the
+/// declaration vanishes silently (`Limitation`). A migration finding for
+/// the lost declaration is the fix (`Cleared`).
+pub(super) fn dropped_pullbacks_on_migrate() -> Observation {
+    migrate_without_loss(
+        "dropped_pullback_migration.ct.json",
+        &["P2", "A2", "B2", "C2"],
+    )
 }
 
 pub(super) fn vacuous_clean_instances() -> Observation {

@@ -1,11 +1,13 @@
 //! Purpose: the named parity gate (openspec change
 //! `add-executed-checks`, task 9; E8) — the vendored `fixtures/parity/`
-//! set, mirrored from specodelic's corpus discipline
+//! set, which now holds the specodelic corpus mirrors
 //! (`tests/acset_parity.rs` + `tests/fixtures/{small,zero_file,
-//! single_intent,dangling,typing_allowed,typing_violations}`), asserts
-//! that the ported instance tables and checks produce specodelic's acset
-//! behavior on every shared case: typing allowed/violated, dangling,
-//! clean, and the degenerate empty boundaries.
+//! single_intent,dangling,typing_allowed,typing_violations}`) plus one
+//! catherine-authored `pullback_square` entry for the lean-kernel oracle.
+//! It asserts that the ported instance tables and checks produce
+//! specodelic's acset behavior on every shared case — typing
+//! allowed/violated, dangling, clean, and the degenerate empty
+//! boundaries — and the expected pullback witness on the added entry.
 //!
 //! Responsibilities: for each fixture directory, load `model.ct.json`,
 //! route it (parse for documents P0 accepts; the lenient presentation
@@ -22,7 +24,10 @@
 //! and not equation semantics (the E10 new code carries its own property
 //! tests). Donor behavior ground truth: specodelic's
 //! `tests/snapshots/{dangling,typing_allowed,typing_violations}.txt`
-//! oracles and its green `acset_parity` suite on the mirrored corpora.
+//! oracles and its green `acset_parity` suite on the mirrored corpora;
+//! the `pullback_square` entry is catherine-authored (it has no
+//! specodelic counterpart) and is sealed by the lean-kernel oracle
+//! instead.
 
 mod common;
 

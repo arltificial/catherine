@@ -79,8 +79,15 @@ grows. "No new semantics" in the ticket means no new exit codes
 The coproduct change shipped no migration spec delta and carried
 declarations through schema maps as an implementation task; this
 change does the same — pullbacks validate through schema maps with
-the same passes as coproducts, and a map dropping an apex or cospan
-arrow is loud the way dropped equations are loud. Any gap discovered
+the same passes as coproducts. Migration loudness is per-cell, not
+per-declaration: a map dropping a support arrow whose cells hold
+values is loud (one lost-cell finding per valued cell, the
+dropped-equations discipline), but a declaration whose support cells
+are all null is lost silently — there is no valued cell to report,
+and nothing requires the target schema to preserve the square. That
+residue is tracked as the `dropped-pullbacks-on-migrate` gap in
+`docs/ref/expressibility-dispositions.md`, the same shape as the
+existing `dropped-equations-on-migrate` gap. Any gap discovered
 beyond that goes to the findings ledger per the ticket's rule
 ("expressibility gaps … not new machinery by default"). Sequencing
 with `add-lean-kernel-model`: pullback checks are out of the twin's
