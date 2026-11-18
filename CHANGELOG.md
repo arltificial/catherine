@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Pullback checks (`add-pullback-checks`, `catherine-4vs`): the additive
+  `schema.pullbacks` section (format 1.6) declares a square
+  `{"apex": P, "legs": [p1, p2], "cospan": [f, g], "status": …}` where
+  the legs source at the apex and the cospan arrows share a target.
+  Accepted declarations execute as three verdicts: `commutes`
+  (`f∘p1 = g∘p2` on every apex row), `covers` (every fiber pair over a
+  common cospan target is projected by some apex row), and `unique` (no
+  two apex rows project to the same pair). Each offending row or pair is
+  one `violation`/`executed`, carrying `{pullback, row, lhs, rhs}` for a
+  broken square, `{pullback, pair}` for an uncovered pair, or
+  `{pullback, rows}` for duplicate projections. `catherine check` exits 3
+  on a violating square and 0 on a clean one (including a zero-row apex
+  over an empty fiber). `proposed` declarations fire `hypothesized` and
+  never judge satisfiability; status defaults to accepted. Malformed
+  declarations fail `invalid_pullback` at their node — an undeclared
+  object or arrow, a leg not sourced at the apex, cospan targets that
+  differ, a leg or cospan list whose length is not two, or a repeated
+  arrow name. An empty or absent section is hash-neutral, so every
+  pre-existing document keeps its hash, and the schema-diff enforced
+  set now includes accepted pullbacks.
+  `schema.cones` cannot be declared (`pullback-absence`): it still fails
+  `unknown_field`, and no general limit-cone machinery is introduced.
+  Declaration surface: `catherine-1py`; executed checks: `catherine-a11`.
+
 ### Fixed
 
 - The parser rejects a field the accepted format version does not define

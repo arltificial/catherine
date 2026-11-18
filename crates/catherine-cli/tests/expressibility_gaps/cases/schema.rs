@@ -1,9 +1,10 @@
 //! Purpose: the schema-surface rows — declarations the checker accepts
 //! without enforcing anything.
 //! Responsibilities: one observation per row about identity equations,
-//! optional references, unknown fields and declared cones. Each row returns
-//! `Limitation` only for its exact claimed signature and `Cleared` only for
-//! its exact fixed signature; every other outcome panics.
+//! optional references, unknown fields, declared cones, and the now
+//! declarable pullback squares. Each row returns `Limitation` only for its
+//! exact claimed signature and `Cleared` only for its exact fixed
+//! signature; every other outcome panics.
 //! Rationale: grouped out of `cases.rs` at the file-line gate; the strict
 //! signatures are what stop a broken fixture from laundering a limitation
 //! into a `closed` row.
@@ -11,6 +12,7 @@
 use super::probe::{self, assert_diagnostic_names, check_run, envelope, findings};
 use super::Observation;
 use crate::common;
+use serde_json::Value;
 
 pub(super) fn identity_empty_path_equations() -> Observation {
     let runs = [
@@ -125,4 +127,40 @@ pub(super) fn declared_cones_ignored() -> Observation {
         &["cones", "coproduct", "limit"],
     );
     Observation::Cleared
+}
+
+/// The claimed signature is a silent run: a pullback-shaped claim was
+/// unstatable, so nothing could execute. The fixed signature is the
+/// declared square's failing row as an executed violation naming
+/// declaration `0` and both composed values.
+pub(super) fn pullback_absence() -> Observation {
+    let run = check_run("pullback_claims.ct.json");
+    if run.is_silent() {
+        return Observation::Limitation;
+    }
+    let text = run.text();
+    let found = run
+        .findings()
+        .unwrap_or_else(|| panic!("pullback-absence: the claim must execute, got {text}"));
+    assert_pullback_commutes_witness(found);
+    assert_diagnostic_names("pullback-absence", &text, &["pullback"]);
+    Observation::Cleared
+}
+
+/// The commutes witness (not covers or unique): an executed violation whose
+/// witness names pullback `0` and two unequal composed values, so the
+/// square was actually evaluated rather than silently dropped.
+fn assert_pullback_commutes_witness(found: &[Value]) {
+    let witness = found
+        .iter()
+        .find(|finding| finding["kind"] == "violation" && finding["witness"]["pullback"] == 0)
+        .unwrap_or_else(|| panic!("pullback-absence: no violation names pullback 0: {found:?}"));
+    assert_eq!(
+        witness["label"], "executed",
+        "a failing square is an executed violation: {witness}"
+    );
+    assert_ne!(
+        witness["witness"]["lhs"], witness["witness"]["rhs"],
+        "the commutes witness names two unequal composed values: {witness}"
+    );
 }

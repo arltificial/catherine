@@ -49,15 +49,24 @@ pub struct Case {
     pub observe: fn() -> Observation,
 }
 
-/// The disposition table's expected registration count: twelve rows at
-/// registration time (eleven `gap` and one `closed`). This is the one
+/// The disposition table's expected registration count: thirteen rows
+/// (seven `gap` and six `closed` at this revision). This is the one
 /// place the number is written down; [`all`] cross-checks it against the
 /// registry length so a registration change must update it deliberately.
-pub const EXPECTED_ROWS: usize = 12;
+pub const EXPECTED_ROWS: usize = 13;
 
 /// Every registered case, in disposition-table order.
 pub fn all() -> Vec<Case> {
-    let cases = vec![
+    let mut cases = declaration_cases();
+    cases.extend(execution_cases());
+    assert_count(cases.len());
+    cases
+}
+
+/// The declaration-shaped rows: schema declarations and the schema map, in
+/// disposition-table order.
+fn declaration_cases() -> Vec<Case> {
+    vec![
         Case {
             id: "identity-empty-path-equations",
             fixtures: &[
@@ -82,10 +91,22 @@ pub fn all() -> Vec<Case> {
             observe: schema::declared_cones_ignored,
         },
         Case {
+            id: "pullback-absence",
+            fixtures: &["pullback_claims.ct.json"],
+            observe: schema::pullback_absence,
+        },
+        Case {
             id: "non-functorial-schema-map",
             fixtures: &["nonfunctorial_schema_map.ct.json"],
             observe: migration::non_functorial_schema_map,
         },
+    ]
+}
+
+/// The execution-shaped rows: instance and cross-document checks, in
+/// disposition-table order.
+fn execution_cases() -> Vec<Case> {
+    vec![
         Case {
             id: "dropped-equations-on-migrate",
             fixtures: &["dropped_equation_migration.ct.json"],
@@ -132,9 +153,7 @@ pub fn all() -> Vec<Case> {
             fixtures: &["coproduct_payments.ct.json"],
             observe: analysis::coproduct_absence,
         },
-    ];
-    assert_count(cases.len());
-    cases
+    ]
 }
 
 /// The registration count is deliberate: a registry change must update
@@ -142,6 +161,6 @@ pub fn all() -> Vec<Case> {
 fn assert_count(registered: usize) {
     assert_eq!(
         registered, EXPECTED_ROWS,
-        "the disposition table registers twelve rows at registration time"
+        "the disposition table registers thirteen rows at this revision"
     );
 }

@@ -280,9 +280,15 @@ over `C`'s rows. A declaration is executed exactly as stated — an
 uncovered row falsifies coverage, a row in two injection images falsifies
 disjointness — and both are existing `violation` findings with the row (and
 the colliding injections) as witness. This is the mono/colimit dual of
-`keys`, which asserts injectivity; limits are still absent: no pullbacks,
-no cones, no defaults. A declared totality claim that fails is a
-violation, not a gap to be patched.
+`keys`, which asserts injectivity; the limit side is executable only in
+pullback-square form: a declared `schema.pullbacks` entry (format 1.6)
+is run on three verdicts — `commutes`, `covers`, and `unique` — over its
+declared leg and cospan arrows, and a failing square is one
+`violation`/`executed`. General limit cones remain absent, and
+`schema.cones` cannot be declared (`pullback-absence`): the field is
+still rejected as `unknown_field`, and no default fills an absent cell.
+A declared totality claim that fails is a violation, not a gap to be
+patched.
 
 **Composition (the pushout at a seam).** Two documents that share a
 declared sub-schema compose over it: objects, arrows, and rows identified

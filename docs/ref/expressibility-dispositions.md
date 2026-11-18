@@ -9,12 +9,15 @@ codes) against the row's disposition — in both directions. A row is
 **truth at registration time**: the observation records what HEAD does,
 not what the 0.1.0-era chat believed (openspec design Decision 2).
 
-Provenance: the claims come from two conversation transcripts in the
-research corpus (provider/conversation-id cited per row):
+Provenance: the claims come from the corpus investigations cited per row
+(provider/conversation-id or synthesis note): two conversation
+transcripts in the research corpus,
 `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (the 15-case runnable
 suite) and `kimi/1a1dee7a-3ad2-8579-8000-0999f885b87d` (gaps G1–G3:
-composition, naturality, coproduct). The claims are cited for
-provenance; the `Verified HEAD observation` column is the truth.
+composition, naturality, coproduct), plus the synthesis notes
+`aleandro-2bc` (`docs/synthesis.org` §3) for the pullback row. The
+claims are cited for provenance; the `Verified HEAD observation` column
+is the truth.
 
 Dispositions:
 
@@ -46,7 +49,8 @@ executed at RED time.
 | identity-empty-path-equations | An equation side cannot be empty, so identity and inverse laws (`neg∘neg = id`, `restore∘save = id`) cannot be stated | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (cases g1a, g1b) | `catherine check identity_involution.ct.json` → exit 1, `error[syntax]` "equation path must be non-empty"; the memento fixture is rejected identically | gap | Missing: an identity path form (an empty equation side or a named identity arrow) the parser accepts and the checker executes |
 | optional-references | An arrow cannot be declared optional; a legitimately absent value is reported `dangling` | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g4) | `catherine check optional_reference.ct.json` → exit 4, one `dangling` finding, witness `{arrow: address, src: 1}`; the fixture's former `optional: true` key is now itself an `unknown_field` rejection (catherine-bak), so optionality still cannot be declared | gap | Missing: an optional-arrow declaration with defined semantics through absent values |
 | unknown-top-level-fields | Unknown document, schema and instance fields are silently ignored | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g3a); `kimi/1a1dee7a-3ad2-8579-8000-0999f885b87d` (unknown `instance_map` probe) | `catherine check unknown_top_level_fields.ct.json` → exit 1, `error[unknown_field]` at line 3 naming `notes` (the other two unknown keys are rejected the same way once the earlier ones are removed); previously exit 0 with empty `findings`/`warnings` | closed | `crates/catherine-core/tests/unknown_fields.rs` |
-| declared-cones-ignored | A `schema.cones` declaration is accepted and ignored; the methodology's cone language has no execution | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g5) | `catherine check declared_cone.ct.json` → exit 1, `error[unknown_field]` at line 7 naming `cones`; previously exit 0 with empty `findings`/`warnings` | closed | `crates/catherine-core/tests/unknown_fields.rs` |
+| declared-cones-ignored | A `schema.cones` declaration is accepted and ignored; the methodology's cone language has no execution | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g5) | `catherine check declared_cone.ct.json` → exit 1, `error[unknown_field]` at line 7 naming `cones`; previously exit 0 with empty `findings`/`warnings`. Cross-link: pullback squares are now declarable through `schema.pullbacks` (`add-pullback-checks`) and execute as three verdicts (`pullback-absence`), while `schema.cones` remains rejected as `unknown_field` | closed | `crates/catherine-core/tests/unknown_fields.rs` |
+| pullback-absence | A pullback-shaped claim cannot be declared or executed; `schema.cones` is rejected as `unknown_field` | `aleandro-2bc` (docs/synthesis.org §3) | `catherine check pullback_claims.ct.json` → exit 3, one `violation`/`executed` finding with the commutes witness `{pullback: 0, row: 0, lhs: 0, rhs: 1}` over the square's only apex row; previously a pullback claim was unstatable (`pullback-absence`), so the square could not be written down | closed | `crates/catherine-core/tests/pullbacks_checks.rs` |
 | non-functorial-schema-map | `schema_map` is not checked for functoriality: an arrow may map to a path with the wrong endpoints | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g2a) | `catherine migrate nonfunctorial_schema_map.ct.json` → exit 0, `data.lost: []` (0 lost data findings) though `f: A→B` maps to `h: Y→Y` under `A↦X, B↦Y` | gap | Missing: endpoint checking of mapped arrow paths and equation preservation across the map |
 | dropped-equations-on-migrate | A schema map whose target forgets a source equation is accepted without a finding | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (case g2b) | `catherine migrate dropped_equation_migration.ct.json` → exit 0, `data.lost: []` though the target declares `equations: []` and drops the source triangle | gap | Missing: a migration requirement that the target schema preserve the source's accepted equations |
 | vacuous-clean-instances | A zero-row instance checks clean with no warning; an equation evaluated over zero rows is never evaluated | `claude/b417f19b-fdbc-4f73-ae08-c3eb79a1dcf4` (cases g3a, g3b) | `catherine check zero_rows_instance.ct.json` → exit 0, `findings: []`, `warnings: []` | gap | Missing: a vacuity diagnostic for equations evaluated over zero rows. The wrong-shaped instance this row used to cover is now refused as `unknown_field` naming the unrecognized key (catherine-bak; originally `syntax` under catherine-3en, pinned by `crates/catherine-cli/tests/negative_matrix_instance.rs`), not a gap |
@@ -71,7 +75,7 @@ that lands it, and the suite asserts the live split, never this sentence.
   1). The suite is executable both ways, so limitations cannot ossify
   into folklore.
 - The sibling changes `add-model-composition`,
-  `add-instance-morphism` and `add-coproduct-exhaustiveness` were
-  authored with these rows as their flip targets; the fixtures for
-  those rows use the planned surface shapes so the flip is one table
-  cell, not a fixture rewrite.
+  `add-instance-morphism`, `add-coproduct-exhaustiveness` and
+  `add-pullback-checks` were authored with these rows as their flip
+  targets; the fixtures for those rows use the planned surface shapes so
+  the flip is one table cell, not a fixture rewrite.
