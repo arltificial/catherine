@@ -1,0 +1,11 @@
+id = "ci-fails-on-a-real-violation"
+description = "Bogart's CI wires the pinned catherine CLI (5b3f1aa) over the committed pilot models with class-exit assertions — violation exit 3 for the RED fixture, lost-data exit 8 for the Δ migration, underconstraint exit 6 for the declared-totality RED — so a real finding fails the build with no output-text parsing."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-bogart-pilot-contract.sh ci-fails-on-a-real-violation" },
+]

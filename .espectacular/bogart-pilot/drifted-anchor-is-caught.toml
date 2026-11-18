@@ -1,0 +1,11 @@
+id = "drifted-anchor-is-caught"
+description = "The committed RED fixture — a text_block row carrying an edition anchor inconsistent with its document, plus an unresolvable document_id — makes the pinned catherine CLI emit the violation/dangling findings with the offending rows and exit 3."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-bogart-pilot-contract.sh drifted-anchor-is-caught" },
+]

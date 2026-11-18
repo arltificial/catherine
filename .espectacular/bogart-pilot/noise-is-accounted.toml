@@ -1,0 +1,11 @@
+id = "noise-is-accounted"
+description = "The pilot report and evidence account for every fired finding — real defect or noise with cause, none suppressed: the triage block carries counts and an accounting line, the 2026-11-18 closure census and model-4/model-5 results are recorded (model4 real_defects 0, model5 red exit 6), and the report keeps its noise and closure sections."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-bogart-pilot-contract.sh noise-is-accounted" },
+]
