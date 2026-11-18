@@ -100,8 +100,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   external reference semantics of the kernel with machine-checked
   soundness, equation-completeness and dangling-discipline proofs, a
   fixture-parity oracle against the Rust check, and an axiom audit
-  (`propext`, `Classical.choice`, `Quot.sound` only) wired into CI.
-  Development artifact: no runtime dependency and no shipped binary change.
+  (`propext`, `Classical.choice`, `Quot.sound` only) wired into CI. The
+  twin also models the pullback square's commutes/covers/unique verdicts
+  (commutes witness extracted by the soundness theorem), so format-1.6
+  documents join the parity corpus. Development artifact: no runtime
+  dependency and no shipped binary change.
 - Ledger decision entries (`catherine-xvh`): the ledger records the
   hold/extend/retire stop-gate decision as a sealed entry kind.
 

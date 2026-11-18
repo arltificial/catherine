@@ -8,8 +8,8 @@ labels, and the total order used to sort reported findings
 (`openspec/specs/findings`).
 
 ## Responsibilities: define the witness structs, the untagged
-violation-witness union (equation, key, naturality, coproduct — the
-naturality shape is defined and never produced by `check`), the five
+violation-witness union (equation, key, naturality, coproduct, pullback —
+the naturality shape is defined and never produced by `check`), the five
 finding kinds in declaration order, `Finding {label, kind}`, the total
 `Ord` instance (kind declaration order → witness ids → label last), and
 `labelFor : ConstraintStatus → EpistemicLabel` (accepted → executed,
@@ -81,14 +81,46 @@ structure CoproductWitness where
   injections : List Ident
   deriving Repr, DecidableEq, BEq, Inhabited
 
+/-- A pullback square's commutes failure: one apex row whose two composed
+cospan values disagree. -/
+structure PullbackCommutesWitness where
+  pullback : Nat
+  row : RowId
+  lhs : RowId
+  rhs : RowId
+  deriving Repr, DecidableEq, BEq, Inhabited
+
+/-- A pullback square's covers failure: a fiber pair no apex row projects
+to. -/
+structure PullbackCoversWitness where
+  pullback : Nat
+  pair : RowId × RowId
+  deriving Repr, DecidableEq, BEq, Inhabited
+
+/-- A pullback square's unique failure: two apex rows projecting to the
+same fiber pair. -/
+structure PullbackUniqueWitness where
+  pullback : Nat
+  rows : RowId × RowId
+  deriving Repr, DecidableEq, BEq, Inhabited
+
+/-- The untagged pullback-witness union; variant order is the arm order of
+the Rust `PullbackWitness` enum (commutes, covers, unique). -/
+inductive PullbackWitness
+  | commutes (w : PullbackCommutesWitness)
+  | covers (w : PullbackCoversWitness)
+  | unique (w : PullbackUniqueWitness)
+  deriving Repr, DecidableEq, BEq, Inhabited
+
 /-- The untagged violation witness union; variant order is the taxonomy's
 kind-internal order (equations before keys before naturality before
-coproducts). -/
+coproducts before pullbacks). -/
 inductive ViolationWitness
   | equation (w : EquationWitness)
   | key (w : KeyWitness)
   | naturality (w : NaturalityWitness)
   | coproduct (w : CoproductWitness)
+  | pullback (w : PullbackWitness)
   deriving Repr, DecidableEq, BEq, Inhabited
 
 /-- An arrow cell that holds no row, naming the arrow and the source row
@@ -184,12 +216,57 @@ def compareCoproductWitness (a b : CoproductWitness) : Ordering :=
 instance : Ord CoproductWitness :=
   ⟨compareCoproductWitness⟩
 
+/-- Commutes witness comparison: pullback index, row, then both composed
+values. -/
+def comparePullbackCommutesWitness (a b : PullbackCommutesWitness) : Ordering :=
+  (compare a.pullback b.pullback).then <|
+    (compare a.row b.row).then <|
+      (compare a.lhs b.lhs).then (compare a.rhs b.rhs)
+
+instance : Ord PullbackCommutesWitness :=
+  ⟨comparePullbackCommutesWitness⟩
+
+/-- Covers witness comparison: pullback index, then the pair. -/
+def comparePullbackCoversWitness (a b : PullbackCoversWitness) : Ordering :=
+  (compare a.pullback b.pullback).then <|
+    (compare a.pair.1 b.pair.1).then (compare a.pair.2 b.pair.2)
+
+instance : Ord PullbackCoversWitness :=
+  ⟨comparePullbackCoversWitness⟩
+
+/-- Unique witness comparison: pullback index, then both rows. -/
+def comparePullbackUniqueWitness (a b : PullbackUniqueWitness) : Ordering :=
+  (compare a.pullback b.pullback).then <|
+    (compare a.rows.1 b.rows.1).then (compare a.rows.2 b.rows.2)
+
+instance : Ord PullbackUniqueWitness :=
+  ⟨comparePullbackUniqueWitness⟩
+
+/-- The pullback witness variant's rank (Rust enum order). -/
+def PullbackWitness.rank : PullbackWitness → Nat
+  | .commutes _ => 0
+  | .covers _ => 1
+  | .unique _ => 2
+
+/-- Pullback witness comparison: variant order, then the witness ids. -/
+def comparePullbackWitness (a b : PullbackWitness) : Ordering :=
+  (compare a.rank b.rank).then <|
+    match a, b with
+    | .commutes x, .commutes y => compare x y
+    | .covers x, .covers y => compare x y
+    | .unique x, .unique y => compare x y
+    | _, _ => .eq
+
+instance : Ord PullbackWitness :=
+  ⟨comparePullbackWitness⟩
+
 /-- The violation variant's rank (declaration order). -/
 def ViolationWitness.rank : ViolationWitness → Nat
   | .equation _ => 0
   | .key _ => 1
   | .naturality _ => 2
   | .coproduct _ => 3
+  | .pullback _ => 4
 
 /-- Violation witness comparison: variant order, then the witness ids. -/
 def compareViolationWitness (a b : ViolationWitness) : Ordering :=
@@ -199,6 +276,7 @@ def compareViolationWitness (a b : ViolationWitness) : Ordering :=
     | .key x, .key y => compare x y
     | .naturality x, .naturality y => compare x y
     | .coproduct x, .coproduct y => compare x y
+    | .pullback x, .pullback y => compare x y
     | _, _ => .eq
 
 instance : Ord ViolationWitness :=

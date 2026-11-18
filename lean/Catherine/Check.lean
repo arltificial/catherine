@@ -9,9 +9,11 @@ dangling finding per unresolved cell (minus typing-violated cells), one
 violation per equation per applicable row whose composites disagree, one
 violation per unordered pair of rows whose declared key tuple agrees, one
 violation per row of a declared coproduct whose coverage or disjointness
-claim fails, and the final taxonomy sort — the function the lean-parity
+claim fails, one violation per failed pullback verdict (commutes, covers,
+unique), and the final taxonomy sort — the function the lean-parity
 oracle compares against `catherine check --json`
-(`crates/catherine-core/src/checks.rs`, `checks/coproducts.rs`).
+(`crates/catherine-core/src/checks.rs`, `checks/coproducts.rs`,
+`checks/pullbacks.rs`).
 
 ## Responsibilities: define `check : Schema → TypedInstance → List Finding`
 with its frozen signature. Every lookup is total: a declaration outside
@@ -226,6 +228,167 @@ def coproductFindings (schema : Schema) (inst : Instance.TypedInstance) :
   (schema.coproducts.mapIdx fun index coproduct =>
     coproductDeclaration schema inst index coproduct).flatten
 
+/-! ## Pullbacks -/
+
+/-- The declaration's exactly-two arrow names, in declared order. -/
+def twoOf : List Ident → Option (Ident × Ident)
+  | [first, second] => some (first, second)
+  | _ => none
+
+/-- An arrow's value table in the typed instance, if it carries one. -/
+def tableOf (inst : Instance.TypedInstance) (name : Ident) :
+    Option (List (Option RowId)) :=
+  (inst.tables.find? (fun entry => entry.1 == name)).map fun entry => entry.2
+
+/-- One declaration's resolved square: the four arrows' tables plus the
+cospan sources' row spaces. -/
+structure Square where
+  p1 : List (Option RowId)
+  p2 : List (Option RowId)
+  f : List (Option RowId)
+  g : List (Option RowId)
+  aRows : List RowId
+  bRows : List RowId
+
+/-- Resolve a declaration's square; `none` when the declaration is outside
+the parsed presentation's shape (not exactly two legs/cospan arrows, a leg
+not sourced at the apex, cospan targets disagreeing, a missing table). -/
+def squareOf (schema : Schema) (inst : Instance.TypedInstance)
+    (pullback : Pullback) : Option Square :=
+  match twoOf pullback.legs, twoOf pullback.cospan with
+  | some (p1, p2), some (f, g) =>
+    match schema.arrow? p1, schema.arrow? p2, schema.arrow? f, schema.arrow? g with
+    | some leg1, some leg2, some cospan1, some cospan2 =>
+      if leg1.src == pullback.apex && leg2.src == pullback.apex &&
+          cospan1.tgt == cospan2.tgt then
+        match tableOf inst p1, tableOf inst p2, tableOf inst f, tableOf inst g with
+        | some p1Table, some p2Table, some fTable, some gTable =>
+          some
+            { p1 := p1Table, p2 := p2Table, f := fTable, g := gTable
+              aRows := (Schema.rowCount? inst.rows cospan1.src).map List.range |>.getD []
+              bRows := (Schema.rowCount? inst.rows cospan2.src).map List.range |>.getD [] }
+        | _, _, _, _ => none
+      else none
+    | _, _, _, _ => none
+  | _, _ => none
+
+/-- One apex row's projection `(p1[row], p2[row])`; `none` when either leg
+cell is unresolved (dangling or typing-violated), which leaves the row's
+verdict undefined rather than violated. -/
+def legValues (square : Square) (row : RowId) : Option (RowId × RowId) :=
+  match square.p1[row]?, square.p2[row]? with
+  | some (some left), some (some right) => some (left, right)
+  | _, _ => none
+
+/-- Both composed cospan values for one projection, when they exist and
+disagree. A composition through a dangling cospan cell is undefined, never
+a violation. -/
+def commutes (square : Square) (projection : RowId × RowId) :
+    Option (RowId × RowId) :=
+  match square.f[projection.1]?, square.g[projection.2]? with
+  | some (some lhs), some (some rhs) =>
+    if lhs == rhs then none else some (lhs, rhs)
+  | _, _ => none
+
+/-- One commutes finding for an apex row whose projection resolves to
+disagreeing cospan composites. -/
+def commutesFinding (square : Square) (index : Nat) (label : EpistemicLabel)
+    (row : RowId) : Option Finding :=
+  match legValues square row with
+  | none => none
+  | some projection =>
+    match commutes square projection with
+    | none => none
+    | some (lhs, rhs) =>
+      some
+        { label := label
+          kind := .violation (.pullback (.commutes
+            { pullback := index, row := row, lhs := lhs, rhs := rhs })) }
+
+/-- Every resolved apex row's projection, rows ascending (the walk visits
+rows ascending). -/
+def projectionPairs (square : Square) (rows : List RowId) :
+    List (RowId × RowId) :=
+  rows.filterMap fun row => legValues square row
+
+/-- One uniqueness finding for the pair `(lo, hi)` when both projections
+resolve and agree — the witnesses' rows are enumerated `lo < hi`, so they
+arrive ascending exactly as the Rust pass emits them. -/
+def uniqueFinding (square : Square) (index : Nat) (label : EpistemicLabel)
+    (lo hi : RowId) : Option Finding :=
+  match legValues square lo, legValues square hi with
+  | some left, some right =>
+    if left == right then
+      some
+        { label := label
+          kind := .violation (.pullback (.unique
+            { pullback := index, rows := (lo, hi) })) }
+    else none
+  | _, _ => none
+
+/-- One uniqueness finding per unordered pair of apex rows sharing a
+projection (a 3-way duplication is three findings — each pair is a
+demonstrated failure, not a summary count). -/
+def uniqueFindings (square : Square) (rows : List RowId) (index : Nat)
+    (label : EpistemicLabel) : List Finding :=
+  rows.flatMap fun lo =>
+    (rows.filter fun hi => lo < hi).filterMap fun hi =>
+      uniqueFinding square index label lo hi
+
+/-- One covers finding for the fiber pair `(a, b)`, unless an apex row
+already projects to it. -/
+def coversFinding (_square : Square) (index : Nat) (label : EpistemicLabel)
+    (projections : List (RowId × RowId)) (a b : RowId) : Option Finding :=
+  match decide ((a, b) ∈ projections) with
+  | true => none
+  | false =>
+    some
+      { label := label
+        kind := .violation (.pullback (.covers
+          { pullback := index, pair := (a, b) })) }
+
+/-- One covers finding when the pair shares a resolved cospan target: the
+fiber is enumerated by target on both sides, so only equal targets enter
+the coverage ledger. -/
+def fiberPairFinding (square : Square) (index : Nat) (label : EpistemicLabel)
+    (projections : List (RowId × RowId)) (a b : RowId) : Option Finding :=
+  match square.f[a]?, square.g[b]? with
+  | some (some ta), some (some tb) =>
+    if ta == tb then coversFinding square index label projections a b else none
+  | _, _ => none
+
+/-- Every uncovered pair of the resolved fiber: an `A` row and a `B` row
+sharing a cospan target that no apex row projects to. -/
+def coverageFindings (square : Square) (index : Nat) (label : EpistemicLabel)
+    (projections : List (RowId × RowId)) : List Finding :=
+  square.aRows.flatMap fun a =>
+    square.bRows.filterMap fun b =>
+      fiberPairFinding square index label projections a b
+
+/-- One declaration's three verdicts: commutes per resolved apex row,
+uniqueness per duplicated projection pair, and coverage only when every
+apex leg cell resolves (an unknown projection could occupy any fiber
+pair). -/
+def pullbackDeclaration (schema : Schema) (inst : Instance.TypedInstance)
+    (index : Nat) (pullback : Pullback) : List Finding :=
+  match squareOf schema inst pullback, Schema.rowCount? inst.rows pullback.apex with
+  | some square, some n =>
+    let rows := List.range n
+    let label := labelFor pullback.status
+    let projections := projectionPairs square rows
+    let legsPartial := rows.any fun row => (legValues square row).isNone
+    let commutesFindings := rows.filterMap fun row =>
+      commutesFinding square index label row
+    commutesFindings ++ uniqueFindings square rows index label ++
+      (if legsPartial then [] else coverageFindings square index label projections)
+  | _, _ => []
+
+/-- Every declared pullback, in canonical declaration order. -/
+def pullbackFindings (schema : Schema) (inst : Instance.TypedInstance) :
+    List Finding :=
+  (schema.pullbacks.mapIdx fun index pullback =>
+    pullbackDeclaration schema inst index pullback).flatten
+
 /-! ## The walk -/
 
 /-- Execute every declared constraint over the typed instance and emit
@@ -237,6 +400,7 @@ def check (schema : Schema) (inst : Instance.TypedInstance) : List Finding :=
       ++ equationFindings schema inst
       ++ keyFindings schema inst
       ++ coproductFindings schema inst
+      ++ pullbackFindings schema inst
   findings.mergeSort (fun a b => compare a b != .gt)
 
 end Check

@@ -1,12 +1,13 @@
 /-!
 # Purpose: Lean reference formalization of the catherine-core schema —
 objects, arrows, paths, equations with constraint status
-(`accepted`/`proposed`), declarative keys, and declared coproducts,
-mirroring `openspec/specs/model-document` and the Rust kernel types in
-`crates/catherine-core/src/model/{mod,relations}.rs`.
+(`accepted`/`proposed`), declarative keys, declared coproducts, and
+declared pullback squares, mirroring `openspec/specs/model-document` and
+the Rust kernel types in `crates/catherine-core/src/model/{mod,relations}.rs`.
 
 ## Responsibilities: define the schema datatypes (dense per-object row id
-space, paths, arrows, equations, keys, coproducts, constraint status) and
+space, paths, arrows, equations, keys, coproducts, pullbacks, constraint
+status) and
 the *total* lookups the checker and the harness need (`arrow?`,
 `rowCount?` return `Option`, never panic and never assume the parsed
 presentation's validation guarantees); nothing execution-side.
@@ -80,15 +81,27 @@ structure Coproduct where
   status : ConstraintStatus
   deriving Repr, DecidableEq, BEq, Inhabited
 
+/-- A declared pullback square (format 1.6): the apex object, its two
+leg arrows, and the two cospan arrows whose common target the square
+projects onto. -/
+structure Pullback where
+  apex : Ident
+  legs : List Ident
+  cospan : List Ident
+  status : ConstraintStatus
+  deriving Repr, DecidableEq, BEq, Inhabited
+
 /-- The schema presentation in canonical order: `objects` sorted,
 `arrows` by name, equations by `(lhs, rhs, rationale, status)`,
-keys/coproducts by `(object, arrows, status)`. -/
+keys/coproducts by `(object, arrows, status)`, pullbacks by
+`(apex, legs, cospan, status)`. -/
 structure Schema where
   objects : List Ident
   arrows : List (Ident × Arrow)
   equations : List Equation
   keys : List Key
   coproducts : List Coproduct
+  pullbacks : List Pullback
   deriving Repr, DecidableEq, BEq, Inhabited
 
 /-- Total arrow lookup: the arrow declared under `name`, if any. -/

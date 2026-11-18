@@ -13,17 +13,20 @@ only", "Dangling values are checked, not fatal") and
 `openspec/specs/findings/spec.md` ("Findings are typed and carry
 witnesses", "Witness shapes are fixed per finding kind").
 
-## Responsibilities: state `soundness` as a four-way witness
+## Responsibilities: state `soundness` as a five-way witness
 disjunction over every member of `check` (equation with index, applicable
 row, both composite values, and the `labelFor` status label; key with its
 index, ascending colliding pair, equal resolved tuple, and label rule;
 coproduct with its index, row, complete/incomplete-mode witness, and the
 named injection list; dangling with the arrow, the unresolved cell, and
-the proof that no typing violation accounts for it). State and prove the
-four exclusion lemmas that justify omitting the unproducible variants
-from that disjunction — they are theorems about `check`, not assumptions.
+the proof that no typing violation accounts for it; pullback with its
+index, status label, and the verdict witness — commutes with both
+composed values, covers with the uncovered fiber pair, or unique with the
+duplicated-projecting pair). State and prove the four exclusion lemmas
+that justify omitting the unproducible variants from that disjunction —
+they are theorems about `check`, not assumptions.
 
-## Rationale: the four-way disjunction mirrors the witnesses the specs
+## Rationale: the five-way disjunction mirrors the witnesses the specs
 mandate, and the exclusions are separate theorems because "the walk
 cannot produce a naturality finding" is a fact to be proved from the
 walk, not a conjecture baked into a weakened statement. The membership
@@ -36,30 +39,6 @@ by a later refactor pass.
 
 namespace Catherine
 namespace Proofs
-
-/-! ## List plumbing shared by the four family bridges -/
-
-/-- Membership in a `flatten`ed `mapIdx` run: some declaration of `l`
-(indexed by its position) emits `b`. -/
-private theorem mem_flatten_mapIdx {α β : Type} (f : Nat → α → List β)
-    (l : List α) (b : β) :
-    b ∈ (l.mapIdx f).flatten ↔ ∃ i a, l[i]? = some a ∧ b ∈ f i a := by
-  rw [List.mem_flatten]
-  constructor
-  · rintro ⟨body, hbody, hmem⟩
-    rw [List.mem_mapIdx] at hbody
-    obtain ⟨i, hi, rfl⟩ := hbody
-    exact ⟨i, l[i], List.getElem?_eq_getElem hi, hmem⟩
-  · rintro ⟨i, a, ha, hmem⟩
-    rw [List.getElem?_eq_some_iff] at ha
-    obtain ⟨hi, rfl⟩ := ha
-    exact ⟨f i l[i], List.mem_mapIdx.mpr ⟨i, hi, rfl⟩, hmem⟩
-
-/-- A `contains` test that has failed means the pair is absent. -/
-private theorem contains_eq_false_iff_not_mem {α : Type} [BEq α] [LawfulBEq α]
-    (l : List α) (a : α) : (l.contains a = false) ↔ a ∉ l := by
-  rw [← List.contains_iff_mem]
-  cases h : l.contains a <;> simp_all
 
 /-! ## Dangling membership -/
 
@@ -562,6 +541,108 @@ private theorem mem_coproductFindings_forward (schema : Schema)
     (mem_coproductDeclaration_iff schema inst index coproduct finding).mp hmem
   exact ⟨index, coproduct, row, injections, hidx, happ, hfail, rfl⟩
 
+/-- Membership in `Check.pullbackFindings` yields the semantic witness of
+one of the square's three verdicts (commutes, covers, unique), under the
+declaration's status label. -/
+private theorem mem_pullbackFindings_forward (schema : Schema)
+    (inst : Instance.TypedInstance) {finding : Finding} :
+    finding ∈ Check.pullbackFindings schema inst →
+      ∃ (index : Nat) (pullback : Pullback) (w : PullbackWitness),
+        schema.pullbacks[index]? = some pullback ∧
+        finding.label = labelFor pullback.status ∧
+        finding.kind = .violation (.pullback w) ∧
+        PullbackWitnessSemantic schema inst pullback w := by
+  intro h
+  rw [Check.pullbackFindings, mem_flatten_mapIdx] at h
+  obtain ⟨index, pullback, hidx, hmem⟩ := h
+  unfold Check.pullbackDeclaration at hmem
+  cases hsq : Check.squareOf schema inst pullback with
+  | none => simp [hsq] at hmem
+  | some sq =>
+    cases hn : Schema.rowCount? inst.rows pullback.apex with
+    | none => simp [hsq, hn] at hmem
+    | some n =>
+      rw [hsq, hn] at hmem
+      rw [List.mem_append, List.mem_append] at hmem
+      rcases hmem with (hc | hu) | hcov
+      · rw [List.mem_filterMap] at hc
+        obtain ⟨row, _hrow, hfind⟩ := hc
+        unfold Check.commutesFinding at hfind
+        cases hleg : Check.legValues sq row with
+        | none => simp [hleg] at hfind
+        | some projection =>
+          cases hcom : Check.commutes sq projection with
+          | none => simp [hleg, hcom] at hfind
+          | some pair =>
+            obtain ⟨lhs, rhs⟩ := pair
+            simp only [hleg, hcom, Option.some.injEq] at hfind
+            refine ⟨index, pullback, .commutes
+              { pullback := index, row := row, lhs := lhs, rhs := rhs }, hidx, ?_, ?_, ?_⟩
+            · rw [← hfind]
+            · rw [← hfind]
+            · exact ⟨sq, projection, hsq, hleg, hcom⟩
+      · unfold Check.uniqueFindings at hu
+        rw [List.mem_flatMap] at hu
+        obtain ⟨lo, _hlo, hu⟩ := hu
+        rw [List.mem_filterMap] at hu
+        obtain ⟨hi, hfilt, hu⟩ := hu
+        rw [List.mem_filter] at hfilt
+        obtain ⟨_hhi, hlt⟩ := hfilt
+        unfold Check.uniqueFinding at hu
+        cases hl : Check.legValues sq lo with
+        | none => simp [hl] at hu
+        | some left =>
+          cases hr : Check.legValues sq hi with
+          | none => simp [hl, hr] at hu
+          | some right =>
+            by_cases hb : (left == right) = true
+            · simp only [hl, hr, hb, ite_true] at hu
+              simp only [Option.some.injEq] at hu
+              refine ⟨index, pullback, .unique
+                { pullback := index, rows := (lo, hi) }, hidx, ?_, ?_, ?_⟩
+              · rw [← hu]
+              · rw [← hu]
+              · obtain heq : left = right := beq_iff_eq.mp hb
+                exact ⟨sq, left, hsq, of_decide_eq_true hlt, hl, by rw [heq]; exact hr⟩
+            · simp [hl, hr, hb] at hu
+      · cases hpart : ((List.range n).any fun row =>
+            (Check.legValues sq row).isNone) with
+        | true => simp [hpart] at hcov
+        | false =>
+          simp only [hpart, Bool.false_eq_true, ite_false] at hcov
+          unfold Check.coverageFindings at hcov
+          rw [List.mem_flatMap] at hcov
+          obtain ⟨a, ha, hcov⟩ := hcov
+          rw [List.mem_filterMap] at hcov
+          obtain ⟨b, hb, hfind⟩ := hcov
+          unfold Check.fiberPairFinding at hfind
+          cases hfa : sq.f[a]? with
+          | none => simp [hfa] at hfind
+          | some fa =>
+            cases hgb : sq.g[b]? with
+            | none => simp [hfa, hgb] at hfind
+            | some gb =>
+              cases fa with
+              | none => simp [hfa, hgb] at hfind
+              | some ta =>
+                cases gb with
+                | none => simp [hfa, hgb] at hfind
+                | some tb =>
+                  by_cases htarget : (ta == tb) = true
+                  · simp only [hfa, hgb, htarget, ite_true] at hfind
+                    unfold Check.coversFinding at hfind
+                    cases hcont : decide ((a, b) ∈ Check.projectionPairs sq (List.range n)) with
+                    | true => simp [hcont] at hfind
+                    | false =>
+                      simp only [hcont, Option.some.injEq] at hfind
+                      refine ⟨index, pullback, .covers
+                        { pullback := index, pair := (a, b) }, hidx, ?_, ?_, ?_⟩
+                      · rw [← hfind]
+                      · rw [← hfind]
+                      · exact ⟨sq, n, ta, tb, hsq, hn, ha, hb, hfa, hgb,
+                          beq_iff_eq.mp htarget, of_decide_eq_false hcont⟩
+                  · simp [hfa, hgb, htarget] at hfind
+
 /-! ## Soundness -/
 
 /-- The violated-pair list of `check` contains exactly the typing-violated
@@ -601,6 +682,15 @@ typing violation accounts for, labeled `executed` (`kernel-checks`:
 "Dangling values are checked, not fatal", "The instance builder is total
 and typing-enforcing"; `findings`: arrow/source-row witness shape).
 
+Pullback disjunct: a declared pullback (canonical index) with its status
+label and one semantic verdict witness — commutes (an apex row whose
+resolved projection's two cospan composites disagree), covers (a fiber
+pair over a common resolved cospan target that no resolved apex row
+projects to), or unique (two distinct apex rows with equal projections)
+(`kernel-checks`: "Declared pullbacks are executed as commutes, covers,
+and unique"; `findings`: "Pullback violation carries the square and the
+offender").
+
 The unproducible variants (naturality, redundant, contradiction,
 underconstraint) are absent from the disjunction because
 `check_no_naturality`, `check_no_redundant`,
@@ -636,18 +726,23 @@ theorem soundness (schema : Schema) (inst : Instance.TypedInstance) :
       ∨ (∃ (arrow : Ident) (src : RowId),
         finding.label = .executed ∧
         DanglingCellSemantic inst arrow src ∧
-        finding.kind = .dangling { arrow := arrow, src := src }) := by
+        finding.kind = .dangling { arrow := arrow, src := src })
+      ∨ (∃ (index : Nat) (pullback : Pullback) (w : PullbackWitness),
+        schema.pullbacks[index]? = some pullback ∧
+        finding.label = labelFor pullback.status ∧
+        finding.kind = .violation (.pullback w) ∧
+        PullbackWitnessSemantic schema inst pullback w) := by
   intro finding hmem
   rw [mem_check_iff] at hmem
-  rcases hmem with h | h | h | h
+  rcases hmem with h | h | h | h | h
   · obtain ⟨arrow, table, src, htab, hcell, hnotviol, rfl⟩ :=
       (mem_danglingFindings_iff inst
         (inst.typingViolations.map fun violation =>
           (violation.arrow, violation.src)) finding).mp h
     have hnt : ¬ TypingViolatedAt inst arrow src :=
       (contains_false_iff_not_typingViolatedAt inst arrow src).mp hnotviol
-    exact Or.inr (Or.inr (Or.inr
-      ⟨arrow, src, rfl, ⟨⟨table, htab, hcell⟩, hnt⟩, rfl⟩))
+    exact Or.inr (Or.inr (Or.inr (Or.inl
+      ⟨arrow, src, rfl, ⟨⟨table, htab, hcell⟩, hnt⟩, rfl⟩)))
   · obtain ⟨index, equation, row, hidx, happ, lhs, rhs, hl, hr, hne, rfl⟩ :=
       (mem_equationFindings_iff schema inst finding).mp h
     exact Or.inl ⟨index, equation, row, hidx, rfl, happ,
@@ -659,6 +754,10 @@ theorem soundness (schema : Schema) (inst : Instance.TypedInstance) :
       mem_coproductFindings_forward schema inst h
     exact Or.inr (Or.inr (Or.inl
       ⟨index, coproduct, row, injections, hidx, rfl, happ, hfail, rfl⟩))
+  · obtain ⟨index, pullback, w, hidx, hlabel, hkind, hsem⟩ :=
+      mem_pullbackFindings_forward schema inst h
+    exact Or.inr (Or.inr (Or.inr (Or.inr
+      ⟨index, pullback, w, hidx, hlabel, hkind, hsem⟩)))
 
 /-- `check` never produces a naturality violation: the variant shape is
 defined in the taxonomy (`Catherine.Findings.NaturalityWitness`) but no
@@ -677,6 +776,7 @@ theorem check_no_naturality (schema : Schema) (inst : Instance.TypedInstance) :
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, hkind⟩
+    | ⟨_, _, _, _, _, hkind, _⟩
   · rw [hkind] at heq
     simp at heq
   · rw [hkind] at heq
@@ -685,6 +785,8 @@ theorem check_no_naturality (schema : Schema) (inst : Instance.TypedInstance) :
     simp at heq
   · rw [hkind] at heq
     simp at heq
+  · rw [hkind] at heq
+    cases heq
 
 /-- `check` never produces a redundant finding: derivability analysis is
 out of kernel scope. Referee: `openspec/specs/findings/spec.md` (the
@@ -698,6 +800,7 @@ theorem check_no_redundant (schema : Schema) (inst : Instance.TypedInstance) :
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, hkind⟩
+    | ⟨_, _, _, _, _, hkind, _⟩
   · rw [hkind] at heq
     cases heq
   · rw [hkind] at heq
@@ -706,6 +809,8 @@ theorem check_no_redundant (schema : Schema) (inst : Instance.TypedInstance) :
     simp at heq
   · rw [hkind] at heq
     simp at heq
+  · rw [hkind] at heq
+    cases heq
 
 /-- `check` never produces a contradiction finding: bounded joint
 satisfiability is out of kernel scope. Referee:
@@ -721,6 +826,7 @@ theorem check_no_contradiction (schema : Schema)
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, hkind⟩
+    | ⟨_, _, _, _, _, hkind, _⟩
   · rw [hkind] at heq
     simp at heq
   · rw [hkind] at heq
@@ -729,6 +835,8 @@ theorem check_no_contradiction (schema : Schema)
     simp at heq
   · rw [hkind] at heq
     simp at heq
+  · rw [hkind] at heq
+    cases heq
 
 /-- `check` never produces an underconstraint finding: domain-question
 analysis is out of kernel scope. Referee: `openspec/specs/findings/spec.md`. -/
@@ -743,6 +851,7 @@ theorem check_no_underconstraint (schema : Schema)
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, _, _, _, _, hkind⟩
     | ⟨_, _, _, _, hkind⟩
+    | ⟨_, _, _, _, _, hkind, _⟩
   · rw [hkind] at heq
     simp at heq
   · rw [hkind] at heq
@@ -751,6 +860,8 @@ theorem check_no_underconstraint (schema : Schema)
     simp at heq
   · rw [hkind] at heq
     simp at heq
+  · rw [hkind] at heq
+    cases heq
 
 end Proofs
 end Catherine

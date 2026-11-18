@@ -163,6 +163,12 @@ def renderFinding (finding : Finding) : String :=
     s!"violation|{label}|naturality|arrow={w.arrow},source_row={w.sourceRow},lhs={renderOption w.lhs},rhs={renderOption w.rhs}"
   | .violation (.coproduct w) =>
     s!"violation|{label}|coproduct|coproduct={w.coproduct},row={w.row},injections={renderStrings w.injections}"
+  | .violation (.pullback (.commutes w)) =>
+    s!"violation|{label}|pullback|commutes|pullback={w.pullback},row={w.row},lhs={w.lhs},rhs={w.rhs}"
+  | .violation (.pullback (.covers w)) =>
+    s!"violation|{label}|pullback|covers|pullback={w.pullback},pair={renderNats [w.pair.1, w.pair.2]}"
+  | .violation (.pullback (.unique w)) =>
+    s!"violation|{label}|pullback|unique|pullback={w.pullback},rows={renderNats [w.rows.1, w.rows.2]}"
   | .dangling w =>
     s!"dangling|{label}|dangling|arrow={w.arrow},src={w.src}"
   | .redundant w =>
@@ -207,7 +213,7 @@ private def optionalStrList (node : Json) (key : String) : Except String (List S
     values.toList.mapM Json.getStr?
 
 /-- The violation witness's untagged variant inferred from its field set
-(`equation` | `key` | `source_row` | `coproduct`). -/
+(`equation` | `key` | `source_row` | `coproduct` | `pullback`). -/
 private def normViolationWitness (label : String) (witness : Json) : Except String String := do
   let fields ← witness.getObj?
   if (fields.get? "equation").isSome then
@@ -231,6 +237,19 @@ private def normViolationWitness (label : String) (witness : Json) : Except Stri
     let row ← numField witness "row"
     let injections ← optionalStrList witness "injections"
     pure s!"violation|{label}|coproduct|coproduct={coproduct},row={row},injections={renderStrings injections}"
+  else if (fields.get? "pullback").isSome then
+    let pullback ← numField witness "pullback"
+    if (fields.get? "pair").isSome then
+      let pair ← numListField witness "pair"
+      pure s!"violation|{label}|pullback|covers|pullback={pullback},pair={renderNats pair}"
+    else if (fields.get? "rows").isSome then
+      let rows ← numListField witness "rows"
+      pure s!"violation|{label}|pullback|unique|pullback={pullback},rows={renderNats rows}"
+    else
+      let row ← numField witness "row"
+      let lhs ← numField witness "lhs"
+      let rhs ← numField witness "rhs"
+      pure s!"violation|{label}|pullback|commutes|pullback={pullback},row={row},lhs={lhs},rhs={rhs}"
   else
     throw "violation witness has no recognized variant"
 

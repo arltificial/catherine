@@ -11,10 +11,11 @@ instance projection that the kernel modules consume.
 ## Responsibilities: project a document with Rust `parse`'s normalization —
 per-object dense row ids in sorted row-name order, equations sorted by
 `(lhs, rhs, rationale, status string)`, keys/coproducts sorted by
-`(object, arrows, status string)`, table cells resolved target-first then
+`(object, arrows, status string)`, pullbacks sorted by
+`(apex, legs, cospan, status string)`, table cells resolved target-first then
 by the first declared object (sorted) whose row-name map contains the
-name; missing `keys`/`coproducts`/`equations`/`instance.tables` default
-to empty; an unresolved row name (or a table row outside its arrow's
+name; missing `keys`/`coproducts`/`pullbacks`/`equations`/`instance.tables`
+default to empty; an unresolved row name (or a table row outside its arrow's
 source space) is a harness error naming fixture, arrow, and row.
 `decodeMirror` reads the same JSON back into `Schema`/`RawInstance`, so
 `--emit-mirror` output is the exact format the oracle consumes. No
@@ -110,6 +111,11 @@ private def coproductCompare (a b : Coproduct) : Ordering :=
   (compare a.object b.object).then <|
     (compare a.arrows b.arrows).then (compare a.status.asString b.status.asString)
 
+private def pullbackCompare (a b : Pullback) : Ordering :=
+  (compare a.apex b.apex).then <|
+    (compare a.legs b.legs).then <|
+      (compare a.cospan b.cospan).then (compare a.status.asString b.status.asString)
+
 /-! ## Projection of a document -/
 
 /-- One object's dense row-name → row-id map, in sorted-name order. -/
@@ -143,6 +149,16 @@ private def coproductsOf (schemaNode : Json) : Except String (List Coproduct) :=
     let status ← statusOf node
     pure { object := object, arrows := arrows, status := status }
   pure (coproducts.mergeSort (fun a b => coproductCompare a b != .gt))
+
+private def pullbacksOf (schemaNode : Json) : Except String (List Pullback) := do
+  let nodes ← optionalArrayField schemaNode "pullbacks"
+  let pullbacks ← nodes.toList.mapM fun node => do
+    let apex ← fieldStr node "apex"
+    let legs ← stringsOf (node.getObjValD "legs")
+    let cospan ← stringsOf (node.getObjValD "cospan")
+    let status ← statusOf node
+    pure { apex := apex, legs := legs, cospan := cospan, status := status }
+  pure (pullbacks.mergeSort (fun a b => pullbackCompare a b != .gt))
 
 /-- Per-object dense row counts and row-name indexes, in sorted object
 order. -/
@@ -229,6 +245,7 @@ def projectDocument (fixture : String) (doc : Json) : Except String MirrorDoc :=
     let equations ← equationsOf schemaNode
     let keys ← keysOf schemaNode
     let coproducts ← coproductsOf schemaNode
+    let pullbacks ← pullbacksOf schemaNode
     let instNode := doc.getObjValD "instance"
     let (counts, index) ← rowsOf instNode objects
     let values ← valuesOf instNode arrows index
@@ -239,7 +256,8 @@ def projectDocument (fixture : String) (doc : Json) : Except String MirrorDoc :=
             arrows := arrows
             equations := equations
             keys := keys
-            coproducts := coproducts }
+            coproducts := coproducts
+            pullbacks := pullbacks }
         raw := { rows := counts, values := values } }
   projected.mapError fun error => s!"{fixture}: {error}"
 
@@ -282,6 +300,14 @@ private def coproductsJson (coproducts : List Coproduct) : Json :=
       , ("arrows", pathJson coproduct.arrows)
       , ("status", Json.str coproduct.status.asString) ]).toArray
 
+private def pullbacksJson (pullbacks : List Pullback) : Json :=
+  .arr <| (pullbacks.map fun pullback =>
+    Json.mkObj
+      [ ("apex", Json.str pullback.apex)
+      , ("legs", pathJson pullback.legs)
+      , ("cospan", pathJson pullback.cospan)
+      , ("status", Json.str pullback.status.asString) ]).toArray
+
 /-- The mirror JSON of one projected document (also `--emit-mirror`'s
 file body). -/
 def toJson (doc : MirrorDoc) : Json :=
@@ -293,7 +319,8 @@ def toJson (doc : MirrorDoc) : Json :=
           , ("arrows", arrowsJson doc.schema.arrows)
           , ("equations", equationsJson doc.schema.equations)
           , ("keys", keysJson doc.schema.keys)
-          , ("coproducts", coproductsJson doc.schema.coproducts) ])
+          , ("coproducts", coproductsJson doc.schema.coproducts)
+          , ("pullbacks", pullbacksJson doc.schema.pullbacks) ])
     , ("instance",
         Json.mkObj
           [ ("rows", Json.mkObj (doc.raw.rows.map fun (object, count) => (object, Json.num count)))
@@ -335,6 +362,15 @@ private def decodeCoproducts (schemaNode : Json) : Except String (List Coproduct
     let status ← statusOf node
     pure { object := object, arrows := arrows, status := status }
 
+private def decodePullbacks (schemaNode : Json) : Except String (List Pullback) := do
+  let nodes ← optionalArrayField schemaNode "pullbacks"
+  nodes.toList.mapM fun node => do
+    let apex ← fieldStr node "apex"
+    let legs ← stringsOf (node.getObjValD "legs")
+    let cospan ← stringsOf (node.getObjValD "cospan")
+    let status ← statusOf node
+    pure { apex := apex, legs := legs, cospan := cospan, status := status }
+
 private def decodeCells (json : Json) : Except String (List (Option RowId)) := do
   let cells ← json.getArr?
   cells.toList.mapM fun cell =>
@@ -353,6 +389,7 @@ def decodeMirror (json : Json) : Except String MirrorDoc := do
   let equations ← decodeEquations schemaNode
   let keys ← decodeKeys schemaNode
   let coproducts ← decodeCoproducts schemaNode
+  let pullbacks ← decodePullbacks schemaNode
   let instNode ← json.getObjVal? "instance"
   let rowsNode ← (← instNode.getObjVal? "rows").getObj?
   let rows ← rowsNode.toList.mapM fun entry => do
@@ -369,7 +406,8 @@ def decodeMirror (json : Json) : Except String MirrorDoc := do
           arrows := arrows
           equations := equations
           keys := keys
-          coproducts := coproducts }
+          coproducts := coproducts
+          pullbacks := pullbacks }
       raw := { rows := rows, values := values } }
 
 end Mirror

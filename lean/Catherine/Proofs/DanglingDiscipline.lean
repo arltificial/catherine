@@ -764,7 +764,7 @@ theorem dangling_discipline (schema : Schema) (raw : Instance.RawInstance) :
     obtain ⟨we, wr, wl, wr2⟩ := witness
     obtain ⟨hindex, hrow⟩ := hwit
     rw [mem_check_iff] at hcheck
-    rcases hcheck with hd | he | hk | hc
+    rcases hcheck with hd | he | hk | hc | hp
     · obtain ⟨entry, idx, hentry, hcell, hcont, hfind⟩ :=
         mem_danglingFindings_imp (Instance.build schema raw) _ hd
       rw [hfind] at hkind
@@ -797,11 +797,15 @@ theorem dangling_discipline (schema : Schema) (raw : Instance.RawInstance) :
         mem_coproductDeclaration_imp schema (Instance.build schema raw) i cop' hmem
       rw [hfind] at hkind
       cases hkind
+    · obtain ⟨_i, _pb, _w, _hdecl, _hlabel, hshape⟩ :=
+        mem_pullbackFindings_shape schema (Instance.build schema raw) hp
+      rw [hshape] at hkind
+      cases hkind
   unresolved_key_not_in_collision := by
     intro index key hkey row hunres finding witness hcheck hkind hwit
     obtain ⟨wk, wrows⟩ := witness
     rw [mem_check_iff] at hcheck
-    rcases hcheck with hd | he | hk | hc
+    rcases hcheck with hd | he | hk | hc | hp
     · obtain ⟨entry, idx, hentry, hcell, hcont, hfind⟩ :=
         mem_danglingFindings_imp (Instance.build schema raw) _ hd
       rw [hfind] at hkind
@@ -841,11 +845,15 @@ theorem dangling_discipline (schema : Schema) (raw : Instance.RawInstance) :
         mem_coproductDeclaration_imp schema (Instance.build schema raw) i cop' hmem
       rw [hfind] at hkind
       cases hkind
+    · obtain ⟨_i, _pb, _w, _hdecl, _hlabel, hshape⟩ :=
+        mem_pullbackFindings_shape schema (Instance.build schema raw) hp
+      rw [hshape] at hkind
+      cases hkind
   partial_image_suppresses_coverage := by
     intro index coproduct hcop hpartial finding witness hcheck hkind hwit
     obtain ⟨wc, wrow, winj⟩ := witness
     rw [mem_check_iff] at hcheck
-    rcases hcheck with hd | he | hk | hc
+    rcases hcheck with hd | he | hk | hc | hp
     · obtain ⟨entry, idx, hentry, hcell, hcont, hfind⟩ :=
         mem_danglingFindings_imp (Instance.build schema raw) _ hd
       rw [hfind] at hkind
@@ -882,6 +890,10 @@ theorem dangling_discipline (schema : Schema) (raw : Instance.RawInstance) :
       rcases hcase with ⟨heq, _⟩ | ⟨hne, hge⟩
       · exact absurd heq hne0
       · exact hge
+    · obtain ⟨_i, _pb, _w, _hdecl, _hlabel, hshape⟩ :=
+        mem_pullbackFindings_shape schema (Instance.build schema raw) hp
+      rw [hshape] at hkind
+      cases hkind
   complete_image_disjointness := by
     intro index coproduct row injections hcop happlies hfailure h2
     obtain ⟨nt, hnrows, hnrow⟩ := happlies
@@ -889,7 +901,7 @@ theorem dangling_discipline (schema : Schema) (raw : Instance.RawInstance) :
     rw [himages] at hinj hcase
     rw [hinj] at hcase
     rw [mem_check_iff]
-    right; right; right
+    right; right; right; left
     refine mem_coproductFindings_of schema (Instance.build schema raw) index coproduct hcop ?_
     rw [hinj]
     exact mem_coproductDeclaration_of schema (Instance.build schema raw) index coproduct
@@ -919,7 +931,7 @@ theorem dangling_discipline (schema : Schema) (raw : Instance.RawInstance) :
           (fun v => (v.arrow, v.src)) := by
       exact List.mem_map.mpr ⟨{ arrow := name, src := src, value := value }, hbuild, rfl⟩
     rw [mem_check_iff] at hcheck
-    rcases hcheck with hd | he | hk | hc
+    rcases hcheck with hd | he | hk | hc | hp
     · obtain ⟨entry, idx', hentry', hcell', hcont, hfind⟩ :=
         mem_danglingFindings_imp (Instance.build schema raw) _ hd
       rw [hfind] at hkind
@@ -947,6 +959,10 @@ theorem dangling_discipline (schema : Schema) (raw : Instance.RawInstance) :
       obtain ⟨tables, row', n, htab, hrows, hrow'', hfind, hcase⟩ :=
         mem_coproductDeclaration_imp schema (Instance.build schema raw) i cop' hmem
       rw [hfind] at hkind
+      cases hkind
+    · obtain ⟨_i, _pb, _w, _hdecl, _hlabel, hshape⟩ :=
+        mem_pullbackFindings_shape schema (Instance.build schema raw) hp
+      rw [hshape] at hkind
       cases hkind
   carried_trichotomy := by
     intro name arrow idx harrow hidx hlen

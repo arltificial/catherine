@@ -21,11 +21,13 @@ equation walk's applicability guard and disagreement test,
 `KeyCollision`/`KeyTupleAt` for a resolved, equal key tuple on two
 ascending rows, `CoproductRowFailure` for exactly the
 `Check.coproductDeclaration` decision (complete-image accounting with
-the partial-image mode), and `CellUnresolved`/`TypingViolatedAt` for a
+the partial-image mode), `PullbackCommutesFailure`/`PullbackCoversFailure`/
+`PullbackUniqueFailure` for the square's three verdicts, and
+`CellUnresolved`/`TypingViolatedAt` for a
 `none` table cell no typing violation accounts for. Also expose the raw
 projected cell (`RawCell`) the builder consumes and prove the easy
 shared lemmas (label rule, empty-path composition, `check` membership,
-the `equationFinding` iff).
+the `equationFinding` iff, the pullback membership shape).
 
 ## Rationale: the frozen kernel modules stay untouched (no semantic
 refactor, so parity evidence is unchanged); the proofs hang off these
@@ -89,7 +91,30 @@ def EquationApplies (schema : Schema) (inst : Instance.TypedInstance)
 @[simp] theorem compose_nil (inst : Instance.TypedInstance) (start : RowId) :
     EvalPath.compose inst [] start = some start := rfl
 
-/-- Membership in `check` unfolds to membership in one of the four
+/-- Membership in a `flatten`ed `mapIdx` run: some declaration of `l`
+(indexed by its position) emits `b`. Shared by the family membership
+bridges (`Soundness`) and the pullback shape lemma below. -/
+theorem mem_flatten_mapIdx {α β : Type} (f : Nat → α → List β)
+    (l : List α) (b : β) :
+    b ∈ (l.mapIdx f).flatten ↔ ∃ i a, l[i]? = some a ∧ b ∈ f i a := by
+  rw [List.mem_flatten]
+  constructor
+  · rintro ⟨body, hbody, hmem⟩
+    rw [List.mem_mapIdx] at hbody
+    obtain ⟨i, hi, rfl⟩ := hbody
+    exact ⟨i, l[i], List.getElem?_eq_getElem hi, hmem⟩
+  · rintro ⟨i, a, ha, hmem⟩
+    rw [List.getElem?_eq_some_iff] at ha
+    obtain ⟨hi, rfl⟩ := ha
+    exact ⟨f i l[i], List.mem_mapIdx.mpr ⟨i, hi, rfl⟩, hmem⟩
+
+/-- A `contains` test that has failed means the element is absent. -/
+theorem contains_eq_false_iff_not_mem {α : Type} [BEq α] [LawfulBEq α]
+    (l : List α) (a : α) : (l.contains a = false) ↔ a ∉ l := by
+  rw [← List.contains_iff_mem]
+  cases h : l.contains a <;> simp_all
+
+/-- Membership in `check` unfolds to membership in one of the five
 finding families; the taxonomy sort only permutes, it never invents. -/
 @[simp] theorem mem_check_iff (schema : Schema) (inst : Instance.TypedInstance)
     (finding : Finding) :
@@ -99,7 +124,8 @@ finding families; the taxonomy sort only permutes, it never invents. -/
             (violation.arrow, violation.src)) ∨
       finding ∈ Check.equationFindings schema inst ∨
       finding ∈ Check.keyFindings schema inst ∨
-      finding ∈ Check.coproductFindings schema inst := by
+      finding ∈ Check.coproductFindings schema inst ∨
+      finding ∈ Check.pullbackFindings schema inst := by
   simp [Check.check, List.mem_append, or_assoc, or_left_comm, or_comm]
 
 /-- One equation's finding on one row, characterized semantically: it
@@ -180,6 +206,144 @@ and the row lies inside it — the guard before the per-row decision. -/
 def CoproductRowApplies (inst : Instance.TypedInstance)
     (coproduct : Coproduct) (row : RowId) : Prop :=
   ∃ n, Schema.rowCount? inst.rows coproduct.object = some n ∧ row < n
+
+/-! ## Semantic pullbacks (kernel-checks: "Declared pullbacks are executed
+as commutes, covers, and unique") -/
+
+/-- A declared pullback's commutes failure on one apex row: the declaration
+resolves, the row's legs resolve to a projection, and the two composed
+cospan values exist and disagree. -/
+def PullbackCommutesFailure (schema : Schema) (inst : Instance.TypedInstance)
+    (pullback : Pullback) (row lhs rhs : RowId) : Prop :=
+  ∃ square projection,
+    Check.squareOf schema inst pullback = some square ∧
+    Check.legValues square row = some projection ∧
+    Check.commutes square projection = some (lhs, rhs)
+
+/-- A declared pullback's covers failure: a pair of cospan-source rows
+with a common resolved target that no resolved apex row projects to. -/
+def PullbackCoversFailure (schema : Schema) (inst : Instance.TypedInstance)
+    (pullback : Pullback) (a b : RowId) : Prop :=
+  ∃ square n ta tb,
+    Check.squareOf schema inst pullback = some square ∧
+    Schema.rowCount? inst.rows pullback.apex = some n ∧
+    a ∈ square.aRows ∧ b ∈ square.bRows ∧
+    square.f[a]? = some (some ta) ∧
+    square.g[b]? = some (some tb) ∧
+    ta = tb ∧
+    (a, b) ∉ Check.projectionPairs square (List.range n)
+
+/-- A declared pullback's unique failure: two distinct apex rows whose
+resolved projections agree — the legs are not jointly injective. -/
+def PullbackUniqueFailure (schema : Schema) (inst : Instance.TypedInstance)
+    (pullback : Pullback) (lo hi : RowId) : Prop :=
+  ∃ square pair,
+    Check.squareOf schema inst pullback = some square ∧
+    lo < hi ∧
+    Check.legValues square lo = some pair ∧
+    Check.legValues square hi = some pair
+
+/-- The semantic reading of one pullback witness arm. -/
+def PullbackWitnessSemantic (schema : Schema) (inst : Instance.TypedInstance)
+    (pullback : Pullback) : PullbackWitness → Prop
+  | .commutes w => PullbackCommutesFailure schema inst pullback w.row w.lhs w.rhs
+  | .covers w => PullbackCoversFailure schema inst pullback w.pair.1 w.pair.2
+  | .unique w => PullbackUniqueFailure schema inst pullback w.rows.1 w.rows.2
+
+/-- Membership in `Check.pullbackFindings` yields the emitted shape: a
+declared pullback (canonical index), its status label, and one of the
+three verdict witnesses. Used by the soundness disjunction and by the
+dangling-discipline refutations. -/
+theorem mem_pullbackFindings_shape (schema : Schema) (inst : Instance.TypedInstance)
+    {finding : Finding} :
+    finding ∈ Check.pullbackFindings schema inst →
+      ∃ (index : Nat) (pullback : Pullback) (w : PullbackWitness),
+        schema.pullbacks[index]? = some pullback ∧
+        finding.label = labelFor pullback.status ∧
+        finding.kind = .violation (.pullback w) := by
+  intro h
+  rw [Check.pullbackFindings, mem_flatten_mapIdx] at h
+  obtain ⟨index, pullback, hidx, hmem⟩ := h
+  unfold Check.pullbackDeclaration at hmem
+  cases hsq : Check.squareOf schema inst pullback with
+  | none => simp [hsq] at hmem
+  | some sq =>
+    cases hn : Schema.rowCount? inst.rows pullback.apex with
+    | none => simp [hsq, hn] at hmem
+    | some n =>
+      rw [hsq, hn] at hmem
+      rw [List.mem_append, List.mem_append] at hmem
+      rcases hmem with (hc | hu) | hcov
+      · rw [List.mem_filterMap] at hc
+        obtain ⟨row, _hrow, hfind⟩ := hc
+        unfold Check.commutesFinding at hfind
+        cases hleg : Check.legValues sq row with
+        | none => simp [hleg] at hfind
+        | some projection =>
+          cases hcom : Check.commutes sq projection with
+          | none => simp [hleg, hcom] at hfind
+          | some pair =>
+            obtain ⟨lhs, rhs⟩ := pair
+            simp only [hleg, hcom, Option.some.injEq] at hfind
+            refine ⟨index, pullback, .commutes
+              { pullback := index, row := row, lhs := lhs, rhs := rhs }, hidx, ?_, ?_⟩
+            · rw [← hfind]
+            · rw [← hfind]
+      · unfold Check.uniqueFindings at hu
+        rw [List.mem_flatMap] at hu
+        obtain ⟨lo, _hlo, hu⟩ := hu
+        rw [List.mem_filterMap] at hu
+        obtain ⟨hi, _hhi, hu⟩ := hu
+        unfold Check.uniqueFinding at hu
+        cases hl : Check.legValues sq lo with
+        | none => simp [hl] at hu
+        | some left =>
+          cases hr : Check.legValues sq hi with
+          | none => simp [hl, hr] at hu
+          | some right =>
+            by_cases hb : (left == right) = true
+            · simp only [hl, hr, hb, ite_true] at hu
+              simp only [Option.some.injEq] at hu
+              refine ⟨index, pullback, .unique
+                { pullback := index, rows := (lo, hi) }, hidx, ?_, ?_⟩
+              · rw [← hu]
+              · rw [← hu]
+            · simp [hl, hr, hb] at hu
+      · cases hpart : ((List.range n).any fun row =>
+            (Check.legValues sq row).isNone) with
+        | true => simp [hpart] at hcov
+        | false =>
+          simp only [hpart, Bool.false_eq_true, ite_false] at hcov
+          unfold Check.coverageFindings at hcov
+          rw [List.mem_flatMap] at hcov
+          obtain ⟨a, _ha, hcov⟩ := hcov
+          rw [List.mem_filterMap] at hcov
+          obtain ⟨b, _hb, hfind⟩ := hcov
+          unfold Check.fiberPairFinding at hfind
+          cases hfa : sq.f[a]? with
+          | none => simp [hfa] at hfind
+          | some fa =>
+            cases hgb : sq.g[b]? with
+            | none => simp [hfa, hgb] at hfind
+            | some gb =>
+              cases fa with
+              | none => simp [hfa, hgb] at hfind
+              | some ta =>
+                cases gb with
+                | none => simp [hfa, hgb] at hfind
+                | some tb =>
+                  by_cases htarget : (ta == tb) = true
+                  · simp only [hfa, hgb, htarget, ite_true] at hfind
+                    unfold Check.coversFinding at hfind
+                    cases hcont : decide ((a, b) ∈ Check.projectionPairs sq (List.range n)) with
+                    | true => simp [hcont] at hfind
+                    | false =>
+                      simp only [hcont, Option.some.injEq] at hfind
+                      refine ⟨index, pullback, .covers
+                        { pullback := index, pair := (a, b) }, hidx, ?_, ?_⟩
+                      · rw [← hfind]
+                      · rw [← hfind]
+                  · simp [hfa, hgb, htarget] at hfind
 
 /-! ## Semantic cells (kernel-checks: "Dangling values are checked, not
 fatal" and "The instance builder is total and typing-enforcing") -/

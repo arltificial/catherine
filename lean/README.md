@@ -14,21 +14,24 @@ provisioned through elan. The kernel modules mirror the Rust shapes and
 ordering contracts:
 
 - `Catherine.Schema` — identifiers, dense row ids, paths, arrows,
-  equations, keys, coproducts, `accepted`/`proposed` constraint status,
-  and total lookups.
+  equations, keys, coproducts, declared pullback squares,
+  `accepted`/`proposed` constraint status, and total lookups.
 - `Catherine.Instance` — `RawInstance` to `TypedInstance`; `build` is
   total and typing-enforcing, with each raw cell landing in exactly one
   of three places: a stored morphism value, a dangling record, or a
   typing-violation report.
 - `Catherine.EvalPath` — `compose`, with `Option` short-circuit on any
   unresolved cell; an empty path is the identity.
-- `Catherine.Check` — dangling, equation, key, and coproduct findings,
-  including the typing-violated-cell accounting that suppresses duplicate
-  dangling reports, sorted under the taxonomy order.
+- `Catherine.Check` — dangling, equation, key, coproduct, and pullback
+  findings (the square's commutes, covers, and unique verdicts, including
+  the dangling-leg and dangling-cospan undecidability rules), plus the
+  typing-violated-cell accounting that suppresses duplicate dangling
+  reports, sorted under the taxonomy order.
 - `Catherine.Findings` — the five finding kinds with mandatory witnesses,
   the naturality witness shape (defined but never produced by `check`),
-  the three constructible labels (`executed`, `hypothesized`, `unknown`),
-  and the total order.
+  the pullback witness arms (commutes, covers, unique; produced by
+  `check`), the three constructible labels (`executed`, `hypothesized`,
+  `unknown`), and the total order.
 
 `Catherine.Mirror` projects a `.ct.json` document into the trusted mirror
 JSON (canonical schema order plus a dense partial instance) and decodes
@@ -62,7 +65,10 @@ of the walk:
   row whose composites both resolve and differ; a key collision between
   two distinct ascending rows with an equal resolved tuple; a coproduct
   coverage or disjointness failure under the complete-image accounting;
-  or a dangling cell that is unresolved and not typing-accounted.
+  a dangling cell that is unresolved and not typing-accounted; or a
+  pullback verdict failure (commutes with both disagreeing composed
+  values, covers with an uncovered fiber pair, unique with two rows
+  sharing a projection).
 - `Catherine.Proofs.equation_completeness` — for any equation index and
   any applicable row whose lhs and rhs composites both succeed and
   differ, `check` contains the exact equation violation, with the status
@@ -85,10 +91,15 @@ declaration. A proof claim cannot be accepted on trust.
 
 ## What it does not claim
 
-- **No keys or coproducts completeness theorem is claimed.** Their
-  findings are covered by soundness, but the completeness theorems are
-  deferred (design Decision 3). Equation completeness is the only
+- **No keys, coproducts, or pullbacks completeness theorem is claimed.**
+  Their findings are covered by soundness, but the completeness theorems
+  are deferred (design Decision 3). Equation completeness is the only
   completeness claim.
+- **Duplicate-projection and coverage verdicts are modeled over the
+  parsed presentation only.** Shape-invalid programmatic declarations
+  (undeclared arrows, a leg not sourced at the apex, cospan targets
+  disagreeing) skip the declaration, exactly as the Rust walker's guards
+  do.
 - **Bounded search, Δ migration, and the rule lens are not modeled.**
   Those surfaces are follow-up work, not part of this twin.
 - **Parsing and malformed-input rejection are not in Lean.** The twin
@@ -182,15 +193,15 @@ A Rust `check` exit of `1` is not an oracle failure: it is the
 A fresh run on the current tree reports:
 
 ```text
-total=190 rust_checkable=180 skipped_parse=10 lean_only_presentation=1
-trivially_agreeing=102 findings_bearing_agreeing=79 divergences=0
+total=193 rust_checkable=183 skipped_parse=10 lean_only_presentation=1
+trivially_agreeing=103 findings_bearing_agreeing=81 divergences=0
 build_mismatches=0
 ```
 
-- The corpus is the 190 `*.ct.json` documents currently under
+- The corpus is the 193 `*.ct.json` documents currently under
   `fixtures/{katas,parity,probes}/**`. The list is enumerated at run
   time; no expected count or skip list is hardcoded.
-- 180 documents are compared against `catherine check --json`.
+- 183 documents are compared against `catherine check --json`.
 - 10 are recorded as `skipped_parse` because the Rust parser/build
   rejects them: nine malformed or unbuildable fixtures, plus
   `parity/typing_violation`, the one presentation-route fixture. Its
@@ -198,9 +209,9 @@ build_mismatches=0
   asserts that Rust rejects it and compares Lean findings against the
   expected outcomes instead.
 - The agreement split is 102 trivially agreeing (no findings on either
-  side; this includes the presentation fixture) and 79 findings-bearing
-  agreeing (101 + 79 = the 180 Rust-compared documents).
-- `--check-build` reports zero build mismatches across the seven
+  side; this includes the presentation fixture) and 81 findings-bearing
+  agreeing (102 + 81 = the 183 Rust-compared documents).
+- `--check-build` reports zero build mismatches across the eight
   `fixtures/parity/*` cases.
 
 ## Divergence protocol
