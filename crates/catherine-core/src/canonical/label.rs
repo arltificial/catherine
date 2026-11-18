@@ -55,7 +55,7 @@ fn solve(model: &Model, cls: &mut BTreeMap<RowKey, usize>) -> Model {
     };
     let mut best: Option<(String, Model)> = None;
     let mut explored: Vec<PartitionKey> = Vec::new();
-    for r in members {
+    for r in interchangeable_representatives(model, &object, members) {
         let mut seeded = cls.clone();
         seeded.insert((object.clone(), r), INDIVIDUALIZED);
         while refine(model, &mut seeded) {}
@@ -79,9 +79,27 @@ fn solve(model: &Model, cls: &mut BTreeMap<RowKey, usize>) -> Model {
     best.expect("the first branch always runs").1
 }
 
-/// Whether the model declares an instance map whose source rows the
-/// canonical labeling must relabel. An absent/empty map keeps the
-/// pre-1.4 labeling path byte-identical.
+/// One member per interchangeability group: a member that swaps with an
+/// already-kept one branches to the same structure under another name, so
+/// exploring it again only multiplies the search. This is what keeps a model
+/// with several objects full of indistinguishable rows from hanging
+/// (catherine-2f6).
+fn interchangeable_representatives(model: &Model, object: &str, members: Vec<usize>) -> Vec<usize> {
+    let mut representatives: Vec<usize> = Vec::new();
+    for r in members {
+        if representatives
+            .iter()
+            .any(|&kept| interchangeable(model, object, kept, r))
+        {
+            continue;
+        }
+        representatives.push(r);
+    }
+    representatives
+}
+
+/// Whether the model declares an instance map whose source rows the canonical
+/// labeling must relabel. An absent/empty map keeps the pre-1.4 path byte-identical.
 fn has_instance_map(model: &Model) -> bool {
     model
         .instance_map
@@ -105,6 +123,95 @@ fn partition_key(cls: &BTreeMap<RowKey, usize>) -> PartitionKey {
         blocks.entry(class).or_default().push(key.clone());
     }
     blocks.into_values().collect()
+}
+
+/// Whether swapping rows `a` and `b` of `object` — and nothing else — is an
+/// automorphism of the model, instance map included. Such rows are
+/// structurally interchangeable: they carry identical incident data, so the
+/// two individualization branches differ only in which of the two dense ids
+/// each receives and they serialize identically. Exploring one of them is
+/// exact, not a heuristic.
+fn interchangeable(model: &Model, object: &str, a: usize, b: usize) -> bool {
+    if a == b {
+        return true;
+    }
+    if !map_targets_agree(model, object, a, b) {
+        return false;
+    }
+    model.schema.arrows.iter().all(|(name, arrow)| {
+        let cells = model.instance.values.get(name).map(Vec::as_slice);
+        if arrow.src.0 == object {
+            outgoing_commutes(cells, arrow.tgt.0 == object, a, b)
+        } else if arrow.tgt.0 == object {
+            incoming_untouched(cells, a, b)
+        } else {
+            true
+        }
+    })
+}
+
+/// The instance map is external data keyed by source row: rows with different
+/// targets are not interchangeable even when their structure matches.
+fn map_targets_agree(model: &Model, object: &str, a: usize, b: usize) -> bool {
+    let Some(map) = &model.instance_map else {
+        return true;
+    };
+    match map.maps.get(&Ident(object.to_string())) {
+        Some(rows) => rows.get(&RowId(a)) == rows.get(&RowId(b)),
+        None => true,
+    }
+}
+
+/// The transposition must commute with the cell function on every row. When
+/// the arrow is a self-arrow the target side is swapped too; otherwise the
+/// targets are fixed and no cell may name either member.
+fn outgoing_commutes(
+    cells: Option<&[Option<RowId>]>,
+    self_targeted: bool,
+    a: usize,
+    b: usize,
+) -> bool {
+    let Some(cells) = cells else {
+        return true;
+    };
+    cells.iter().enumerate().all(|(r, cell)| {
+        let actual = if self_targeted {
+            cells.get(transposed(r, a, b)).copied().flatten()
+        } else {
+            *cell
+        };
+        swap_row(*cell, a, b) == actual
+    })
+}
+
+/// Sources are untouched by the transposition, so no row may point at
+/// exactly one of the pair (a functional cell cannot point at both).
+fn incoming_untouched(cells: Option<&[Option<RowId>]>, a: usize, b: usize) -> bool {
+    cells.is_none_or(|cells| {
+        cells
+            .iter()
+            .all(|cell| (*cell == Some(RowId(a))) == (*cell == Some(RowId(b))))
+    })
+}
+
+/// `r` under the transposition of `a` and `b`.
+fn transposed(r: usize, a: usize, b: usize) -> usize {
+    if r == a {
+        b
+    } else if r == b {
+        a
+    } else {
+        r
+    }
+}
+
+/// One cell under the transposition of `a` and `b`.
+fn swap_row(cell: Option<RowId>, a: usize, b: usize) -> Option<RowId> {
+    match cell {
+        Some(RowId(r)) if r == a => Some(RowId(b)),
+        Some(RowId(r)) if r == b => Some(RowId(a)),
+        other => other,
+    }
 }
 
 /// The first tied class in sorted object order: `(object, members)` with
