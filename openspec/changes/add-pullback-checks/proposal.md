@@ -44,7 +44,8 @@ pairs), not an equation over existing rows.
   uncovered pair); a duplicated projection fires one
   `violation`/`executed` (witness: the square and both rows).
   Proposed pullbacks fire `hypothesized`-labeled findings — the
-  equation/key/coproduc status rule, verbatim. No new epistemic
+  equation/key/coproduct status rule, verbatim. Status defaults to
+  accepted when absent, as in every declared constraint. No new epistemic
   labels, no new exit codes. Decidability discipline mirrors
   coproducts: an apex row with a dangling leg cell keeps commutativity
   undecidable (the dangling findings carry it, never double-reported);

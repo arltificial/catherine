@@ -8,9 +8,9 @@ declarations `{"apex": P, "legs": [p1, p2], "cospan": [f, g],
 "status": "accepted" | "proposed"}` where the legs source at the apex
 and the cospan arrows share a target. The declaration asserts the
 pullback universal property over the instance (commutes, covers,
-unique). Pullbacks SHALL be stored in canonical `(apex, legs, cospan,
-status)` order; an empty or absent section is omitted from canonical
-bytes, so documents without it keep their hash.
+unique); it is stored in canonical `(apex, legs, cospan, status)`
+order and omitted from canonical bytes when empty, keeping every
+document without it hash-identical.
 
 #### Scenario: Pullbacks round-trip and canonicalize
 - **WHEN** a document declares several pullbacks in an arbitrary input
@@ -26,6 +26,12 @@ bytes, so documents without it keep their hash.
 - **THEN** canonical bytes, hash, and every sealed ledger
   `model_hashes` entry are unchanged
 
+#### Scenario: Status defaults to accepted; proposed pullbacks are questions
+- **WHEN** a declaration omits `status`, or a `proposed` pullback
+  fails on the instance
+- **THEN** the omitted status is accepted, and the proposed failure is
+  a hypothesis-labeled question — never a constraint on satisfiability
+
 #### Scenario: The cones field stays rejected
 - **WHEN** a document declares a `cones` field
 - **THEN** parsing still fails with `unknown_field` at the field node
@@ -35,14 +41,16 @@ bytes, so documents without it keep their hash.
 ### Requirement: Malformed pullbacks are rejected at their nodes
 The system SHALL reject a pullback declaration that names an undeclared
 object, names an undeclared arrow, names a leg not sourced at the
-declared apex, names cospan arrows whose targets differ, or repeats an
-arrow name, with one new stable code `invalid_pullback` at the
-offending node, mirroring the `invalid_coproduct` discipline.
+declared apex, names cospan arrows whose targets differ, carries fewer
+or more than two legs or two cospan arrows, or repeats an arrow name,
+with one new stable code `invalid_pullback` at the offending node,
+mirroring the `invalid_coproduct` discipline.
 
 #### Scenario: Malformed pullback is rejected at its node
 - **WHEN** a pullback names an undeclared object or arrow, names a leg
   not sourced at the apex, names cospan arrows with different targets,
-  or repeats an arrow name
+  carries a leg or cospan list whose length is not exactly two, or
+  repeats an arrow name
 - **THEN** parsing fails with `invalid_pullback` carrying the
   line/column of the offending node, and nothing is silently repaired
   or dropped

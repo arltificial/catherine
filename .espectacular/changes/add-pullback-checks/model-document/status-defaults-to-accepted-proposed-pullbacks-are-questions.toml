@@ -1,0 +1,11 @@
+id = "status-defaults-to-accepted-proposed-pullbacks-are-questions"
+description = "An omitted status is accepted; a proposed pullback failing on the instance is a hypothesis-labeled question, never a constraint on satisfiability — the equation/key/coproduct status rule verbatim."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "pullback_status_defaults_to_accepted_and_proposed_fails_as_hypothesized" },
+]

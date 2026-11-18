@@ -21,16 +21,16 @@
 ## 2. GREEN — declare (format 1.6)
 
 - [ ] 2.1 `Pullback` model struct (`apex`, `legs`, `cospan`,
-      `ConstraintStatus`) with canonical sort key
-      `(apex, legs, cospan, status)`, duplicates kept as presentation
-      (mirror `Coproduct`)
+      `ConstraintStatus`, status defaulting to accepted when absent)
+      with canonical sort key `(apex, legs, cospan, status)`, duplicates
+      kept as presentation (mirror `Coproduct`)
 - [ ] 2.2 Parser: accept `schema.pullbacks`, additive minor 1.6,
       empty/absent section omitted from canonical bytes (hash-neutral
       roundtrip test), canonical-order roundtrip test
 - [ ] 2.3 `invalid_pullback` node rejections: undeclared object,
       undeclared arrow, leg not sourced at apex, cospan target
-      mismatch, repeated arrow names (mirror `invalid_coproduct`
-      tests)
+      mismatch, leg/cospan lists whose length is not exactly two,
+      repeated arrow names (mirror `invalid_coproduct` tests)
 - [ ] 2.4 `ct-schema-v1.json` + `web/src/types/ct-schema-v1.ts`
       surface the new field; editor validation stays shape-only, the
       kernel remains the version authority

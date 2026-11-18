@@ -6,9 +6,8 @@ format minor 1.6; absent `pullbacks` is hash-neutral. Grounding: beads
 relation inventory's pin — "resolution is a *relation object*, not an
 equation". The rule-of-5 pass over the capability design produced the
 three-check formulation (Decision 2) and the decidability split
-(Decision 4); both are corrections to the ticket's original
-commutativity-only GREEN wording, kept in step with the corrected
-acceptance criteria on the ticket.
+(Decision 4); the ticket's GREEN acceptance criteria name the same
+three checks, so proposal and ticket gate identically.
 
 ## Decision 1 — the declaration grammar is `keys`/`coproducts` again
 
@@ -51,7 +50,8 @@ against.
 ## Decision 3 — violation semantics reuse the status rule, not new epistemics
 
 Accepted pullbacks fire `violation`/`executed`; proposed pullbacks
-fire `hypothesized` — the equation/key/coproduc status rule verbatim
+fire `hypothesized` — the equation/key/coproduct status rule verbatim
+(status defaults to accepted when absent).
 (Coproduct.status precedent). The witness is a new **`PullbackWitness`**
 (square identity, offending row or pair) added to the fixed per-kind
 witness union in the findings spec — the `CoproductWitness` precedent:
@@ -97,3 +97,10 @@ the fiber (O(|A| + |B| + |fiber|)); uncovered pairs are enumerated in
 canonical row order so findings are countable and diff-stable. Every
 enumeration walks `BTreeMap` order per the migration module's
 determinism rule.
+
+Degenerate declarations are checked, not special-cased: a cospan where
+`f = g` yields the diagonal fiber and all three verdicts remain
+well-defined over it; no rejection and no code path treats it
+differently. Kernel-checks vocabulary follows the deployed spec's
+"not-evaluable-through-dangling" for verdicts a dangling cell withholds
+(the naturality module's `undefined` outcome is the same shape).
