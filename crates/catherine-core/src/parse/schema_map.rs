@@ -35,12 +35,13 @@ pub(super) struct RawSchemaMap {
 /// the document schema under the `/schema_map/target_schema` pointer
 /// root.
 fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::error::ParseError> {
-    let objects = check_objects(raw, spans)?;
-    let arrows = check_arrows(raw, &objects, spans)?;
-    let equations = check_equations(&raw.equations, &arrows, spans)?;
-    let keys = check_keys(raw, &objects, &arrows, spans)?;
-    let coproducts = check_coproducts(raw, &objects, &arrows, spans)?;
-    let pullbacks = check_pullbacks(raw, &objects, &arrows, spans)?;
+    let spans = target_spans(spans);
+    let objects = check_objects(raw, &spans)?;
+    let arrows = check_arrows(raw, &objects, &spans)?;
+    let equations = check_equations(&raw.equations, &arrows, &spans)?;
+    let keys = check_keys(raw, &objects, &arrows, &spans)?;
+    let coproducts = check_coproducts(raw, &objects, &arrows, &spans)?;
+    let pullbacks = check_pullbacks(raw, &objects, &arrows, &spans)?;
     Ok(Schema {
         objects,
         arrows,
@@ -49,6 +50,28 @@ fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::err
         coproducts,
         pullbacks,
     })
+}
+
+/// The target schema's span view, re-rooted at `/schema`: the target runs
+/// the document schema's passes verbatim, whose pointers are `/schema/...`.
+/// Without the re-root those pointers would miss the target's nodes and
+/// fall back to (1,1) — or silently land on a same-indexed document node.
+fn target_spans(spans: &Spans) -> Spans {
+    const PREFIX: &str = "/schema_map/target_schema";
+    let mut target = Spans::default();
+    for (pointer, pos) in &spans.nodes {
+        if let Some(rest) = pointer.strip_prefix(PREFIX) {
+            target.nodes.insert(format!("/schema{rest}"), *pos);
+        }
+    }
+    for ((object, key), pos) in &spans.keys {
+        if let Some(rest) = object.strip_prefix(PREFIX) {
+            target
+                .keys
+                .insert((format!("/schema{rest}"), key.clone()), *pos);
+        }
+    }
+    target
 }
 
 /// Build the typed schema map from the raw 1.1 section: totality over

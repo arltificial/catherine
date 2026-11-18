@@ -11,8 +11,10 @@
 //!
 //! Responsibilities: diff the *enforced* constraint sets — the accepted
 //! equations' `(lhs, rhs)` pairs together with the accepted keys'
-//! `(object, arrows)` tuples. Rationale, document order, and proposed
-//! equations or keys are presentation and never classify an edit. The
+//! `(object, arrows)` tuples, the accepted coproducts' `(object, arrows)`
+//! tuples, and the accepted pullbacks' `(apex, legs, cospan)` triples.
+//! Rationale, document order, and proposed equations, keys, coproducts,
+//! or pullbacks are presentation and never classify an edit. The
 //! effect on the instance space is decided by the shared bounded
 //! enumeration ([`crate::search::enumerate`], deterministic
 //! smallest-first order) under the kernel's own satisfaction predicate
@@ -20,8 +22,9 @@
 //! accepted by v2 and rejected by v1 is the weakening witness.
 //! `weakened` emits exactly one existing-taxonomy finding —
 //! `violation`/`executed`, the violated v1 constraint's canonical index
-//! and its witness (an equation's row and composed values, or a key's
-//! colliding pair); every other class emits zero findings.
+//! and its witness (an equation's row and composed values, a key's
+//! colliding pair, a coproduct's rogue variant, or a pullback's failing
+//! square verdict); every other class emits zero findings.
 //!
 //! Rationale: no new epistemic machinery and no new finding kinds. The
 //! classification is a report *beside* the findings (an outcome enum
@@ -46,11 +49,12 @@ use catherine_core::model::{ConstraintStatus, Ident, Instance, Path, Schema};
 use std::collections::BTreeMap;
 
 /// One enforced constraint: an accepted equation's two path sides, an
-/// accepted key's object and arrow tuple, or an accepted coproduct's
-/// object and injection tuple. Rationale, document order, and proposed
-/// status are presentation and deliberately absent — they cannot change
-/// the instance space. The variant order is the enforced set's canonical
-/// order (equations before keys before coproducts).
+/// accepted key's object and arrow tuple, an accepted coproduct's object
+/// and injection tuple, or an accepted pullback's apex and square
+/// arrows. Rationale, document order, and proposed status are
+/// presentation and deliberately absent — they cannot change the
+/// instance space. The variant order is the enforced set's canonical
+/// order (equations before keys before coproducts before pullbacks).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EnforcedConstraint {
     /// An accepted equation's two path sides.
@@ -74,6 +78,15 @@ pub enum EnforcedConstraint {
         /// The coproduct's injection arrows, in declared order.
         arrows: Vec<Ident>,
     },
+    /// An accepted pullback's commutes-covers-unique claim.
+    Pullback {
+        /// The square's apex object.
+        apex: Ident,
+        /// The legs, in declared order, each sourced at `apex`.
+        legs: Vec<Ident>,
+        /// The cospan arrows, in declared order, sharing a target.
+        cospan: Vec<Ident>,
+    },
 }
 
 /// The edit classification. Every variant is a report, not a finding;
@@ -82,7 +95,7 @@ pub enum EnforcedConstraint {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SchemaDiffOutcome {
     /// No enforced-constraint change: only rationale, document order, or
-    /// proposed equations/keys differ. Silent — zero findings.
+    /// proposed declarations differ. Silent — zero findings.
     Cosmetic,
     /// Every v1-enforced constraint is still enforced and v2 adds more:
     /// a structural strengthening, decided without bounds.
@@ -219,11 +232,13 @@ fn report(
 }
 
 /// The enforced constraints as a multiset: accepted equations'
-/// `(lhs, rhs)` pairs, accepted keys' `(object, arrows)` tuples, and
-/// accepted coproducts' `(object, arrows)` tuples, with duplicate
+/// `(lhs, rhs)` pairs, accepted keys' `(object, arrows)` tuples,
+/// accepted coproducts' `(object, arrows)` tuples, and accepted
+/// pullbacks' `(apex, legs, cospan)` triples, with duplicate
 /// declarations counted (presentation can repeat a constraint; the
-/// instance space cannot distinguish the copies). Proposed keys and
-/// coproducts are presentation, exactly like proposed equations.
+/// instance space cannot distinguish the copies). Proposed keys,
+/// coproducts, and pullbacks are presentation, exactly like proposed
+/// equations.
 fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
     let mut multiset = BTreeMap::new();
     for equation in &schema.equations {
@@ -253,7 +268,23 @@ fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
             *multiset.entry(enforced).or_insert(0) += 1;
         }
     }
+    add_pullbacks(&mut multiset, schema);
     multiset
+}
+
+/// Record every accepted pullback as its `(apex, legs, cospan)` member;
+/// proposed pullbacks are questions and stay out of the enforced set.
+fn add_pullbacks(multiset: &mut BTreeMap<EnforcedConstraint, usize>, schema: &Schema) {
+    for pullback in &schema.pullbacks {
+        if pullback.status == ConstraintStatus::Accepted {
+            let enforced = EnforcedConstraint::Pullback {
+                apex: pullback.apex.clone(),
+                legs: pullback.legs.clone(),
+                cospan: pullback.cospan.clone(),
+            };
+            *multiset.entry(enforced).or_insert(0) += 1;
+        }
+    }
 }
 
 /// The entries of `left` beyond `right`, in canonical order (multiset

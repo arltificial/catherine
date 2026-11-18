@@ -1,13 +1,16 @@
 //! Purpose: the Δ reindex behavioral contract (beads `catherine-alr`
-//! phase B) — the committed RED fixtures' README-documented expectations,
+//! phase B — the committed RED fixtures' README-documented expectations,
 //! executed: lost data is enumerated row-by-row/cell-by-cell with
-//! witnesses, the reindex invents nothing, and the collapsing round-trip
-//! proves non-invertibility by naming the offending `(object, row)`
-//! element and the sibling sharing its forward image.
+//! witnesses (including a pullback support arrow the map drops), the
+//! reindex invents nothing, and the collapsing round-trip proves
+//! non-invertibility by naming the offending `(object, row)` element and
+//! the sibling sharing its forward image.
 
 use catherine_core::findings::EpistemicLabel;
-use catherine_core::migrate::{lost_data, reindex, round_trip, MigrationFindingKind};
-use catherine_core::model::{Ident, Model, Path, Schema, SchemaMap};
+use catherine_core::migrate::{
+    lost_data, reindex, round_trip, MigrationFinding, MigrationFindingKind,
+};
+use catherine_core::model::{Ident, Model, Path, RowId, Schema, SchemaMap};
 use catherine_core::parse::parse;
 use std::collections::BTreeMap;
 
@@ -36,6 +39,45 @@ fn identity_map(schema: &Schema, target: &Schema) -> SchemaMap {
         arrows,
     }
 }
+
+/// A source model declaring a pullback square (`P` over legs `p1`/`p2`
+/// and cospan `f`/`g`) whose map drops the support arrow `p1` with valued
+/// cells: the square's leg does not vanish silently — every valued cell is
+/// a lost-cell witness.
+const DROPPED_PULLBACK_LEG_DOC: &str = r#"{
+  "format_version": "1.6",
+  "schema": {
+    "objects": ["A", "B", "C", "P"],
+    "arrows": [{"name": "f", "src": "A", "tgt": "C"},
+               {"name": "g", "src": "B", "tgt": "C"},
+               {"name": "p1", "src": "P", "tgt": "A"},
+               {"name": "p2", "src": "P", "tgt": "B"}],
+    "equations": [],
+    "pullbacks": [
+      {"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "g"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a0"], "B": ["b0"], "C": ["c0"], "P": ["_0", "_1"]},
+    "tables": {
+      "f": {"a0": "c0"},
+      "g": {"b0": "c0"},
+      "p1": {"_0": "a0", "_1": "a0"},
+      "p2": {"_0": "b0", "_1": "b0"}
+    }
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["A", "B", "C", "P"],
+      "arrows": [{"name": "f", "src": "A", "tgt": "C"},
+                 {"name": "g", "src": "B", "tgt": "C"},
+                 {"name": "p2", "src": "P", "tgt": "B"}],
+      "equations": []
+    },
+    "objects": {"A": "A", "B": "B", "C": "C", "P": "P"},
+    "arrows": {"f": ["f"], "g": ["g"], "p1": null, "p2": ["p2"]}
+  }
+}"#;
 
 #[test]
 fn drop_object_enumerates_one_lost_data_finding_per_dropped_row() {
@@ -103,6 +145,37 @@ fn field_narrowing_enumerates_one_lost_data_finding_per_valued_cell() {
         };
         assert_eq!(arrow.0, "annotation");
     }
+}
+
+#[test]
+fn dropping_a_pullback_support_arrow_enumerates_its_valued_cells() {
+    let model = parse(DROPPED_PULLBACK_LEG_DOC).expect("the pullback source parses");
+    assert_eq!(
+        model.schema.pullbacks.len(),
+        1,
+        "the source declares the square whose leg is under test"
+    );
+    let findings = lost_data(&model).expect("the map drops the leg, so losses exist");
+    let expected = vec![
+        MigrationFinding {
+            label: EpistemicLabel::Executed,
+            kind: MigrationFindingKind::LostCell {
+                arrow: Ident("p1".to_string()),
+                row: RowId(0),
+            },
+        },
+        MigrationFinding {
+            label: EpistemicLabel::Executed,
+            kind: MigrationFindingKind::LostCell {
+                arrow: Ident("p1".to_string()),
+                row: RowId(1),
+            },
+        },
+    ];
+    assert_eq!(
+        findings, expected,
+        "the dropped square's support arrow is loud: one finding per valued cell, never silent"
+    );
 }
 
 #[test]

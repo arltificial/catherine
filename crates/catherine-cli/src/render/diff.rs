@@ -7,7 +7,9 @@
 //! witness instance, the added enforced constraints, and the findings
 //! verbatim) and render the human lines: the classification head, the
 //! §5 finding block for `weakened`, and one `added:` line per accreted
-//! constraint (an equation as `lhs = rhs`, a key as `key Object(a∘b)`).
+//! constraint (an equation as `lhs = rhs`, a key as `key Object(a∘b)`,
+//! a coproduct as `coproduct C(i1∘i2)`, a pullback as
+//! `pullback P(p1∘p2 → f∘g)`).
 //!
 //! Rationale: one envelope shape (the genesis `Check` kind over the
 //! analysis payloads); the outcome string names the epistemic state and
@@ -29,8 +31,9 @@ use serde::Serialize;
 
 /// One enforced constraint as the payload spells it. Untagged: the
 /// equation shape stays exactly `{"lhs": [...], "rhs": [...]}` (the
-/// pre-key payload is byte-identical), and a key adds
-/// `{"object": ..., "arrows": [...]}`.
+/// pre-key payload is byte-identical), a key adds
+/// `{"object": ..., "arrows": [...]}`, and the coproduct and pullback
+/// arms add their unconditional `kind` discriminator.
 #[derive(Serialize)]
 #[serde(untagged)]
 pub enum ConstraintView {
@@ -59,6 +62,20 @@ pub enum ConstraintView {
         /// The payload discriminator: always `"coproduct"`.
         kind: &'static str,
     },
+    /// An accepted pullback's apex and square arrow-name sequences. The
+    /// unconditional `kind` discriminator keeps the untagged payload
+    /// distinct from every other shape, exactly as the coproduct arm's
+    /// does.
+    Pullback {
+        /// The square's apex object.
+        apex: String,
+        /// The legs, in declared order.
+        legs: Vec<String>,
+        /// The cospan arrows, in declared order.
+        cospan: Vec<String>,
+        /// The payload discriminator: always `"pullback"`.
+        kind: &'static str,
+    },
 }
 
 fn constraint_views(added: &[EnforcedConstraint]) -> Vec<ConstraintView> {
@@ -77,6 +94,12 @@ fn constraint_views(added: &[EnforcedConstraint]) -> Vec<ConstraintView> {
                 object: object.0.clone(),
                 arrows: arrow_names(arrows),
                 kind: "coproduct",
+            },
+            EnforcedConstraint::Pullback { apex, legs, cospan } => ConstraintView::Pullback {
+                apex: apex.0.clone(),
+                legs: arrow_names(legs),
+                cospan: arrow_names(cospan),
+                kind: "pullback",
             },
         })
         .collect()
@@ -232,35 +255,37 @@ fn strengthened_lines(added: &[EnforcedConstraint], scope: &SearchScope) -> Vec<
 }
 
 /// One added constraint as a human line: an equation as `lhs = rhs`, a
-/// key as `key Object(a∘b)`.
+/// key as `key Object(a∘b)`, a coproduct as `coproduct C(i1∘i2)`, a
+/// pullback as `pullback P(p1∘p2 → f∘g)`.
 fn added_line(constraint: &EnforcedConstraint) -> String {
     match constraint {
-        EnforcedConstraint::Equation { lhs, rhs } => {
-            format!(
-                "  added: {} = {}",
-                super::path_string(lhs),
-                super::path_string(rhs)
-            )
-        }
-        EnforcedConstraint::Key { object, arrows } => format!(
-            "  added: key {}({})",
-            object.0,
-            arrows
-                .iter()
-                .map(|arrow| arrow.0.as_str())
-                .collect::<Vec<_>>()
-                .join("∘")
+        EnforcedConstraint::Equation { lhs, rhs } => format!(
+            "  added: {} = {}",
+            super::path_string(lhs),
+            super::path_string(rhs)
         ),
-        EnforcedConstraint::Coproduct { object, arrows } => format!(
-            "  added: coproduct {}({})",
-            object.0,
-            arrows
-                .iter()
-                .map(|arrow| arrow.0.as_str())
-                .collect::<Vec<_>>()
-                .join("∘")
+        EnforcedConstraint::Key { object, arrows } => {
+            format!("  added: key {}({})", object.0, arrows_joined(arrows))
+        }
+        EnforcedConstraint::Coproduct { object, arrows } => {
+            format!("  added: coproduct {}({})", object.0, arrows_joined(arrows))
+        }
+        EnforcedConstraint::Pullback { apex, legs, cospan } => format!(
+            "  added: pullback {}({} → {})",
+            apex.0,
+            arrows_joined(legs),
+            arrows_joined(cospan)
         ),
     }
+}
+
+/// An arrow sequence as a human line spells it (`a∘b`, declared order).
+fn arrows_joined(arrows: &[catherine_core::model::Ident]) -> String {
+    arrows
+        .iter()
+        .map(|arrow| arrow.0.as_str())
+        .collect::<Vec<_>>()
+        .join("∘")
 }
 
 /// The scope tail of a bounded verdict: candidates explored and the
