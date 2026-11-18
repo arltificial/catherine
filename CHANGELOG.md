@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   documented as intended in the subcommand help, `docs/USING.md`, the
   analysis README, and a CLI regression test instead of reading as
   duplicate output
+- Olog label surface decided (`catherine-c65`): the model document keeps
+  no label field in v1. English stays in equation `rationale` and in
+  prose; the reopen triggers (round-trip rendering, agent
+  disambiguation, annotation-drift detection, an E-license) and the
+  preferred presentation-only, hash-excluded shape are recorded in
+  `docs/ref/olog-mapping.md`.
 
 ## [0.3.0] - 2026-11-17
 

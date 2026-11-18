@@ -79,16 +79,27 @@ the tool raises it as a finding, with source attribution.
 
 ## Open surface (the honest boundary)
 
-- **Labels (the "log" itself).** Olog boxes/arrows carry their English; the
-  kernel carries English only in equation `rationale`. This is presentation:
-  `diff` classifies English-only edits `cosmetic` (no enforced-constraint
-  change — executed). Adding labels is an open *decision*, not a missing
-  feature: it earns kernel surface only if tied to a check (e.g. a
-  label-presence lint, or English rendering of `underconstraint` questions).
-  Open item: beads `catherine-c65` (label-surface decision). Since
-  catherine-bak an arrow `label` field is a labeled `unknown_field`
-  rejection, so a label surface would have to be a minor-version format
-  change, not a tolerated extra.
+- **Labels (the "log" itself).** Decided (`catherine-c65`, 2026-11-18):
+  v1 carries no label field on objects or arrows. Olog English stays in
+  equation `rationale` and in prose beside the model; `diff` already
+  classifies English-only edits `cosmetic` (executed), and no executed
+  check consumes a label, so a label surface earns kernel space only
+  when one does. Since catherine-bak an arrow `label` key is an
+  `unknown_field` rejection, so no shadow spelling exists either.
+  Reopening is one additive minor (an absent section is hash-neutral)
+  and is triggered by any of:
+  1. a kata or workflow must render the model back with its English
+     (olog/ER round-trip);
+  2. an agent consumer needs per-object/arrow prose to answer an
+     `underconstraint` question;
+  3. diff or the ledger must detect orphaned annotation — annotation
+     has to live inside the hashed artifact;
+  4. a corpus E-license demands labels.
+  Shape if reopened: presentation-only and hash-excluded — structural
+  identity (objects/arrows/equations in `canonical_bytes`), labels
+  carried by `serialize`, `diff` cosmetic, round-trip property. Not
+  hash-included: rewording English must not churn sealed ledger
+  `model_hashes`.
 - **Unknown fields are rejected** (catherine-bak, executed: an extra
   `label` on an arrow is `error[unknown_field]`, exit 1). The parser no
   longer contradicts the spec's no-silent-drop principle; a field the
