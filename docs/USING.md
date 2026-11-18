@@ -83,7 +83,7 @@ only, zero findings). A weakened edit is a finding-bearing run (exit 3).
 | `dangling` | a declared arrow has no value at a source row — an absent cell or an explicit `null` (a partial map) | fill the missing cell, or make the arrow total if the domain says every row has one. The witness names the arrow and the source row. An arrow naming a row that does not exist is *not* this finding: it is rejected at parse time with a labeled error (exit 1), before any check runs |
 | `contradiction` | no instance can satisfy the constraints (bounded search) | the *spec* is impossible as declared; negotiate which constraint yields |
 | `underconstraint` | parallel paths exist with no declared equation *(hypothesis)* | a domain question: must they agree, might they, or should they differ? Declare an equation only if the domain says so |
-| `redundant` | a declared path is derivable from others | simplification candidate — remove only if observable meaning is preserved |
+| `redundant` | a declared path is derivable from others | simplification candidate — remove only if observable meaning is preserved. One finding per derivable declaration, so an equation declared twice is named twice (the duplicate declaration is the signal, not noise) |
 | `UNKNOWN {scope}` | bounded search hit its cap | the honest answer; widen scope explicitly or record it as unknown. Never reported as "clean" |
 
 **Agent etiquette.** Do not add an equation just to silence an

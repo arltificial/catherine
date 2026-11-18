@@ -103,9 +103,12 @@ fn normal_form(path: &Path, rules: &[Rule], max_steps: usize) -> Option<Vec<Iden
 
 /// Report every declared accepted equation whose two sides rewrite to
 /// the same normal form under the other accepted equations. Findings
-/// come out in the taxonomy's total order (sorted). This also flags the
-/// proposal's third bullet: declared equations derivable from the
-/// others — each accepted equation is itself a candidate.
+/// come out in the taxonomy's total order (sorted), one per derivable
+/// declaration: an equation declared twice is twice derivable and is
+/// reported twice, naming the duplicate declaration (catherine-1lf —
+/// intended, not noise to collapse). This also flags the proposal's third
+/// bullet: declared equations derivable from the others — each accepted
+/// equation is itself a candidate.
 pub fn redundant(schema: &Schema, caps: &ScopeCaps) -> Vec<Finding> {
     let mut findings = Vec::new();
     for (index, equation) in schema.equations.iter().enumerate() {

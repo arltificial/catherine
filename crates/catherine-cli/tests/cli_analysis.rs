@@ -13,6 +13,11 @@ const ANALYSIS_REDUNDANT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/analysis_redundant.ct.json"
 );
+/// The same derivable equation declared twice (catherine-1lf).
+const ANALYSIS_REDUNDANT_DUPLICATE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/analysis_redundant_duplicate.ct.json"
+);
 const ANALYSIS_DIST_A: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/analysis_dist_a.ct.json"
@@ -108,6 +113,30 @@ fn analysis_redundant_exits_7_with_both_witness_paths() {
         serde_json::json!(["f", "g", "k"])
     );
     assert_eq!(findings[0]["witness"]["reducing"], serde_json::json!(["n"]));
+}
+
+/// `redundant` on a fixture declaring the same derivable equation twice:
+/// one finding per derivable declaration — the duplicate declaration is
+/// named twice on purpose (catherine-1lf), never collapsed. Exit stays 7.
+#[test]
+fn analysis_redundant_reports_duplicate_declarations_separately() {
+    let out = run(&["redundant", ANALYSIS_REDUNDANT_DUPLICATE, "--json"]);
+    assert_eq!(code(&out), 7, "redundant exit code");
+    let v = parse_json(&stdout(&out));
+    let findings = v["data"]["findings"].as_array().expect("findings array");
+    assert_eq!(
+        findings.len(),
+        2,
+        "each of the two identical declarations is separately derivable: {findings:?}"
+    );
+    for finding in findings {
+        assert_eq!(finding["kind"], "redundant");
+        assert_eq!(
+            finding["witness"]["derivable"],
+            serde_json::json!(["f", "g", "k"])
+        );
+        assert_eq!(finding["witness"]["reducing"], serde_json::json!(["n"]));
+    }
 }
 
 /// `distinguish` over an explicit observation where the pair differs:

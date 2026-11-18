@@ -124,7 +124,10 @@ pub enum Commands {
     },
     /// Prove redundancy: every accepted equation whose two sides
     /// rewrite to the same normal form under the other accepted
-    /// equations. Absent a proof, no redundancy claim is emitted.
+    /// equations. Absent a proof, no redundancy claim is emitted. Each
+    /// derivable declaration is reported, so an equation declared twice
+    /// is named twice — the duplicate declaration, not a duplicated
+    /// finding to collapse.
     #[command(after_help = EXIT_CODE_TABLE)]
     Redundant {
         /// Path to the .ct.json model document.

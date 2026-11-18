@@ -38,8 +38,11 @@ Every analysis answer is either **a proof within stated bounds** or
   normal form may depend on rule order when rules overlap. The honest
   consequence: rewriting can *under*-report redundancy but never
   *over*-report it — every `redundant` finding carries a witnessed
-  derivation. A derivation that hits the rewrite-step cap is not a proof
-  and emits nothing.
+  derivation. Findings are emitted per derivable declaration: an equation
+  declared twice is derivable twice and reported twice, which names the
+  duplicate declaration instead of hiding it (catherine-1lf — decided and
+  pinned, not a defect). A derivation that hits the rewrite-step cap is
+  not a proof and emits nothing.
 - **Underconstraint relating is direct-only.** A declared equation
   relates a parallel pair iff one of its sides *is* each path, in
   either orientation; transitive chains are not followed. The accepted

@@ -27,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md` scopes `catherine check`'s findings to the execution
   classes and points at the analysis subcommands (`catherine-4pc`).
 
+### Changed
+
+- `catherine redundant` reports one finding per derivable declaration, so
+  an equation declared twice is named twice (`catherine-1lf`). The
+  behavior was already pinned by the builder-monoid fault kata; it is now
+  documented as intended in the subcommand help, `docs/USING.md`, the
+  analysis README, and a CLI regression test instead of reading as
+  duplicate output
+
 ## [0.3.0] - 2026-11-17
 
 ### Added
