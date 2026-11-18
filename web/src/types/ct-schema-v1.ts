@@ -23,6 +23,13 @@ export type Coproduct = {
   "status"?: "proposed" | "accepted";
 };
 
+export type Pullback = {
+  "apex": Ident;
+  "legs": Array<Ident>;
+  "cospan": Array<Ident>;
+  "status"?: "proposed" | "accepted";
+};
+
 export type Rule = {
   "name": Ident;
   "predicate": Predicate;
@@ -67,6 +74,7 @@ export type CtSchemaV1Document = {
 }>;
   "keys"?: Array<Key>;
   "coproducts"?: Array<Coproduct>;
+  "pullbacks"?: Array<Pullback>;
 };
   "instance": {
   "rows": Record<string, Array<Ident>>;
@@ -88,6 +96,7 @@ export type CtSchemaV1Document = {
 }>;
   "keys"?: Array<Key>;
   "coproducts"?: Array<Coproduct>;
+  "pullbacks"?: Array<Pullback>;
 };
   "objects": Record<string, (null) | (Ident)>;
   "arrows": Record<string, (null) | (Array<Ident>)>;

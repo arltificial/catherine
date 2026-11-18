@@ -1,8 +1,9 @@
 //! Purpose: the Δ schema-map parse pass (add-delta-migration phase A)
 //! — the additive 1.1 section is validated on its own: the target
-//! schema runs the same object/arrow/equation/key passes as the document
-//! schema (own pointer root), and the assignment maps are total over
-//! the declared source elements with targets declared in the target.
+//! schema runs the same object/arrow/equation/key/coproduct/pullback
+//! passes as the document schema (own pointer root), and the assignment
+//! maps are total over the declared source elements with targets declared
+//! in the target.
 //!
 //! Rationale: declared data only — no functoriality is enforced here;
 //! execution (pullback reindex, lost-data enumeration) is phase B
@@ -11,6 +12,7 @@
 
 use super::coproducts::check_coproducts;
 use super::keys::check_keys;
+use super::pullbacks::check_pullbacks;
 use super::schema::{check_arrows, check_equations, check_objects, RawSchema};
 use super::spans::Spans;
 use crate::error::ErrorCode;
@@ -38,12 +40,14 @@ fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::err
     let equations = check_equations(&raw.equations, &arrows, spans)?;
     let keys = check_keys(raw, &objects, &arrows, spans)?;
     let coproducts = check_coproducts(raw, &objects, &arrows, spans)?;
+    let pullbacks = check_pullbacks(raw, &objects, &arrows, spans)?;
     Ok(Schema {
         objects,
         arrows,
         equations,
         keys,
         coproducts,
+        pullbacks,
     })
 }
 

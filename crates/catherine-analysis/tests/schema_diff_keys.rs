@@ -46,6 +46,7 @@ fn endo_schema(keys: Vec<Key>) -> Schema {
         equations: Vec::new(),
         keys,
         coproducts: Vec::new(),
+        pullbacks: Vec::new(),
     }
 }
 

@@ -12,8 +12,10 @@
 //! resolves every pending equation path over the merged arrows with the
 //! parser's own resolver (a dangling element is the same `unknown_arrow` —
 //! code, position, message — the single-document parser raises), and
-//! reports an empty shared interface. The [`Glued`] side tables carry
-//! per-declaration document attribution for the CLI's source field.
+//! reports an empty shared interface. Equations, keys, coproducts, and
+//! pullbacks are enforced multisets in canonical order. The [`Glued`] side
+//! tables carry per-declaration document attribution for the CLI's source
+//! field.
 //!
 //! Rationale: design Decisions 2 and 3 — the pushout identifies shared
 //! structure by declared name, presentation order never decides a merge,
@@ -200,12 +202,23 @@ pub struct CoproductSource {
     pub arrows: Vec<String>,
 }
 
+/// The document that declared a pullback and the documents declaring its
+/// legs and cospan arrows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PullbackSource {
+    /// The declaring document.
+    pub declaring: String,
+    /// Documents declaring the legs then the cospan arrows, the unique
+    /// union in first-declaration order.
+    pub arrows: Vec<String>,
+}
+
 /// The glued model: the union schema and instance plus the attribution
 /// side tables and the empty-interface flag.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Glued {
-    /// The merged schema (objects/arrows by name, equations, keys, and
-    /// coproducts as enforced multisets in canonical order).
+    /// The merged schema (objects/arrows by name, equations, keys,
+    /// coproducts, and pullbacks as enforced multisets in canonical order).
     pub schema: Schema,
     /// The merged instance over the union's sorted dense row space.
     pub instance: Instance,
@@ -221,6 +234,8 @@ pub struct Glued {
     pub key_sources: Vec<KeySource>,
     /// Per-coproduct attribution, aligned with `schema.coproducts`.
     pub coproduct_sources: Vec<CoproductSource>,
+    /// Per-pullback attribution, aligned with `schema.pullbacks`.
+    pub pullback_sources: Vec<PullbackSource>,
     /// Per-arrow declaring documents, first-declaration order.
     pub arrow_sources: BTreeMap<Ident, Vec<String>>,
 }
@@ -245,6 +260,7 @@ pub fn glue(documents: &[Document]) -> Result<Glued, CompositionError> {
     let (keys, key_sources) = resolve::merge_keys(documents, &parts.arrow_sources);
     let (coproducts, coproduct_sources) =
         resolve::merge_coproducts(documents, &parts.arrow_sources);
+    let (pullbacks, pullback_sources) = resolve::merge_pullbacks(documents, &parts.arrow_sources);
     Ok(Glued {
         schema: Schema {
             objects: parts.objects,
@@ -252,6 +268,7 @@ pub fn glue(documents: &[Document]) -> Result<Glued, CompositionError> {
             equations,
             keys,
             coproducts,
+            pullbacks,
         },
         instance,
         empty_interface: interface::empty_interface(documents),
@@ -259,6 +276,7 @@ pub fn glue(documents: &[Document]) -> Result<Glued, CompositionError> {
         equation_sources,
         key_sources,
         coproduct_sources,
+        pullback_sources,
         arrow_sources: parts.arrow_sources,
     })
 }

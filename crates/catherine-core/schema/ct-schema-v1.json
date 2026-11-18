@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "catherine/ct-schema-v1.json",
   "title": "Catherine model document v1 (.ct.json)",
-  "description": "Syntactic surface of the Catherine model document format v1. This artifact covers ONLY the schema-expressible checks: missing required fields, JSON type mismatches, the equation status enum, ident-pattern violations, and duplicate array-identifiers (via uniqueItems). Semantic checks that cross-reference user declarations — unknown arrows in equation paths (unknown_arrow), ill-typed equations whose path endpoints do not match (ill_typed_equation), key declaredness/source typing (invalid_key), and coproduct declaredness/injection typing (invalid_coproduct) — remain kernel-side (crates/catherine-core parse). Unknown major format_version values are also kernel-side: this artifact accepts any MAJOR.MINOR shape, the parser accepts only majors it knows (v1), so editors can validate shape offline while the kernel remains the version authority. Unknown fields are rejected with the kernel-side `unknown_field` code at every defined node; `additionalProperties: false` mirrors that rule wherever the artifact declares an object shape (map-valued sections stay open by design).",
+  "description": "Syntactic surface of the Catherine model document format v1. This artifact covers ONLY the schema-expressible checks: missing required fields, JSON type mismatches, the equation status enum, ident-pattern violations, array-length bounds (e.g. exactly two pullback legs), and duplicate array-identifiers (via uniqueItems). Semantic checks that cross-reference user declarations — unknown arrows in equation paths (unknown_arrow), ill-typed equations whose path endpoints do not match (ill_typed_equation), key declaredness/source typing (invalid_key), coproduct declaredness/injection typing (invalid_coproduct), and pullback apex/leg/cospan typing (invalid_pullback) — remain kernel-side (crates/catherine-core parse). Unknown major format_version values are also kernel-side: this artifact accepts any MAJOR.MINOR shape, the parser accepts only majors it knows (v1), so editors can validate shape offline while the kernel remains the version authority. Unknown fields are rejected with the kernel-side `unknown_field` code at every defined node; `additionalProperties: false` mirrors that rule wherever the artifact declares an object shape (map-valued sections stay open by design).",
   "type": "object",
   "required": ["format_version", "schema", "instance"],
   "additionalProperties": false,
@@ -62,6 +62,11 @@
           "type": "array",
           "items": { "$ref": "#/$defs/coproduct" },
           "description": "Additive 1.5 (coproduct exhaustiveness, add-coproduct-exhaustiveness): closed variant sets over injection arrows into an object. Object declaredness, arrow declaredness, and the V_k → C injection shape remain kernel-side (invalid_coproduct). An absent or empty list is hash-neutral."
+        },
+        "pullbacks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pullback" },
+          "description": "Additive 1.6 (pullback checks, add-pullback-checks): pullback squares — an apex with two legs and a cospan of two arrows sharing one target. The editor checks shape only here: exactly two legs, exactly two cospan arrows, and duplicate-free lists. Apex and arrow declaredness, the legs' sourcing at the apex, and the cospan's common target remain kernel-side (invalid_pullback). An absent or empty list is hash-neutral."
         }
       }
     },
@@ -147,6 +152,11 @@
               "type": "array",
               "items": { "$ref": "#/$defs/coproduct" },
               "description": "A target schema may declare coproducts; they are validated by the same kernel passes (invalid_coproduct)."
+            },
+            "pullbacks": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/pullback" },
+              "description": "A target schema may declare pullbacks; they are validated by the same kernel passes (invalid_pullback)."
             }
           }
         },
@@ -292,6 +302,37 @@
         "status": {
           "enum": ["proposed", "accepted"],
           "description": "Defaults to accepted when absent; proposed coproducts are questions, never constraints on satisfiability."
+        }
+      }
+    },
+    "pullback": {
+      "type": "object",
+      "required": ["apex", "legs", "cospan"],
+      "additionalProperties": false,
+      "properties": {
+        "apex": {
+          "$ref": "#/$defs/ident",
+          "description": "The pullback apex. Declaredness and the legs' sourcing at it are kernel-side (invalid_pullback)."
+        },
+        "legs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ident" },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "description": "The two legs: exactly two and duplicate-free (both editor-side here, kernel-side as invalid_pullback); each must be declared and sourced at the apex."
+        },
+        "cospan": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ident" },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "description": "The two cospan arrows: exactly two and duplicate-free (both editor-side here, kernel-side as invalid_pullback); each must be declared and share one target."
+        },
+        "status": {
+          "enum": ["proposed", "accepted"],
+          "description": "Defaults to accepted when absent; proposed pullbacks are questions, never constraints on satisfiability."
         }
       }
     },

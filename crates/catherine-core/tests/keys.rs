@@ -247,14 +247,14 @@ fn current_major_parses_a_1_5_document() {
     let model = parse(&current).expect("1.5 is the current known minor");
     assert_eq!(model.format_version.minor, 5);
 
-    let too_new = current.replace("\"format_version\": \"1.5\"", "\"format_version\": \"1.6\"");
-    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.6 is unknown") else {
+    let too_new = current.replace("\"format_version\": \"1.5\"", "\"format_version\": \"1.7\"");
+    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.7 is unknown") else {
         panic!("an unknown minor is a semantic rejection");
     };
     assert_eq!(semantic.code, ErrorCode::UnsupportedVersion);
     assert_eq!((semantic.line, semantic.column), (2, 21));
     assert!(
-        semantic.message.contains("known version is 1.5"),
+        semantic.message.contains("known version is 1.6"),
         "the message states the cap: {}",
         semantic.message
     );

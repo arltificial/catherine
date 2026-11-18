@@ -81,6 +81,7 @@ fn schema_for_properties() -> Schema {
         equations: vec![],
         keys: Vec::new(),
         coproducts: Vec::new(),
+        pullbacks: Vec::new(),
     }
 }
 

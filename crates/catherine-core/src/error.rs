@@ -19,8 +19,9 @@
 /// (openspec change `add-rule-lens` phase A), `invalid_key`
 /// (openspec change `add-declarative-keys`),
 /// `incomplete_instance_map` (openspec change `add-instance-morphism`),
-/// and `invalid_coproduct` (openspec change
-/// `add-coproduct-exhaustiveness`) are the extensions so far.
+/// `invalid_coproduct` (openspec change
+/// `add-coproduct-exhaustiveness`), and `invalid_pullback` (openspec
+/// change `add-pullback-checks`) are the extensions so far.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     DuplicateIdent,
@@ -63,11 +64,19 @@ pub enum ErrorCode {
     /// because every case is the same defect class — the message names
     /// the exact defect at its node (the `invalid_key` discipline).
     InvalidCoproduct,
+    /// A declared pullback is not a well-formed square over this schema:
+    /// undeclared apex or arrow, a leg not sourced at the apex, cospan
+    /// arrows whose targets differ, a leg or cospan list whose length is
+    /// not exactly two, or an arrow name repeated across the four
+    /// positions. One code because every case is the same defect class —
+    /// the message names the exact defect at its node (the `invalid_key`
+    /// discipline).
+    InvalidPullback,
     /// A field the accepted format version does not define appeared at a
     /// known document node (top level, schema, equation, key, coproduct,
-    /// instance, additive section, predicate). Rejected, never silently
-    /// dropped: a dropped semantics-bearing key can turn a violated
-    /// constraint into a false clean.
+    /// pullback, instance, additive section, predicate). Rejected, never
+    /// silently dropped: a dropped semantics-bearing key can turn a
+    /// violated constraint into a false clean.
     UnknownField,
 }
 
@@ -91,6 +100,7 @@ impl ErrorCode {
             Self::InvalidKey => "invalid_key",
             Self::IncompleteInstanceMap => "incomplete_instance_map",
             Self::InvalidCoproduct => "invalid_coproduct",
+            Self::InvalidPullback => "invalid_pullback",
             Self::UnknownField => "unknown_field",
         }
     }

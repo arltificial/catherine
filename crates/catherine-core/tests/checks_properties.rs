@@ -314,6 +314,7 @@ fn self_loop_schema() -> Schema {
         equations,
         keys: Vec::new(),
         coproducts: Vec::new(),
+        pullbacks: Vec::new(),
     }
 }
 

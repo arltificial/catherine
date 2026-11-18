@@ -220,6 +220,7 @@ fn parity_schema() -> Schema {
         equations: vec![],
         keys: Vec::new(),
         coproducts: Vec::new(),
+        pullbacks: Vec::new(),
     }
 }
 

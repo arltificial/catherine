@@ -3,10 +3,11 @@
 //!
 //! Responsibilities: represent a parsed `.ct.json` v1 document (schema:
 //! objects, arrows, path equations with rationale + status, and
-//! declarative keys with status; instance: rows and per-arrow value
-//! tables with `None` = dangling) as canonical data: every collection
-//! keyed by `Ident` in a `BTreeMap`, so equal models are indistinguishable
-//! from their key order in the input file (design Decision 4).
+//! declarative keys, coproducts, and pullbacks with status; instance:
+//! rows and per-arrow value tables with `None` = dangling) as canonical
+//! data: every collection keyed by `Ident` in a `BTreeMap`, so equal
+//! models are indistinguishable from their key order in the input file
+//! (design Decision 4).
 //!
 //! Rationale: adapted from specodelic's acset-core contracts (`src/acset/
 //! schema.rs` canonical sorted order and `(source, name)`-unique morphisms;
@@ -21,7 +22,7 @@ use std::collections::BTreeMap;
 
 mod relations;
 
-pub use relations::{Coproduct, Key};
+pub use relations::{Coproduct, Key, Pullback};
 
 /// A declared identifier. The parser guarantees `[A-Za-z_][A-Za-z0-9_]*`
 /// (`invalid_ident` otherwise) — the type carries no validity re-check.
@@ -107,13 +108,15 @@ impl Equation {
 }
 
 /// The schema presentation: objects, generating arrows, path equations,
-/// declarative keys, and declared coproducts. `objects` maps each ident
-/// to `()` — the map *is* the sorted name set (design Decision 4,
-/// adapted from acset-core `canonical_order`). Equations are stored in
-/// canonical order (sorted by `(lhs, rhs, rationale, status)`), keys and
-/// coproducts in canonical order (sorted by `(object, arrows, status)`),
-/// so input file order never reaches the model. The key list is empty in
-/// every pre-1.3 document and the coproduct list in every pre-1.5
+/// declarative keys and coproducts, and declared pullbacks. `objects`
+/// maps each ident to `()` — the map *is* the sorted name set (design
+/// Decision 4, adapted from acset-core `canonical_order`). Equations are
+/// stored in canonical order (sorted by `(lhs, rhs, rationale, status)`),
+/// keys and coproducts in canonical order (sorted by `(object, arrows,
+/// status)`), and pullbacks in canonical order (sorted by `(apex, legs,
+/// cospan, status)`), so input file order never reaches the model. The
+/// key list is empty in every pre-1.3 document, the coproduct list in
+/// every pre-1.5 document, and the pullback list in every pre-1.6
 /// document; an empty list is omitted from canonical bytes (hash
 /// neutrality).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -123,6 +126,7 @@ pub struct Schema {
     pub equations: Vec<Equation>,
     pub keys: Vec<Key>,
     pub coproducts: Vec<Coproduct>,
+    pub pullbacks: Vec<Pullback>,
 }
 
 /// The instance presentation: per-object dense row ids and one partial

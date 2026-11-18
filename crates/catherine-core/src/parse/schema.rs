@@ -5,6 +5,7 @@
 use super::coproducts::RawCoproduct;
 use super::instance_map::RawInstanceMap;
 use super::keys::RawKey;
+use super::pullbacks::RawPullback;
 use super::rule_presentation::RawRulePresentation;
 use super::schema_map::RawSchemaMap;
 use super::spans::Spans;
@@ -46,6 +47,8 @@ pub(super) struct RawSchema {
     pub(super) keys: Vec<RawKey>,
     #[serde(default)]
     pub(super) coproducts: Vec<RawCoproduct>,
+    #[serde(default)]
+    pub(super) pullbacks: Vec<RawPullback>,
 }
 
 #[derive(Deserialize)]
@@ -89,8 +92,10 @@ pub(super) struct RawInstance {
 /// 4 = the `instance_map` section (add-instance-morphism; absent or
 /// empty is hash-neutral);
 /// 5 = the `schema.coproducts` section (add-coproduct-exhaustiveness;
-/// absent or empty is hash-neutral).
-const KNOWN_MINOR: u64 = 5;
+/// absent or empty is hash-neutral);
+/// 6 = the `schema.pullbacks` section (add-pullback-checks; absent or
+/// empty is hash-neutral).
+const KNOWN_MINOR: u64 = 6;
 
 /// The version gate: `MAJOR.MINOR`, present, well-formed, known major, minor within `KNOWN_MINOR`.
 pub(super) fn check_version(

@@ -3,8 +3,9 @@
 //! error at its line, never silently dropped.
 //!
 //! Responsibilities: walk every raw document node (top level, schema,
-//! arrow, equation, key, coproduct, instance, instance map, schema map,
-//! rule presentation, predicate) with one otherwise-valid document each,
+//! arrow, equation, key, coproduct, pullback declaration, instance,
+//! instance map, schema map, rule presentation, predicate) with one
+//! otherwise-valid document each,
 //! and pin the code, the offending line, and the message naming the field;
 //! keep the empty/absent sections legal so strictness never rejects a
 //! well-formed document.
@@ -122,7 +123,8 @@ fn document_cases() -> Vec<Case> {
 }
 
 /// The additive sections and the predicate language: instance map, schema
-/// map, and a predicate field its `kind` does not define.
+/// map, a pullback declaration, and a predicate field its `kind` does not
+/// define.
 fn declared_section_cases() -> Vec<Case> {
     let rule = r#"{"format_version": "1.5",
   "schema": {"objects": ["A"], "arrows": [], "equations": []},
@@ -133,7 +135,36 @@ fn declared_section_cases() -> Vec<Case> {
     "rules": [{"name": "r", "predicate": {"kind": "cmp", "column": "x", "op": "gt", "value": 1, "extra": 2}, "action": "a"}]
   }
 }"#;
+    // A pullback declaration is a closed object too: an unknown key inside
+    // it is rejected at the same node, not dropped.
+    let pullback = r#"{"format_version": "1.6",
+  "schema": {"objects": ["A", "B", "C", "P"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "C"},
+      {"name": "g", "src": "B", "tgt": "C"},
+      {"name": "p1", "src": "P", "tgt": "A"},
+      {"name": "p2", "src": "P", "tgt": "B"}
+    ],
+    "equations": [],
+    "pullbacks": [{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "g"]}]},
+  "instance": {"rows": {"A": [], "B": [], "C": [], "P": []},
+    "tables": {"f": {}, "g": {}, "p1": {}, "p2": {}}}
+}"#;
     vec![
+        Case {
+            document: pullback.replace(
+                r#""cospan": ["f", "g"]"#,
+                r#""cospan": ["f", "g"], "note": "why""#,
+            ),
+            field: "note",
+        },
+        Case {
+            document: pullback.replace(
+                r#""legs": ["p1", "p2"]"#,
+                r#""legs": ["p1", "p2"], "leg": "p1""#,
+            ),
+            field: "leg",
+        },
         Case {
             document: perturbs(
                 r#"    "tables": {"f": {"a1": "b1"}, "g": {"a1": "c1"}}

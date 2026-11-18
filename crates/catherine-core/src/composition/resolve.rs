@@ -3,9 +3,9 @@
 //!
 //! Responsibilities: resolve every input's equations (each document's
 //! pending list over the merged arrows, a standalone document's already-
-//! resolved list) and keep every input's equations and keys as an
-//! enforced multiset in canonical order, with the per-declaration source
-//! attribution.
+//! resolved list) and keep every input's equations, keys, coproducts, and
+//! pullbacks as an enforced multiset in canonical order, with the
+//! per-declaration source attribution.
 //!
 //! Rationale: design Decision 3 — the resolution function is the parser's
 //! `check_equations`, called with the document's own arrow map for a
@@ -16,8 +16,10 @@
 //! equations are then stored in canonical order, exactly as one document's
 //! parse stores them.
 
-use super::{CompositionError, CoproductSource, Document, EquationSource, KeySource};
-use crate::model::{Arrow, Coproduct, Equation, Ident, Key, Path};
+use super::{
+    CompositionError, CoproductSource, Document, EquationSource, KeySource, PullbackSource,
+};
+use crate::model::{Arrow, Coproduct, Equation, Ident, Key, Path, Pullback};
 use std::collections::BTreeMap;
 
 /// Merge every input's equations in canonical order, resolving each
@@ -113,6 +115,37 @@ pub(super) fn merge_coproducts(
                     CoproductSource {
                         declaring: doc.name.clone(),
                         arrows: path_sources(&Path(coproduct.arrows.clone()), arrow_sources),
+                    },
+                )
+            })
+        })
+        .collect();
+    pairs.sort_by(|(a, _), (b, _)| a.sort_key().cmp(&b.sort_key()));
+    pairs.into_iter().unzip()
+}
+
+/// Pullbacks are never merged away: every declaration is kept in
+/// canonical order and attributed to its declaring document (the keys
+/// rule, reused verbatim). The attributed arrows are the unique union of
+/// the legs and then the cospan, in first-declaration order.
+pub(super) fn merge_pullbacks(
+    documents: &[Document],
+    arrow_sources: &BTreeMap<Ident, Vec<String>>,
+) -> (Vec<Pullback>, Vec<PullbackSource>) {
+    let mut pairs: Vec<(Pullback, PullbackSource)> = documents
+        .iter()
+        .flat_map(|doc| {
+            doc.model.schema.pullbacks.iter().map(move |pullback| {
+                let mut arrows = path_sources(&Path(pullback.legs.clone()), arrow_sources);
+                extend_unique(
+                    &mut arrows,
+                    &path_sources(&Path(pullback.cospan.clone()), arrow_sources),
+                );
+                (
+                    pullback.clone(),
+                    PullbackSource {
+                        declaring: doc.name.clone(),
+                        arrows,
                     },
                 )
             })

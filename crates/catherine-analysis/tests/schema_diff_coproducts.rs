@@ -67,6 +67,7 @@ fn schema(coproducts: Vec<Coproduct>) -> Schema {
         equations: Vec::new(),
         keys: Vec::new(),
         coproducts,
+        pullbacks: Vec::new(),
     }
 }
 

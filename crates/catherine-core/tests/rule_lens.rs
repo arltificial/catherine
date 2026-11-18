@@ -269,14 +269,14 @@ fn column_order_is_presentation_but_rule_order_is_identity() {
 }
 
 #[test]
-fn the_additive_minor_gate_knows_1_5() {
-    let too_new = doc(VALID).replace("\"format_version\": \"1.2\"", "\"format_version\": \"1.6\"");
-    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.6 is unknown") else {
+fn the_additive_minor_gate_knows_1_6() {
+    let too_new = doc(VALID).replace("\"format_version\": \"1.2\"", "\"format_version\": \"1.7\"");
+    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.7 is unknown") else {
         panic!("an unknown minor is a labeled rejection");
     };
     assert_eq!(semantic.code, ErrorCode::UnsupportedVersion);
     assert!(
-        semantic.message.contains("known version is 1.5"),
+        semantic.message.contains("known version is 1.6"),
         "the gate names the known version: {}",
         semantic.message
     );

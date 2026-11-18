@@ -7,6 +7,7 @@ use crate::model::{
 };
 use serde_json::{Map, Value};
 
+use super::pullbacks::pullback_values;
 use super::writer::write_value;
 
 /// Canonical serialization: a valid `.ct.json` v1 document (dense
@@ -106,38 +107,31 @@ fn table_value(cells: &[Option<RowId>]) -> Value {
     Value::Object(emitted)
 }
 
-/// The canonical `schema` section: sorted objects, arrows, and equations
-/// (equations sorted by their canonical sort key — the parser already
-/// stores them sorted, but constructed values must serialize the same
-/// way, specodelic's `schema_export` discipline).
+/// The canonical `schema` section: sorted objects, arrows, equations,
+/// keys, coproducts, and pullbacks (equations sorted by their canonical
+/// sort key — the parser already stores them sorted, but constructed
+/// values must serialize the same way, specodelic's `schema_export`
+/// discipline).
 fn schema_value(model: &Model) -> Value {
     schema_section(&model.schema)
 }
 
 /// The canonical `schema` section: sorted objects, arrows, equations,
-/// keys, and coproducts (equations, keys, and coproducts sorted by their
-/// canonical sort keys — the parser already stores them sorted, but
-/// constructed values must serialize the same way, specodelic's
-/// `schema_export` discipline). An empty key or coproduct list is
-/// omitted entirely: pre-1.3 and pre-1.5 documents keep their exact
-/// canonical bytes and hash (design Decision 1).
+/// keys, coproducts, and pullbacks (equations, keys, coproducts, and
+/// pullbacks sorted by their canonical sort keys — the parser already
+/// stores them sorted, but constructed values must serialize the same
+/// way, specodelic's `schema_export` discipline). An empty key, coproduct,
+/// or pullback list is omitted entirely: pre-1.3, pre-1.5, and pre-1.6
+/// documents keep their exact canonical bytes and hash (design
+/// Decision 1).
 fn schema_section(schema: &Schema) -> Value {
     let mut equations: Vec<&Equation> = schema.equations.iter().collect();
     equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
     let mut keys: Vec<&Key> = schema.keys.iter().collect();
     keys.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
     let coproducts = coproduct_values(schema);
-    let arrows: Vec<Value> = schema
-        .arrows
-        .iter()
-        .map(|(name, arrow)| {
-            obj([
-                ("name", string(&name.0)),
-                ("src", string(&arrow.src.0)),
-                ("tgt", string(&arrow.tgt.0)),
-            ])
-        })
-        .collect();
+    let pullbacks = pullback_values(schema);
+    let arrows = arrow_values(schema);
     let equation_values: Vec<Value> = equations.iter().map(|e| equation_value(e)).collect();
     let mut entries = vec![
         (
@@ -156,7 +150,25 @@ fn schema_section(schema: &Schema) -> Value {
     if !coproducts.is_empty() {
         entries.push(("coproducts", Value::Array(coproducts)));
     }
+    if !pullbacks.is_empty() {
+        entries.push(("pullbacks", Value::Array(pullbacks)));
+    }
     obj_vec(entries)
+}
+
+/// The canonical arrow entries, in sorted name order.
+fn arrow_values(schema: &Schema) -> Vec<Value> {
+    schema
+        .arrows
+        .iter()
+        .map(|(name, arrow)| {
+            obj([
+                ("name", string(&name.0)),
+                ("src", string(&arrow.src.0)),
+                ("tgt", string(&arrow.tgt.0)),
+            ])
+        })
+        .collect()
 }
 
 /// The canonical coproduct entries, sorted by `(object, arrows, status)`
@@ -337,7 +349,7 @@ fn equation_value(equation: &Equation) -> Value {
     ])
 }
 
-fn obj<const N: usize>(entries: [(&str, Value); N]) -> Value {
+pub(super) fn obj<const N: usize>(entries: [(&str, Value); N]) -> Value {
     obj_vec(entries.into_iter().collect())
 }
 
@@ -350,7 +362,7 @@ fn obj_vec(entries: Vec<(&str, Value)>) -> Value {
     )
 }
 
-fn string(s: &str) -> Value {
+pub(super) fn string(s: &str) -> Value {
     Value::String(s.to_string())
 }
 

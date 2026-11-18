@@ -49,6 +49,7 @@ fn bowling_schema() -> Schema {
         }],
         keys: Vec::new(),
         coproducts: Vec::new(),
+        pullbacks: Vec::new(),
     }
 }
 

@@ -52,6 +52,7 @@ pub(crate) fn schema(
         equations,
         keys: Vec::new(),
         coproducts: Vec::new(),
+        pullbacks: Vec::new(),
     }
 }
 

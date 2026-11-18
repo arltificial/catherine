@@ -183,6 +183,7 @@ pub fn assemble(case: &FixtureCase) -> (Schema, Instance) {
             equations: case.equations.clone(),
             keys: Vec::new(),
             coproducts: Vec::new(),
+            pullbacks: Vec::new(),
         },
         Instance {
             rows: rows_of(&case.row_counts),

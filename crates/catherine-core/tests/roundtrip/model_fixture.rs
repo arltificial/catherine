@@ -94,6 +94,7 @@ fn build_model(
             equations,
             keys: Vec::new(),
             coproducts: Vec::new(),
+            pullbacks: Vec::new(),
         },
         instance: Instance { rows, values },
         schema_map: None,

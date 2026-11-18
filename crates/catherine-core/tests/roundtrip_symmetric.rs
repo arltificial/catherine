@@ -89,6 +89,7 @@ fn cycle_model(n: usize) -> Model {
             equations: vec![],
             keys: Vec::new(),
             coproducts: Vec::new(),
+            pullbacks: Vec::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("a", n)]),
@@ -113,6 +114,7 @@ fn involution_model(n: usize) -> Model {
             equations: vec![],
             keys: Vec::new(),
             coproducts: Vec::new(),
+            pullbacks: Vec::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("p", n), ("q", n)]),
@@ -141,6 +143,7 @@ fn twins_model(n: usize) -> Model {
             equations: vec![],
             keys: Vec::new(),
             coproducts: Vec::new(),
+            pullbacks: Vec::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("a", n)]),
@@ -163,6 +166,7 @@ fn collapse_model(n: usize) -> Model {
             equations: vec![],
             keys: Vec::new(),
             coproducts: Vec::new(),
+            pullbacks: Vec::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("a", n)]),
