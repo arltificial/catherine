@@ -256,6 +256,17 @@ proptest! {
                         "the label mirrors the key's status"
                     );
                 }
+                // The generated fixture declares no pullbacks
+                // (`fixture::assemble` always fills `pullbacks` with
+                // `Vec::new()`), so the pullback pass has nothing to
+                // evaluate; this arm stays honest by refusing a witness
+                // the fixture cannot justify.
+                FindingKind::Violation(ViolationWitness::Pullback(_)) => {
+                    prop_assert!(
+                        false,
+                        "the generated fixture declares no pullbacks, so the check emits no pullback witness"
+                    );
+                }
                 FindingKind::Redundant(_)
                 | FindingKind::Contradiction(_)
                 | FindingKind::Underconstraint(_) => {

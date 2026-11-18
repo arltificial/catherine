@@ -18,9 +18,13 @@
 //! Rationale: the epistemic label rides on every finding in the JSON
 //! payload; in human text the kernel-computed default (`executed`)
 //! stays off the line so the §5 transcript is byte-reproducible, while
-//! `hypothesized`/`unknown` findings append their label. The three
-//! analysis kinds have no producer until P4; their renderings are
-//! pinned by unit tests over constructed findings and their phrasing
+//! `hypothesized`/`unknown` findings append their label. A pullback
+//! violation keeps the block's two-line shape: the head names the
+//! declaration (index, apex, legs, cospan) and the witness line names
+//! only the verdict's offender — the failed square's row and composed
+//! values, the uncovered fiber pair, or the duplicate-projecting rows.
+//! The three analysis kinds have no producer until P4; their renderings
+//! are pinned by unit tests over constructed findings and their phrasing
 //! stays minimal — P4's producers own the richer domain wording.
 //!
 //! Layout: the §5 finding renderer lives here; the labeled-error type
@@ -59,9 +63,9 @@ pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, Rule
 
 use catherine_core::findings::{
     CoproductWitness, DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding,
-    FindingKind, KeyWitness, NaturalityWitness, ViolationWitness,
+    FindingKind, KeyWitness, NaturalityWitness, PullbackWitness, ViolationWitness,
 };
-use catherine_core::model::{Ident, Path, RowId, Schema};
+use catherine_core::model::{Ident, Path, Pullback, RowId, Schema};
 
 /// The CLI version carried in every envelope's `cli_version`.
 pub const CLI_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -123,10 +127,12 @@ pub(super) fn render_one(finding: &Finding, schema: &Schema) -> Vec<String> {
 /// ≠ <rhs path>` then the two-space-indented witness line `at row
 /// <Object#n>: lhs=<Object#n> rhs=<Object#n>`; the key branch renders
 /// `violation: key-<canonical index> <object>(<arrows>)` then
-/// `at rows <Object#n>, <Object#m>`. The witness's declaration and the
-/// row objects come from the same schema the kernel checked, so the
-/// lookups are total for every kernel-emitted witness; the bare-number
-/// fallbacks exist for totality under programmatically assembled input.
+/// `at rows <Object#n>, <Object#m>`; the pullback branch renders
+/// `violation: pullback-<canonical index> <apex>(<legs> → <cospan>)`
+/// then the verdict's offender. The witness's declaration and the row
+/// objects come from the same schema the kernel checked, so the lookups
+/// are total for every kernel-emitted witness; the bare-number fallbacks
+/// exist for totality under programmatically assembled input.
 fn render_violation(w: &ViolationWitness, schema: &Schema, label: &str) -> Vec<String> {
     match w {
         ViolationWitness::Equation(witness) => render_equation_violation(witness, schema, label),
@@ -135,6 +141,7 @@ fn render_violation(w: &ViolationWitness, schema: &Schema, label: &str) -> Vec<S
             render_naturality_violation(witness, schema, label)
         }
         ViolationWitness::Coproduct(witness) => render_coproduct_violation(witness, schema, label),
+        ViolationWitness::Pullback(witness) => render_pullback_violation(witness, schema, label),
     }
 }
 
@@ -165,6 +172,74 @@ fn render_coproduct_violation(w: &CoproductWitness, schema: &Schema, label: &str
         )
     };
     vec![head, detail]
+}
+
+/// The pullback violation block: the declaration's canonical index, its
+/// apex and arrow lists, then the verdict's offender — the apex row and
+/// both composed values (commutes), the uncovered fiber pair (covers),
+/// or the two apex rows projecting to one pair (unique). The objects on
+/// the witness line come from the declaration's apex and its cospan
+/// arrows, so a kernel-emitted witness always spells `Object#n`; a
+/// programmatically assembled witness whose declaration is missing falls
+/// back to bare row numbers.
+fn render_pullback_violation(w: &PullbackWitness, schema: &Schema, label: &str) -> Vec<String> {
+    let pullback = schema.pullbacks.get(w.pullback());
+    let head = match pullback {
+        Some(pullback) => format!(
+            "violation: pullback-{} {}({} → {}){}",
+            w.pullback(),
+            pullback.apex.0,
+            arrow_list(&pullback.legs),
+            arrow_list(&pullback.cospan),
+            label
+        ),
+        None => format!("violation: pullback-{}{}", w.pullback(), label),
+    };
+    vec![head, pullback_detail(w, pullback, schema)]
+}
+
+/// The pullback witness line: one shape per verdict, over the object
+/// names the declaration supplies.
+fn pullback_detail(w: &PullbackWitness, pullback: Option<&Pullback>, schema: &Schema) -> String {
+    let apex = pullback.map(|pullback| pullback.apex.0.as_str());
+    let (a, c_left) = cospan_ends(schema, pullback, 0);
+    let (b, c_right) = cospan_ends(schema, pullback, 1);
+    let c = c_left.or(c_right);
+    match w {
+        PullbackWitness::Commutes { row, lhs, rhs, .. } => format!(
+            "  at row {}: lhs={} rhs={}",
+            row_at(apex, *row),
+            row_at(c, *lhs),
+            row_at(c, *rhs),
+        ),
+        PullbackWitness::Covers { pair, .. } => format!(
+            "  uncovered pair {}, {}",
+            row_at(a, pair[0]),
+            row_at(b, pair[1])
+        ),
+        PullbackWitness::Unique { rows, .. } => format!(
+            "  at rows {}, {}: both project to one pair",
+            row_at(apex, rows[0]),
+            row_at(apex, rows[1])
+        ),
+    }
+}
+
+/// The `index`-th cospan arrow's source and target objects, read from the
+/// declaration and the schema; absent when either lookup fails (the
+/// totality fallback).
+fn cospan_ends<'a>(
+    schema: &'a Schema,
+    pullback: Option<&Pullback>,
+    index: usize,
+) -> (Option<&'a str>, Option<&'a str>) {
+    let arrow = pullback
+        .and_then(|pullback| pullback.cospan.get(index))
+        .and_then(|name| schema.arrows.get(name));
+    match arrow {
+        Some(arrow) => (Some(arrow.src.0.as_str()), Some(arrow.tgt.0.as_str())),
+        None => (None, None),
+    }
 }
 
 /// The naturality violation block: the arrow, the source row, and both
@@ -279,6 +354,16 @@ fn arrows_string(arrows: &[Ident]) -> String {
         .map(|ident| ident.0.as_str())
         .collect::<Vec<_>>()
         .join("∘")
+}
+
+/// An arrow list as a declaration spells it: names joined with `, ` (a
+/// leg/cospan list is a relation, not a composed path).
+fn arrow_list(arrows: &[Ident]) -> String {
+    arrows
+        .iter()
+        .map(|ident| ident.0.as_str())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// A row as the transcript spells it: `Object#n` when the object is

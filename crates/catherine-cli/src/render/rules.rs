@@ -11,11 +11,16 @@
 //! CLI prints it, never re-serializes it (the `findings_envelope`
 //! precedent). The human line is deliberately one line per finding (the
 //! rules surface is a table review, not the §5 equation transcript), and
-//! a bounded non-answer keeps its own honest line: `UNKNOWN` is never
+//! every witness shape has an arm — including a programmatically
+//! assembled pullback, which names its declaration index and offender
+//! instead of panicking — so the lens is total over the taxonomy. A
+//! bounded non-answer keeps its own honest line: `UNKNOWN` is never
 //! rendered as clean.
 
 use super::{path_string, CLI_VERSION};
-use catherine_core::findings::{DomainQuestion, Finding, FindingKind, ViolationWitness};
+use catherine_core::findings::{
+    DomainQuestion, Finding, FindingKind, PullbackWitness, ViolationWitness,
+};
 use catherine_core::model::RulePresentation;
 use catherine_core::rule_lens::RuleScope;
 use genesis::envelope::{Envelope, EnvelopeKind, Warning};
@@ -95,29 +100,7 @@ pub fn render_rules(findings: &[Finding], presentation: &RulePresentation) -> Ve
 /// non-default epistemic label.
 fn finding_line(finding: &Finding, presentation: &RulePresentation) -> String {
     let head = match &finding.kind {
-        FindingKind::Violation(ViolationWitness::Equation(witness)) => format!(
-            "violation: rules `{}` and `{}` disagree on input #{}",
-            rule_name(presentation, witness.lhs.0),
-            rule_name(presentation, witness.rhs.0),
-            witness.row.0
-        ),
-        // The rule lens emits equation witnesses only; a programmatically
-        // assembled key violation still renders its rows rather than
-        // panicking (totality).
-        FindingKind::Violation(ViolationWitness::Key(witness)) => format!(
-            "violation: key-{} collides on rows #{} and #{}",
-            witness.key, witness.rows[0].0, witness.rows[1].0
-        ),
-        FindingKind::Violation(ViolationWitness::Naturality(witness)) => format!(
-            "violation: naturality of {} at row #{}",
-            witness.arrow.0, witness.source_row.0
-        ),
-        // The rule lens emits equation witnesses only; a programmatically
-        // assembled coproduct violation still renders its row (totality).
-        FindingKind::Violation(ViolationWitness::Coproduct(witness)) => format!(
-            "violation: coproduct-{} at row #{}",
-            witness.coproduct, witness.row.0
-        ),
+        FindingKind::Violation(witness) => violation_head(witness, presentation),
         FindingKind::Underconstraint(witness) => underconstraint_head(&witness.case),
         FindingKind::Redundant(witness) => format!(
             "redundant: {} derives from {}",
@@ -131,6 +114,56 @@ fn finding_line(finding: &Finding, presentation: &RulePresentation) -> String {
         ),
     };
     format!("{head}{}", label_suffix(finding))
+}
+
+/// One violation's line head: an arm per witness shape. The rule lens
+/// emits equation witnesses only; the key, naturality, coproduct, and
+/// pullback arms keep the line total for programmatically assembled
+/// witnesses — the pullback arm names the declaration's index and the
+/// verdict's offender.
+fn violation_head(witness: &ViolationWitness, presentation: &RulePresentation) -> String {
+    match witness {
+        ViolationWitness::Equation(witness) => format!(
+            "violation: rules `{}` and `{}` disagree on input #{}",
+            rule_name(presentation, witness.lhs.0),
+            rule_name(presentation, witness.rhs.0),
+            witness.row.0
+        ),
+        ViolationWitness::Key(witness) => format!(
+            "violation: key-{} collides on rows #{} and #{}",
+            witness.key, witness.rows[0].0, witness.rows[1].0
+        ),
+        ViolationWitness::Naturality(witness) => format!(
+            "violation: naturality of {} at row #{}",
+            witness.arrow.0, witness.source_row.0
+        ),
+        ViolationWitness::Coproduct(witness) => format!(
+            "violation: coproduct-{} at row #{}",
+            witness.coproduct, witness.row.0
+        ),
+        ViolationWitness::Pullback(witness) => format!(
+            "violation: pullback-{} {}",
+            witness.pullback(),
+            pullback_offender(witness)
+        ),
+    }
+}
+
+/// The pullback verdict's offender in text: the failed row, the
+/// uncovered pair, or the duplicate-projecting row pair.
+fn pullback_offender(witness: &PullbackWitness) -> String {
+    match witness {
+        PullbackWitness::Commutes { row, .. } => format!("at row #{}", row.0),
+        PullbackWitness::Covers { pair, .. } => {
+            format!("uncovered pair #{}, #{}", pair[0].0, pair[1].0)
+        }
+        PullbackWitness::Unique { rows, .. } => {
+            format!(
+                "duplicate projection at rows #{}, #{}",
+                rows[0].0, rows[1].0
+            )
+        }
+    }
 }
 
 /// The underconstraint head: the uncovered input class or the parallel

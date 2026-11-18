@@ -11,7 +11,8 @@
 //! `illustrated` do not exist in the type, so the kernel cannot fabricate
 //! them — those labels belong to later layers, if ever), and the shared
 //! witness payloads the kernel walk constructs once ([`EquationWitness`],
-//! [`KeyWitness`], the [`ViolationWitness`] union, [`DanglingWitness`]).
+//! [`KeyWitness`], the [`ViolationWitness`] union, [`DanglingWitness`],
+//! [`PullbackWitness`]).
 //! Kind names the *shape* of the fact; the label names its *weight*: an
 //! accepted-equation failure and a proposed-equation failure are both
 //! violation-shaped findings, countable apart by label, never merged into
@@ -27,7 +28,8 @@
 //! Ordering is total and documented: by kind (variant declaration order
 //! of [`FindingKind`]), then witness ids (canonical id order inside each
 //! witness; within a violation, the witness variant order — equations
-//! before keys — then ids), with the label as the final tiebreak —
+//! before keys before naturality before coproducts before pullbacks —
+//! then ids), with the label as the final tiebreak —
 //! `check` sorts its result under this order, so repeated checks of the
 //! same model serialize byte-identically. Sorted findings make accumulation
 //! order-free: per-equation batches of the same model concatenate as a
@@ -49,6 +51,8 @@
 //! structs so the kernel walk constructs each witness once; instance
 //! build reports ([`crate::instance::TypingViolation`],
 //! [`crate::instance::DanglingCell`]) stay build reports, not findings.
+//! The pullback arm is an additive member of the same union
+//! (`add-pullback-checks`, format 1.6), not a new kind.
 
 use crate::model::{Ident, Path, RowId};
 use serde::{Deserialize, Serialize};
@@ -141,17 +145,75 @@ pub struct CoproductWitness {
     pub injections: Vec<Ident>,
 }
 
+/// The pullback witness: a declared pullback square whose universal
+/// property failed for one verdict. The declaration is named by its
+/// canonical index (as [`EquationWitness`] names an equation), and the
+/// offender is verdict-specific: an apex row with both composed values
+/// (commutes), an uncovered fiber pair (covers), or two apex rows sharing
+/// a projection (unique). The arms serialize untagged; their field sets
+/// (`pullback`/`row`/`lhs`/`rhs`, `pullback`/`pair`,
+/// `pullback`/`rows`) are disjoint from each other and from every other
+/// violation witness, so the encoding stays unambiguous without
+/// consulting the schema.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PullbackWitness {
+    /// A square row's two composed cospan values disagree.
+    Commutes {
+        /// The pullback's index in `Schema::pullbacks` (canonical order).
+        pullback: usize,
+        /// The failing apex row.
+        row: RowId,
+        /// The composed `f ∘ p1` value.
+        lhs: RowId,
+        /// The composed `g ∘ p2` value.
+        rhs: RowId,
+    },
+    /// No apex row projects to this fiber pair — the square under the
+    /// cospan.
+    Covers {
+        /// The pullback's index in `Schema::pullbacks` (canonical order).
+        pullback: usize,
+        /// The uncovered pair: an `A` row and a `B` row sharing a cospan
+        /// target.
+        pair: [RowId; 2],
+    },
+    /// Two apex rows project to the same fiber pair — the legs are not
+    /// jointly injective.
+    Unique {
+        /// The pullback's index in `Schema::pullbacks` (canonical order).
+        pullback: usize,
+        /// The two duplicated-projecting apex rows, ascending.
+        rows: [RowId; 2],
+    },
+}
+
+impl PullbackWitness {
+    /// The declaration's canonical index, shared by every verdict shape.
+    pub fn pullback(&self) -> usize {
+        match self {
+            PullbackWitness::Commutes { pullback, .. }
+            | PullbackWitness::Covers { pullback, .. }
+            | PullbackWitness::Unique { pullback, .. } => *pullback,
+        }
+    }
+}
+
 /// The violation witness's shapes: an equation failure, a key collision,
-/// a naturality square, or a coproduct coverage/disjointness failure
-/// (design Decision 3; the naturality arm is the additive 1.4 shape from
+/// a naturality square, a coproduct coverage/disjointness failure, or a
+/// pullback square's commutes/covers/unique failure (design Decision 3;
+/// the naturality arm is the additive 1.4 shape from
 /// `add-instance-morphism`, the coproduct arm the additive 1.5 shape from
-/// `add-coproduct-exhaustiveness`). Serialized untagged — the serialized
-/// field sets are disjoint (`equation`/`row`/`lhs`/`rhs`,
+/// `add-coproduct-exhaustiveness`, the pullback arm the additive 1.6
+/// shape from `add-pullback-checks`). Serialized untagged — the
+/// serialized field sets are disjoint (`equation`/`row`/`lhs`/`rhs`,
 /// `key`/`rows`, `arrow`/`source_row`/`lhs`/`rhs`,
-/// `coproduct`/`row`/`injections`), so the equation JSON stays
-/// byte-identical and deserialization is unambiguous. The variant order
-/// is the taxonomy's kind-internal order: equations before keys before
-/// naturality before coproducts.
+/// `coproduct`/`row`/`injections`,
+/// `pullback`/`row`/`lhs`/`rhs`, `pullback`/`pair`,
+/// `pullback`/`rows`), so the equation JSON stays byte-identical and
+/// deserialization is unambiguous. The variant order is the taxonomy's
+/// kind-internal order: equations before keys before naturality before
+/// coproducts before pullbacks.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ViolationWitness {
@@ -163,6 +225,8 @@ pub enum ViolationWitness {
     Naturality(NaturalityWitness),
     /// A declared coproduct's coverage or disjointness claim failed.
     Coproduct(CoproductWitness),
+    /// A declared pullback's commutes, covers, or unique verdict failed.
+    Pullback(PullbackWitness),
 }
 
 /// The dangling witness: an arrow cell that holds no row, naming the
@@ -246,8 +310,8 @@ pub enum FindingKind {
     /// A constraint failed: the fact's shape for both epistemic weights —
     /// `executed` when the failed constraint is accepted, `hypothesized`
     /// when it is proposed. The witness is the untagged union of the
-    /// equation witness and the key witness; the kind names the shape,
-    /// the label names the weight.
+    /// violation witnesses (equation, key, naturality, coproduct,
+    /// pullback); the kind names the shape, the label names the weight.
     Violation(ViolationWitness),
     /// An arrow cell holds no row: paths traversing the cell
     /// short-circuit there; the affected row is never also a violation.

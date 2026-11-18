@@ -11,8 +11,10 @@
 //! Rationale: composition is one execution path over the kernel's checked
 //! pushout (design Decision 1) — the CLI never re-implements the merge.
 //! Source attribution is additive presentation data built from the glue's
-//! side tables, so the single-document envelope (which never runs this
-//! module) stays byte-identical.
+//! side tables — equation, key, coproduct, and pullback declarations keep
+//! their own tables, all aligned with their schema sections — so the
+//! single-document envelope (which never runs this module) stays
+//! byte-identical.
 
 use crate::render::{self, LabeledError, SourcedFinding};
 use catherine_core::composition::{glue, parse_document, CompositionError, Document, Glued};
@@ -117,6 +119,10 @@ fn sources_for(finding: &Finding, glued: &Glued) -> Option<Vec<String>> {
             .coproduct_sources
             .get(witness.coproduct)
             .map(coproduct_docs),
+        FindingKind::Violation(ViolationWitness::Pullback(witness)) => glued
+            .pullback_sources
+            .get(witness.pullback())
+            .map(pullback_docs),
         FindingKind::Dangling(witness) => glued
             .arrow_sources
             .get(&witness.arrow)
@@ -151,6 +157,14 @@ fn key_docs(source: &catherine_core::composition::KeySource) -> Vec<String> {
 /// A coproduct's declaring document plus the documents behind its
 /// injection arrows.
 fn coproduct_docs(source: &catherine_core::composition::CoproductSource) -> Vec<String> {
+    let mut documents = vec![source.declaring.clone()];
+    extend_unique(&mut documents, &source.arrows);
+    documents
+}
+
+/// A pullback's declaring document plus the documents behind its legs
+/// and cospan arrows.
+fn pullback_docs(source: &catherine_core::composition::PullbackSource) -> Vec<String> {
     let mut documents = vec![source.declaring.clone()];
     extend_unique(&mut documents, &source.arrows);
     documents

@@ -79,7 +79,7 @@ only, zero findings). A weakened edit is a finding-bearing run (exit 3).
 
 | Finding | Meaning | What to do |
 |---|---|---|
-| `violation` | a declared equation is false at a concrete row, a declared key (`schema.keys`, 1.3) repeats a tuple, or a declared coproduct (`schema.coproducts`, 1.5) leaves a row outside every injection image or in two images | fix the data or the declaration; the witness names the row/equation, the two colliding rows, or the row and both covering injections |
+| `violation` | a declared equation is false at a concrete row, a declared key (`schema.keys`, 1.3) repeats a tuple, a declared coproduct (`schema.coproducts`, 1.5) leaves a row outside every injection image or in two images, or a declared pullback (`schema.pullbacks`, 1.6) fails one of its three verdicts: `commutes` (an apex row's two leg compositions disagree), `covers` (a fiber pair over a common cospan target has no apex row), or `unique` (two apex rows project to the same pair) | fix the data or the declaration; the witness names the row/equation, the two colliding rows, the row and both covering injections, or the pullback's canonical index with the offending row or pair |
 | `dangling` | a declared arrow has no value at a source row — an absent cell or an explicit `null` (a partial map) | fill the missing cell, or make the arrow total if the domain says every row has one. The witness names the arrow and the source row. An arrow naming a row that does not exist is *not* this finding: it is rejected at parse time with a labeled error (exit 1), before any check runs |
 | `contradiction` | no instance can satisfy the constraints (bounded search) | the *spec* is impossible as declared; negotiate which constraint yields |
 | `underconstraint` | parallel paths exist with no declared equation *(hypothesis)* | a domain question: must they agree, might they, or should they differ? Declare an equation only if the domain says so |
@@ -237,17 +237,19 @@ Equally load-bearing — each line with its source:
   mid-game scoring needs history the schema cannot see).
 - **No Σ/Π migrations yet.** Δ first (P7); Σ/Π only after Δ is validated —
   "Π does not yet" (DESIGN §4.3). Kan extensions are named, gated, not shipped.
-- **No sketch cones yet.** The vendored methodology's limit-side step-3
-  constructions — pullbacks for compatibility and monomorphisms for
-  uniqueness (Johnson & Rosebrugh sketch data models) — are advisory only in
-  v1: the kernel executes **path equations** and the declared `schema.keys`
-  and `schema.coproducts` constraints, not general limit cones (THEORY §9:
-  ACsets implement Spivak's model, not the full Johnson sketch methodology —
-  enforcement is the contribution). Declaring a cone or a pullback in this
-  version checks nothing; treat it as prose until cones ship. Coproducts are
+- **Pullback squares are executed; general sketch cones are not.** The
+  vendored methodology's limit-side step-3 constructions (pullbacks for
+  compatibility, monomorphisms for uniqueness; Johnson & Rosebrugh sketch
+  data models) are honored only in pullback-square form: a declared
+  `schema.pullbacks` entry (format 1.6) is executed against the instance on
+  three verdicts, `commutes`, `covers`, and `unique`. Accepted entries are
+  constraints; proposed ones report as hypotheses, exactly like proposed
+  equations. General limit cones and the monomorphism construction remain
+  absent — `schema.cones` is rejected at parse time as `unknown_field`
+  (exit 1) — so cone prose stays prose until cones ship. Coproducts are
   declared totality claims and *are* executed: a failed coverage or
-  disjointness claim is a `violation`, never a synthesized default row — the
-  tool verifies the claim, it does not repair it.
+  disjointness claim is a `violation`, never a synthesized default row —
+  the tool verifies the claim, it does not repair it.
 - **No view-update checking.** Whether an update against a model has a
   determinate meaning (the Johnson–Rosebrugh `unupdatable` finding) is
   post-v1; do not promise it.
@@ -343,3 +345,55 @@ unasked question before any code existed.
 And the anti-example, per the release gate: hand catherine FizzBuzz and the
 expected outcome is the verdict "categorical modeling adds nothing here."
 If it ever says otherwise, that is a bug in the tool, not a triumph.
+
+### A declared pullback square (ILLUSTRATED)
+
+A pullback is declared as `{"apex", "legs", "cospan", "status"}` (format
+1.6): apex `P`, legs `p1: P → A` and `p2: P → B`, cospan `f: A → C` and
+`g: B → C`. `accepted` entries are executed; `proposed` ones are
+hypothesized. This clean instance exits 0 with `findings: []`:
+
+```json
+{"format_version": "1.6",
+ "schema": {"objects": ["P", "A", "B", "C"],
+   "arrows": [{"name": "p1", "src": "P", "tgt": "A"},
+              {"name": "p2", "src": "P", "tgt": "B"},
+              {"name": "f", "src": "A", "tgt": "C"},
+              {"name": "g", "src": "B", "tgt": "C"}],
+   "equations": [],
+   "pullbacks": [{"apex": "P", "legs": ["p1", "p2"],
+                  "cospan": ["f", "g"], "status": "accepted"}]},
+ "instance": {"rows": {"P": ["r1", "r2"], "A": ["a1", "a2"],
+                       "B": ["b1", "b2"], "C": ["c1", "c2"]},
+   "tables": {"p1": {"r1": "a1", "r2": "a2"},
+              "p2": {"r1": "b1", "r2": "b2"},
+              "f": {"a1": "c1", "a2": "c2"},
+              "g": {"b1": "c1", "b2": "c2"}}}}
+```
+
+Its non-commuting twin keeps the schema and changes only the instance
+(`B` has one row, and `r2` maps to it):
+
+```json
+{"instance": {"rows": {"P": ["r1", "r2"], "A": ["a1", "a2"],
+                       "B": ["b1"], "C": ["c1", "c2"]},
+  "tables": {"p1": {"r1": "a1", "r2": "a2"},
+             "p2": {"r1": "b1", "r2": "b1"},
+             "f": {"a1": "c1", "a2": "c2"},
+             "g": {"b1": "c1"}}}}
+```
+
+`r2` breaks `commutes`: `f(p1(r2)) = c2` but `g(p2(r2)) = c1`. The fiber
+pair over `c1` stays covered and the apex projections stay distinct, so
+this is the only finding (exit 3):
+
+```console
+$ catherine check pullback_square_fault.ct.json
+violation: pullback-0 P(p1, p2 → f, g)
+  at row P#1: lhs=C#1 rhs=C#0
+$ catherine check pullback_square_fault.ct.json --json
+{"ok":true,...,"data":{"findings":[{"label":"executed","kind":"violation",
+ "witness":{"pullback":0,"row":1,"lhs":1,"rhs":0}}]},"warnings":[]}}
+```
+
+`pullback` is the canonical index; `row`/`lhs`/`rhs` are dense row ids (`P#1`: `C#1` vs `C#0`).

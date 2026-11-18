@@ -6,10 +6,11 @@
 //
 // Responsibilities: [`FindingEnc`] and its witnesses — the TS mirror of
 // the kernel's serde encoding, pinned by the parity test (wasm task 7);
-// the violation witness is an untagged union (equation, key, or
-// coproduct) split on field presence, with the coproduct's optional
-// `injections` field carried exactly when the kernel emits it — and
-// [`renderFindings`]: one `li.finding` per finding
+// the violation witness is an untagged union (equation, key, coproduct,
+// or pullback) split on field presence, with the coproduct's optional
+// `injections` field carried exactly when the kernel emits it and the
+// pullback's `row`/`lhs`/`rhs`, `pair`, or `rows` carrying its verdict —
+// and [`renderFindings`]: one `li.finding` per finding
 // carrying `data-kind` and `data-label`, with `.kind`, `.label`, and `.witness`
 // spans inside. Structural, not snapshot: every fact a finding carries
 // is present and queryable in the DOM.
@@ -53,16 +54,34 @@ export interface CoproductViolationWitness {
 }
 
 /**
+ * The pullback arm — the declaration's canonical index plus the
+ * verdict-specific offender: `row`/`lhs`/`rhs` for a commutation
+ * failure, `pair` for an uncovered fiber pair, or `rows` for two apex
+ * rows projecting to one pair. Exactly one shape's fields are present,
+ * so the arm is discriminated by field presence like the others.
+ */
+export interface PullbackViolationWitness {
+  pullback: number;
+  row?: number;
+  lhs?: number;
+  rhs?: number;
+  pair?: [number, number];
+  rows?: [number, number];
+}
+
+/**
  * The kernel's untagged violation-witness union: equation violations keep
  * `{equation, row, lhs, rhs}` byte-identically; key violations are
- * `{key, rows}`; coproduct violations are `{coproduct, row, injections?}`.
- * The field sets are disjoint, so `"equation" in witness` and
- * `"key" in witness` discriminate.
+ * `{key, rows}`; coproduct violations are `{coproduct, row, injections?}`;
+ * pullback violations carry `pullback` plus their verdict's offender.
+ * The field sets are disjoint, so `"equation" in witness`,
+ * `"key" in witness`, and so on discriminate.
  */
 export type ViolationWitness =
   | EquationViolationWitness
   | KeyViolationWitness
-  | CoproductViolationWitness;
+  | CoproductViolationWitness
+  | PullbackViolationWitness;
 
 export interface DanglingWitness {
   arrow: string;
@@ -116,6 +135,17 @@ function coproductViolationText(w: CoproductViolationWitness): string {
     : `coproduct ${w.coproduct}: row ${w.row} covered by ${covering.join(", ")} (disjointness)`;
 }
 
+/** The pullback arm's facts: the failed square, uncovered pair, or duplicate rows. */
+function pullbackViolationText(w: PullbackViolationWitness): string {
+  if (w.pair !== undefined) {
+    return `pullback ${w.pullback}: pair ${w.pair[0]}, ${w.pair[1]} uncovered`;
+  }
+  if (w.rows !== undefined) {
+    return `pullback ${w.pullback}: rows ${w.rows[0]} and ${w.rows[1]} project to one pair`;
+  }
+  return `pullback ${w.pullback}: row ${w.row} gives ${w.lhs} ≠ ${w.rhs}`;
+}
+
 /** The violation witness, split on the union's disjoint field sets. */
 function violationText(w: ViolationWitness): string {
   if ("equation" in w) {
@@ -124,7 +154,10 @@ function violationText(w: ViolationWitness): string {
   if ("key" in w) {
     return keyViolationText(w);
   }
-  return coproductViolationText(w);
+  if ("coproduct" in w) {
+    return coproductViolationText(w);
+  }
+  return pullbackViolationText(w);
 }
 
 /** The witness facts, as text — one rendering path per witness shape. */

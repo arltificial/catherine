@@ -6,9 +6,11 @@
 //! Responsibilities: [`check`] walks the typed instance tables — one
 //! dangling finding per unresolved cell, one finding per equation per
 //! applicable row whose composed paths disagree, one finding per
-//! unordered pair of rows whose declared key tuple agrees, and one
+//! unordered pair of rows whose declared key tuple agrees, one
 //! finding per row of a declared coproduct whose coverage or
-//! disjointness claim fails — and never
+//! disjointness claim fails, and one finding per offending row or fiber
+//! pair of a declared pullback whose commutes, covers, or unique verdict
+//! fails — and never
 //! emits a finding without its witness. A dangling value short-circuits
 //! path composition at that arrow: the affected row is recorded (by the
 //! dangling finding naming arrow + source row), never reported as a
@@ -16,7 +18,11 @@
 //! decide coproduct coverage (an unresolved injection cell could reach
 //! any row, so uncovered-row findings wait for every image); a row
 //! already in two *complete* injection images is still a decidable
-//! disjointness violation, and the run continues.
+//! disjointness violation, and the run continues. A pullback follows the
+//! same rule: a dangling leg cell leaves that row's commutativity and
+//! uniqueness undefined and suspends coverage for the declaration (an
+//! unknown projection could occupy any fiber pair), while a dangling
+//! cospan cell only removes its pair from the decidable fiber.
 //! Constraint `status` decides the
 //! epistemic label of a violation-shaped finding: `accepted` →
 //! `executed`, `proposed` → `hypothesized` — one kind, countable apart by
@@ -40,7 +46,11 @@
 //! order to canonical form. Sub-model checks do NOT compose the same
 //! way: a combined model can carry cross-object equations no sub-model
 //! sees, so the additivity is over batches of one model, never over
-//! schema fragments.
+//! schema fragments. Pullbacks are the additive 1.6 constraint family
+//! (`add-pullback-checks`): their three verdicts are ordinary violation
+//! findings with a new witness arm, so they ride the same label rule,
+//! the same dangling discipline, and the same sort — no new kind, exit
+//! code, or severity.
 
 use crate::findings::{
     DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, KeyWitness,
@@ -51,9 +61,11 @@ use crate::model::{ConstraintStatus, Ident, Key, RowId, Schema};
 use std::collections::{BTreeMap, BTreeSet};
 
 mod coproducts;
+mod pullbacks;
 
-/// Execute every declared equation on every applicable row of the typed
-/// instance. See the module docs for the finding contract.
+/// Execute every declared constraint — equations, keys, coproducts, and
+/// pullbacks — on every applicable row of the typed instance. See the
+/// module docs for the finding contract.
 ///
 /// Every lookup inside the walk is total (`get`-based): for parsed
 /// presentations each declared equation's lead arrow, domain rows, and
@@ -80,6 +92,7 @@ pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
     findings.extend(equation_findings(schema, instance));
     findings.extend(key_findings(schema, instance));
     findings.extend(coproducts::coproduct_findings(schema, instance));
+    findings.extend(pullbacks::pullback_findings(schema, instance));
     // The taxonomy's total order (kind declaration order — violations
     // before dangling — then witness ids, label last) is the emitted
     // contract: the walk's push order is not, and the sorted result makes
