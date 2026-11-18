@@ -167,7 +167,7 @@ checksum = "175812e0be2bccb6abe50bb8d566126198344f707e304f45c648fd8f2cc0365e"
 
 [[package]]
 name = "catherine-analysis"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "catherine-core",
  "hegeltest",
@@ -176,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "catherine-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "catherine-analysis",
  "catherine-core",
@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "catherine-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "hegeltest",
  "jsonschema",
@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "catherine-ledger"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "catherine-core",
  "serde",
@@ -208,7 +208,7 @@ dependencies = [
 
 [[package]]
 name = "catherine-wasm"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "catherine-analysis",
  "catherine-core",
