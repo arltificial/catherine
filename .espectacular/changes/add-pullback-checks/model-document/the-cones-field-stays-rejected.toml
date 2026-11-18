@@ -1,0 +1,11 @@
+id = "the-cones-field-stays-rejected"
+description = "A document declaring a cones field still fails with unknown_field at the field node — the pullback capability is declarable only through schema.pullbacks and no cone namespace is introduced."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "cones_field_stays_rejected" },
+]

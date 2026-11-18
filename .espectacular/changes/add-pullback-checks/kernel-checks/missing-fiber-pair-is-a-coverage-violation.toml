@@ -1,0 +1,11 @@
+id = "missing-fiber-pair-is-a-coverage-violation"
+description = "Two resolved rows composing to the same cospan target with no apex row projecting to their pair yield one coverage violation naming the pullback and the uncovered pair, enumerated in canonical row order."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "missing_fiber_pair_is_a_coverage_violation" },
+]

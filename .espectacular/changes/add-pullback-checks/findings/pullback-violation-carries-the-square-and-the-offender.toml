@@ -1,0 +1,11 @@
+id = "pullback-violation-carries-the-square-and-the-offender"
+description = "A pullback violation is a Violation carrying the pullback's canonical index and, per verdict, the offending row with both composed values, the uncovered pair, or both duplicate-projecting rows — assertable structurally, not by output text."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "pullback_violation_carries_the_square_and_the_offender" },
+]

@@ -1,0 +1,14 @@
+id = "every-finding-kind-has-a-golden-fixture"
+description = "Each v1 finding kind has a golden fixture whose assertions check witness fields structurally, including every violation witness shape — now including the pullback witness (producers for analysis kinds are exercised via P4, but the taxonomy and fixtures exist here)."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "pullback_witness_golden_fixture" },
+    { flags = "equation_witness_golden_fixture" },
+    { flags = "key_witness_golden_fixture" },
+    { flags = "coproduct_witness_golden_fixture" },
+]

@@ -1,0 +1,11 @@
+id = "duplicated-projection-is-a-uniqueness-violation"
+description = "Two distinct apex rows projecting to the same pair yield one uniqueness violation naming the pullback and both rows — a commutative, covering apex with duplicated pairs is still not the pullback."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "duplicated_projection_is_a_uniqueness_violation" },
+]

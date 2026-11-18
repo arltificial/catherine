@@ -1,0 +1,11 @@
+id = "pullbacks-round-trip-and-canonicalize"
+description = "Several pullbacks declared in arbitrary input order parse, canonicalize to (apex, legs, cospan, status) order, serialize byte-identically across reorderings, and keep repeated declarations as presentation."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "pullbacks_round_trip_and_canonicalize" },
+]

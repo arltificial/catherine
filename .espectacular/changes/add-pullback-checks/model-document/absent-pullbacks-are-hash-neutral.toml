@@ -1,0 +1,11 @@
+id = "absent-pullbacks-are-hash-neutral"
+description = "Parsing a document without a pullbacks section under the new minor leaves canonical bytes, hash, and every sealed ledger model_hashes entry unchanged."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "absent_pullbacks_are_hash_neutral" },
+]

@@ -1,0 +1,11 @@
+id = "non-commuting-apex-row-carries-both-composed-values"
+description = "An apex row whose f∘p1 and g∘p2 compose to different rows yields exactly one violation naming the pullback, the row id, and both composed path values, labeled executed."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "non_commuting_apex_row_carries_both_composed_values" },
+]

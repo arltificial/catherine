@@ -1,0 +1,11 @@
+id = "dangling-cells-keep-verdicts-undecidable-never-silent"
+description = "A dangling leg cell keeps commutativity undefined for that row and a dangling cospan cell excludes the pair from decidable coverage; the dangling findings carry the offending rows, never double-reported, and an undefined-only run is never a verified clean."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "dangling_cells_keep_verdicts_undecidable" },
+]

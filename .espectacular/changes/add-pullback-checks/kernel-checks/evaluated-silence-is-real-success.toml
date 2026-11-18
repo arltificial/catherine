@@ -1,0 +1,11 @@
+id = "evaluated-silence-is-real-success"
+description = "When every apex row commutes, every resolvable fiber pair is covered, and no pair is projected twice, checking returns zero outcomes — including the zero-row apex over an empty fiber, whose check ran and trivially held."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "evaluated_pullback_silence_is_real_success" },
+]

@@ -1,0 +1,11 @@
+id = "malformed-pullback-is-rejected-at-its-node"
+description = "A pullback naming an undeclared object or arrow, a leg not sourced at the apex, cospan arrows with different targets, or a repeated arrow name fails parsing with invalid_pullback at the offending node, silently repairing nothing."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "malformed_pullback_is_rejected_at_its_node" },
+]
