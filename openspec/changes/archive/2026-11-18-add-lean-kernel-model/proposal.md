@@ -24,12 +24,14 @@ decision, not hidden scope. Beads ticket: `catherine-xvh`.
   morphism tables, typing-violation/dangling build reports), `EvalPath.lean`
   (`compose` with `None` short-circuit), `Findings.lean` (the taxonomy's
   kinds, witnesses, and the three constructible labels), `Check.lean` (the
-  `check` walk: dangling, equation, key, coproduct findings, sorted).
+  `check` walk: dangling, equation, key, coproduct, and pullback findings,
+  sorted).
 - Theorems proved in Lean, stated against the *semantic* notions, not the
   walk:
   1. **Soundness** — every finding `check` emits carries a semantic witness
      (a real violated equation on an applicable row, a real unresolved cell
-     accounting, a real duplicate key tuple, a real coproduct failure).
+     accounting, a real duplicate key tuple, a real coproduct failure, a
+     real pullback commutes/covers/unique failure).
   2. **Equation completeness** — every semantic equation violation on an
      applicable row is reported, labeled `executed` for accepted and
      `hypothesized` for proposed constraints, never merged.

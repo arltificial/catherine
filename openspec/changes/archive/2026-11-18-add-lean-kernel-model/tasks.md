@@ -142,3 +142,31 @@ lean-parity`; both commands are the definition of done for their tasks.
         (divergences=0, build_mismatches=0), axiom audit exit 0,
         `just ci` exit 0, `pretender check --mode gate` exit 0,
         `ah check` clean.
+
+## Phase 3 — pullback catch-up (the 1.6 kernel grew after the twin landed)
+
+- [x] 15. Formalize declared pullbacks in the twin: `Schema.Pullback` plus
+      the mirror projection/encoding/decoding, the three findings witness
+      arms (`PullbackWitness`: commutes, covers, unique) with the taxonomy
+      order, `Check`'s commutes/covers/unique walk (dangling-leg rows
+      withhold their own verdicts and coverage; a dangling cospan cell
+      removes its pair from the decidable fiber), and the soundness
+      disjunct with its semantic predicates
+      - RED evidence: `lake exe lean-parity` aborted before any comparison
+        with `fixtures/parity/pullback_square/expected.json: violation
+        witness has no recognized variant` — the whole corpus went
+        unverified (189 documents never compared).
+      - GREEN evidence: `lake exe lean-parity` and `lean-parity
+        --check-build` exit 0 over the then-current corpus —
+        `total=193 rust_checkable=183 skipped_parse=10
+        lean_only_presentation=1 trivially_agreeing=103
+        findings_bearing_agreeing=81 divergences=0 build_mismatches=0`
+        (`parity/pullback_square` now agrees: one commutes violation at
+        apex row 0, both composed values 0 and 1). The commutes arm is
+        the producer exercised by the corpus; covers and unique are
+        modeled and proof-covered, with their own parity fixtures left to
+        the corpus as it grows.
+      - Proof evidence: `Catherine.Proofs.soundness` is a five-way
+        disjunction; `mem_pullbackFindings_forward` feeds it;
+        `scripts/check-lean-axioms.sh` exits 0 with 18 audited
+        declarations, no `sorryAx`, no axiom declaration.

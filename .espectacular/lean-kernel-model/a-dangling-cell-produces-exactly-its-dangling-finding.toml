@@ -1,0 +1,11 @@
+id = "a-dangling-cell-produces-exactly-its-dangling-finding"
+description = "Catherine.Proofs.dangling_discipline compiles sorry-free: dangling cells are never repaired, never reported as violations, never grouped into key collisions, and never decide coverage, while a typing-violated cell is accounted exactly once."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-lean-contract.sh dangling-discipline" },
+]

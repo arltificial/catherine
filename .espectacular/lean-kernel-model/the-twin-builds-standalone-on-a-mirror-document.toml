@@ -1,0 +1,11 @@
+id = "the-twin-builds-standalone-on-a-mirror-document"
+description = "The Lake project builds from lean/ alone and the oracle projects a document to the trusted mirror JSON and decodes it again before comparing findings; no Cargo manifest gains a reference to Lean."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-lean-contract.sh twin-builds" },
+]

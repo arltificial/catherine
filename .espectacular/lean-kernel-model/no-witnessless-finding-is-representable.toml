@@ -1,0 +1,11 @@
+id = "no-witnessless-finding-is-representable"
+description = "Catherine.Proofs.soundness compiles sorry-free and depends only on the permitted classical axioms; the axiom audit fails on sorryAx or a declared assumption, so the witness-extraction claim cannot be decoration."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-lean-contract.sh soundness" },
+]

@@ -1,0 +1,11 @@
+id = "parity-holds-across-the-check-applicable-fixture-corpus"
+description = "The lean-parity oracle enumerates the check-applicable corpus dynamically, compares normalized finding multisets (kind, label, witness) against catherine check --json, and exits 0 with zero divergences while at least one findings-bearing document actually agreed."
+archetype = "CE"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-lean-contract.sh parity" },
+]

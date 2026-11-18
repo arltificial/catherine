@@ -1,0 +1,11 @@
+id = "divergence-is-loud-and-attributed"
+description = "A seeded finding mismatch on the Rust side (one finding dropped through the documented CATHERINE_BIN seam) makes the oracle exit 1, name the fixture, and report the divergence with both normalized views — never a green run, never a silent skip."
+archetype = "CE"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-lean-contract.sh parity-divergence" },
+]

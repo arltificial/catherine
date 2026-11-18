@@ -1,6 +1,15 @@
-# lean-kernel-model delta
+# lean-kernel-model Specification
 
-## ADDED Requirements
+## Purpose
+An external assurance artifact for the kernel: a standard-library Lean 4
+reference semantics of the schema, the typing-enforcing instance builder,
+path composition, the `check` walk (dangling, equation, key, coproduct,
+and pullback findings), and the findings taxonomy, proved sorry-free and
+gated by a parity oracle over the dynamic fixture corpus. The twin is not
+an engine — the Cargo workspace depends on nothing here, and nothing here
+depends on the workspace at run time.
+
+## Requirements
 
 ### Requirement: The Lean model mirrors the kernel semantics as an external artifact
 The system SHALL maintain a Lean 4 reference semantics of the kernel
@@ -39,9 +48,10 @@ witness + label, not byte output).
 ### Requirement: Checker soundness is proven
 The Lean model SHALL prove that every finding its `check` emits carries a
 semantic witness: a violated equation on an applicable row, an unresolved
-cell accounted by a dangling report, a duplicate resolved key tuple, or a
-coproduct coverage/disjointness failure — witness extraction is total over
-emitted findings.
+cell accounted by a dangling report, a duplicate resolved key tuple, a
+coproduct coverage/disjointness failure, or a pullback square's commutes,
+covers, or unique failure — witness extraction is total over emitted
+findings.
 
 #### Scenario: No witnessless finding is representable
 - **WHEN** the soundness theorem is applied to any finding of the Lean

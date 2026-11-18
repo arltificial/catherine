@@ -1,0 +1,11 @@
+id = "every-violation-is-found-and-weighted-correctly"
+description = "Catherine.Proofs.equation_completeness and the label-agreement lemma compile sorry-free: every semantic equation violation on an applicable row is reported under the status-agreed label, with accepted and proposed never merged."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-lean-contract.sh equation-completeness" },
+]

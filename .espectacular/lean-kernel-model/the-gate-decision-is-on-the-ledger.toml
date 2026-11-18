@@ -1,0 +1,11 @@
+id = "the-gate-decision-is-on-the-ledger"
+description = "The ledger under ledger/lean/ validates, its entry is a decision whose outcome is one of extend/hold/retire with a stated scope, and lean/README.md links that decision — the assurance outcome is recorded, never silent drift."
+archetype = "BP"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "scripts/check-lean-contract.sh stop-gate" },
+]

@@ -44,18 +44,20 @@ probes check inputs), enumerated dynamically — `rule_lens`/`schema_diff`/
 ## Decision 3: theorem scope — the walk's honesty, stated semantically
 
 - **In, phase 1 (formalization)**: schema, typed instance + build reports,
-  `compose`, satisfaction, the `check` walk (all four finding families,
+  `compose`, satisfaction, the `check` walk (all five finding families,
   including the `violated`-cell accounting that suppresses duplicate
-  dangling reports — `checks.rs` `dangling_findings`), the taxonomy's total
-  order, the accepted/proposed label rule.
+  dangling reports — `checks.rs` `dangling_findings` — and the pullback
+  square's commutes/covers/unique verdicts with their dangling-leg and
+  dangling-cospan undecidability rules — `checks/pullbacks.rs`), the
+  taxonomy's total order, the accepted/proposed label rule.
 - **In, phase 2 (proofs)**: soundness for all emitted kinds (witness
   extraction from the finding is total and faithful); equation completeness
   (semantic violation on applicable row ⇒ reported); dangling discipline
   (the four "never" clauses of `checks.rs`'s contract, as lemmas).
-- **Modeled, completeness deferred**: keys and coproducts are formalized
-  and their findings are covered by soundness, but their completeness
-  theorems wait for a follow-up (the pair/collision semantics are the most
-  proof-heavy and the least defect-prone in practice).
+- **Modeled, completeness deferred**: keys, coproducts, and pullbacks are
+  formalized and their findings are covered by soundness, but their
+  completeness theorems wait for a follow-up (the pair/collision semantics
+  are the most proof-heavy and the least defect-prone in practice).
 - **Out (follow-up change)**: bounded search (`FOUND`/`EXHAUSTED`/`UNKNOWN`
   honesty — `search.rs` contract), Δ migration (`no_invented_rows`,
   `lost_data_complete`, round-trip counterexample soundness — `migrate.rs`),
