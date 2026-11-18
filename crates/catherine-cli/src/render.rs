@@ -92,13 +92,7 @@ pub(super) fn render_one(finding: &Finding, schema: &Schema) -> Vec<String> {
             format!("  derivable as {}", path_string(&w.reducing)),
         ],
         FindingKind::Contradiction(w) => {
-            let scope = w
-                .scope
-                .iter()
-                .map(|index| format!("eq-{index}"))
-                .collect::<Vec<_>>()
-                .join(", ");
-            vec![format!("contradiction: {scope} admit no instance{label}")]
+            vec![format!("{}{label}", rules::contradiction_head(w))]
         }
         FindingKind::Underconstraint(w) => {
             let head = match &w.case {

@@ -9,8 +9,8 @@
 //! cells first, then row ids ascending — the counterexample-minimality
 //! discipline folded into the enumeration), evaluate each candidate with
 //! the kernel's own `check` (a candidate witnesses satisfiability iff
-//! every cell resolves and every *accepted* equation holds — proposed
-//! equations fail as `hypothesized` questions and never block a
+//! every cell resolves and every *accepted* constraint holds — proposed
+//! constraints fail as `hypothesized` questions and never block a
 //! witness), and never claim what the
 //! bounds did not establish: a budget that expires before exhaustion is
 //! `UNKNOWN`, a zero-size bound is `UNKNOWN` with the empty scope — never
@@ -19,16 +19,16 @@
 //! Rationale: plain hand-rolled enumeration over the finite row spaces —
 //! no solver (ticket `anti_goal`). The witness contract is a *fully
 //! resolved* instance: every arrow value resolves and every accepted
-//! equation holds on every applicable row. Candidates that satisfy
+//! constraint holds on every applicable row. Candidates that satisfy
 //! equations only by dangling short-circuits prove nothing about the
-//! constraints, so they do not witness — a documented limit: only fully
+//! the constraints, so they do not witness — a documented limit: only fully
 //! resolved candidates witness. Consequence, documented in the
 //! crate README: pure path equalities are collapse-satisfiable
 //! (one-row-collapse satisfies every equation), so a proven contradiction
 //! arises exactly when the bounds make full resolution impossible — the
 //! honest limit of the equality-only kernel language (DESIGN §4.1 keeps
 //! injectivity and disequality out of v1). The accepted/proposed split is
-//! P1's: only accepted equations constrain the search; proposed equations
+//! P1's: only accepted constraints constrain the search; proposed ones
 //! are questions, not satisfiability constraints.
 
 use crate::bounds::{contradiction_finding, SearchBounds, SearchScope};
@@ -79,16 +79,13 @@ pub enum SearchOutcome {
 }
 
 /// Search for a fully resolved instance satisfying every accepted
-/// equation within the bounds. See the module docs for the contract.
+/// constraint within the bounds. See the module docs for the contract.
 pub fn search(schema: &Schema, bound: &SearchBounds) -> SearchReport {
-    // The enforced equation set: the accepted equations' canonical
-    // indices, in order — the contradiction witness's scope.
-    let accepted = accepted_indices(schema);
     match enumerate(schema, bound, |instance| {
         is_clean(schema, instance).then(|| instance.clone())
     }) {
         Enumeration::Found(instance) => witness_report(bound.clone(), instance),
-        Enumeration::Exhausted { .. } => contradiction_report(bound.clone(), accepted),
+        Enumeration::Exhausted { .. } => contradiction_report(bound.clone(), schema),
         Enumeration::Unknown { scope } => SearchReport {
             bound: bound.clone(),
             outcome: SearchOutcome::Unknown { scope },
@@ -177,13 +174,18 @@ fn witness_report(bound: SearchBounds, instance: Instance) -> SearchReport {
     }
 }
 
-/// The CONTRADICTION report: the kernel-computed proof over the accepted
-/// equations' canonical indices.
-fn contradiction_report(bound: SearchBounds, accepted: Vec<usize>) -> SearchReport {
+/// The CONTRADICTION report: the kernel-computed proof over every
+/// accepted family's canonical indices, in declaration order.
+fn contradiction_report(bound: SearchBounds, schema: &Schema) -> SearchReport {
     SearchReport {
         bound,
         outcome: SearchOutcome::Contradiction {
-            finding: contradiction_finding(accepted),
+            finding: contradiction_finding(
+                accepted_indices(&schema.equations, |equation| equation.status),
+                accepted_indices(&schema.keys, |key| key.status),
+                accepted_indices(&schema.coproducts, |coproduct| coproduct.status),
+                accepted_indices(&schema.pullbacks, |pullback| pullback.status),
+            ),
         },
     }
 }
@@ -211,13 +213,12 @@ fn nonempty_counts(counts: &BTreeMap<Ident, usize>) -> BTreeMap<Ident, usize> {
         .collect()
 }
 
-/// The accepted equations' canonical indices, in declaration order.
-fn accepted_indices(schema: &Schema) -> Vec<usize> {
-    schema
-        .equations
+/// The accepted declarations' canonical indices, in declaration order.
+fn accepted_indices<T>(items: &[T], status: impl Fn(&T) -> ConstraintStatus) -> Vec<usize> {
+    items
         .iter()
         .enumerate()
-        .filter(|(_, equation)| equation.status == ConstraintStatus::Accepted)
+        .filter(|&(_, item)| status(item) == ConstraintStatus::Accepted)
         .map(|(index, _)| index)
         .collect()
 }
@@ -271,8 +272,8 @@ fn materialize(
 
 /// The satisfaction predicate: the candidate witnesses satisfiability
 /// iff every arrow cell resolves (no dangling finding) and every
-/// *accepted* equation holds (no `executed` violation). Proposed
-/// equations fail with the `hypothesized` label — questions under
+/// *accepted* constraint holds (no `executed` violation). Proposed
+/// declarations fail with the `hypothesized` label — questions under
 /// review, not satisfiability constraints — so a `hypothesized`
 /// violation never blocks a witness.
 fn is_clean(schema: &Schema, instance: &Instance) -> bool {

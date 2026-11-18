@@ -76,12 +76,22 @@ impl Default for ScopeCaps {
 }
 
 /// The contradiction finding — the P2 taxonomy shape with the canonical
-/// accepted-equation indices, in order; `executed`: a proof the kernel
-/// computed (completed exhaustion).
-pub fn contradiction_finding(scope: Vec<usize>) -> Finding {
+/// accepted-constraint indices of every family, in order; `executed`: a
+/// proof the kernel computed (completed exhaustion).
+pub fn contradiction_finding(
+    scope: Vec<usize>,
+    keys: Vec<usize>,
+    coproducts: Vec<usize>,
+    pullbacks: Vec<usize>,
+) -> Finding {
     Finding {
         label: EpistemicLabel::Executed,
-        kind: FindingKind::Contradiction(ContradictionWitness { scope }),
+        kind: FindingKind::Contradiction(ContradictionWitness {
+            scope,
+            keys,
+            coproducts,
+            pullbacks,
+        }),
     }
 }
 

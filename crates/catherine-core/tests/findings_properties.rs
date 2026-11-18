@@ -114,8 +114,20 @@ fn arb_finding() -> impl Strategy<Value = Finding> {
             derivable: d,
             reducing: r,
         })),
-        proptest::collection::vec(0usize..8usize, 0..=4)
-            .prop_map(|scope| FindingKind::Contradiction(ContradictionWitness { scope })),
+        (
+            proptest::collection::vec(0usize..8usize, 0..=4),
+            proptest::collection::vec(0usize..8usize, 0..=4),
+            proptest::collection::vec(0usize..8usize, 0..=4),
+            proptest::collection::vec(0usize..8usize, 0..=4),
+        )
+            .prop_map(|(scope, keys, coproducts, pullbacks)| {
+                FindingKind::Contradiction(ContradictionWitness {
+                    scope,
+                    keys,
+                    coproducts,
+                    pullbacks,
+                })
+            }),
         (".{0,40}", arb_domain_question()).prop_map(|(q, case)| FindingKind::Underconstraint(
             UnderconstraintWitness { question: q, case }
         )),

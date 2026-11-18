@@ -6,9 +6,10 @@
 Each kind's witness shape SHALL be fixed: a violation carries the
 equation, key, coproduct, or pullback witness; dangling carries arrow
 and source row; redundant carries derivable and reducing path;
-contradiction carries explicit scope; underconstraint carries a domain
-question (`ParallelPaths{lhs, rhs}` or `UncoveredInputs{class,
-examples}`). No new finding kind is introduced.
+contradiction carries explicit scope across the accepted constraint
+families (equations, keys, coproducts, pullbacks); underconstraint
+carries a domain question (`ParallelPaths{lhs, rhs}` or
+`UncoveredInputs{class, examples}`). No new finding kind is introduced.
 
 #### Scenario: Witness encodings are stable
 - **WHEN** findings serialize
@@ -45,6 +46,14 @@ examples}`). No new finding kind is introduced.
   (commutes), the uncovered pair of row ids (covers), or both
   duplicate-projecting row ids (unique) — assertable structurally, not
   by output text
+
+#### Scenario: Contradiction scope names every enforced family
+- **WHEN** bounded search exhausts and accepted keys, coproducts, or
+  pullbacks are in force
+- **THEN** the contradiction witness carries their canonical indices
+  (`keys`, `coproducts`, `pullbacks`; empty families are omitted), so
+  the scope is never empty for a contradiction those constraints
+  enforced
 
 #### Scenario: Every finding kind has a golden fixture
 - **WHEN** the fixture suite runs

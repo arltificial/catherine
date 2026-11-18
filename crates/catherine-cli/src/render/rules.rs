@@ -19,7 +19,7 @@
 
 use super::{path_string, CLI_VERSION};
 use catherine_core::findings::{
-    DomainQuestion, Finding, FindingKind, PullbackWitness, ViolationWitness,
+    ContradictionWitness, DomainQuestion, Finding, FindingKind, PullbackWitness, ViolationWitness,
 };
 use catherine_core::model::RulePresentation;
 use catherine_core::rule_lens::RuleScope;
@@ -107,7 +107,7 @@ fn finding_line(finding: &Finding, presentation: &RulePresentation) -> String {
             path_string(&witness.derivable),
             path_string(&witness.reducing)
         ),
-        FindingKind::Contradiction(witness) => contradiction_head(&witness.scope),
+        FindingKind::Contradiction(witness) => contradiction_head(witness),
         FindingKind::Dangling(witness) => format!(
             "dangling: arrow {} at row #{}",
             witness.arrow.0, witness.src.0
@@ -186,13 +186,24 @@ fn underconstraint_head(case: &DomainQuestion) -> String {
     }
 }
 
-/// The contradiction head: the explicit equation scope.
-fn contradiction_head(scope: &[usize]) -> String {
-    let scope = scope
-        .iter()
-        .map(|index| format!("eq-{index}"))
-        .collect::<Vec<_>>()
-        .join(", ");
+/// The contradiction head: the explicit scope in family order (`eq`,
+/// `key`, `coproduct`, `pullback`); an empty scope names the accepted
+/// constraints enforced.
+pub(super) fn contradiction_head(witness: &ContradictionWitness) -> String {
+    let mut named: Vec<String> = Vec::new();
+    for (family, ids) in [
+        ("eq", &witness.scope),
+        ("key", &witness.keys),
+        ("coproduct", &witness.coproducts),
+        ("pullback", &witness.pullbacks),
+    ] {
+        named.extend(ids.iter().map(|index| format!("{family}-{index}")));
+    }
+    let scope = if named.is_empty() {
+        "accepted constraints".to_string()
+    } else {
+        named.join(", ")
+    };
     format!("contradiction: {scope} admit no instance")
 }
 

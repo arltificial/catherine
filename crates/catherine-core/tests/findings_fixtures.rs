@@ -194,14 +194,19 @@ fn redundant_shape_is_pinned_for_p4() {
 }
 
 /// Task 1 — contradiction shape, constructed directly: the explicit
-/// scope — the equations (canonical indices) whose joint enforcement the
-/// bounded analysis (P4) found to admit no instance. Ids from
-/// contradiction_shape.json's two accepted equations.
+/// scope — the accepted constraint families (canonical indices) whose
+/// joint enforcement the bounded analysis (P4) found to admit no
+/// instance. Ids from contradiction_shape.json's two accepted equations.
 #[test]
 fn contradiction_shape_is_pinned_for_p4() {
     let findings = vec![Finding {
         label: EpistemicLabel::Executed,
-        kind: FindingKind::Contradiction(ContradictionWitness { scope: vec![0, 1] }),
+        kind: FindingKind::Contradiction(ContradictionWitness {
+            scope: vec![0, 1],
+            keys: Vec::new(),
+            coproducts: Vec::new(),
+            pullbacks: Vec::new(),
+        }),
     }];
     let json = json_of(&findings);
     assert_eq!(json[0]["label"].as_str(), Some("executed"));
@@ -210,6 +215,39 @@ fn contradiction_shape_is_pinned_for_p4() {
         json[0]["witness"]["scope"],
         serde_json::json!([0, 1]),
         "the explicit scope serializes as canonical equation indices"
+    );
+    for family in ["keys", "coproducts", "pullbacks"] {
+        assert!(
+            json[0]["witness"].get(family).is_none(),
+            "an empty family list is omitted, keeping equation-only JSON byte-identical"
+        );
+    }
+    round_trips(&findings);
+}
+
+/// Task 4 — the contradiction witness's added families serialize when
+/// present, so a contradiction enforced by keys, coproducts, or
+/// pullbacks names them instead of an empty scope.
+#[test]
+fn contradiction_serializes_every_present_family() {
+    let findings = vec![Finding {
+        label: EpistemicLabel::Executed,
+        kind: FindingKind::Contradiction(ContradictionWitness {
+            scope: vec![0],
+            keys: vec![1],
+            coproducts: vec![2],
+            pullbacks: vec![3],
+        }),
+    }];
+    let json = json_of(&findings);
+    assert_eq!(
+        json[0]["witness"],
+        serde_json::json!({
+            "scope": [0],
+            "keys": [1],
+            "coproducts": [2],
+            "pullbacks": [3],
+        })
     );
     round_trips(&findings);
 }

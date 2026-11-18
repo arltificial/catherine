@@ -251,13 +251,26 @@ pub struct RedundantWitness {
     pub reducing: Path,
 }
 
-/// The contradiction witness: the explicit scope — the equations
-/// (canonical indices, in order) whose joint enforcement the bounded
-/// analysis (P4) found to admit no instance.
+/// The contradiction witness: the explicit scope — every accepted
+/// constraint family (canonical indices per family, in declaration
+/// order) whose joint enforcement the bounded analysis (P4) found to
+/// admit no instance. The family order (equations, keys, coproducts,
+/// pullbacks) is also the derived ordering's witness-id order. An empty
+/// family list is omitted from the JSON encoding, so an equation-only
+/// contradiction stays byte-identical.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ContradictionWitness {
     /// Canonical indices into `Schema::equations`, in order.
     pub scope: Vec<usize>,
+    /// Canonical indices into `Schema::keys`, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub keys: Vec<usize>,
+    /// Canonical indices into `Schema::coproducts`, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub coproducts: Vec<usize>,
+    /// Canonical indices into `Schema::pullbacks`, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pullbacks: Vec<usize>,
 }
 
 /// The domain-question witness of an underconstraint finding — the

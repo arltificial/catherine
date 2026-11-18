@@ -1,0 +1,11 @@
+id = "contradiction-scope-names-every-enforced-family"
+description = "When bounded search exhausts with accepted keys, coproducts, or pullbacks in force, the contradiction finding carries their canonical indices alongside the equations."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+cargo = [
+    { flags = "pullback_only_contradiction_names_the_pullback" },
+]

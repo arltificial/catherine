@@ -240,7 +240,12 @@ mod tests {
     fn contradiction() -> Finding {
         Finding {
             label: EpistemicLabel::Unknown,
-            kind: FindingKind::Contradiction(ContradictionWitness { scope: vec![0, 1] }),
+            kind: FindingKind::Contradiction(ContradictionWitness {
+                scope: vec![0, 1],
+                keys: Vec::new(),
+                coproducts: Vec::new(),
+                pullbacks: Vec::new(),
+            }),
         }
     }
 

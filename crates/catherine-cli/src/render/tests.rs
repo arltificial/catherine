@@ -169,7 +169,12 @@ fn contradiction_renders_labeled_lines() {
     let schema = Schema::default();
     let lines = render_one(
         &finding(
-            FindingKind::Contradiction(ContradictionWitness { scope: vec![0, 2] }),
+            FindingKind::Contradiction(ContradictionWitness {
+                scope: vec![0, 2],
+                keys: Vec::new(),
+                coproducts: Vec::new(),
+                pullbacks: Vec::new(),
+            }),
             EpistemicLabel::Unknown,
         ),
         &schema,
@@ -177,6 +182,69 @@ fn contradiction_renders_labeled_lines() {
     assert_eq!(
         lines,
         vec!["contradiction: eq-0, eq-2 admit no instance (unknown)"]
+    );
+}
+
+#[test]
+fn contradiction_renders_every_family_in_order() {
+    let schema = Schema::default();
+    let lines = render_one(
+        &finding(
+            FindingKind::Contradiction(ContradictionWitness {
+                scope: vec![0],
+                keys: vec![1],
+                coproducts: vec![2],
+                pullbacks: vec![3],
+            }),
+            EpistemicLabel::Executed,
+        ),
+        &schema,
+    );
+    assert_eq!(
+        lines,
+        vec!["contradiction: eq-0, key-1, coproduct-2, pullback-3 admit no instance"]
+    );
+}
+
+#[test]
+fn contradiction_with_empty_scope_names_the_accepted_constraints() {
+    let schema = Schema::default();
+    let lines = render_one(
+        &finding(
+            FindingKind::Contradiction(ContradictionWitness {
+                scope: Vec::new(),
+                keys: Vec::new(),
+                coproducts: Vec::new(),
+                pullbacks: vec![0],
+            }),
+            EpistemicLabel::Unknown,
+        ),
+        &schema,
+    );
+    assert_eq!(
+        lines,
+        vec!["contradiction: pullback-0 admit no instance (unknown)"]
+    );
+}
+
+#[test]
+fn contradiction_with_no_named_scope_renders_accepted_constraints() {
+    let schema = Schema::default();
+    let lines = render_one(
+        &finding(
+            FindingKind::Contradiction(ContradictionWitness {
+                scope: Vec::new(),
+                keys: Vec::new(),
+                coproducts: Vec::new(),
+                pullbacks: Vec::new(),
+            }),
+            EpistemicLabel::Executed,
+        ),
+        &schema,
+    );
+    assert_eq!(
+        lines,
+        vec!["contradiction: accepted constraints admit no instance"]
     );
 }
 
