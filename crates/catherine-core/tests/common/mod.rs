@@ -6,6 +6,33 @@
 //! every table value: a value naming a row of another object lands in its
 //! home object's id space, which is exactly the out-of-target-space shape
 //! [`TypedInstance::build`] records as a typing violation.
+//!
+//! It also carries the shared property-test generators and the
+//! proptest→hegel idiom map for the migrated suites (epic catherine-7ko).
+//!
+//! Responsibilities: record the migration idioms below, and — once the
+//! checks-properties child (7ko.5) hoists it — host `generators`, the
+//! canonical model generator the checks and findings properties both
+//! draw. Porting authors should not have to guess an equivalent:
+//!
+//! | proptest | hegel |
+//! | --- | --- |
+//! | `impl Strategy<Value = X>` | `impl Generator<X>` (or a `#[hegel::composite]` fn) |
+//! | `prop_flat_map` (later draws depend on earlier ones) | `#[hegel::composite]`: sequential `tc.draw(...)` where each draw sees the values before it |
+//! | `prop_map` / `Just(x)` | `generator.map(f)` / `gs::just(x)` |
+//! | `proptest::collection::vec(g, n)` | `gs::vecs(g).exact_size(n)` |
+//! | `0..n` integer ranges | `gs::integers::<usize>().min_value(0).max_value(n - 1)` |
+//! | `prop_assume!(cond)` | `tc.assume(cond)` (rejects and retries the case) |
+//! | `prop_assert_eq!` | plain `assert_eq!` + `tc.note(...)` for counterexample context |
+//! | `proptest! { ... }` / `#[test]` body | `#[hegel::test] fn name(tc: TestCase)` |
+//! | `proptest-regressions/*.txt` | `#[hegel::reproduce_failure("…")]` blob printed on failure (commit only to pin a real failure) |
+//! | `PROPTEST_CASES` | `HEGEL_TEST_CASES` (budgets also live in the workspace `hegel.toml`) |
+//!
+//! Rationale: the engine switch must preserve property semantics 1:1 —
+//! structural assertions by parsed value, never byte snapshots — and the
+//! one thing that silently rots a port is an idiom mapped by guesswork.
+//! Each suite still proves itself wired by catching a seeded mutation
+//! before its proptest file is deleted.
 
 // Each test binary compiles this module and uses a different subset of it.
 #![allow(dead_code)]

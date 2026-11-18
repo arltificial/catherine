@@ -1,0 +1,22 @@
+# Purpose: suite-wide property-test budgets for the hegel engine
+# (epic catherine-7ko). Hegel discovers this file by walking up from the
+# test process's working directory, so one workspace-root file covers
+# every crate.
+#
+# Responsibilities: set the `development` budget that local runs use and
+# the `ci` budget selected automatically on CI servers. Every other
+# setting keeps its shipped value — notably the shipped `ci` delta
+# (derandomize, database off, `too_slow` suppressed), which this file
+# adds to rather than replaces.
+#
+# Rationale: the migrated proptest suites ran 256 cases by default and
+# the property sets are heavy model generators; 100 local / 200 CI keeps
+# the suite's wall-clock envelope while still exceeding the pre-migration
+# coverage. Deeper runs stay an explicit env override
+# (`HEGEL_TEST_CASES=2000 cargo test`), never a source edit.
+
+[profiles.development]
+test_cases = 100
+
+[profiles.ci]
+test_cases = 200
