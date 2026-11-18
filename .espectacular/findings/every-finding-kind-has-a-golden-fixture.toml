@@ -1,16 +1,14 @@
 id = "every-finding-kind-has-a-golden-fixture"
-description = "The fixture suite pins a golden fixture for each v1 finding kind (violation, dangling, redundant, contradiction, underconstraint) whose assertions check the witness fields structurally, including both violation witness shapes (equation and key), never through snapshots."
+description = "Each v1 finding kind has a golden fixture whose assertions check witness fields structurally, including every violation witness shape — now including the pullback witness (producers for analysis kinds are exercised via P4, but the taxonomy and fixtures exist here)."
 archetype = "PF"
 status = "active"
 superseded_by = ""
-authored_with = "0.12.0"
+authored_with = "0.12.3"
 
 [tests]
 cargo = [
-    { flags = "violation_from_a_real_kernel_run_carries_label_and_witness" },
-    { flags = "dangling_from_a_real_kernel_run_is_recorded_and_the_run_continues" },
-    { flags = "redundant_shape_is_pinned_for_p4" },
-    { flags = "contradiction_shape_is_pinned_for_p4" },
-    { flags = "underconstraint_shape_pins_both_witness_arms" },
-    { flags = "key_violation_carries_its_rows" },
+    { flags = "pullback_witness_golden_fixture" },
+    { flags = "equation_witness_golden_fixture" },
+    { flags = "key_witness_golden_fixture" },
+    { flags = "coproduct_witness_golden_fixture" },
 ]

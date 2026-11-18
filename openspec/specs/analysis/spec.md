@@ -30,13 +30,13 @@ reported as a proven contradiction.
 
 #### Scenario: Accepted equations constrain, proposed equations question
 - **WHEN** the search evaluates a candidate against a schema carrying
-  accepted and proposed equations, keys, or coproducts
-- **THEN** only the accepted constraints (equations, keys, and
-  coproducts) judge satisfiability — a candidate the accepted constraints
-  admit is clean even when it fails a proposed equation, key, or
-  coproduct, the failure surfaces as a `hypothesized` finding, and a
-  proposed-constraint violation never blocks a witness or turns the
-  outcome into a contradiction
+  accepted and proposed equations, keys, coproducts, or pullbacks
+- **THEN** only the accepted constraints (equations, keys,
+  coproducts, and pullbacks) judge satisfiability — a candidate the
+  accepted constraints admit is clean even when it fails a proposed
+  equation, key, coproduct, or pullback, the failure surfaces as a
+  `hypothesized` finding, and a proposed-constraint violation never
+  blocks a witness or turns the outcome into a contradiction
 
 ### Requirement: Redundancy is proven by derivation
 The system SHALL report a path (or declared equation) as `redundant` only

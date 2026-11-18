@@ -24,11 +24,12 @@ violation-shaped, never a sixth kind.
 
 ### Requirement: Witness shapes are fixed per finding kind
 Each kind's witness shape SHALL be fixed: a violation carries the
-equation, key, or coproduct witness; dangling carries arrow and source
-row; redundant carries derivable and reducing path; contradiction carries
-explicit scope; underconstraint carries a domain question
-(`ParallelPaths{lhs, rhs}` or `UncoveredInputs{class, examples}`). No new
-finding kind is introduced.
+equation, key, coproduct, or pullback witness; dangling carries arrow
+and source row; redundant carries derivable and reducing path;
+contradiction carries explicit scope across the accepted constraint
+families (equations, keys, coproducts, pullbacks); underconstraint
+carries a domain question (`ParallelPaths{lhs, rhs}` or
+`UncoveredInputs{class, examples}`). No new finding kind is introduced.
 
 #### Scenario: Witness encodings are stable
 - **WHEN** findings serialize
@@ -58,11 +59,27 @@ finding kind is introduced.
   lies in two injection images — assertable structurally, not by output
   text
 
+#### Scenario: Pullback violation carries the square and the offender
+- **WHEN** a kernel check produces a pullback violation
+- **THEN** the finding is `Violation` carrying the pullback's canonical
+  index and, per verdict: the offending row id and both composed values
+  (commutes), the uncovered pair of row ids (covers), or both
+  duplicate-projecting row ids (unique) — assertable structurally, not
+  by output text
+
+#### Scenario: Contradiction scope names every enforced family
+- **WHEN** bounded search exhausts and accepted keys, coproducts, or
+  pullbacks are in force
+- **THEN** the contradiction witness carries their canonical indices
+  (`keys`, `coproducts`, `pullbacks`; empty families are omitted), so
+  the scope is never empty for a contradiction those constraints
+  enforced
+
 #### Scenario: Every finding kind has a golden fixture
 - **WHEN** the fixture suite runs
 - **THEN** each v1 finding kind has a golden fixture whose assertions
-  check witness fields structurally, including both violation witness
-  shapes (producers for analysis kinds are exercised via P4, but the
+  check witness fields structurally, including every violation witness
+  shape (producers for analysis kinds are exercised via P4, but the
   taxonomy and fixtures exist here)
 
 ### Requirement: Every finding states how it was established
