@@ -1,6 +1,6 @@
 [package]
 name = "catherine-cli"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "The catherine CLI: check and findings over .ct.json model documents"
@@ -10,8 +10,8 @@ name = "catherine"
 path = "src/main.rs"
 
 [dependencies]
-catherine-core = { path = "../catherine-core", version = "0.2.0" }
-catherine-analysis = { path = "../catherine-analysis", version = "0.2.0" }
+catherine-core = { path = "../catherine-core", version = "0.3.0" }
+catherine-analysis = { path = "../catherine-analysis", version = "0.3.0" }
 clap = { version = "4", features = ["derive"] }
 genesis-vibes = "0.13"
 # Suite-convention companions of genesis envelope/config emission (whisper,

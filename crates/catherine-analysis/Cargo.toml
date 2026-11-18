@@ -1,12 +1,12 @@
 [package]
 name = "catherine-analysis"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Catherine analysis: bounded search, redundancy, underconstraint, distinguish, and the query traversals"
 
 [dependencies]
-catherine-core = { path = "../catherine-core", version = "0.2.0" }
+catherine-core = { path = "../catherine-core", version = "0.3.0" }
 
 [dev-dependencies]
 proptest = "1"

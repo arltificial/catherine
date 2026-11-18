@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-17
+
+### Added
+
+- crates.io publication (`catherine-qmc`): a release tag publishes
+  `catherine-core`, `catherine-analysis`, `catherine-ledger` and
+  `catherine-cli` in dependency order (`catherine-wasm` stays out — the
+  wasm boundary is consumed through the web bundle). A crate whose version
+  already exists is skipped, so a partial publish is retried by re-running
+  the tag. Intra-workspace dependencies carry the workspace version, and
+  the release assertion fails when the tag, a package version or a sibling
+  requirement disagree.
+- Lean 4 assurance twin (`catherine-xvh`, `add-lean-kernel-model`): an
+  external reference semantics of the kernel with machine-checked
+  soundness, equation-completeness and dangling-discipline proofs, a
+  fixture-parity oracle against the Rust check, and an axiom audit
+  (`propext`, `Classical.choice`, `Quot.sound` only) wired into CI.
+  Development artifact: no runtime dependency and no shipped binary change.
+- Ledger decision entries (`catherine-xvh`): the ledger records the
+  hold/extend/retire stop-gate decision as a sealed entry kind.
+
+### Changed
+
+- Release notes come from this changelog (`catherine-ply`): the publish job
+  extracts the version's section and appends a compare link; a missing or
+  empty section fails the job with the version named instead of publishing
+  a blank body.
+
+### Fixed
+
+- Canonical relabeling no longer explores equivalent individualization
+  branches for rows that are interchangeable under a transposition
+  automorphism (`catherine-2f6`): a model with several objects of
+  indistinguishable rows used to multiply the search and hang `model_hash`.
+  The chosen labeling is unchanged; the pruning only skips branches that
+  serialize identically.
+- The deployed `kernel-checks` spec restates the coverage-suppression
+  requirement so its SHALL leads the requirement text; strict validation of
+  the whole spec set is green again.
+
 ## [0.2.0] - 2026-11-16
 
 ### Added
