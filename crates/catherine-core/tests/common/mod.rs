@@ -1,43 +1,43 @@
-//! Shared test-side fixture loading: the lenient presentation loader the
-//! parity gate and the check goldens use for fixtures whose shapes P0's
-//! parser gates structurally (a wrong-object table value is parse-level
-//! `Syntax`). The loader mirrors parse's normalization — dense per-object
-//! row ids in sorted-name order, total per-arrow vectors — but preserves
-//! every table value: a value naming a row of another object lands in its
-//! home object's id space, which is exactly the out-of-target-space shape
+//! Purpose: shared test-side fixture loading and the canonical property
+//! generators. The loader is the lenient presentation loader the parity
+//! gate and the check goldens use for fixtures whose shapes P0's parser
+//! gates structurally (a wrong-object table value is parse-level
+//! `Syntax`). It mirrors parse's normalization — dense per-object row ids
+//! in sorted-name order, total per-arrow vectors — but preserves every
+//! table value: a value naming a row of another object lands in its home
+//! object's id space, which is exactly the out-of-target-space shape
 //! [`TypedInstance::build`] records as a typing violation.
 //!
-//! It also carries the shared property-test generators and the
-//! proptest→hegel idiom map for the migrated suites (epic catherine-7ko).
+//! Responsibilities: host the lenient loader, the shared
+//! [`generators::arb_case`] model generator that the checks and findings
+//! properties both draw, and the engine-idiom map below, so a porting
+//! author never has to guess an equivalent.
 //!
-//! Responsibilities: record the migration idioms below, and — once the
-//! checks-properties child (7ko.5) hoists it — host `generators`, the
-//! canonical model generator the checks and findings properties both
-//! draw. Porting authors should not have to guess an equivalent:
-//!
-//! | proptest | hegel |
+//! | intent | hegel |
 //! | --- | --- |
-//! | `impl Strategy<Value = X>` | `impl Generator<X>` (or a `#[hegel::composite]` fn) |
-//! | `prop_flat_map` (later draws depend on earlier ones) | `#[hegel::composite]`: sequential `tc.draw(...)` where each draw sees the values before it |
-//! | `prop_map` / `Just(x)` | `generator.map(f)` / `gs::just(x)` |
-//! | `proptest::collection::vec(g, n)` | `gs::vecs(g).exact_size(n)` |
-//! | `0..n` integer ranges | `gs::integers::<usize>().min_value(0).max_value(n - 1)` |
-//! | `prop_assume!(cond)` | `tc.assume(cond)` (rejects and retries the case) |
-//! | `prop_assert_eq!` | plain `assert_eq!` + `tc.note(...)` for counterexample context |
-//! | `proptest! { ... }` / `#[test]` body | `#[hegel::test] fn name(tc: TestCase)` |
-//! | `proptest-regressions/*.txt` | `#[hegel::reproduce_failure("…")]` blob printed on failure (commit only to pin a real failure) |
-//! | `PROPTEST_CASES` | `HEGEL_TEST_CASES` (budgets also live in the workspace `hegel.toml`) |
+//! | a strategy type parameterised by its value | `impl Generator<X>` (or a `#[hegel::composite]` fn) |
+//! | later draws depending on earlier values | `#[hegel::composite]`: sequential `tc.draw(...)`, each draw sees the values before it |
+//! | transformation / constant | `generator.map(f)` / `gs::just(x)` |
+//! | fixed-length vector | `gs::vecs(g).min_size(n).max_size(n)` |
+//! | `0..n` integer range | `gs::integers::<usize>().min_value(0).max_value(n - 1)` |
+//! | assumption | `tc.assume(cond)` (rejects and retries the case) |
+//! | assertion | plain `assert_eq!` + `tc.note(...)` for counterexample context |
+//! | test body | `#[hegel::test] fn name(tc: TestCase)` |
+//! | saved failure file | `#[hegel::reproduce_failure("…")]` blob printed on failure (commit only to pin a real failure) |
+//! | case-count environment | `HEGEL_TEST_CASES` (budgets also live in the workspace `hegel.toml`) |
 //!
-//! Rationale: the engine switch must preserve property semantics 1:1 —
-//! structural assertions by parsed value, never byte snapshots — and the
-//! one thing that silently rots a port is an idiom mapped by guesswork.
-//! Each suite still proves itself wired by catching a seeded mutation
-//! before its proptest file is deleted.
+//! Rationale: fixture loading and model generation are shared contracts —
+//! duplicating either per suite lets the suites drift into different
+//! normalization or different model spaces — and the one thing that
+//! silently rots a port is an idiom mapped by guesswork. Each suite still
+//! proves itself wired by catching a seeded mutation before its previous
+//! property file is deleted.
 
 // Each test binary compiles this module and uses a different subset of it.
 #![allow(dead_code)]
 
 pub mod fixture;
+pub mod generators;
 pub mod rule_lens;
 
 use catherine_core::model::{

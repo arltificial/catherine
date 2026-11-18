@@ -1,67 +1,107 @@
-//! Purpose: the arbitrary well-typed `Model` strategy the round-trip
+//! Purpose: the arbitrary well-typed `Model` generator the round-trip
 //! properties draw from, plus its construction from drawn parts.
 //! Responsibilities:
 //!   - `arb_model`: unique object/arrow idents, equations whose path
 //!     endpoints match, total per-arrow tables, and dense rows.
 //!   - The builders underneath it: objects, clamped arrows, dense row
 //!     spaces, canonical-order equations, and cycling cell tables.
+//!   - The straight-line builders the deterministic ratchet fixtures in
+//!     the parent binary construct models from: declared objects, a
+//!     self-loop arrow, an opposite arrow pair, dense row spaces, and
+//!     one total arrow table.
 //!
-//! Rationale: split out of `roundtrip.rs` because the new `instance_map`
-//! field pushed that binary one line past the 400-line file-size gate;
-//! the strategy and its builders are one cohesive concern, and no
-//! property assertion moved with them.
+//! Rationale: split out of the round-trip binary because the new
+//! `instance_map` field pushed that binary one line past the 400-line
+//! file-size gate; the generator and its builders are one cohesive
+//! concern, and no property assertion moved with them. The
+//! straight-line construction helpers the ratchet's deterministic
+//! fixtures share sit here too, so both model families keep their
+//! construction beside the strategy. The generator is a
+//! `#[hegel::composite]`: every drawn range and the draw order mirror
+//! the strategy it replaced, so the generated distribution (identifier
+//! shapes, unique names, clamped arrow slots, dense row spaces, cycling
+//! cell tables) and the well-typedness guarantees are unchanged.
 
 use catherine_core::model::{
     Arrow, ConstraintStatus, Equation, Ident, Instance, Model, Path, RowId, Schema, Version,
 };
-use proptest::prelude::*;
+use hegel::generators as gs;
 
-fn ident() -> impl Strategy<Value = String> {
-    "[A-Za-z_][A-Za-z0-9_]{0,7}"
+/// Object names: `[A-Za-z_][A-Za-z0-9_]{0,7}`, made unique by the set
+/// draw in `arb_model`.
+fn ident() -> gs::RegexGenerator {
+    gs::from_regex("[A-Za-z_][A-Za-z0-9_]{0,7}")
 }
 
 /// An arbitrary well-typed model: unique object/arrow idents, equations
 /// whose path endpoints match, total per-arrow tables, and dense rows.
 /// Equations are stored in canonical order, exactly as the parser stores
 /// them, so equality with a re-parse is meaningful.
-pub(crate) fn arb_model() -> impl Strategy<Value = Model> {
-    proptest::collection::btree_set(ident(), 0..7)
-        .prop_flat_map(|objects| {
-            let names: Vec<String> = objects.into_iter().collect();
-            let slots = names.len().max(1);
-            (
-                Just(names.clone()),
-                proptest::collection::btree_map(
-                    "[a-z_][a-z0-9_]{0,5}",
-                    (0usize..slots, 0usize..slots),
-                    0..=4,
-                ),
-                proptest::collection::vec(0usize..5, names.len()),
-            )
-        })
-        .prop_flat_map(|(names, arrows, row_counts)| {
-            let arrow_defs: Vec<(String, usize, usize)> = arrows
-                .into_iter()
-                .map(|(name, (s, t))| (name, s, t))
-                .collect();
-            let slots = arrow_defs.len().max(1);
-            (
-                Just(names),
-                Just(arrow_defs),
-                Just(row_counts),
-                proptest::collection::vec(
-                    (
-                        proptest::collection::vec(0usize..slots, 1..4),
-                        proptest::collection::vec(0usize..slots, 1..4),
-                    ),
-                    0..=3,
-                ),
-                proptest::collection::vec(0usize..5, 64),
-            )
-        })
-        .prop_map(|(names, arrows, row_counts, raw_equations, cell_pool)| {
-            build_model(&names, &arrows, &row_counts, &raw_equations, &cell_pool)
-        })
+#[hegel::composite]
+pub fn arb_model(tc: &hegel::TestCase) -> Model {
+    let names = draw_object_names(tc);
+    let slots = names.len().max(1);
+    let arrow_defs = draw_arrows(tc, slots);
+    let row_counts = draw_row_counts(tc, names.len());
+    let slots = arrow_defs.len().max(1);
+    let raw_equations = draw_equations(tc, slots);
+    let cell_pool = draw_cell_pool(tc);
+    build_model(&names, &arrow_defs, &row_counts, &raw_equations, &cell_pool)
+}
+
+/// Draw the unique object names.
+fn draw_object_names(tc: &hegel::TestCase) -> Vec<String> {
+    let objects: std::collections::BTreeSet<String> = tc.draw(gs::btree_sets(ident()).max_size(6));
+    objects.into_iter().collect()
+}
+
+/// Draw the arrows as `(name, src, tgt)` slots into the object list.
+fn draw_arrows(tc: &hegel::TestCase, slots: usize) -> Vec<(String, usize, usize)> {
+    let arrows: std::collections::BTreeMap<String, (usize, usize)> = tc.draw(
+        gs::btree_maps(
+            gs::from_regex("[a-z_][a-z0-9_]{0,5}"),
+            hegel::tuples!(
+                gs::integers::<usize>().min_value(0).max_value(slots - 1),
+                gs::integers::<usize>().min_value(0).max_value(slots - 1)
+            ),
+        )
+        .max_size(4),
+    );
+    arrows
+        .into_iter()
+        .map(|(name, (s, t))| (name, s, t))
+        .collect()
+}
+
+/// Draw one dense row count per object.
+fn draw_row_counts(tc: &hegel::TestCase, names_len: usize) -> Vec<usize> {
+    tc.draw(
+        gs::vecs(gs::integers::<usize>().min_value(0).max_value(4))
+            .min_size(names_len)
+            .max_size(names_len),
+    )
+}
+
+/// Draw up to three equation pairs of arrow-slot paths.
+fn draw_equations(tc: &hegel::TestCase, slots: usize) -> Vec<(Vec<usize>, Vec<usize>)> {
+    tc.draw(gs::vecs(hegel::tuples!(drawn_path(slots), drawn_path(slots))).max_size(3))
+}
+
+/// Draw the 64-entry cycling cell pool.
+fn draw_cell_pool(tc: &hegel::TestCase) -> Vec<usize> {
+    tc.draw(
+        gs::vecs(gs::integers::<usize>().min_value(0).max_value(4))
+            .min_size(64)
+            .max_size(64),
+    )
+}
+
+/// One drawn arrow-slot path: 1..=3 slots into the `slots`-long arrow
+/// list, exactly as the equation pairs draw them.
+fn drawn_path(slots: usize) -> gs::VecGenerator<gs::IntegerGenerator<usize>, usize> {
+    gs::vecs(gs::integers::<usize>().min_value(0).max_value(slots - 1))
+        .min_size(1)
+        .max_size(3)
 }
 
 /// Build the model from drawn parts. Empty-name models are the empty
@@ -249,4 +289,72 @@ fn arrow_cells<I: Iterator<Item = usize>>(
             }
         })
         .collect()
+}
+
+/// One declared object.
+pub(crate) fn object(names: &[&str]) -> std::collections::BTreeMap<Ident, ()> {
+    names
+        .iter()
+        .map(|n| (Ident((*n).to_string()), ()))
+        .collect()
+}
+
+/// One self-loop arrow on `obj`.
+pub(crate) fn self_loop(name: &str, obj: &str) -> std::collections::BTreeMap<Ident, Arrow> {
+    let mut arrows = std::collections::BTreeMap::new();
+    arrows.insert(
+        Ident(name.to_string()),
+        Arrow {
+            src: Ident(obj.to_string()),
+            tgt: Ident(obj.to_string()),
+        },
+    );
+    arrows
+}
+
+/// A pair of opposite arrows `f: p↔q` (`f` and `g` both declared).
+pub(crate) fn cross_maps(
+    f: &str,
+    p: &str,
+    q: &str,
+    g: &str,
+) -> std::collections::BTreeMap<Ident, Arrow> {
+    let mut arrows = std::collections::BTreeMap::new();
+    arrows.insert(
+        Ident(f.to_string()),
+        Arrow {
+            src: Ident(p.to_string()),
+            tgt: Ident(q.to_string()),
+        },
+    );
+    arrows.insert(
+        Ident(g.to_string()),
+        Arrow {
+            src: Ident(q.to_string()),
+            tgt: Ident(p.to_string()),
+        },
+    );
+    arrows
+}
+
+/// Dense row-id spaces `0..count` per named object.
+pub(crate) fn dense_rows(spec: &[(&str, usize)]) -> std::collections::BTreeMap<Ident, Vec<RowId>> {
+    spec.iter()
+        .map(|(name, count)| (Ident((*name).to_string()), (0..*count).map(RowId).collect()))
+        .collect()
+}
+
+/// One total arrow table: `values[name] = vec![target(i); n]`, parallel
+/// to the source object's rows.
+pub(crate) fn table(
+    name: &str,
+    n: usize,
+    target: impl Fn(usize) -> Option<RowId>,
+) -> std::collections::BTreeMap<Ident, Vec<Option<RowId>>> {
+    let mut values = std::collections::BTreeMap::new();
+    values.insert(
+        Ident(name.to_string()),
+        (0..n).map(target).collect::<Vec<_>>(),
+    );
+    values
 }

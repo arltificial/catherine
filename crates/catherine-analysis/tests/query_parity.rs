@@ -4,7 +4,7 @@
 //! Purpose: carry specodelic's donor contracts as tests, under the same
 //! names the donor used — `seeds_exist`, `closure_terminates`,
 //! `dangling_not_followed`, `results_ordered`, `fan_in_is_preimage_size`
-//! — against catherine's `TypedInstance` tables, plus `proptest`
+//! — against catherine's `TypedInstance` tables, plus `hegel`
 //! properties pinning the adapted walk against an independent BFS
 //! reference.
 //!
