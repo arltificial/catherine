@@ -1,0 +1,15 @@
+{
+  "mirror": "the catherine pullback corpus entry for the lean-kernel parity oracle — a format 1.6 accepted square whose single apex row's two cospan compositions land on different C rows, so the square fails commutes exactly once while coverage stays vacuous (the two cospan targets do not meet) and the lone projection is trivially unique",
+  "route": "parse",
+  "typing_violations": [],
+  "dangling": [],
+  "tables": {
+    "p1": [0],
+    "p2": [0],
+    "f": [0],
+    "g": [1]
+  },
+  "outcomes": [
+    {"kind": "violation", "pullback": 0, "row": 0, "lhs": 0, "rhs": 1}
+  ]
+}

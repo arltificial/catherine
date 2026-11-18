@@ -182,7 +182,7 @@ fn equation_finding(
 
 /// The epistemic weight of a constraint failure: accepted constraints are
 /// executed, proposed ones are questions (the one label rule shared by
-/// equations, keys, and coproducts).
+/// equations, keys, coproducts, and pullbacks).
 pub(super) fn label_for(status: ConstraintStatus) -> EpistemicLabel {
     match status {
         ConstraintStatus::Accepted => EpistemicLabel::Executed,

@@ -30,7 +30,8 @@ use common::load_presentation;
 
 use catherine_core::checks::check;
 use catherine_core::findings::{
-    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
+    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, PullbackWitness,
+    ViolationWitness,
 };
 use catherine_core::instance::{DanglingCell, TypedInstance, TypingViolation};
 use catherine_core::model::{Ident, Instance, RowId, Schema};
@@ -211,12 +212,46 @@ fn violation_outcome(name: &str, o: &Value) -> Finding {
         // Kind names the shape; P1's `hypothesis` outcomes carry
         // the `hypothesized` label on the same violation shape.
         label: violation_label(o),
-        kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
-            equation: o["equation"].as_u64().expect("equation") as usize,
-            row: RowId(o["row"].as_u64().expect("row") as usize),
-            lhs: RowId(o["lhs"].as_u64().expect("lhs") as usize),
-            rhs: RowId(o["rhs"].as_u64().expect("rhs") as usize),
-        })),
+        kind: FindingKind::Violation(if o.get("pullback").is_some() {
+            ViolationWitness::Pullback(pullback_witness(name, o))
+        } else {
+            ViolationWitness::Equation(EquationWitness {
+                equation: o["equation"].as_u64().expect("equation") as usize,
+                row: RowId(o["row"].as_u64().expect("row") as usize),
+                lhs: RowId(o["lhs"].as_u64().expect("lhs") as usize),
+                rhs: RowId(o["rhs"].as_u64().expect("rhs") as usize),
+            })
+        }),
+    }
+}
+
+/// A vendored pullback witness: the verdict is named by its field set —
+/// `pair` covers, `rows` unique, else commutes with `row`/`lhs`/`rhs`.
+fn pullback_witness(name: &str, o: &Value) -> PullbackWitness {
+    let id = |v: &Value| {
+        RowId(
+            v.as_u64()
+                .unwrap_or_else(|| panic!("[{name}] pullback witness row id")) as usize,
+        )
+    };
+    let pullback = o["pullback"].as_u64().expect("pullback") as usize;
+    if let Some(pair) = o.get("pair") {
+        PullbackWitness::Covers {
+            pullback,
+            pair: [id(&pair[0]), id(&pair[1])],
+        }
+    } else if let Some(rows) = o.get("rows") {
+        PullbackWitness::Unique {
+            pullback,
+            rows: [id(&rows[0]), id(&rows[1])],
+        }
+    } else {
+        PullbackWitness::Commutes {
+            pullback,
+            row: id(&o["row"]),
+            lhs: id(&o["lhs"]),
+            rhs: id(&o["rhs"]),
+        }
     }
 }
 

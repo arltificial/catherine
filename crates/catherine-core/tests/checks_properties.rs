@@ -23,6 +23,7 @@ use catherine_core::instance::TypedInstance;
 use catherine_core::model::{
     Arrow, ConstraintStatus, Equation, Ident, Instance, Path, RowId, Schema,
 };
+
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 
