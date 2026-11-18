@@ -1,0 +1,14 @@
+# Pinned Kani release (openspec capability `kani-verification-lane`).
+# Same discipline as rust-toolchain.toml: installs are pinned, never
+# `latest` — a checker drift on a rolling release must not silently
+# change recorded proof outcomes (Standardization §4). Kani bundles its
+# own nightly toolchain, so the workspace's Rust pin stays untouched.
+# Bump deliberately; provisioning is `cargo install --locked
+# kani-verifier@<release> && cargo kani setup` (see docs/kani-lane.md),
+# and docs/kani-lane.md records which release produced each proof
+# result.
+[kani]
+release = "0.68.0"
+# The nightly `cargo kani setup` installs for this release
+# (informational: reproduces the checking environment).
+bundled_nightly = "2026-08-21"

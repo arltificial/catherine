@@ -45,6 +45,17 @@ lean:
     cd lean && lake exe lean-parity --check-build
     scripts/check-lean-axioms.sh
 
+# Kani bounded-verification lane (openspec change
+# `add-kani-verification-lane`): provisioning-checked `cargo kani` run
+# over all declared harnesses, three-valued outcome per harness
+# (proved / counterexample / undetermined), failing on a confirmed
+# counterexample, a harness error, or an undetermined outcome without a
+# recorded disposition (docs/kani-lane.md). Deliberately NOT part of
+# `just ci` — same treatment as the Lean gate: a toolchain every
+# checkout cannot assume.
+verify:
+    scripts/check-kani-lane.sh
+
 # Everything .github/workflows/ci.yml runs, for local pre-push parity. The
 # bd-export freshness gate lives inside `cargo test --workspace` (the
 # standard_conformance test) — CI never runs dolt.

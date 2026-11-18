@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Kani bounded-verification lane scaffolding (`add-kani-verification-lane`,
+  `catherine-xdi`): committed release pin (`kani-version.toml`, Kani
+  0.68.0), `just verify` recipe + `scripts/check-kani-lane.sh` (pin check,
+  per-harness three-valued outcomes, 300 s wall budget, undetermined
+  fails without a recorded disposition), eleven partitioned
+  `#[cfg(kani)]` harnesses over the kernel walk (panic-freedom per check
+  family, sortedness, five witness-soundness obligations re-evaluated
+  independently of the kernel), provocation machinery
+  (`scripts/provoke-kani-harnesses.sh`), and a nightly verify workflow.
+  Deliberately outside `just ci`. Stop-gate verdict: hold
+  (`ledger/kani/0001-8f4caa62.json`) — Kani 0.68's String-keyed
+  BTreeMap model makes the proofs undetermined on this hardware
+  (evidence + dispositions in `docs/kani-lane.md`); nothing is proved,
+  nothing is cited as assurance, revisit triggers recorded.
+
 ## [0.4.0] - 2026-11-18
 
 ### Added

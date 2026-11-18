@@ -21,6 +21,8 @@ pub mod error;
 pub mod findings;
 pub mod hash;
 pub mod instance;
+#[cfg(kani)]
+mod kani_harnesses;
 pub mod migrate;
 pub mod model;
 pub mod parse;

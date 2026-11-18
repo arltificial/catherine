@@ -1,0 +1,43 @@
+# Kani bounded-verification lane — the OPTIONAL/nightly verify step
+# (openspec change `add-kani-verification-lane`, task 10).
+#
+# Deliberately NOT part of ci.yml: `just ci` and its transitive closure
+# stay Kani-free (the spec scenario pins it — the Lean-gate precedent: a
+# toolchain every checkout cannot assume must not gate every commit).
+# This workflow is the only place CI runs proof harnesses. Failure
+# surfaces the per-harness outcome lines (scripts/check-kani-lane.sh
+# echoes proved / counterexample / undetermined per harness). The Kani
+# release is pinned in kani-version.toml and the recipe refuses to run
+# under any other installed release. If a stop-gate review retires the
+# lane, the harness modules, the verify recipe, and THIS workflow are
+# archived together with the lessons kept — a retired lane must not leave
+# a failing nightly behind.
+name: verify
+
+on:
+  schedule:
+    - cron: "0 5 * * 1" # weekly, Monday 05:00 UTC
+  workflow_dispatch:
+
+jobs:
+  kani:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable (rustup)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Install just (gate runner)
+        run: cargo install just --version 1.59.0
+
+      - name: Install pinned Kani release (kani-version.toml; bundles its own nightly)
+        run: |
+          PIN=$(awk -F'"' '/^release = /{print $2; exit}' kani-version.toml)
+          cargo install --locked "kani-verifier@${PIN}"
+          cargo kani setup
+
+      - name: Verify — bounded model checking over the declared harnesses
+        run: just verify

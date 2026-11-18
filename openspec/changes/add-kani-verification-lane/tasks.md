@@ -11,7 +11,7 @@ harness and undetermined-without-disposition failing the lane.
 
 ## Phase 1 — provisioning + RED (lane and provokable harnesses first)
 
-- [ ] 1. Provisioning + pin: install the pinned Kani release; commit the
+- [x] 1. Provisioning + pin: install the pinned Kani release; commit the
       version pin beside the toolchain-pin discipline
       (`rust-toolchain.toml` untouched — Kani's bundled nightly only);
       provisioning instructions in the lane README; `just verify` recipe
@@ -20,7 +20,7 @@ harness and undetermined-without-disposition failing the lane.
       a confirmed counterexample, a harness error, or an undetermined
       outcome without a recorded disposition; `just ci` transitive
       closure stays Kani-free (spec scenario)
-- [ ] 2. Harness scaffolding: `#[cfg(kani)]` harness modules in
+- [x] 2. Harness scaffolding: `#[cfg(kani)]` harness modules in
       `catherine-core` (panic-freedom, witness soundness) and
       `catherine-analysis` (search honesty), synthesizing bounded
       nondeterministic `Schema`/`RawInstance` values — `kani::any()` over
@@ -49,7 +49,7 @@ harness and undetermined-without-disposition failing the lane.
       `Catherine.Proofs.soundness`, verified on the shipped artifact
       - Evidence: **proved** per harness; any counterexample attributed
         (harness vs kernel) and resolved per Decision 5
-- [ ] 6. Stop-gate review (fires here, after the first two harness
+- [x] 6. Stop-gate review (fires here, after the first two harness
       families): extend / hold / retire per design Decision 6 — extend
       funds the phase-2 families, hold maintains at phase-1 scope, retire
       archives the harness modules and the verify recipe with lessons
@@ -57,7 +57,7 @@ harness and undetermined-without-disposition failing the lane.
       found, bounds reached, time cost) vs fixture-and-property
       assurance; `ledger-check ledger/` green — recorded even if the
       verdict is retire
-- [ ] 7. Lane README: what the lane claims, what it does not (serde
+- [x] 7. Lane README: what the lane claims, what it does not (serde
       parsing, wasm32, Δ migration completeness — design Decision 4 out
       list), division of labor with Lean (semantic reference) and hegel
       (sampled properties), how to provision and run; records the gate
@@ -83,9 +83,9 @@ harness and undetermined-without-disposition failing the lane.
 
 ## REFACTOR + gate + report
 
-- [ ] 10. CI wiring: optional/nightly workflow step running `just verify`
+- [x] 10. CI wiring: optional/nightly workflow step running `just verify`
       (pinned Kani release install, provisioning check in the recipe),
       never inside `just ci`; failure surfaces the per-harness outcome
       lines — skipped if the gate retired the lane
-- [ ] 11. `openspec validate add-kani-verification-lane --strict`; bead
+- [x] 11. `openspec validate add-kani-verification-lane --strict`; bead
       status updated + fresh `bd export`
