@@ -21,9 +21,12 @@ into it for no measured gain).
 
 ## Decision 2: harness inputs are typed domain values, not JSON
 
-Panic-freedom harnesses generate nondeterministic `Schema`/`RawInstance`
-values via `kani::any()` under explicit bounds (objects/arrows/rows/cells
-capped per harness). Feeding raw JSON strings through serde would explode
+Panic-freedom harnesses synthesize nondeterministic `Schema`/`RawInstance`
+values from bounded `kani::any()` scalars composed by deterministic
+insertion loops (objects/arrows/rows/cells capped per harness) —
+`kani::any()` never generates the map-bearing domain types themselves
+(`rows`/`tables` are `BTreeMap`s in `instance.rs`), and serde strings are
+never inputs. Feeding raw JSON strings through serde would explode
 paths on string parsing and drag `serde_json` internals into the proof —
 and `parse` is already Rust-side, pinned by golden-file fixtures and the
 model-document spec; the Lean twin draws the same line (Decision 2 there:
@@ -34,8 +37,10 @@ remains a property-test obligation, not a Kani proof.
 
 ## Decision 3: lane separation mirrors the Lean gate exactly
 
-`just verify` = provisioning-checked `cargo kani` run over all harnesses;
-`just ci` stays Kani-free (spec scenario pins this). Precedent and
+`just verify` = provisioning-checked `cargo kani` run over all harnesses,
+failing on a counterexample, a harness error, or an
+undetermined-without-disposition (Decision 5); `just ci` stays Kani-free
+(spec scenario pins this). Precedent and
 rationale are the Lean change's: the gate must stay green on every
 checkout; expensive third-toolchain assurance rides a separate lane
 (nightly/optional CI step). Kani bundles its own pinned nightly, so
@@ -50,7 +55,8 @@ committed next to it and checked by the verify recipe before running.
   (a mutated comparator, an off-by-one in a scratch copy) must produce a
   concrete counterexample, proving the harness can fail. A harness that
   cannot be provoked proves nothing and is rewritten.
-- **Phase 2**: taxonomy disjointness + search honesty invariants
+- **Phase 2 (runs only on the stop gate's extend verdict, Decision 6)**:
+  taxonomy disjointness + search honesty invariants
   (`Contradiction` ⟹ completed exhaustion and no clean candidate in
   scope; `Witness` ⟹ fully resolved and clean; minimality on small
   scopes) — `catherine-analysis`, bounded small enough that the whole
@@ -68,14 +74,21 @@ ticket + regression fixture, fixed outside this lane). Attribution is
 recorded; obligations are never weakened to reach green. UNDETERMINED is a
 legal per-harness outcome but must be loud in the lane report (spec
 requirement), because a silent undetermined is the Kani-shaped version of
-the naked "no violation found" the tool exists to eliminate.
+the naked "no violation found" the tool exists to eliminate. Concretely:
+an undetermined harness fails the lane (nonzero exit) unless a disposition
+— raised bound or split obligation — is recorded in the lane README.
 
 ## Decision 6: stop gate reuses the existing ledger decision kind
 
 `catherine-ledger` gained a terminal `decision` kind for the Lean stop
-gate; no schema extension. The decision entry records what Kani bought
-(defects found — hopefully zero, like the Lean parity run; bounds reached;
-time cost) and picks extend / hold / retire. Given the Lean precedent
+gate; no schema extension. The gate fires at the end of phase 1 (after
+the panic-freedom and witness-soundness families) and controls phase-2
+spend: extend funds the taxonomy/search-honesty families (and possibly
+the Δ migration follow-up), hold maintains at phase-1 scope, retire
+archives the harness modules and the verify recipe with lessons kept in
+the lane README and the ledger entry. The decision entry records what
+Kani bought (defects found — hopefully zero, like the Lean parity run;
+bounds reached; time cost) and picks extend / hold / retire. Given the Lean precedent
 (parity + theorems surfaced no defect), the honest prior is that Kani's
 yield will be in crash-freedom bounds and search invariants, not kernel
 bugs; the gate makes that call on evidence either way.

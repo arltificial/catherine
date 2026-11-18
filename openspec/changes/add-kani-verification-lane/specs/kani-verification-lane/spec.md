@@ -13,7 +13,8 @@ checkout cannot assume must not gate every commit.
 - **WHEN** `just verify` runs on a machine with the pinned Kani release
   provisioned
 - **THEN** every declared harness executes and the recipe exits nonzero if
-  any harness returns a confirmed counterexample or a harness error
+  any harness returns a confirmed counterexample, a harness error, or an
+  undetermined outcome without a recorded disposition
 
 #### Scenario: ci stays Kani-free
 - **WHEN** `just ci` runs on a checkout without Kani installed
@@ -32,12 +33,19 @@ remain untouched — Kani runs under its own bundled toolchain.
 - **THEN** `just verify` runs against the pinned Kani release without
   modifying the workspace toolchain or adding a runtime dependency
 
+#### Scenario: Recorded proofs name the Kani release that produced them
+- **WHEN** the lane README records a proof result
+- **THEN** the record names the Kani release that produced it, so
+  recorded proofs stay reproducible across later pin bumps
+
 ### Requirement: Kernel execution paths are proven panic-free within bounds
-The lane SHALL include harnesses proving that the kernel's parse-product
+The lane SHALL include harnesses proving that the kernel's post-parse
 execution path — typed-instance build, path composition, and the `check`
 walk including key, coproduct, and pullback checks — performs no panic,
 arithmetic overflow, or out-of-bounds access over nondeterministic bounded
-model documents constructed from typed domain values.
+model documents constructed from typed domain values. Declared bounds
+SHALL be non-vacuous: the bounded space admits at least one document that
+exercises each check family.
 
 #### Scenario: Adversarial bounded models cannot crash the kernel
 - **WHEN** a panic-freedom harness explores the bounded space of
@@ -74,6 +82,12 @@ name any harness that did not prove.
 - **THEN** the lane reports that harness as undetermined with the bound
   reason, and `just verify` does not present the family as proven
 
+#### Scenario: Undetermined without a disposition fails the lane
+- **WHEN** a harness ends undetermined and no disposition (a raised bound
+  or a split obligation, recorded in the lane README) exists for it
+- **THEN** the recipe exits nonzero, naming the harness and its bound
+  reason
+
 ### Requirement: Counterexamples are attributed, never silenced
 A confirmed counterexample SHALL be resolved as exactly one of: a **harness
 defect** (the harness misstates the obligation) or a **Rust kernel defect**
@@ -90,11 +104,22 @@ divergence protocol.
   to make the run green
 
 ### Requirement: The lane records a stop-gate decision in the ledger
-After the first two harness families land, the lane SHALL record one of
-**extend** / **hold** / **retire** in the ledger as a terminal `decision`
-entry (the existing kind validated by `catherine-ledger`), stating what
-the harnesses bought (defects found, bounds reached) versus
-fixture-and-property assurance alone.
+After the first two harness families land (end of phase 1), the lane
+SHALL record one of **extend** / **hold** / **retire** in the ledger as a
+terminal `decision` entry (the existing kind validated by
+`catherine-ledger`), stating what the harnesses bought (defects found,
+bounds reached) versus fixture-and-property assurance alone. The verdict
+gates the remaining harness spend.
+
+#### Scenario: The verdict gates the remaining harness spend
+- **WHEN** the gate review runs after the first two harness families land
+- **THEN** extend funds the phase-2 harness families and hold maintains
+  at phase-1 scope — neither runs harness work the verdict did not fund
+
+#### Scenario: Retire archives the lane with lessons kept
+- **WHEN** the gate verdict is retire
+- **THEN** the harness modules and the verify recipe are archived, with
+  the lessons kept in the lane README and the ledger entry
 
 #### Scenario: The decision is sealed either way
 - **WHEN** the stop-gate review runs

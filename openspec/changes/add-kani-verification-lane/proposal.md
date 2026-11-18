@@ -10,7 +10,7 @@
 
 The kernel that agents actually invoke is verified only by sampling: the
 `lean-parity` oracle compares normalized findings over the fixture corpus
-(190 docs, divergence protocol), and hegel properties run on generated
+(190 docs at the Lean change's parity run; divergence protocol), and hegel properties run on generated
 inputs — neither exhausts any input space. Kani (AWS's Rust model checker)
 adds the missing mode of assurance: **exhaustive-within-bounds checking of
 the real Rust code** — panic/overflow-freedom over adversarial model
@@ -24,8 +24,9 @@ instances, and "no solver" is a documented anti-goal.
 ## What Changes
 
 - New `verify` lane: `cargo kani` proof harnesses in `crates/catherine-core`
-  and `crates/catherine-analysis` behind a `kani` feature + `#[cfg(kani)]`
-  harness modules — deliberately **outside `just ci`** (same treatment as
+  and `crates/catherine-analysis`, gated by `#[cfg(kani)]` harness modules
+  (the checker sets that cfg; no feature knob) — deliberately **outside
+  `just ci`** (same treatment as
   the Lean gate: a toolchain every checkout can't assume), runnable as
   `just verify` and wired as a separate nightly/optional CI step.
 - Pinned Kani release (committed version pin next to the toolchain pin
@@ -48,10 +49,12 @@ instances, and "no solver" is a documented anti-goal.
   failure is exactly one of a **harness defect** or a **Rust kernel
   defect** (beads ticket + regression fixture, never silenced); Kani's
   UNDETERMINED (unwinding bound) is reported per harness, never hidden.
-- Stop gate: after the first two harness families, record extend / hold /
-  retire in the ledger using the existing terminal `decision` kind
-  (no schema extension needed this time — `catherine-ledger` already
-  validates it since the Lean change).
+- Stop gate: after the first two harness families land (end of phase 1),
+  record extend / hold / retire in the ledger using the existing terminal
+  `decision` kind — extend funds the phase-2 harness families, a retire
+  verdict archives the lane with lessons kept (no schema extension needed
+  this time — `catherine-ledger` already validates it since the Lean
+  change).
 - New openspec capability `kani-verification-lane`.
 
 ## Capabilities
