@@ -135,7 +135,7 @@ typing to interpret each morphism table — the query functions take
 parity-pinned mixed-closure fixpoint); `cyclic_nodes` ports as the
 closure-based reading (a node is on a cycle through M iff some defined
 value `s → t` has `s` reachable forward from `t`; trivial self-edges
-included). Property tests (`proptest`) compare the ported closure
+included). Property tests (`hegeltest`) compare the ported closure
 against an independent BFS reference on generated instances and re-pin
 `fan_in` as a property.
 

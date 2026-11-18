@@ -16,7 +16,7 @@
 //! the digest of the canonical form, so equal models hash equal
 //! regardless of input key order or presentation row names (design
 //! Decision 4). The digest itself is implemented in-crate per FIPS 180-4
-//! because the brief locks dependencies to serde/serde_json/proptest (§6)
+//! because the brief locks dependencies to serde/serde_json (§6)
 //! — the algorithm is fully specified, so there is no design freedom to
 //! exercise; the normative test vectors below pin it byte-for-byte.
 

@@ -69,6 +69,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disambiguation, annotation-drift detection, an E-license) and the
   preferred presentation-only, hash-excluded shape are recorded in
   `docs/ref/olog-mapping.md`.
+- Property-based tests run on `hegeltest` (exact-pinned `=0.53.1`) instead
+  of `proptest` (`catherine-7ko`): the round-trip, symmetric-ratchet,
+  executed-checks, findings-taxonomy, pullback order-stability and analysis
+  parity suites were ported property-for-property, with one shared
+  `#[hegel::composite]` model generator in
+  `crates/catherine-core/tests/common/generators.rs` and workspace
+  `hegel.toml` profiles (development 100 cases, CI 200). Each port is proven
+  wired by a seeded product mutation that the ported harness caught and
+  shrank before the old file was deleted. The dead `proptest`
+  dev-dependency is dropped from `catherine-core`, `catherine-analysis` and
+  `catherine-ledger`; budgets and seeds come from `hegel.toml` and the
+  `HEGEL_*` environment variables.
 
 ## [0.3.0] - 2026-11-17
 

@@ -9,7 +9,7 @@
 # (derandomize, database off, `too_slow` suppressed), which this file
 # adds to rather than replaces.
 #
-# Rationale: the migrated proptest suites ran 256 cases by default and
+# Rationale: the pre-migration suites ran 256 cases by default and
 # the property sets are heavy model generators; 100 local / 200 CI keeps
 # the suite's wall-clock envelope while still exceeding the pre-migration
 # coverage. Deeper runs stay an explicit env override

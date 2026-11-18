@@ -12,7 +12,7 @@
 //! print or consume.
 //!
 //! Rationale: kernel crates stay small, regular, and genesis-free (DESIGN
-//! §3); deps are locked to serde/serde_json (+ proptest for tests).
+//! §3); deps are locked to serde/serde_json (+ hegeltest for tests).
 
 pub mod canonical;
 pub mod checks;

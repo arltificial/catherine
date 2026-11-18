@@ -134,7 +134,7 @@ logic per genesis's boundary rule, and keeps the kernel portable/pure for
 WASM. Stable modules only for v1 (the `new` ones — doctor/cli/status —
 wait until they graduate).
 
-Testing tooling: `proptest` for round-trip and parity properties;
+Testing tooling: `hegeltest` for round-trip and parity properties;
 golden-file fixtures for parser errors and findings; `insta`-style snapshots
 are deliberately avoided — findings carry witnesses and must be asserted
 structurally, not byte-compared.

@@ -10,5 +10,4 @@ catherine-core = { path = "../catherine-core", version = "0.3.0" }
 
 [dev-dependencies]
 hegeltest = "=0.53.1"
-proptest = "1"
 serde_json = "1"
