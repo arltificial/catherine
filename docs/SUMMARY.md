@@ -17,6 +17,7 @@
 
 - [Category-theoretic modeling methodology](./ref/category_theoretic_modeling_methodology.md)
 - [CT methodology playbook](./ref/ct_methodology_playbook.md)
+- [Olog mapping (Spivak–Kent)](./ref/olog-mapping.md)
 - [Pattern-kata dispositions](./ref/pattern-kata-dispositions.md)
 - [Expressibility dispositions](./ref/expressibility-dispositions.md)
 - [ploeh grounding](./ref/ploeh-grounding.md)

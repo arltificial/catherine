@@ -1,0 +1,26 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["Department", "Employee", "Manager"],
+    "arrows": [
+      {"name": "has_manager", "src": "Employee", "tgt": "Manager"},
+      {"name": "is_employee", "src": "Manager", "tgt": "Employee"},
+      {"name": "works_in", "src": "Employee", "tgt": "Department"}
+    ],
+    "equations": [
+      {"lhs": ["has_manager", "is_employee", "works_in"], "rhs": ["works_in"], "rationale": "fact — a fact must hold in the intended instance (Spivak–Kent rules of good practice, arXiv:1102.1889 §2; example olog §3.2 Ex. 3.2.1, facts as §4.2.1 G-specifications): the manager has the same department as any employee", "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Department": ["research", "sales"],
+      "Employee": ["alice", "bob", "carol", "doug", "eve"],
+      "Manager": ["doug", "eve"]
+    },
+    "tables": {
+      "has_manager": {"alice": "doug", "bob": "doug", "carol": "eve", "doug": "doug", "eve": "eve"},
+      "is_employee": {"doug": "doug", "eve": "eve"},
+      "works_in": {"alice": "sales", "bob": "sales", "carol": "research", "doug": "sales", "eve": "research"}
+    }
+  }
+}
