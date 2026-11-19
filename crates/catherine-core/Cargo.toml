@@ -9,6 +9,12 @@ description = "Catherine kernel: .ct.json model document format, parser, canonic
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+[lints.rust]
+# The verification lane's harness module compiles only under `cargo kani`
+# (`cfg(kani)` — docs/kani-lane.md); plain clippy must know the cfg name
+# or its -D warnings gate fails every checkout.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
 [dev-dependencies]
 hegeltest = "=0.53.1"
 jsonschema = { version = "0.58", default-features = false }

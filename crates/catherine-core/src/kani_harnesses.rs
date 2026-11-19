@@ -1,100 +1,61 @@
 //! Purpose: the Kani bounded-model-checking harnesses over the shipped
-//! kernel (openspec change `add-kani-verification-lane`, beads
-//! `catherine-xdi`) — panic/overflow-freedom over the post-parse
-//! execution path (`TypedInstance::build`, path composition inside the
+//! kernel (`catherine-core`) — panic/overflow-freedom over the
+//! post-parse execution path (engine build, path composition inside the
 //! `check` walk, equation/key/coprod/pullback families) and witness
 //! soundness on emitted findings (re-evaluation half in the `soundness`
-//! submodule).
+//! submodule) — openspec change `add-kani-verification-lane`, beads
+//! `catherine-6g2` (the interning that made the lane runnable).
 //!
 //! Responsibilities: harnesses are PARTITIONED PER CHECK FAMILY, each
-//! with its own minimal schema and stated bounds (design Decision 4:
-//! bounds are per harness; one family per harness keeps the symbolic
-//! heap footprint small enough for CBMC while every family stays
-//! exhaustively checked within its bounds). Synthesis is nondeterministic
-//! `kani::any()` scalars composed into domain values by deterministic
-//! insertion loops (Decision 2: never the map-bearing domain types
-//! themselves, never serde strings). Bounds are non-vacuous per family:
-//! each harness's space admits a document exercising its family's
-//! failure shapes; the provocation pass (task 3) demonstrates each
-//! harness can fail.
+//! with its own minimal schema and stated bounds (design Decision 4).
+//! Synthesis is nondeterministic `kani::any()` scalars composed into
+//! dense id tables by deterministic insertion loops (Decision 2: never
+//! the map-bearing domain types themselves, never serde strings — and,
+//! since catherine-amh, never any `BTreeMap` op: container modeling is
+//! the measured wall). Bounds are non-vacuous per family: each harness's
+//! space admits a document exercising its family's failure shapes; the
+//! provocation pass (task 3) demonstrates each harness can fail.
 //!
 //! Rationale: the checker sets `cfg(kani)`; this module compiles only
-//! under verification (the module wiring in lib.rs is the whole surface —
-//! the workspace gains no Kani dependency outside this file). Kani's
-//! UNDETERMINED and any counterexample follow the counterexample protocol
-//! (design Decision 5): attribution recorded, obligations never weakened.
+//! under verification. The sortedness obligation asserts the canonical
+//! taxonomy order over the engine's int sort keys — the exact comparison
+//! prefix of `Finding::cmp` (id order is name order by construction),
+//! without charging a `&str` comparison to the solver (the memcmp model
+//! is measured fatal inside sort comparators). Kani's UNDETERMINED and
+//! any counterexample follow the counterexample protocol (design
+//! Decision 5): attribution recorded, obligations never weakened.
 
-use crate::instance::TypedInstance;
-use crate::model::{Ident, Instance, RowId};
-
-mod soundness;
+use crate::engine::{
+    engine_build, engine_families, CompactFinding, EngineSchema, EngineTyped, SortKey,
+};
 
 mod shapes;
+mod soundness;
 
-use shapes::{any_cells, ARROWS};
-
-// ---------------------------------------------------------------------------
-// Shared synthesis (single space description, per-arrow entropy tiers).
-//
-// Cell entropy is tiered: wide (dangling/row0/row1) where a family needs
-// the extra reach, narrow (dangling/row0) elsewhere — the symbolic space
-// stays small enough for CBMC while every family's failure shapes stay
-// reachable. `rows_of` is the per-object row bound.
-// ---------------------------------------------------------------------------
-
-/// The cell of `arrow` at source row `row`, if the presentation's shape
-/// carries it. `None` = no such cell; `Some(None)` = dangling;
-/// `Some(Some(v))` = a value (possibly a typing violation, judged by the
-/// caller against the target space).
-fn cell(instance: &Instance, arrow: &str, row: usize) -> Option<Option<RowId>> {
-    instance
-        .values
-        .get(&Ident(arrow.to_string()))
-        .and_then(|cells| cells.get(row).copied())
-}
-
-/// Nondeterministic instance over the shared arrow space: dense rows per
-/// object, tiered cells per (arrow, source row).
-fn any_instance() -> Instance {
-    let mut instance = Instance::default();
-    for (object, rows) in shapes::OBJECT_ROWS {
-        instance
-            .rows
-            .insert(Ident(object.to_string()), (0..rows).map(RowId).collect());
-    }
-    for (name, _src, _tgt, rows) in ARROWS {
-        let mut cells = Vec::new();
-        for _ in 0..rows {
-            cells.push(any_cells(name));
-        }
-        instance.values.insert(Ident(name.to_string()), cells);
-    }
-    instance
-}
-
-/// The nondeterministic `check` + diff-stable-order obligation over the
-/// whole walk: all four families declared on one minimal presentation,
-/// findings asserted totally ordered (repeated checks sort identically).
-#[kani::proof]
-fn check_sortedness_panic_freedom() {
-    let schema = shapes::schema_all_families();
-    let instance = any_instance();
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
-    for window in findings.windows(2) {
-        assert!(window[0] <= window[1]);
-    }
-}
-
-/// Panic/overflow-freedom of `TypedInstance::build` alone over the full
-/// arrow space, including dangling and typing-violation branches (build
-/// is infallible by contract: every value lands somewhere, never a hard
+/// Panic/overflow-freedom of the engine build alone over the full arrow
+/// space, including dangling and typing-violation branches (build is
+/// infallible by contract: every value lands somewhere, never a hard
 /// failure).
 #[kani::proof]
 fn build_panic_freedom() {
     let schema = shapes::schema_all_families();
-    let instance = any_instance();
-    let _typed = TypedInstance::build(&schema, &instance);
+    let instance = shapes::instance_for(&schema);
+    let _typed = engine_build(&schema, &instance);
+}
+
+/// The nondeterministic `check` + diff-stable-order obligation over the
+/// whole walk: all four families declared on one minimal presentation,
+/// the emitted findings asserted totally ordered — in the int keys that
+/// `Finding::cmp` compares (kind, variant, witness ids, label).
+#[kani::proof]
+fn check_sortedness_panic_freedom() {
+    let schema = shapes::schema_all_families();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_families(&schema, &typed);
+    for window in findings.windows(2) {
+        assert!(window[0].0 <= window[1].0);
+    }
 }
 
 /// Panic/overflow-freedom of the equation family over its minimal space
@@ -103,14 +64,14 @@ fn build_panic_freedom() {
 #[kani::proof]
 fn check_equation_panic_freedom() {
     let schema = shapes::schema_equation();
-    let instance = shapes::instance_for(&[("e1", "a", "x", 2), ("e2", "a", "x", 2)]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
-    for finding in &findings {
+    let typed = typed_for(&schema);
+    let findings = engine_families(&schema, &typed);
+    for (key, _, finding) in &findings {
         assert!(matches!(
-            finding.kind,
-            crate::findings::FindingKind::Violation(_)
+            finding,
+            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
         ));
+        let _ = key;
     }
 }
 
@@ -120,15 +81,14 @@ fn check_equation_panic_freedom() {
 #[kani::proof]
 fn check_key_panic_freedom() {
     let schema = shapes::schema_key();
-    let instance = shapes::instance_for(&[("e1", "a", "x", 2), ("e2", "a", "x", 2)]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
-    for finding in &findings {
+    let typed = typed_for(&schema);
+    let findings = engine_families(&schema, &typed);
+    for (key, _, finding) in &findings {
         assert!(matches!(
-            finding.kind,
-            crate::findings::FindingKind::Violation(_)
-                | crate::findings::FindingKind::Dangling(_)
+            finding,
+            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
         ));
+        let _ = key;
     }
 }
 
@@ -138,15 +98,14 @@ fn check_key_panic_freedom() {
 #[kani::proof]
 fn check_coproduct_panic_freedom() {
     let schema = shapes::schema_coproduct();
-    let instance = shapes::instance_for(&[("i_y", "y", "x", 1), ("i_z", "z", "x", 2)]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
-    for finding in &findings {
+    let typed = typed_for(&schema);
+    let findings = engine_families(&schema, &typed);
+    for (key, _, finding) in &findings {
         assert!(matches!(
-            finding.kind,
-            crate::findings::FindingKind::Violation(_)
-                | crate::findings::FindingKind::Dangling(_)
+            finding,
+            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
         ));
+        let _ = key;
     }
 }
 
@@ -157,20 +116,14 @@ fn check_coproduct_panic_freedom() {
 #[kani::proof]
 fn check_pullback_panic_freedom() {
     let schema = shapes::schema_pullback();
-    let instance = shapes::instance_for(&[
-        ("e1", "a", "x", 2),
-        ("e2", "a", "x", 2),
-        ("f1", "x", "z", 2),
-        ("f2", "x", "z", 2),
-    ]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
-    for finding in &findings {
+    let typed = typed_for(&schema);
+    let findings = engine_families(&schema, &typed);
+    for (key, _, finding) in &findings {
         assert!(matches!(
-            finding.kind,
-            crate::findings::FindingKind::Violation(_)
-                | crate::findings::FindingKind::Dangling(_)
+            finding,
+            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
         ));
+        let _ = key;
     }
 }
 
@@ -179,13 +132,10 @@ fn check_pullback_panic_freedom() {
 /// claimed.
 #[kani::proof]
 fn soundness_equation() {
-    let schema = shapes::schema_equation();
-    let instance = shapes::instance_for(&[("e1", "a", "x", 2), ("e2", "a", "x", 2)]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
+    let (schema, typed, findings) = family_under_test(shapes::schema_equation());
     kani::assume(!findings.is_empty());
     let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &instance, &findings[index]);
+    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
 }
 
 /// Witness soundness, key family: every emitted collision's witness
@@ -193,13 +143,10 @@ fn soundness_equation() {
 /// ascending rows.
 #[kani::proof]
 fn soundness_key() {
-    let schema = shapes::schema_key();
-    let instance = shapes::instance_for(&[("e1", "a", "x", 2), ("e2", "a", "x", 2)]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
+    let (schema, typed, findings) = family_under_test(shapes::schema_key());
     kani::assume(!findings.is_empty());
     let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &instance, &findings[index]);
+    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
 }
 
 /// Witness soundness, coproduct family: coverage witnesses name rows in
@@ -207,13 +154,10 @@ fn soundness_key() {
 /// that really cover their row.
 #[kani::proof]
 fn soundness_coproduct() {
-    let schema = shapes::schema_coproduct();
-    let instance = shapes::instance_for(&[("i_y", "y", "x", 1), ("i_z", "z", "x", 2)]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
+    let (schema, typed, findings) = family_under_test(shapes::schema_coproduct());
     kani::assume(!findings.is_empty());
     let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &instance, &findings[index]);
+    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
 }
 
 /// Witness soundness, pullback family: commutes witnesses re-derive both
@@ -222,29 +166,47 @@ fn soundness_coproduct() {
 /// projections.
 #[kani::proof]
 fn soundness_pullback() {
-    let schema = shapes::schema_pullback();
-    let instance = shapes::instance_for(&[
-        ("e1", "a", "x", 2),
-        ("e2", "a", "x", 2),
-        ("f1", "x", "z", 2),
-        ("f2", "x", "z", 2),
-    ]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
+    let (schema, typed, findings) = family_under_test(shapes::schema_pullback());
     kani::assume(!findings.is_empty());
     let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &instance, &findings[index]);
+    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
 }
 
 /// Witness soundness, dangling family: every dangling witness names a
 /// cell that really holds no row.
 #[kani::proof]
 fn soundness_dangling() {
-    let schema = shapes::schema_equation();
-    let instance = shapes::instance_for(&[("e1", "a", "x", 2), ("e2", "a", "x", 2)]);
-    let typed = TypedInstance::build(&schema, &instance);
-    let findings = crate::checks::check(&schema, &typed);
+    let (schema, typed, findings) = family_under_test(shapes::schema_equation());
     kani::assume(!findings.is_empty());
     let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &instance, &findings[index]);
+    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
+}
+
+/// Build the typed tables for a family's shape.
+fn typed_for(schema: &EngineSchema) -> EngineTyped {
+    let instance = shapes::instance_for(schema);
+    engine_build(schema, &instance)
+}
+
+/// The schema, its tables, and the keyed findings — one soundness
+/// sample space per family.
+fn family_under_test(
+    schema: EngineSchema,
+) -> (
+    EngineSchema,
+    EngineTyped,
+    Vec<(SortKey, crate::findings::EpistemicLabel, CompactFinding)>,
+) {
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_families(&schema, &typed);
+    (schema, typed, findings)
+}
+
+#[kani::proof]
+fn probe_build_only() {
+    let schema = shapes::schema_all_families();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    assert_eq!(typed.tables.len(), 7);
 }

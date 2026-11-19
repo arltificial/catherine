@@ -84,39 +84,37 @@ impl TypedInstance {
     /// the arrow's target object's dense id space. Values keyed by arrows
     /// outside the schema are not part of the presentation and are
     /// ignored.
+    ///
+    /// The classification is the engine's (`engine::engine_build`) —
+    /// this is the parsed-surface adapter: it interns the presentation
+    /// once and materializes the same tables and reports the walk built,
+    /// so the kernel has exactly one build implementation to prove.
     pub fn build(schema: &Schema, instance: &Instance) -> Self {
+        let compiled = crate::engine::EngineSchema::compile(schema);
+        let interned = compiled.compile_instance(instance);
+        let built = crate::engine::engine_build(&compiled, &interned);
         let rows: BTreeMap<Ident, Vec<RowId>> = instance.rows.clone();
         let mut tables = BTreeMap::new();
-        let mut typing_violations = Vec::new();
-        let mut dangling = Vec::new();
-        for (name, arrow) in &schema.arrows {
-            let n_src = rows.get(&arrow.src).map_or(0, Vec::len);
-            let n_tgt = rows.get(&arrow.tgt).map_or(0, Vec::len);
-            let mut table = vec![None; n_src];
-            // The parsed presentation carries one total vector per arrow;
-            // cells beyond the source object's row space are outside the
-            // presentation's shape (no source row to sit on) and are
-            // ignored — a parsed value always has a source row.
-            if let Some(cells) = instance.values.get(name) {
-                for (idx, &cell) in cells.iter().enumerate().take(n_src) {
-                    match cell {
-                        None => {
-                            dangling.push(DanglingCell {
-                                arrow: name.clone(),
-                                src: RowId(idx),
-                            });
-                        }
-                        Some(value) if value.0 < n_tgt => table[idx] = Some(value),
-                        Some(value) => typing_violations.push(TypingViolation {
-                            arrow: name.clone(),
-                            src: RowId(idx),
-                            value,
-                        }),
-                    }
-                }
-            }
-            tables.insert(name.clone(), table);
+        for (nid, name) in compiled.arrow_names.iter().enumerate() {
+            tables.insert(name.clone(), built.tables[nid].clone());
         }
+        let typing_violations = built
+            .typing_violations
+            .iter()
+            .map(|(nid, idx, value)| TypingViolation {
+                arrow: compiled.arrow_names[*nid].clone(),
+                src: RowId(*idx),
+                value: *value,
+            })
+            .collect();
+        let dangling = built
+            .dangling
+            .iter()
+            .map(|(nid, idx)| DanglingCell {
+                arrow: compiled.arrow_names[*nid].clone(),
+                src: RowId(*idx),
+            })
+            .collect();
         Self {
             rows,
             tables,

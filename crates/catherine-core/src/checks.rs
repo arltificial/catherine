@@ -52,225 +52,29 @@
 //! the same dangling discipline, and the same sort — no new kind, exit
 //! code, or severity.
 
-use crate::findings::{
-    DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, KeyWitness,
-    ViolationWitness,
-};
+use crate::findings::{EpistemicLabel, Finding};
 use crate::instance::TypedInstance;
-use crate::model::{ConstraintStatus, Ident, Key, RowId, Schema};
-use std::collections::{BTreeMap, BTreeSet};
-
-mod coproducts;
-mod pullbacks;
+use crate::model::{ConstraintStatus, Schema};
 
 /// Execute every declared constraint — equations, keys, coproducts, and
-/// pullbacks — on every applicable row of the typed instance. See the
-/// module docs for the finding contract.
-///
-/// Every lookup inside the walk is total (`get`-based): for parsed
-/// presentations each declared equation's lead arrow, domain rows, and
-/// tables all exist and the walk is exactly "every equation on every
-/// applicable row". The `continue` branches only guard against
-/// programmatically assembled presentations outside that shape (an
-/// equation naming an undeclared lead arrow, a domain object with no row
-/// space, a path composing through a cell the presentation does not
-/// carry) — they skip an inapplicable equation, never a row of an
-/// applicable one.
+/// pullbacks — on every applicable row of the typed instance, over the
+/// interned execution core (`engine`). The finding contract is the
+/// module doc above; the engine emits the same walks over dense ids, and
+/// its int-key sort is exactly the taxonomy order this function used to
+/// sort under (id order is name order by construction — see
+/// `engine::EngineSchema::compile`).
 pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    // Dangling values first in the walk (the taxonomy's kind order sorts
-    // them after the violations): one finding per unresolved cell that is
-    // not accounted for by a typing violation (a violated value never
-    // became a table entry — its `None` cell is a build report, not a
-    // dangling reference).
-    let violated: BTreeSet<(Ident, RowId)> = instance
-        .typing_violations()
-        .iter()
-        .map(|v| (v.arrow.clone(), v.src))
-        .collect();
-    findings.extend(dangling_findings(instance, &violated));
-    findings.extend(equation_findings(schema, instance));
-    findings.extend(key_findings(schema, instance));
-    findings.extend(coproducts::coproduct_findings(schema, instance));
-    findings.extend(pullbacks::pullback_findings(schema, instance));
-    // The taxonomy's total order (kind declaration order — violations
-    // before dangling — then witness ids, label last) is the emitted
-    // contract: the walk's push order is not, and the sorted result makes
-    // repeated checks byte-identical (findings spec: repeated runs are
-    // diff-stable).
-    findings.sort();
-    findings
-}
-
-/// One dangling finding per unresolved cell not accounted for by a typing
-/// violation.
-fn dangling_findings(
-    instance: &TypedInstance,
-    violated: &BTreeSet<(Ident, RowId)>,
-) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    for (arrow, cells) in instance.tables() {
-        for (idx, cell) in cells.iter().enumerate() {
-            if cell.is_none() && !violated.contains(&(arrow.clone(), RowId(idx))) {
-                findings.push(Finding {
-                    label: EpistemicLabel::Executed,
-                    kind: FindingKind::Dangling(DanglingWitness {
-                        arrow: arrow.clone(),
-                        src: RowId(idx),
-                    }),
-                });
-            }
-        }
-    }
-    findings
-}
-
-/// Every declared equation on every row of its domain object. A path
-/// through a dangling (or violated) cell cannot compose: the affected
-/// row is already recorded by its dangling finding and emits nothing
-/// here — recorded, not crashed, never a violation. The failure's
-/// witness is constructed once; only the label rides on the equation's
-/// status (accepted → executed, proposed → hypothesized).
-fn equation_findings(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    for (index, equation) in schema.equations.iter().enumerate() {
-        let Some(lead) = equation.lhs.0.first() else {
-            continue;
-        };
-        let Some(arrow) = schema.arrows.get(lead) else {
-            continue;
-        };
-        let Some(rows) = instance.rows().get(&arrow.src) else {
-            continue;
-        };
-        for &row in rows {
-            if let Some(finding) = equation_finding(schema, instance, index, row) {
-                findings.push(finding);
-            }
-        }
-    }
-    findings
-}
-
-/// The violation finding for one equation on one row, if the composed
-/// paths exist and disagree.
-fn equation_finding(
-    schema: &Schema,
-    instance: &TypedInstance,
-    index: usize,
-    row: RowId,
-) -> Option<Finding> {
-    let equation = &schema.equations[index];
-    let lhs = instance.compose(&equation.lhs, row);
-    let rhs = instance.compose(&equation.rhs, row);
-    let (Some(lhs), Some(rhs)) = (lhs, rhs) else {
-        return None;
-    };
-    if lhs == rhs {
-        return None;
-    }
-    Some(Finding {
-        label: label_for(equation.status),
-        kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
-            equation: index,
-            row,
-            lhs,
-            rhs,
-        })),
-    })
+    let compiled = crate::engine::EngineSchema::compile(schema);
+    let typed = compiled.compile_typed(instance);
+    crate::engine::engine_check(&compiled, &typed)
 }
 
 /// The epistemic weight of a constraint failure: accepted constraints are
 /// executed, proposed ones are questions (the one label rule shared by
 /// equations, keys, coproducts, and pullbacks).
-pub(super) fn label_for(status: ConstraintStatus) -> EpistemicLabel {
+pub(crate) fn label_for(status: ConstraintStatus) -> EpistemicLabel {
     match status {
         ConstraintStatus::Accepted => EpistemicLabel::Executed,
         ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
     }
-}
-
-/// Every declared key as an injectivity claim over its object's rows. A
-/// row with any unresolved key cell is excluded — the cell is a dangling
-/// reference or typing violation, already reported by its own finding,
-/// never double-reported as a collision. A group of size `n > 1` emits
-/// one finding per unordered pair, ascending rows (a 3-way collision is
-/// three findings — each pair is a demonstrated failure with an exact
-/// witness, not a summary count).
-fn key_findings(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    for (index, key) in schema.keys.iter().enumerate() {
-        findings.extend(key_finding(schema, instance, index, key));
-    }
-    findings
-}
-
-/// One key's collision findings, in ascending pair order.
-fn key_finding(schema: &Schema, instance: &TypedInstance, index: usize, key: &Key) -> Vec<Finding> {
-    let Some(rows) = instance.rows().get(&key.object) else {
-        return Vec::new();
-    };
-    let Some(tables) = key_tables(schema, instance, key) else {
-        return Vec::new();
-    };
-    let mut groups: BTreeMap<Vec<RowId>, Vec<RowId>> = BTreeMap::new();
-    for &row in rows {
-        if let Some(tuple) = key_tuple(&tables, row) {
-            groups.entry(tuple).or_default().push(row);
-        }
-    }
-    let label = label_for(key.status);
-    let mut findings = Vec::new();
-    // The witness contract says ascending rows; parsed instances already
-    // enumerate rows densely and ascending, so this only guards
-    // programmatically assembled instances.
-    let mut groups: Vec<Vec<RowId>> = groups.into_values().collect();
-    for group in &mut groups {
-        group.sort_unstable();
-    }
-    for group in &groups {
-        for (position, &lo) in group.iter().enumerate() {
-            for &hi in &group[position + 1..] {
-                findings.push(Finding {
-                    label,
-                    kind: FindingKind::Violation(ViolationWitness::Key(KeyWitness {
-                        key: index,
-                        rows: [lo, hi],
-                    })),
-                });
-            }
-        }
-    }
-    findings
-}
-
-/// The key arrows' value tables, in key order. A key naming an undeclared
-/// arrow or an arrow not sourced at its object is outside the parsed
-/// presentation's shape (parse rejects it); programmatically assembled
-/// schemas skip such a key rather than mis-group its rows.
-fn key_tables<'a>(
-    schema: &Schema,
-    instance: &'a TypedInstance,
-    key: &Key,
-) -> Option<Vec<&'a Vec<Option<RowId>>>> {
-    key.arrows
-        .iter()
-        .map(|arrow| {
-            let definition = schema.arrows.get(arrow)?;
-            if definition.src != key.object {
-                return None;
-            }
-            instance.tables().get(arrow)
-        })
-        .collect()
-}
-
-/// One row's key tuple; `None` when any key cell is unresolved (dangling,
-/// typing-violated, or outside the table's source row space).
-fn key_tuple(tables: &[&Vec<Option<RowId>>], row: RowId) -> Option<Vec<RowId>> {
-    let mut tuple = Vec::with_capacity(tables.len());
-    for table in tables {
-        tuple.push(table.get(row.0).copied().flatten()?);
-    }
-    Some(tuple)
 }

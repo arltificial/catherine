@@ -94,6 +94,49 @@ formula, so 8 GB / 300s stays the lane standard until the split
 obligation clears.
 
 
+## 2026-11-19: the interning arc (beads catherine-6g2) — construction proves, build/check still held
+
+The revisit trigger recorded in the dispositions below was executed: a
+kernel-side interned execution core (`src/engine/`, decomposed under the
+complexity caps into `mod`/`compile`/`families`/`render`/`lane`) — dense
+ids in canonical order, `Vec`-shaped tables, no `Ident`-keyed map on any
+proven path, findings ordered by pure-int sort keys exactly equivalent to
+`Finding::cmp` (id order is name order by construction). The parsed
+surface is behaviorally unchanged and pinned by the full test suite
+(169 core tests, the `ah check` contract suite, fixtures, parity);
+`TypedInstance::build` delegates its classification to the engine, so the
+kernel has one build implementation.
+
+Measured probe matrix (Kani 0.68.0 / CBMC 6.11.0, unwind 16) — replaces
+the 0001-era picture:
+
+| Op class under the solver | Verdict |
+|---|---|
+| `BTreeMap` with symbolic content, any key type (`u32` included) | fatal (harness timeout) |
+| `&str` in a sort comparator | fatal (memcmp churns to the unwind cap, even fully concrete) |
+| `String` alloc/drop/swap in the harness path | fatal (even ~a dozen concrete names) |
+| `Vec`-of-`Vec` over symbolic scalars, concrete loop bounds | proves in seconds |
+| `Option<struct>` payloads | free |
+| lane construction (`EngineSchema::lane` + `instance_for`) | **verifies ~26 s end-to-end** |
+
+Construction is therefore the first in-budget verification this lane has
+produced. `engine_build` and the check walkers over symbolic cells remain
+undetermined: `probe_build_only` misses even a 380 s wall while the
+near-identical standalone probe completes in ~15 s — the residual cost is
+interprocedural `Vec` machinery over symbolic-length content in the
+in-crate context (zero unwind markers; preallocation and branchless
+appends did not clear it). Nothing is cited as proved; the harness
+dispositions below carry the refined split obligation.
+
+Revisit triggers (replace the 0001 ones): (1) a Kani release where
+`vec_push_within_capacity` stabilizes (retiring the capacity-asserted
+append helper) or whose alloc modeling stops exploring growth branches on
+symbolic lengths — re-run the build probe first; (2) a standalone
+verification crate wrapping the engine behind a `pub` API, if in-crate
+symex overhead is confirmed as the delta (the standalone 10x gap is the
+evidence to chase); (3) solver tuning via `--cbmc-args` if a profile
+shows solver rather than symex time.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
