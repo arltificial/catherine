@@ -12,6 +12,7 @@
 - [Design](./DESIGN.md)
 - [Theory](./THEORY.md)
 - [Proposal](./PROPOSAL.md)
+- [Kani verification lane](./kani-lane.md)
 
 # Reference
 
