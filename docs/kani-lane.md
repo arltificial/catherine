@@ -56,6 +56,44 @@ unless a disposition is recorded below.
 CI: a separate optional/nightly workflow step only; `just ci` and its
 transitive closure never invoke `cargo kani`.
 
+## Safe invocation (catherine-amh)
+
+An uncapped crate-wide `cargo kani` run OOM-killed the workstation on
+2026-11-18 (CBMC at 15.4 GB anon RSS; enclosing process at 41.8 GB +
+5 GB swap on a 60 GB box; hard reset). The lane is budget-bounded now:
+
+- **Every harness runs inside a systemd user scope** capped at
+  `KANI_MEMORY_BUDGET_MB` (default 8192, swap disabled). The
+  OOM-killer's target is the harness run, never the machine; a host
+  without a working `systemd-run --user` refuses to run the lane
+  rather than run unbounded.
+- **`--harness-timeout` needs `-Z unstable-options`** (Kani 0.68.0);
+  without it every `cargo kani` invocation errors instantly (exit 2,
+  no `VERIFICATION:-` line). The 2026-11-18 timing pass' blanket
+  `exit=1` in 1-2s per harness was this flag bug, not harness
+  behavior.
+- **Timeouts and budget-kills are UNDETERMINED, not counterexamples.**
+  CBMC emits `VERIFICATION:- FAILED` both for a found counterexample
+  and for "CBMC timed out"; the lane discriminates on the timeout
+  banner, and a SIGKILL at the memory cap (rc 137) is likewise
+  undetermined. Both still require a recorded disposition below or
+  the lane fails.
+- **Maintenance subsets**: `KANI_HARNESS_FILTER=<regex>` runs part of
+  the declared list under identical enforcement and the identical
+  disposition rule.
+- **Per-harness resource record**: each lane run rewrites
+  `target/kani-timings.txt` with exit code, peak RSS, and wall per
+  harness.
+
+Measured under the enforced budget (Kani 0.68.0 / CBMC 6.11.0,
+`--default-unwind 16`, 300s wall, 8 GB cap): **all 11 declared
+harnesses time out at ~5.8-6.3 GB peak RSS** - none completes, none
+approaches the cap. The blowup is uniform (see the status note below
+for the modeled-cost analysis); a bigger cap only buys a bigger
+formula, so 8 GB / 300s stays the lane standard until the split
+obligation clears.
+
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
@@ -79,6 +117,7 @@ as proved. Evidence (executed this session):
   no catherine code, no symbolic maps — did not complete within
   minutes either; its trace is `memcmp` unrolling to the unwind cap
   inside the `String`-comparison model.
+- Resource sweep under the enforced budget (catherine-amh,
 
 Conclusion recorded honestly: Kani 0.68's model of `String`-keyed
 `std::collections::BTreeMap` operations (memcmp-based key comparison
@@ -120,3 +159,7 @@ requires the same full symbolic exploration a proof requires, and no
 budget produced one; the provocation machinery
 (`scripts/provoke-kani-harnesses.sh`, one anchored seed per harness) is
 landed so the pass runs as soon as the revisit trigger fires.
+  2026-11-19): all 11 harnesses, per-harness invocation, unwind 16,
+  300s wall, 8 GB scope - every one times out at ~5.8-6.3 GB peak
+  RSS (records in `target/kani-timings.txt`, logs and time outputs
+  in `target/kani-amh/`).
