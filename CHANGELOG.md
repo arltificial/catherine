@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-19
+
 ### Added
 
 - Kani bounded-verification lane scaffolding (`add-kani-verification-lane`,
@@ -23,6 +25,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   BTreeMap model makes the proofs undetermined on this hardware
   (evidence + dispositions in `docs/kani-lane.md`); nothing is proved,
   nothing is cited as assurance, revisit triggers recorded.
+- Lean assurance-twin pullback model (`add-lean-kernel-model`): the Lean
+  twin models the format-1.6 pullback square and its
+  `commutes`/`covers`/`unique` verdicts (the `commutes` witness is
+  extracted by the soundness theorem), so format-1.6 documents join the
+  fixture-corpus parity oracle. Development artifact: no runtime
+  dependency, no shipped binary change.
+
+### Changed
+
+- Interned execution core (`catherine-6g2`): `checks::check` and
+  `TypedInstance::build` route through a new interned core
+  (`engine/{compile,families,lane}`) over dense canonical ids; the
+  parsed-path family walkers are deleted and findings are ordered by
+  pure-int sort keys exactly equivalent to the previous `Finding::cmp`.
+  Parsed behavior unchanged and pinned (169 core tests, contract suite,
+  fixtures, parity). Kani lane construction is the first in-budget
+  verification (~26 s); the build/check walkers remain held
+  (`docs/kani-lane.md`, ledger decision 0002).
+
+### Fixed
+
+- `cfg(kani)` modules are registered via check-cfg lints, so
+  `cargo clippy -D warnings` passes on every checkout (`catherine-6g2`).
 
 ## [0.4.0] - 2026-11-18
 
