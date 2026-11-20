@@ -66,7 +66,7 @@ installed_release() {
 }
 
 # The declared harness list — keep in sync with
-# crates/catherine-core/src/kani_harnesses.rs (every #[kani::proof] fn).
+# crates/catherine-kani/src/lib.rs (every #[kani::proof] fn).
 DECLARED_HARNESSES=(
 	build_panic_freedom
 	check_sortedness_panic_freedom
@@ -136,9 +136,9 @@ for harness in "${run_harnesses[@]}"; do
 	timefile="$TMPDIR/$harness.time"
 	logfile="$TMPDIR/$harness.log"
 	set +e
-	systemd-run --user --scope -p "MemoryMax=${MEMORY_BUDGET_MB}M" -p MemorySwapMax=0 \
+		systemd-run --user --scope -p "MemoryMax=${MEMORY_BUDGET_MB}M" -p MemorySwapMax=0 \
 		/usr/bin/time -v -o "$timefile" \
-		cargo kani -Z unstable-options -p catherine-core --default-unwind 16 \
+		cargo kani -Z unstable-options -p catherine-kani --default-unwind 16 \
 		--harness-timeout "$HARNESS_TIMEOUT" --harness "$harness" > "$logfile" 2>&1
 	rc=$?
 	set -e

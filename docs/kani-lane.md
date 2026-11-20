@@ -29,12 +29,18 @@ them is currently backed by a completed proof, and no harness result
 may be cited as assurance.
 
 Designed claims (per harness, bounds stated in
-`crates/catherine-core/src/kani_harnesses{,/}`): the kernel's post-parse
-execution path — `TypedInstance::build`, path composition, the full
-`check` walk — panic- and overflow-free within the declared harness
-bounds, with non-vacuous bounds (each check family exercised by at least
-one document in the bounded space); every finding `check` emits carries
-a witness that independently re-evaluates as claimed.
+`crates/catherine-kani/src/lib.rs`, with `shapes.rs`/`soundness.rs`),
+running over the wrapped engine in `crates/catherine-engine` — the
+dependency-light interned execution core (`model`, the epistemic
+label, and the `engine`), the only kernel code the lane compiles:
+`cargo kani -p catherine-kani` pays for the kernel's execution path
+and nothing else (ledger `0003`). The claims: the kernel's
+post-parse execution path — `TypedInstance::build`, path
+composition, the full `check` walk — panic- and overflow-free
+within the declared harness bounds, with non-vacuous bounds (each
+check family exercised by at least one document in the bounded
+space); every finding `check` emits carries a witness that
+independently re-evaluates as claimed.
 
 Does **not** claim: serde parsing (parse stays Rust-side, pinned by
 golden fixtures and the model-document spec — Decision 2), the wasm
@@ -136,6 +142,69 @@ verification crate wrapping the engine behind a `pub` API, if in-crate
 symex overhead is confirmed as the delta (the standalone 10x gap is the
 evidence to chase); (3) solver tuning via `--cbmc-args` if a profile
 shows solver rather than symex time.
+
+## 2026-11-19 continuation (beads catherine-6g2): the engine-crate split and the solver-shaped engine
+
+The recorded revisit triggers were executed in order. Trigger 2 first
+(the standalone-crate wrap): the engine moved out of the kernel into
+`crates/catherine-engine` (`model`, the epistemic label, `engine`;
+serde behind an optional feature, off for the lane) and the harnesses
+moved to a new workspace member `crates/catherine-kani` that depends
+only on it — `cargo kani -p catherine-kani` compiles the execution
+core, the harnesses, and nothing else. `catherine-core` wraps both
+modules verbatim (`pub use catherine_engine::{engine, model}`), so
+every downstream path is unchanged; the parsed-flavor adapters
+(`compile_typed`, rendering, the epistemic-label re-export) stayed in
+the kernel, which keeps the base crate dependency-light. Full suite,
+clippy, fmt green across the new layout.
+
+Then the wall was profiled (CBMC verbosity, in-crate vs standalone
+replicas) and the engine was made solver-shaped, one measured toxin at
+a time:
+
+- **Slice sorts**: `sort_unstable`/`sort_by_key` internals
+  (`smallsort::insert_tail`, `heapsort::sift_down`,
+  `swap_nonoverlapping_chunks`) unwind to the cap under symbolic
+  length — the dominant VCC source in every walker. Replaced by a
+  bounded insertion sort (`engine::insertion_sort_by`, plain
+  single-element moves, capacity-asserted) and a plain dedup
+  (`dedup_sorted`) at every engine sort site. Emitted order is
+  unchanged: each family's sort keys are distinct within its domain.
+- **Binary-search membership** over symbolically-populated vectors
+  (dangling exclusion, coproduct images, pullback projections):
+  replaced with linear scans — the domains are ≤ a handful of entries.
+- **Iterator-collect chains over symbolic content** (`instance_for`'s
+  cell synthesis, lane entry tables): rewritten as plain loops with
+  capacity-asserted appends (the lane.rs lesson, now applied
+  everywhere the lane compiles).
+- **Build report vectors**: plain `Vec::push` measured 3.7x the wall
+  time and 3x the memory of the capacity-asserted append standalone
+  (`build_reports_plain_push` 56.2 s / 2.95 GB vs
+  `build_reports_bounded_push` 15.2 s / 0.96 GB); `engine_build` now
+  uses `push_bounded` for both report vectors.
+- **Witness soundness upgraded to for-all**: the sampling form
+  (`kani::any` index, `assume(!empty)`, symbolic `% len`) is replaced
+  by a for-all loop over emitted findings — a strictly stronger claim
+  (every emitted witness re-evaluates, not one sampled witness) with a
+  cheaper formula (no division, no symbolic heap indexing).
+- **Harness-side drop glue**: `mem::forget` at harness tails (none of
+  the structures carries a panicking drop; drop/dealloc modeling
+  dominated symex — 154 s of a 300 s budget on build alone).
+- **Per-harness unwind**: the all-families sortedness harness declares
+  `#[kani::unwind(48)]` (its finding space exceeds the lane default's
+  16 iterations for the sort loops); every other harness stays within
+  16.
+
+Measured state after all of it: the machinery completes — symex for
+`build_panic_freedom` runs to conversion (152 s symex, 24 k VCCs
+remaining after slicing) — but the solve phase still exceeds the 300 s
+wall, and the walkers+soundness formulas remain above it. The lane
+outcome is unchanged (all 11 harnesses undetermined, dispositions
+recorded), the parsed kernel is byte-identical and fully green, and
+the construction proof stands. The refined split obligation: symbolic
+execution volume (allocation modeling + VCC count), not toolchain
+modeling — the next lever is cfg(kani)-shaped arena structures or a
+solver-phase budget decision, both recorded in the ledger.
 
 ## Per-harness results and provenance
 

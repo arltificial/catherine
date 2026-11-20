@@ -1,0 +1,15 @@
+[package]
+name = "catherine-kani"
+version = "0.4.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "Catherine Kani verification lane: bounded-model-checking harnesses over the kernel engine"
+
+[dependencies]
+catherine-engine = { path = "../catherine-engine", default-features = false }
+
+[lints.rust]
+# The whole crate compiles only under `cargo kani` (`cfg(kani)` —
+# docs/kani-lane.md); plain clippy must know the cfg name or its
+# -D warnings gate fails every checkout.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }

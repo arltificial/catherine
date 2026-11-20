@@ -1,0 +1,24 @@
+[package]
+name = "catherine-engine"
+version = "0.4.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "Catherine interned execution core: model types, epistemic labels, dense-id engine"
+
+[features]
+# Serde support for the model and label types (the parsed kernel and
+# findings JSON). The Kani verification lane builds this crate with
+# `default-features = false` — zero serde code reaches the solver
+# (beads catherine-6g2: the lane's formula must pay for the execution
+# path only).
+default = ["serde"]
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+
+[lints.rust]
+# The engine's lane flavor compiles only under `cargo kani`
+# (`cfg(kani)` — docs/kani-lane.md); plain clippy must know the cfg
+# name or its -D warnings gate fails every checkout.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }

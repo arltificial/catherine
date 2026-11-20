@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
     "crates/catherine-core",
+    "crates/catherine-engine",
+    "crates/catherine-kani",
     "crates/catherine-analysis",
     "crates/catherine-cli",
     "crates/catherine-wasm",

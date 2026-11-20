@@ -139,7 +139,6 @@ impl EngineSchema {
 /// byte loops (catherine-6g2: the memcmp model churns to the unwind cap
 /// even on concrete bytes; a byte-copy loop unrolls every call site).
 #[cfg(kani)]
-pub(crate) const fn ident_key(name: &str) -> u64 {
     let bytes = name.as_bytes();
     assert!(bytes.len() <= 8);
     let b0 = if bytes.len() > 0 { bytes[0] } else { 0 } as u64;

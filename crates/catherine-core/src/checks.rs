@@ -52,9 +52,11 @@
 //! the same dangling discipline, and the same sort — no new kind, exit
 //! code, or severity.
 
-use crate::findings::{EpistemicLabel, Finding};
+use crate::engine::{engine_families, EngineSchema, EngineTyped};
+use crate::findings::Finding;
 use crate::instance::TypedInstance;
-use crate::model::{ConstraintStatus, Schema};
+use crate::model::Schema;
+use crate::render::render_compact;
 
 /// Execute every declared constraint — equations, keys, coproducts, and
 /// pullbacks — on every applicable row of the typed instance, over the
@@ -65,16 +67,49 @@ use crate::model::{ConstraintStatus, Schema};
 /// `engine::EngineSchema::compile`).
 pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
     let compiled = crate::engine::EngineSchema::compile(schema);
-    let typed = compiled.compile_typed(instance);
-    crate::engine::engine_check(&compiled, &typed)
+    let typed = compile_typed(&compiled, instance);
+    engine_families(&compiled, &typed)
+        .into_iter()
+        .map(|(key, label, compact)| {
+            let _ = key;
+            render_compact(&compiled, label, &compact)
+        })
+        .collect()
 }
 
-/// The epistemic weight of a constraint failure: accepted constraints are
-/// executed, proposed ones are questions (the one label rule shared by
-/// equations, keys, coproducts, and pullbacks).
-pub(crate) fn label_for(status: ConstraintStatus) -> EpistemicLabel {
-    match status {
-        ConstraintStatus::Accepted => EpistemicLabel::Executed,
-        ConstraintStatus::Proposed => EpistemicLabel::Hypothesized,
+/// Intern a typed instance's tables against a compiled presentation
+/// (the parsed-surface check entry: the tables already exist).
+fn compile_typed(compiled: &EngineSchema, typed: &TypedInstance) -> EngineTyped {
+    let row_counts = compiled
+        .object_names
+        .iter()
+        .map(|name| typed.rows().get(name).map(Vec::len))
+        .collect();
+    let tables = compiled
+        .arrow_names
+        .iter()
+        .map(|name| typed.tables().get(name).cloned().unwrap_or_default())
+        .collect();
+    let typing_violations = typed
+        .typing_violations()
+        .iter()
+        .filter_map(|v| {
+            let nid = compiled.arrow_nid(&v.arrow)?;
+            Some((nid, v.src.0, v.value))
+        })
+        .collect();
+    let dangling = typed
+        .dangling()
+        .iter()
+        .filter_map(|d| {
+            let nid = compiled.arrow_nid(&d.arrow)?;
+            Some((nid, d.src.0))
+        })
+        .collect();
+    EngineTyped {
+        row_counts,
+        tables,
+        typing_violations,
+        dangling,
     }
 }

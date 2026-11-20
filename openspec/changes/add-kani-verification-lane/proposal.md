@@ -23,8 +23,9 @@ instances, and "no solver" is a documented anti-goal.
 
 ## What Changes
 
-- New `verify` lane: `cargo kani` proof harnesses in `crates/catherine-core`
-  and `crates/catherine-analysis`, gated by `#[cfg(kani)]` harness modules
+- New `verify` lane: `cargo kani` proof harnesses in `crates/catherine-kani`
+  (over the wrapped engine in `crates/catherine-engine`) and
+  `crates/catherine-analysis`, gated by `#[cfg(kani)]` harness modules
   (the checker sets that cfg; no feature knob) — deliberately **outside
   `just ci`** (same treatment as
   the Lean gate: a toolchain every checkout can't assume), runnable as
@@ -69,7 +70,8 @@ instances, and "no solver" is a documented anti-goal.
 
 ## Impact
 
-- Affected code: new harness modules under `crates/catherine-core` and
+- Affected code: new harness modules under `crates/catherine-kani`
+  (over the wrapped engine in `crates/catherine-engine`) and
   `crates/catherine-analysis` (cfg-gated, no runtime code path changes);
   `justfile` gains a `verify` recipe; `.github/workflows/ci.yml` gains an
   optional/nightly verify step; one committed Kani version pin. The kernel

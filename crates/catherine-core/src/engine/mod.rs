@@ -44,7 +44,6 @@ mod lane;
 mod render;
 
 #[cfg(kani)]
-pub(crate) use compile::ident_key;
 pub(crate) use families::{
     coproduct_findings, dangling_findings, equation_findings, key_findings, pullback_findings,
 };
@@ -56,22 +55,18 @@ pub(crate) use render::render_compact;
 /// order, then the label.
 /// A path step resolved to its arrow id; `None` = a step no declared
 /// arrow defines (compose can never resolve past it).
-pub(crate) type Step = Option<Nid>;
 
-pub(crate) type SortKey = (u8, u8, u8, u64, u64, u64, u64, u8);
 
 /// The lane flavor's finding: the taxonomy's shapes with int payloads
 /// only (ids stand in for names; id order is name order). Rendered to
 /// the public [`Finding`] by [`render_compact`] on the parsed flavor.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum CompactFinding {
     Violation(CompactViolation),
     Dangling { arrow: Nid, src: usize },
 }
 
 /// The violation shapes over ids.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum CompactViolation {
     Equation {
         index: usize,
         row: usize,
@@ -93,7 +88,6 @@ pub(crate) enum CompactViolation {
 
 /// The pullback verdict arms over ids.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum CompactPullback {
     Commutes {
         index: usize,
         row: usize,
@@ -113,7 +107,6 @@ pub(crate) enum CompactPullback {
 /// The interned presentation. Names are owned only on the parsed flavor
 /// (built by [`EngineSchema::compile`]); the lane flavor ([`EngineSchema::lane`])
 /// leaves them empty and carries nothing but ids.
-pub(crate) struct EngineSchema {
     /// Objects in canonical order; empty on the lane flavor.
     pub(crate) object_names: Vec<Ident>,
     /// Arrows in canonical order; empty on the lane flavor.
@@ -122,76 +115,46 @@ pub(crate) struct EngineSchema {
     /// parsed flavor's names carry the identity); read by the harness
     /// instance builder.
     #[cfg(kani)]
-    pub(crate) object_keys: Vec<u64>,
     /// Arrows' byte keys in canonical order — lane flavor only.
     #[cfg(kani)]
-    pub(crate) arrow_keys: Vec<u64>,
     /// Per arrow: the source object's id.
     pub(crate) arrow_src: Vec<Nid>,
     /// Per arrow: the target object's id.
     pub(crate) arrow_tgt: Vec<Nid>,
     /// Equations in declaration order; `domain: None` marks the walk's
     /// skip cases (empty lhs, undeclared lead arrow).
-    pub(crate) equations: Vec<CompiledEquation>,
     /// Keys in declaration order; `None` = the walk would skip the key.
-    pub(crate) keys: Vec<Option<CompiledKey>>,
     /// Coproducts in declaration order; `None` = the walk would skip.
-    pub(crate) coproducts: Vec<Option<CompiledCoproduct>>,
     /// Pullbacks in declaration order; `None` = the walk would skip.
-    pub(crate) pullbacks: Vec<Option<CompiledPullback>>,
 }
 
 /// A compiled path equation.
-pub(crate) struct CompiledEquation {
-    pub(crate) lhs: Vec<Step>,
-    pub(crate) rhs: Vec<Step>,
     /// The lhs lead arrow's source object, when the equation is
     /// applicable.
-    pub(crate) domain: Option<Nid>,
-    pub(crate) status: ConstraintStatus,
 }
 
 /// A compiled declarative key.
-pub(crate) struct CompiledKey {
-    pub(crate) object: Nid,
-    pub(crate) arrows: Vec<Nid>,
-    pub(crate) status: ConstraintStatus,
 }
 
 /// A compiled coproduct declaration.
-pub(crate) struct CompiledCoproduct {
-    pub(crate) object: Nid,
-    pub(crate) arrows: Vec<Nid>,
-    pub(crate) status: ConstraintStatus,
 }
 
 /// A compiled pullback declaration.
-pub(crate) struct CompiledPullback {
-    pub(crate) apex: Nid,
-    pub(crate) legs: [Nid; 2],
-    pub(crate) cospan: [Nid; 2],
-    pub(crate) status: ConstraintStatus,
 }
 
 /// The interned instance: per-object row counts (dense id spaces) and one
 /// partial cell vector per declared arrow, parallel to its source rows.
-pub(crate) struct EngineInstance {
     /// `row_counts[object]` = the object's dense row space size; `None` =
     /// the parsed instance carried no row space for the object.
-    pub(crate) row_counts: Vec<Option<usize>>,
     /// `cells[arrow]` = the parsed value vector, parallel to source rows.
-    pub(crate) cells: Vec<Option<Vec<Option<RowId>>>>,
 }
 
 /// The interned typed instance: one partial morphism table per arrow plus
 /// the build reports, all by id.
-pub(crate) struct EngineTyped {
     /// Per-object dense row space sizes, parallel to
     /// [`EngineSchema::object_names`].
-    pub(crate) row_counts: Vec<Option<usize>>,
     /// `tables[arrow]` = `vec![None; row_count(src)]`, filled where the
     /// value resolved inside the target space.
-    pub(crate) tables: Vec<Vec<Option<RowId>>>,
     /// Typing violations, in build order (arrow id order, then cell):
     /// (arrow, source cell index, offending value).
     pub(crate) typing_violations: Vec<(Nid, usize, RowId)>,
@@ -203,7 +166,6 @@ pub(crate) struct EngineTyped {
 /// every parsed arrow value lands in a morphism table entry, a dangling
 /// record, or a typing violation; cells beyond the source object's row
 /// space are ignored; arrows outside the presentation are ignored.
-pub(crate) fn engine_build(schema: &EngineSchema, instance: &EngineInstance) -> EngineTyped {
     let mut tables = Vec::with_capacity(schema.arrow_src.len());
     // The exact report bound: every taken cell lands in at most one
     // report, and no cell outside a table can.
@@ -227,9 +189,7 @@ pub(crate) fn engine_build(schema: &EngineSchema, instance: &EngineInstance) -> 
         if let Some(cells) = &instance.cells[nid] {
             for (idx, &cell) in cells.iter().enumerate().take(n_src) {
                 match cell {
-                    None => dangling.push((nid, idx)),
                     Some(value) if value.0 < n_tgt => table[idx] = Some(value),
-                    Some(value) => typing_violations.push((nid, idx, value)),
                 }
             }
         }
@@ -262,7 +222,6 @@ pub(crate) fn engine_compose(typed: &EngineTyped, path: &[Step], start: RowId) -
 /// exactly `Finding::cmp`), names never materialized. The parsed flavor
 /// renders with [`render_compact`]; the lane harnesses assert the
 /// compact shapes directly.
-pub(crate) fn engine_families(
     schema: &EngineSchema,
     typed: &EngineTyped,
 ) -> Vec<(SortKey, EpistemicLabel, CompactFinding)> {

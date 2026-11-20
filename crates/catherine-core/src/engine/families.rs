@@ -11,16 +11,6 @@ mod pullback;
 
 pub(crate) use pullback::pullback_findings;
 
-fn push_bounded<T>(v: &mut Vec<T>, x: T) {
-    assert!(v.len() < v.capacity());
-    let len = v.len();
-    // SAFETY: the assert proves `len < capacity`, so the write lands in
-    // the buffer and `set_len` grows the initialized prefix by one.
-    unsafe {
-        v.as_mut_ptr().add(len).write(x);
-        v.set_len(len + 1);
-    }
-}
 
 /// One dangling finding per unresolved cell not accounted for by a
 /// typing violation — the walk's dangling family over ids.

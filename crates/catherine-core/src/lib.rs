@@ -17,14 +17,20 @@
 pub mod canonical;
 pub mod checks;
 pub mod composition;
-mod engine;
 pub mod error;
 pub mod findings;
 pub mod hash;
 pub mod instance;
-#[cfg(kani)]
-mod kani_harnesses;
 pub mod migrate;
-pub mod model;
 pub mod parse;
 pub mod rule_lens;
+
+/// Compact-to-public finding rendering — the parsed flavor's name
+/// materialization step (the only one that touches `Finding`).
+mod render;
+
+/// The interned execution core, wrapped verbatim (`catherine-engine`)
+/// — the verification lane's unit of proof (ledger `0002` revisit
+/// trigger 2). `catherine_core::engine` paths are unchanged for every
+/// consumer; the supported kernel surface stays `checks`/`instance`.
+pub use catherine_engine::{engine, model};

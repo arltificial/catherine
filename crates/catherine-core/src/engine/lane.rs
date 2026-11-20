@@ -199,7 +199,6 @@ impl EngineSchema {
     /// machinery reaches the solver. Constraint entries carry the same
     /// skip semantics as [`EngineSchema::compile`].
     #[cfg(kani)]
-    pub(crate) fn lane(
         objects: &[&str],
         arrows: &[(&str, &str, &str)],
         equations: &[(&[&str], &[&str], ConstraintStatus)],
