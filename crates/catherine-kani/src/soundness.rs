@@ -24,8 +24,9 @@
 //! the separate `naturality` runner; the rest are P4's) — recorded as
 //! out of this family's scope in docs/kani-lane.md.
 
-use super::super::engine::{
-    CompactFinding, CompactPullback, CompactViolation, EngineSchema, EngineTyped, Nid,
+use catherine_engine::engine::{
+    dedup_sorted, insertion_sort_by, CompactFinding, CompactPullback, CompactViolation,
+    EngineSchema, EngineTyped, Nid,
 };
 
 /// Compose a compiled path starting at source row `start` — the walk's
@@ -125,8 +126,8 @@ fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (Vec<(Nid, Vec<usize
             }
         }
         if complete {
-            values.sort_unstable();
-            values.dedup();
+            insertion_sort_by(&mut values, |a, b| a.cmp(b));
+            dedup_sorted(&mut values);
             images.push((arrow, values));
         } else {
             partial = true;
@@ -140,7 +141,7 @@ fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (Vec<(Nid, Vec<usize
 fn assert_coproduct_uncovered(images: &[(Nid, Vec<usize>)], partial: bool, row: usize) {
     assert!(!partial);
     for (_, image) in images {
-        assert!(image.binary_search(&row).is_err());
+        assert!(!image.contains(&row));
     }
 }
 
@@ -154,7 +155,7 @@ fn assert_coproduct_collision(
 ) {
     let mut named = 0;
     for (arrow, image) in images {
-        let covered = image.binary_search(&row).is_ok();
+        let covered = image.contains(&row);
         let mut is_named = false;
         for named_injection in injections {
             if named_injection == arrow {

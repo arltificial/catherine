@@ -1,7 +1,7 @@
 //! Compact-to-public finding rendering — the only step that
 //! materializes names, on the parsed flavor (concrete data).
 
-use super::{CompactFinding, CompactPullback, CompactViolation, EngineSchema};
+use super::engine::{CompactFinding, CompactPullback, CompactViolation, EngineSchema};
 use crate::findings::{
     CoproductWitness, DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
     KeyWitness, PullbackWitness, ViolationWitness,

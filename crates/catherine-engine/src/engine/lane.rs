@@ -7,20 +7,35 @@ use super::EngineSchema;
 
 #[cfg(kani)]
 use super::{
-    ident_key, CompiledCoproduct, CompiledEquation, CompiledKey, CompiledPullback,
-    ConstraintStatus, Nid, Step,
+    ident_key, insertion_sort_by, CompiledCoproduct, CompiledEquation, CompiledKey,
+    CompiledPullback, ConstraintStatus, Nid, Step,
 };
 
 /// Sorted (key, declaration position) entries for one id space — ids
 /// are assigned in sorted-name order, so id order is name order.
 #[cfg(kani)]
 fn id_entries(names: &[&str]) -> Vec<(u64, Nid)> {
-    let mut entries: Vec<(u64, Nid)> = names.iter().map(|name| (ident_key(name), 0)).collect();
-    for (position, entry) in entries.iter_mut().enumerate() {
-        entry.1 = position;
+    let mut entries: Vec<(u64, Nid)> = Vec::with_capacity(names.len());
+    let mut position = 0;
+    while position < names.len() {
+        push_entry(&mut entries, (ident_key(names[position]), position));
+        position += 1;
     }
-    entries.sort_by_key(|entry| entry.0);
+    insertion_sort_by(&mut entries, |a, b| a.0.cmp(&b.0));
     entries
+}
+
+/// Capacity-asserted push for the lane's concrete-bounded vectors (no
+/// alloc growth branches reach the solver).
+#[cfg(kani)]
+fn push_entry(entries: &mut Vec<(u64, Nid)>, entry: (u64, Nid)) {
+    assert!(entries.len() < entries.capacity());
+    let len = entries.len();
+    // SAFETY: the assert proves `len < capacity`; single-element write.
+    unsafe {
+        entries.as_mut_ptr().add(len).write(entry);
+        entries.set_len(len + 1);
+    }
 }
 
 /// Split sorted entries into the parallel key and order tables.
@@ -56,11 +71,11 @@ fn compile_lane_equations(
 ) -> Vec<CompiledEquation> {
     let mut compiled: Vec<CompiledEquation> = Vec::with_capacity(equations.len());
     for (lhs, rhs, status) in equations {
-        let mut lhs_steps: Vec<Step> = Vec::new();
+        let mut lhs_steps: Vec<Step> = Vec::with_capacity(lhs.len());
         for name in lhs.iter() {
             lhs_steps.push(Some(arrow_of(ident_key(name))));
         }
-        let mut rhs_steps: Vec<Step> = Vec::new();
+        let mut rhs_steps: Vec<Step> = Vec::with_capacity(rhs.len());
         for name in rhs.iter() {
             rhs_steps.push(Some(arrow_of(ident_key(name))));
         }
@@ -199,6 +214,7 @@ impl EngineSchema {
     /// machinery reaches the solver. Constraint entries carry the same
     /// skip semantics as [`EngineSchema::compile`].
     #[cfg(kani)]
+    pub fn lane(
         objects: &[&str],
         arrows: &[(&str, &str, &str)],
         equations: &[(&[&str], &[&str], ConstraintStatus)],

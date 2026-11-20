@@ -6,7 +6,7 @@
 //! so buckets, fibers, and findings are exactly the walk's.
 
 use super::super::{CompactPullback, CompiledPullback, EngineSchema, EngineTyped, Nid, SortKey};
-use super::{push_bounded, CompactFinding, CompactViolation};
+use super::{insertion_sort_by, push_bounded, CompactFinding, CompactViolation};
 use crate::findings::EpistemicLabel;
 
 /// The apex rows bucketed by their resolved leg projection — ascending
@@ -29,7 +29,7 @@ pub(crate) fn pullback_findings(
         let Some(apex_rows) = typed.row_counts[pullback.apex] else {
             continue;
         };
-        let label = crate::checks::label_for(pullback.status);
+        let label = crate::findings::label_for(pullback.status);
         let [f, g] = pullback.cospan;
         let f_src = typed.row_counts[schema.arrow_src[f]].unwrap_or(0);
         let g_src = typed.row_counts[schema.arrow_src[g]].unwrap_or(0);
@@ -85,16 +85,33 @@ fn pullback_projections(
             }
         }
         let projection = (left.0 as u64, right.0 as u64);
-        match projections.binary_search_by(|(key, _)| key.cmp(&projection)) {
-            Ok(slot) => push_bounded(&mut projections[slot].1, row),
-            Err(slot) => {
-                let mut bucket = Vec::with_capacity(apex_rows);
-                bucket.push(row);
-                projections.insert(slot, (projection, bucket));
-            }
+        push_projection(&mut projections, projection, row, apex_rows);
+    }
+    insertion_sort_by(&mut projections, |a, b| a.0.cmp(&b.0));
+    (projections, legs_partial)
+}
+
+/// Add one apex row to its projection's bucket, creating the bucket —
+/// the walk's bucketed-map insert over ids (order restored by the
+/// caller's sort; equal projections keep ascending row order).
+fn push_projection(
+    projections: &mut ProjectionBuckets,
+    projection: (u64, u64),
+    row: usize,
+    apex_rows: usize,
+) {
+    match projections
+        .iter_mut()
+        .find(|(key, _)| *key == projection)
+        .map(|(_, rows)| push_bounded(rows, row))
+    {
+        Some(()) => {}
+        None => {
+            let mut bucket = Vec::with_capacity(apex_rows);
+            push_bounded(&mut bucket, row);
+            push_bounded(projections, (projection, bucket));
         }
     }
-    (projections, legs_partial)
 }
 
 /// One commutes finding for a cospan pair disagreeing on the apex row.
@@ -193,10 +210,7 @@ fn emit_cover_finding(
     b: usize,
 ) {
     let pair = (a as u64, b as u64);
-    if projections
-        .binary_search_by(|(key, _)| key.cmp(&pair))
-        .is_err()
-    {
+    if !projections.iter().any(|(key, _)| *key == pair) {
         push_bounded(
             findings,
             (
@@ -236,6 +250,6 @@ fn fiber(typed: &EngineTyped, arrow: Nid, n_src: usize) -> Vec<(u64, Vec<usize>)
         bucket.push(row);
         push_bounded(&mut fibers, (target, bucket));
     }
-    fibers.sort_unstable_by_key(|entry| entry.0);
+    insertion_sort_by(&mut fibers, |a, b| a.0.cmp(&b.0));
     fibers
 }

@@ -25,7 +25,9 @@
 //! any counterexample follow the counterexample protocol (design
 //! Decision 5): attribution recorded, obligations never weakened.
 
-use crate::engine::{
+#![cfg(kani)]
+
+use catherine_engine::engine::{
     engine_build, engine_families, CompactFinding, EngineSchema, EngineTyped, SortKey,
 };
 
@@ -40,14 +42,26 @@ mod soundness;
 fn build_panic_freedom() {
     let schema = shapes::schema_all_families();
     let instance = shapes::instance_for(&schema);
-    let _typed = engine_build(&schema, &instance);
+    let typed = engine_build(&schema, &instance);
+    let _ = typed.tables.len();
+    // Drop glue and deallocation paths dominate the solver's symbolic
+    // execution (catherine-6g2, measured: 154 s symex, 1.17 M steps,
+    // nearly all drop/dealloc); the claim is the walk, and none of
+    // these types carries a panicking drop, so the harness forgets them.
+    std::mem::forget((schema, instance, typed));
 }
 
 /// The nondeterministic `check` + diff-stable-order obligation over the
 /// whole walk: all four families declared on one minimal presentation,
 /// the emitted findings asserted totally ordered — in the int keys that
-/// `Finding::cmp` compares (kind, variant, witness ids, label).
+/// `Finding::cmp` compares (kind, variant, witness ids, label). The
+/// all-families space emits up to 45 findings (concrete bound:
+/// `arrow_src.len() * max_rows + max_rows^2 * (eqs + keys + cops + 3 *
+/// pbs) + ...`), so the sort loops need their own unwind — the declared
+/// per-harness bound (design Decision 4); every other loop here stays
+/// within the lane's default 16.
 #[kani::proof]
+#[kani::unwind(48)]
 fn check_sortedness_panic_freedom() {
     let schema = shapes::schema_all_families();
     let instance = shapes::instance_for(&schema);
@@ -56,6 +70,7 @@ fn check_sortedness_panic_freedom() {
     for window in findings.windows(2) {
         assert!(window[0].0 <= window[1].0);
     }
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Panic/overflow-freedom of the equation family over its minimal space
@@ -73,6 +88,7 @@ fn check_equation_panic_freedom() {
         ));
         let _ = key;
     }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Panic/overflow-freedom of the key family over its minimal space (one
@@ -90,6 +106,7 @@ fn check_key_panic_freedom() {
         ));
         let _ = key;
     }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Panic/overflow-freedom of the coproduct family over its minimal space
@@ -107,6 +124,7 @@ fn check_coproduct_panic_freedom() {
         ));
         let _ = key;
     }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Panic/overflow-freedom of the pullback family over its minimal space
@@ -125,6 +143,7 @@ fn check_pullback_panic_freedom() {
         ));
         let _ = key;
     }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Witness soundness, equation family: every emitted violation's witness
@@ -133,9 +152,12 @@ fn check_pullback_panic_freedom() {
 #[kani::proof]
 fn soundness_equation() {
     let (schema, typed, findings) = family_under_test(shapes::schema_equation());
-    kani::assume(!findings.is_empty());
-    let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
+    let mut i = 0;
+    while i < findings.len() {
+        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        i += 1;
+    }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Witness soundness, key family: every emitted collision's witness
@@ -144,9 +166,12 @@ fn soundness_equation() {
 #[kani::proof]
 fn soundness_key() {
     let (schema, typed, findings) = family_under_test(shapes::schema_key());
-    kani::assume(!findings.is_empty());
-    let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
+    let mut i = 0;
+    while i < findings.len() {
+        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        i += 1;
+    }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Witness soundness, coproduct family: coverage witnesses name rows in
@@ -155,9 +180,12 @@ fn soundness_key() {
 #[kani::proof]
 fn soundness_coproduct() {
     let (schema, typed, findings) = family_under_test(shapes::schema_coproduct());
-    kani::assume(!findings.is_empty());
-    let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
+    let mut i = 0;
+    while i < findings.len() {
+        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        i += 1;
+    }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Witness soundness, pullback family: commutes witnesses re-derive both
@@ -167,9 +195,12 @@ fn soundness_coproduct() {
 #[kani::proof]
 fn soundness_pullback() {
     let (schema, typed, findings) = family_under_test(shapes::schema_pullback());
-    kani::assume(!findings.is_empty());
-    let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
+    let mut i = 0;
+    while i < findings.len() {
+        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        i += 1;
+    }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Witness soundness, dangling family: every dangling witness names a
@@ -177,9 +208,12 @@ fn soundness_pullback() {
 #[kani::proof]
 fn soundness_dangling() {
     let (schema, typed, findings) = family_under_test(shapes::schema_equation());
-    kani::assume(!findings.is_empty());
-    let index = (kani::any::<u32>() as usize) % findings.len();
-    soundness::assert_finding_sound(&schema, &typed, &findings[index].2);
+    let mut i = 0;
+    while i < findings.len() {
+        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        i += 1;
+    }
+    std::mem::forget((schema, typed, findings));
 }
 
 /// Build the typed tables for a family's shape.
@@ -195,7 +229,11 @@ fn family_under_test(
 ) -> (
     EngineSchema,
     EngineTyped,
-    Vec<(SortKey, crate::findings::EpistemicLabel, CompactFinding)>,
+    Vec<(
+        SortKey,
+        catherine_engine::findings::EpistemicLabel,
+        CompactFinding,
+    )>,
 ) {
     let instance = shapes::instance_for(&schema);
     let typed = engine_build(&schema, &instance);

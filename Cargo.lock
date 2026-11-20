@@ -191,10 +191,25 @@ dependencies = [
 name = "catherine-core"
 version = "0.4.1"
 dependencies = [
+ "catherine-engine",
  "hegeltest",
  "jsonschema",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "catherine-engine"
+version = "0.4.1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "catherine-kani"
+version = "0.4.1"
+dependencies = [
+ "catherine-engine",
 ]
 
 [[package]]

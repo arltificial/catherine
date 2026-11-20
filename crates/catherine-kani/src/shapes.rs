@@ -29,8 +29,8 @@
 //! cells by id, so a shape list out of sorted order cannot corrupt the
 //! tables.
 
-use super::super::engine::{ident_key, EngineInstance, EngineSchema};
-use crate::model::{ConstraintStatus, RowId};
+use catherine_engine::engine::{ident_key, push_bounded, EngineInstance, EngineSchema};
+use catherine_engine::model::{ConstraintStatus, RowId};
 
 /// Per-object row bounds of the shared space.
 pub const OBJECT_ROWS: [(&str, usize); 4] = [("a", 2), ("x", 2), ("y", 1), ("z", 2)];
@@ -148,43 +148,68 @@ pub fn schema_all_families() -> EngineSchema {
 
 /// The deterministic instance over `schema`'s shapes: dense rows per
 /// object and tiered partial cells per source row, resolved by byte key
-/// (pure int lookups, no String ops in the solver path).
+/// (pure int lookups, no String ops in the solver path). Plain loops
+/// only — collect closures over symbolic cells churn the solver
+/// (catherine-6g2, measured).
 pub fn instance_for(schema: &EngineSchema) -> EngineInstance {
-    let row_counts = schema
-        .object_keys
-        .iter()
-        .map(|want| {
-            OBJECT_ROWS
-                .iter()
-                .find(|(object, _)| ident_key(object) == *want)
-                .map(|(_, rows)| *rows)
-        })
-        .collect();
-    let cells = schema
-        .arrow_keys
-        .iter()
-        .map(|want| {
-            let mut found: Option<(usize, u64)> = None;
-            for entry in ARROWS.iter() {
-                let key = ident_key(entry.0);
-                if key == *want {
-                    found = Some((entry.3, key));
-                    break;
-                }
+    EngineInstance {
+        row_counts: row_counts_for(schema),
+        cells: cells_for(schema),
+    }
+}
+
+/// Dense row counts per object, in the schema's canonical order — each
+/// key resolved against the shared space description by byte key.
+fn row_counts_for(schema: &EngineSchema) -> Vec<Option<usize>> {
+    let mut row_counts: Vec<Option<usize>> = Vec::with_capacity(schema.object_keys.len());
+    let mut oi = 0;
+    while oi < schema.object_keys.len() {
+        let want = schema.object_keys[oi];
+        let mut found = None;
+        let mut si = 0;
+        while si < OBJECT_ROWS.len() {
+            if ident_key(OBJECT_ROWS[si].0) == want {
+                found = Some(OBJECT_ROWS[si].1);
+                break;
             }
-            match found {
-                Some((rows, key)) => {
-                    let mut cells: Vec<Option<RowId>> = Vec::with_capacity(rows);
-                    let mut i = 0;
-                    while i < rows {
-                        cells.push(any_cells(key));
-                        i += 1;
-                    }
-                    Some(cells)
-                }
-                None => None,
+            si += 1;
+        }
+        push_bounded(&mut row_counts, found);
+        oi += 1;
+    }
+    row_counts
+}
+
+/// One tiered partial cell vector per declared arrow, parallel to the
+/// source rows; arrows outside the shared space carry no cells.
+fn cells_for(schema: &EngineSchema) -> Vec<Option<Vec<Option<RowId>>>> {
+    let mut cells: Vec<Option<Vec<Option<RowId>>>> = Vec::with_capacity(schema.arrow_keys.len());
+    let mut ai = 0;
+    while ai < schema.arrow_keys.len() {
+        let want = schema.arrow_keys[ai];
+        let mut found: Option<(usize, u64)> = None;
+        let mut si = 0;
+        while si < ARROWS.len() {
+            let key = ident_key(ARROWS[si].0);
+            if key == want {
+                found = Some((ARROWS[si].3, key));
+                break;
             }
-        })
-        .collect();
-    EngineInstance { row_counts, cells }
+            si += 1;
+        }
+        match found {
+            Some((rows, key)) => {
+                let mut table: Vec<Option<RowId>> = Vec::with_capacity(rows);
+                let mut i = 0;
+                while i < rows {
+                    push_bounded(&mut table, any_cells(key));
+                    i += 1;
+                }
+                push_bounded(&mut cells, Some(table));
+            }
+            None => push_bounded(&mut cells, None),
+        }
+        ai += 1;
+    }
+    cells
 }

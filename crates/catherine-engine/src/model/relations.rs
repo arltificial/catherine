@@ -38,7 +38,7 @@ impl Key {
     /// order in the input file is presentation (design Decision 4): the
     /// parser stores keys sorted by this key and the serializer emits
     /// them in the same order defensively.
-    pub(crate) fn sort_key(&self) -> (&Ident, &Vec<Ident>, &'static str) {
+    pub fn sort_key(&self) -> (&Ident, &Vec<Ident>, &'static str) {
         (&self.object, &self.arrows, self.status.as_str())
     }
 }
@@ -67,7 +67,7 @@ impl Coproduct {
     /// list order in the input file is presentation (design Decision 4):
     /// the parser stores coproducts sorted by this key and the serializer
     /// emits them in the same order defensively.
-    pub(crate) fn sort_key(&self) -> (&Ident, &Vec<Ident>, &'static str) {
+    pub fn sort_key(&self) -> (&Ident, &Vec<Ident>, &'static str) {
         (&self.object, &self.arrows, self.status.as_str())
     }
 }
@@ -99,7 +99,7 @@ impl Pullback {
     /// list order in the input file is presentation (design Decision 4):
     /// the parser stores pullbacks sorted by this key and the serializer
     /// emits them in the same order defensively.
-    pub(crate) fn sort_key(&self) -> (&Ident, &Vec<Ident>, &Vec<Ident>, &'static str) {
+    pub fn sort_key(&self) -> (&Ident, &Vec<Ident>, &Vec<Ident>, &'static str) {
         (&self.apex, &self.legs, &self.cospan, self.status.as_str())
     }
 }

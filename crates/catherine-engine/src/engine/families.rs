@@ -2,8 +2,8 @@
 //! five families and the fiber helper, emitting compact int sort keys.
 
 use super::{
-    engine_compose, CompactFinding, CompactViolation, CompiledKey, EngineSchema, EngineTyped, Nid,
-    SortKey,
+    dedup_sorted, engine_compose, insertion_sort_by, CompactFinding, CompactViolation, CompiledKey,
+    EngineSchema, EngineTyped, Nid, SortKey,
 };
 use crate::{findings::EpistemicLabel, model::RowId};
 
@@ -11,6 +11,7 @@ mod pullback;
 
 pub(crate) use pullback::pullback_findings;
 
+pub(crate) use super::push_bounded;
 
 /// One dangling finding per unresolved cell not accounted for by a
 /// typing violation — the walk's dangling family over ids.
@@ -24,10 +25,10 @@ pub(crate) fn dangling_findings(
         .iter()
         .map(|(nid, idx, _)| (*nid, *idx))
         .collect();
-    violated.sort_unstable();
+    insertion_sort_by(&mut violated, |a, b| a.cmp(b));
     for (nid, table) in typed.tables.iter().enumerate() {
         for (idx, cell) in table.iter().enumerate() {
-            if cell.is_none() && violated.binary_search(&(nid, idx)).is_err() {
+            if cell.is_none() && !violated.iter().any(|&(seen, at)| seen == nid && at == idx) {
                 push_bounded(
                     out,
                     (
@@ -84,7 +85,7 @@ fn push_equation_finding(
         out,
         (
             (0, 0, 0, index as u64, row as u64, lhs as u64, rhs as u64, 0),
-            crate::checks::label_for(status),
+            crate::findings::label_for(status),
             CompactFinding::Violation(CompactViolation::Equation {
                 index,
                 row,
@@ -111,7 +112,7 @@ pub(crate) fn key_findings(
         let Some(rows) = typed.row_counts[key.object] else {
             continue;
         };
-        let label = crate::checks::label_for(key.status);
+        let label = crate::findings::label_for(key.status);
         let grouped = key_groups(typed, key, rows);
         emit_key_pairs(out, &grouped, index, label);
     }
@@ -139,7 +140,10 @@ fn key_groups(typed: &EngineTyped, key: &CompiledKey, rows: usize) -> Vec<(Vec<u
             push_bounded(&mut grouped, (tuple, row));
         }
     }
-    grouped.sort_by(|a, b| a.0.cmp(&b.0));
+    insertion_sort_by(
+        &mut grouped,
+        |a: &(Vec<u64>, usize), b: &(Vec<u64>, usize)| a.0.cmp(&b.0),
+    );
     grouped
 }
 
@@ -195,7 +199,7 @@ pub(crate) fn coproduct_findings(
         let Some(rows) = typed.row_counts[coproduct.object] else {
             continue;
         };
-        let label = crate::checks::label_for(coproduct.status);
+        let label = crate::findings::label_for(coproduct.status);
         let (images, complete) = coproduct_images(typed, &coproduct.arrows);
         coproduct_row_findings(out, &images, complete, index, rows, label);
     }
@@ -217,8 +221,8 @@ fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (Vec<(Nid, Vec<u64>)
         {
             Some(values) => {
                 let mut image = values;
-                image.sort_unstable();
-                image.dedup();
+                insertion_sort_by(&mut image, |a, b| a.cmp(b));
+                dedup_sorted(&mut image);
                 push_bounded(&mut images, (arrow, image));
             }
             None => complete = false,
@@ -242,7 +246,7 @@ fn coproduct_row_findings(
     for row in 0..rows {
         let mut covering: Vec<Nid> = Vec::with_capacity(images.len());
         for (arrow, image) in images {
-            if image.binary_search(&(row as u64)).is_ok() {
+            if image.contains(&(row as u64)) {
                 push_bounded(&mut covering, *arrow);
             }
         }

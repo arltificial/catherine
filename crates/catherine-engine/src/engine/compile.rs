@@ -6,11 +6,8 @@ use std::collections::HashMap;
 
 use super::{
     CompiledCoproduct, CompiledEquation, CompiledKey, CompiledPullback, EngineInstance,
-    EngineSchema, EngineTyped, Nid, Step,
+    EngineSchema, Nid, Step,
 };
-use crate::instance::TypedInstance;
-#[cfg(kani)]
-use crate::model::RowId;
 use crate::model::{Ident, Instance, Path, Schema};
 
 /// Every compiled constraint list, in declaration order.
@@ -25,7 +22,7 @@ impl EngineSchema {
     /// Intern a parsed schema (the parsed flavor, owned names). Ids are
     /// assigned by iterating the parsed `BTreeMap`s in their canonical
     /// order, so id order is name order. Concrete data only.
-    pub(crate) fn compile(schema: &Schema) -> Self {
+    pub fn compile(schema: &Schema) -> Self {
         let object_names: Vec<Ident> = schema.objects.keys().cloned().collect();
         let objects: HashMap<&Ident, Nid> = object_names
             .iter()
@@ -63,14 +60,14 @@ impl EngineSchema {
     }
 
     /// The canonical id of a name; `None` outside the presentation.
-    pub(crate) fn arrow_nid(&self, name: &Ident) -> Option<Nid> {
+    pub fn arrow_nid(&self, name: &Ident) -> Option<Nid> {
         self.arrow_names.iter().position(|n| n == name)
     }
 
     /// Intern an instance against this presentation: dense row counts per
     /// object and one cell vector per arrow, copied out of the parsed
     /// tables once.
-    pub(crate) fn compile_instance(&self, instance: &Instance) -> EngineInstance {
+    pub fn compile_instance(&self, instance: &Instance) -> EngineInstance {
         let row_counts = self
             .object_names
             .iter()
@@ -83,54 +80,6 @@ impl EngineSchema {
             .collect();
         EngineInstance { row_counts, cells }
     }
-
-    /// Intern an instance for the lane flavor: the caller supplies row
-    /// counts and cell tables directly (dense id spaces, no parsed
-    /// tables to walk).
-    #[cfg(kani)]
-    pub(crate) fn lane_instance(
-        row_counts: Vec<Option<usize>>,
-        cells: Vec<Option<Vec<Option<RowId>>>>,
-    ) -> EngineInstance {
-        EngineInstance { row_counts, cells }
-    }
-
-    /// Intern a typed instance's tables against this presentation (the
-    /// parsed-surface check entry: the tables already exist).
-    pub(crate) fn compile_typed(&self, typed: &TypedInstance) -> EngineTyped {
-        let row_counts = self
-            .object_names
-            .iter()
-            .map(|name| typed.rows().get(name).map(Vec::len))
-            .collect();
-        let tables = self
-            .arrow_names
-            .iter()
-            .map(|name| typed.tables().get(name).cloned().unwrap_or_default())
-            .collect();
-        let typing_violations = typed
-            .typing_violations()
-            .iter()
-            .filter_map(|v| {
-                let nid = self.arrow_nid(&v.arrow)?;
-                Some((nid, v.src.0, v.value))
-            })
-            .collect();
-        let dangling = typed
-            .dangling()
-            .iter()
-            .filter_map(|d| {
-                let nid = self.arrow_nid(&d.arrow)?;
-                Some((nid, d.src.0))
-            })
-            .collect();
-        EngineTyped {
-            row_counts,
-            tables,
-            typing_violations,
-            dangling,
-        }
-    }
 }
 
 /// The name's byte order as a u64 key: up to 8 bytes big-endian,
@@ -139,6 +88,7 @@ impl EngineSchema {
 /// byte loops (catherine-6g2: the memcmp model churns to the unwind cap
 /// even on concrete bytes; a byte-copy loop unrolls every call site).
 #[cfg(kani)]
+pub const fn ident_key(name: &str) -> u64 {
     let bytes = name.as_bytes();
     assert!(bytes.len() <= 8);
     let b0 = if bytes.len() > 0 { bytes[0] } else { 0 } as u64;
