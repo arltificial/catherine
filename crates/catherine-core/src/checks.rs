@@ -52,7 +52,7 @@
 //! the same dangling discipline, and the same sort — no new kind, exit
 //! code, or severity.
 
-use crate::engine::{engine_families, EngineSchema, EngineTyped};
+use crate::engine::{engine_families, Bounded, EngineSchema, EngineTyped};
 use crate::findings::Finding;
 use crate::instance::TypedInstance;
 use crate::model::Schema;
@@ -88,24 +88,20 @@ fn compile_typed(compiled: &EngineSchema, typed: &TypedInstance) -> EngineTyped 
     let tables = compiled
         .arrow_names
         .iter()
-        .map(|name| typed.tables().get(name).cloned().unwrap_or_default())
+        .map(|name| Bounded::from_option_vec(typed.tables().get(name).cloned().unwrap_or_default()))
         .collect();
-    let typing_violations = typed
-        .typing_violations()
-        .iter()
-        .filter_map(|v| {
-            let nid = compiled.arrow_nid(&v.arrow)?;
-            Some((nid, v.src.0, v.value))
-        })
-        .collect();
-    let dangling = typed
-        .dangling()
-        .iter()
-        .filter_map(|d| {
-            let nid = compiled.arrow_nid(&d.arrow)?;
-            Some((nid, d.src.0))
-        })
-        .collect();
+    let mut typing_violations = Bounded::new();
+    for v in typed.typing_violations() {
+        if let Some(nid) = compiled.arrow_nid(&v.arrow) {
+            typing_violations.push((nid, v.src.0, v.value));
+        }
+    }
+    let mut dangling = Bounded::new();
+    for d in typed.dangling() {
+        if let Some(nid) = compiled.arrow_nid(&d.arrow) {
+            dangling.push((nid, d.src.0));
+        }
+    }
     EngineTyped {
         row_counts,
         tables,

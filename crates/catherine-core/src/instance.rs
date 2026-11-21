@@ -96,11 +96,12 @@ impl TypedInstance {
         let rows: BTreeMap<Ident, Vec<RowId>> = instance.rows.clone();
         let mut tables = BTreeMap::new();
         for (nid, name) in compiled.arrow_names.iter().enumerate() {
-            tables.insert(name.clone(), built.tables[nid].clone());
+            tables.insert(name.clone(), built.tables[nid].to_option_vec());
         }
         let typing_violations = built
             .typing_violations
             .iter()
+            .flatten()
             .map(|(nid, idx, value)| TypingViolation {
                 arrow: compiled.arrow_names[*nid].clone(),
                 src: RowId(*idx),
@@ -110,6 +111,7 @@ impl TypedInstance {
         let dangling = built
             .dangling
             .iter()
+            .flatten()
             .map(|(nid, idx)| DanglingCell {
                 arrow: compiled.arrow_names[*nid].clone(),
                 src: RowId(*idx),

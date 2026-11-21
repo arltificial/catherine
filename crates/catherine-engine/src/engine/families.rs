@@ -23,6 +23,7 @@ pub(crate) fn dangling_findings(
     let mut violated: Vec<(Nid, usize)> = typed
         .typing_violations
         .iter()
+        .flatten()
         .map(|(nid, idx, _)| (*nid, *idx))
         .collect();
     insertion_sort_by(&mut violated, |a, b| a.cmp(b));

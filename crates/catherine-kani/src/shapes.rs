@@ -29,7 +29,9 @@
 //! cells by id, so a shape list out of sorted order cannot corrupt the
 //! tables.
 
-use catherine_engine::engine::{ident_key, push_bounded, EngineInstance, EngineSchema};
+use catherine_engine::engine::{
+    ident_key, push_bounded, Bounded, EngineInstance, EngineSchema, ROWS_CAP,
+};
 use catherine_engine::model::{ConstraintStatus, RowId};
 
 /// Per-object row bounds of the shared space.
@@ -182,8 +184,9 @@ fn row_counts_for(schema: &EngineSchema) -> Vec<Option<usize>> {
 
 /// One tiered partial cell vector per declared arrow, parallel to the
 /// source rows; arrows outside the shared space carry no cells.
-fn cells_for(schema: &EngineSchema) -> Vec<Option<Vec<Option<RowId>>>> {
-    let mut cells: Vec<Option<Vec<Option<RowId>>>> = Vec::with_capacity(schema.arrow_keys.len());
+fn cells_for(schema: &EngineSchema) -> Vec<Option<Bounded<RowId, ROWS_CAP>>> {
+    let mut cells: Vec<Option<Bounded<RowId, ROWS_CAP>>> =
+        Vec::with_capacity(schema.arrow_keys.len());
     let mut ai = 0;
     while ai < schema.arrow_keys.len() {
         let want = schema.arrow_keys[ai];
@@ -199,10 +202,10 @@ fn cells_for(schema: &EngineSchema) -> Vec<Option<Vec<Option<RowId>>>> {
         }
         match found {
             Some((rows, key)) => {
-                let mut table: Vec<Option<RowId>> = Vec::with_capacity(rows);
+                let mut table = Bounded::<RowId, ROWS_CAP>::new();
                 let mut i = 0;
                 while i < rows {
-                    push_bounded(&mut table, any_cells(key));
+                    table.push_cell(any_cells(key));
                     i += 1;
                 }
                 push_bounded(&mut cells, Some(table));

@@ -42,12 +42,14 @@ pub type Nid = usize;
 mod compile;
 mod families;
 mod lane;
+mod store;
 
 #[cfg(kani)]
 pub use compile::ident_key;
 pub(crate) use families::{
     coproduct_findings, dangling_findings, equation_findings, key_findings, pullback_findings,
 };
+pub use store::{Bounded, REPORT_CAP, ROWS_CAP};
 
 /// A finding's pure-int sort key — exactly the comparison prefix
 /// `Finding`'s derived order walks: kind, then violation variant, then a
@@ -179,7 +181,9 @@ pub struct EngineInstance {
     /// the parsed instance carried no row space for the object.
     pub row_counts: Vec<Option<usize>>,
     /// `cells[arrow]` = the parsed value vector, parallel to source rows.
-    pub cells: Vec<Option<Vec<Option<RowId>>>>,
+    /// Array-backed under `cfg(kani)` (see [`store`]); a plain owned
+    /// vector on the parsed flavor.
+    pub cells: Vec<Option<Bounded<RowId, ROWS_CAP>>>,
 }
 
 /// The interned typed instance: one partial morphism table per arrow plus
@@ -188,14 +192,17 @@ pub struct EngineTyped {
     /// Per-object dense row space sizes, parallel to
     /// [`EngineSchema::object_names`].
     pub row_counts: Vec<Option<usize>>,
-    /// `tables[arrow]` = `vec![None; row_count(src)]`, filled where the
-    /// value resolved inside the target space.
-    pub tables: Vec<Vec<Option<RowId>>>,
+    /// `tables[arrow]` = an unmapped table of `row_count(src)` rows,
+    /// filled where the value resolved inside the target space.
+    /// Array-backed under `cfg(kani)` (see [`store`]).
+    pub tables: Vec<Bounded<RowId, ROWS_CAP>>,
     /// Typing violations, in build order (arrow id order, then cell):
-    /// (arrow, source cell index, offending value).
-    pub typing_violations: Vec<(Nid, usize, RowId)>,
+    /// (arrow, source cell index, offending value). Capacity-asserted
+    /// under `cfg(kani)`.
+    pub typing_violations: Bounded<(Nid, usize, RowId), REPORT_CAP>,
     /// Dangling cells, in build order (arrow id order, then cell).
-    pub dangling: Vec<(Nid, usize)>,
+    /// Capacity-asserted under `cfg(kani)`.
+    pub dangling: Bounded<(Nid, usize), REPORT_CAP>,
 }
 
 /// Capacity-asserted append — the walkers' and build's report vectors
@@ -215,23 +222,36 @@ pub fn push_bounded<T>(v: &mut Vec<T>, x: T) {
     }
 }
 
+/// The exact report bound: every taken cell lands in at most one
+/// report, and no cell outside a table can. The lane's array caps are
+/// proof obligations discharged against this bound; production is
+/// parsed-data-sized and carries no cap.
+#[cfg(kani)]
+fn report_bound(schema: &EngineSchema, instance: &EngineInstance) -> usize {
+    let mut bound = 0usize;
+    for (nid, src) in schema.arrow_src.iter().enumerate() {
+        let n_src = instance.row_counts[*src].unwrap_or(0);
+        if let Some(cells) = &instance.cells[nid] {
+            bound += cells.len().min(n_src);
+        }
+    }
+    bound
+}
+
 /// The build classification over ids — `TypedInstance::build`'s walk:
 /// every parsed arrow value lands in a morphism table entry, a dangling
 /// record, or a typing violation; cells beyond the source object's row
 /// space are ignored; arrows outside the presentation are ignored.
 pub fn engine_build(schema: &EngineSchema, instance: &EngineInstance) -> EngineTyped {
-    let mut tables = Vec::with_capacity(schema.arrow_src.len());
-    // The exact report bound: every taken cell lands in at most one
-    // report, and no cell outside a table can.
-    let mut report_bound = 0usize;
-    for (nid, src) in schema.arrow_src.iter().enumerate() {
-        let n_src = instance.row_counts[*src].unwrap_or(0);
-        if let Some(cells) = &instance.cells[nid] {
-            report_bound += cells.len().min(n_src);
-        }
-    }
-    let mut typing_violations = Vec::with_capacity(report_bound);
-    let mut dangling = Vec::with_capacity(report_bound);
+    let mut tables: Vec<Bounded<RowId, ROWS_CAP>> = Vec::with_capacity(schema.arrow_src.len());
+    // Under the lane, the array caps are proof obligations discharged
+    // against the computed exact bound (the shapes declare it well
+    // under `REPORT_CAP`). Production is parsed-data-sized and carries
+    // no cap.
+    #[cfg(kani)]
+    assert!(report_bound(schema, instance) <= REPORT_CAP);
+    let mut typing_violations = Bounded::new();
+    let mut dangling = Bounded::new();
     for (nid, src) in schema.arrow_src.iter().enumerate() {
         let n_src = instance.row_counts[*src].unwrap_or(0);
         let n_tgt = schema
@@ -239,13 +259,13 @@ pub fn engine_build(schema: &EngineSchema, instance: &EngineInstance) -> EngineT
             .get(nid)
             .and_then(|tgt| instance.row_counts[*tgt])
             .unwrap_or(0);
-        let mut table = vec![None; n_src];
+        let mut table = Bounded::<RowId, ROWS_CAP>::with_len(n_src);
         if let Some(cells) = &instance.cells[nid] {
             for (idx, &cell) in cells.iter().enumerate().take(n_src) {
                 match cell {
-                    None => push_bounded(&mut dangling, (nid, idx)),
+                    None => dangling.push((nid, idx)),
                     Some(value) if value.0 < n_tgt => table[idx] = Some(value),
-                    Some(value) => push_bounded(&mut typing_violations, (nid, idx, value)),
+                    Some(value) => typing_violations.push((nid, idx, value)),
                 }
             }
         }

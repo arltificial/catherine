@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use super::{
-    CompiledCoproduct, CompiledEquation, CompiledKey, CompiledPullback, EngineInstance,
+    Bounded, CompiledCoproduct, CompiledEquation, CompiledKey, CompiledPullback, EngineInstance,
     EngineSchema, Nid, Step,
 };
 use crate::model::{Ident, Instance, Path, Schema};
@@ -76,7 +76,13 @@ impl EngineSchema {
         let cells = self
             .arrow_names
             .iter()
-            .map(|name| instance.values.get(name).cloned())
+            .map(|name| {
+                instance
+                    .values
+                    .get(name)
+                    .cloned()
+                    .map(Bounded::from_option_vec)
+            })
             .collect();
         EngineInstance { row_counts, cells }
     }
