@@ -206,6 +206,29 @@ execution volume (allocation modeling + VCC count), not toolchain
 modeling — the next lever is cfg(kani)-shaped arena structures or a
 solver-phase budget decision, both recorded in the ledger.
 
+## 2026-11-21: the wall is propositional-reduction memory (beads catherine-6g2)
+
+Four instrumented runs of `build_panic_freedom` (systemd memcg caps,
+logs in `target/kani-ab/`) correct this arc's "the solve phase still
+exceeds the 300 s wall": the solver phase is never reached. The shape
+is identical at every cap — symex clean (88.7-94.7 s, zero unwind
+warnings), `Generated 72353 VCC(s), 24066 remaining after
+simplification` (the 24 k figure, reproduced exactly), Convert SSA
+~5.5 s, then the propositional reduction is kernel-OOM-killed
+(constraint MEMCG, ~100% CPU): at 8 GB with the default solver, at
+8 GB with kissat, at 8 GB with kissat plus `--slice-formula`, and at
+24 GB with kissat (diagnostic cap). No solver runs in any capped run —
+the "solve exceeds the wall" attribution was an inference from a
+killed log whose last line is `Runtime Convert SSA`, the same
+reduction-death signature. Ledger `0004-c7563980` (supersedes 0003)
+records the consequences: solver tuning is retired as a lever at this
+formula size, the budget stays closed (a bigger cap buys only a bigger
+reduction — 24 GB still OOM), and the live lever is the arena shape —
+cfg(kani) fixed-capacity tables and indices on the proven path — gated
+on `build_panic_freedom` reaching the solver at the 8 GB standard.
+Nothing is cited as proved; the parsed kernel stays byte-identical and
+fully green.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
