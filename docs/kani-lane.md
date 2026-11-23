@@ -329,13 +329,17 @@ Undetermined:
 Counterexample (Decision 5 protocol: attribution recorded, obligation
 never weakened):
 
-- check_coproduct_panic_freedom: counterexample — attributed to
-  unwinding assertions on allocator-model loops, not kernel logic: the
-  trace ends in `dangling_findings`' `violated` collect/`any` chain
-  (`slice::Iter::any` and `Vec::extend_desugared` at the unwind cap 16,
-  with `kani::mem::cbmc::same_allocation` and `usize::to_isize` from
-  Kani's allocator model). The machinery is removed by the walker
-  arena; the coproduct claim itself stays open until a clean run.
+- check_coproduct_panic_freedom: counterexample 2026-11-21, attributed
+  to unwinding assertions on allocator-model loops, not kernel logic:
+  the trace ended in `dangling_findings`' `violated` collect/`any`
+  chain (`slice::Iter::any` and `Vec::extend_desugared` at the unwind
+  cap 16, with `kani::mem::cbmc::same_allocation` and `usize::to_isize`
+  from Kani's allocator model). RESOLVED 2026-11-23 by walker-arena
+  round 1: the `violated` collect + vestigial sort were removed
+  (membership scans the bounded violations table directly) and the
+  coproduct image resolve loop went plain — the re-run shows no FAILED
+  verdict; the harness returns to undetermined (solve >300 s, 2.95 GB
+  peak), disposition above.
 
 Phase-2 families (taxonomy disjointness, search honesty) were **not**
 written: the stop-gate verdict (ledger `ledger/kani/`) does not fund

@@ -20,16 +20,21 @@ pub(crate) fn dangling_findings(
     typed: &EngineTyped,
     out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
 ) {
-    let mut violated: Vec<(Nid, usize)> = typed
-        .typing_violations
-        .iter()
-        .flatten()
-        .map(|(nid, idx, _)| (*nid, *idx))
-        .collect();
-    insertion_sort_by(&mut violated, |a, b| a.cmp(b));
+    // Membership scan straight over the bounded violations table — the
+    // old `violated` collect + sort (a leftover from the retired
+    // binary-search era) duplicated the table into heap machinery and
+    // its allocator model dominated the formula (check_coproduct's
+    // attributed counterexample, 2026-11-21). Order-independent
+    // membership: identical emitted findings.
     for (nid, table) in typed.tables.iter().enumerate() {
         for (idx, cell) in table.iter().enumerate() {
-            if cell.is_none() && !violated.iter().any(|&(seen, at)| seen == nid && at == idx) {
+            if cell.is_none()
+                && !typed
+                    .typing_violations
+                    .iter()
+                    .flatten()
+                    .any(|&(seen, at, _)| seen == nid && at == idx)
+            {
                 push_bounded(
                     out,
                     (
@@ -215,18 +220,25 @@ fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (Vec<(Nid, Vec<u64>)
     let mut complete = true;
     for &arrow in arrows {
         let table = &typed.tables[arrow];
-        match table
-            .iter()
-            .map(|cell| cell.as_ref().map(|c| c.0 as u64))
-            .collect::<Option<Vec<u64>>>()
-        {
-            Some(values) => {
-                let mut image = values;
-                insertion_sort_by(&mut image, |a, b| a.cmp(b));
-                dedup_sorted(&mut image);
-                push_bounded(&mut images, (arrow, image));
+        // Plain resolve loop — the `collect::<Option<Vec<_>>>()` form
+        // pulled the iterator/Option monad machinery into the formula.
+        let mut values: Vec<u64> = Vec::with_capacity(table.len());
+        let mut resolved = true;
+        for idx in 0..table.len() {
+            match table.get(idx).copied().flatten() {
+                Some(value) => push_bounded(&mut values, value.0 as u64),
+                None => {
+                    resolved = false;
+                    break;
+                }
             }
-            None => complete = false,
+        }
+        if resolved {
+            insertion_sort_by(&mut values, |a, b| a.cmp(b));
+            dedup_sorted(&mut values);
+            push_bounded(&mut images, (arrow, values));
+        } else {
+            complete = false;
         }
     }
     (images, complete)
