@@ -1,7 +1,9 @@
 //! Compact-to-public finding rendering — the only step that
 //! materializes names, on the parsed flavor (concrete data).
 
-use super::engine::{CompactFinding, CompactPullback, CompactViolation, EngineSchema};
+use super::engine::{
+    Bounded, CompactFinding, CompactPullback, CompactViolation, EngineSchema, Nid, ARROWS_CAP,
+};
 use crate::findings::{
     CoproductWitness, DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind,
     KeyWitness, PullbackWitness, ViolationWitness,
@@ -97,7 +99,7 @@ fn render_coproduct(
     label: EpistemicLabel,
     index: usize,
     row: usize,
-    injections: &[usize],
+    injections: &Bounded<Nid, ARROWS_CAP>,
 ) -> Finding {
     Finding {
         label,
@@ -106,6 +108,7 @@ fn render_coproduct(
             row: RowId(row),
             injections: injections
                 .iter()
+                .filter_map(|cell| cell.as_ref())
                 .map(|nid| schema.arrow_names[*nid].clone())
                 .collect(),
         })),

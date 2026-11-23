@@ -261,6 +261,47 @@ arena; the all-families build space stays declared with its
 disposition, its claim carried by the four per-family proofs.
 Ledger `0005` records the extension.
 
+## 2026-11-23: walker arena round 2 — the dangling exclusion redesigned, the compose wall isolated (beads catherine-6g2)
+
+Two measured steps, under the lane standard (Kani 0.68.0 / CBMC 6.11.0,
+unwind 16, 300 s wall, 8 GB scope):
+
+1. **The temporaries arena** (the recorded revisit trigger): every
+   walker temporary became a fixed-cap `Bounded` table — key tuples and
+   groups, coproduct images, coverage groups, projection buckets,
+   fibers (`ARROWS_CAP` joins `ROWS_CAP`/`REPORT_CAP` as a proof
+   obligation), `Bounded::sort_pushed_by`/`dedup_pushed` replace the
+   slice sorts on pushed prefixes, `CompactViolation::Coproduct`'s
+   witness carries a bounded table instead of a heap `Vec`, the
+   pullback families emit straight into the walk's report vector (the
+   per-pullback temp `Vec` + `extend` — the counterexample trace's
+   `extend_desugared` — is gone), and `fiber`'s plain `Vec::push`
+   (the measured 3.7× toxin) is gone. Parsed flavor: identical
+   behavior over the same walkers, pinned by the full contract suite.
+2. **The dangling exclusion redesigned**: the per-cell membership scan
+   over the violations table (a symbolic-length inner loop re-enumerated
+   per cell — the symex wall, measured: a dangling-only probe hung past
+   150 s alone) is replaced by per-slot violation flags derived in ONE
+   pass over `typing_violations`, then flat reads per cell
+   (`slot None && !flagged` — the identical partition, emission order
+   unchanged). Measured: the dangling family now **verifies — 47.7 s,
+   SUCCESSFUL** at the standard (probe `dangling_findings` alone over
+   the equation shape).
+
+What remains, measured: with the scan gone, the rest of the walk
+(equation/key/coproduct/pullback families over one harness) still
+exceeds the 300 s wall in symex; the trace attributes it to
+`engine_compose`'s symbolic row reads under the equation family's
+forks, with Kani's pointer-validity model (`same_allocation`,
+`to_isize`) charged at every re-expansion. Revisit trigger: compose's
+resolution shape — the probe-matrix precedent (symbolic-index reads
+over concrete-bound arrays prove in seconds) does not transfer through
+the `Vec`-shaped table access + the per-row fork structure; the next
+lever is a concrete-bound, non-`?`-chained resolution walk
+(`CompiledEquation` paths as bounded tables) in both the kernel walker
+and the soundness re-derivation. The contract suite, parity, and the
+four proved build harnesses are untouched and green.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
@@ -316,15 +357,19 @@ Undetermined:
   per-property loop still exceeds 8 GB partway through. The claim is
   carried by the four per-family proofs above.
 - check_sortedness_panic_freedom, check_equation_panic_freedom,
-  check_key_panic_freedom, check_pullback_panic_freedom,
-  soundness_equation, soundness_key, soundness_coproduct,
-  soundness_pullback, soundness_dangling: undetermined — split
-  obligation: walker allocator-model solve time. Post-arena these run
-  inside the memory cap (~2.1-2.5 GB peak); the solve phase exceeds
-  the 300 s wall on the walkers' remaining heap machinery (collect,
-  extend, iterator adapters over the findings and violated vectors).
-  Revisit trigger: the walker arena (bounded temporaries in
-  `engine/families.rs`, `engine/families/pullback.rs`, `soundness.rs`).
+  check_key_panic_freedom, check_coproduct_panic_freedom,
+  check_pullback_panic_freedom, soundness_equation, soundness_key,
+  soundness_coproduct, soundness_pullback, soundness_dangling:
+  undetermined at the 2026-11-23 re-runs (300 s wall; post-walker-arena
+  engine). Split obligation narrowed by measurement (see the 2026-11-23
+  arc above): the dangling family's per-cell violations scan was the
+  first wall and is FIXED (per-slot flags; the family verifies in 47.7 s
+  as an isolated probe) — the remaining wall is the compose-side
+  resolution walk (`engine_compose` under the families' symbolic forks,
+  pointer-validity machinery charged per re-expansion). Every emitted
+  finding's shape and the sort are unchanged; the harnesses run inside
+  the memory cap. Revisit trigger: concrete-bound resolution walk in
+  `engine_compose` and the soundness half's independent `compose`.
 
 Counterexample (Decision 5 protocol: attribution recorded, obligation
 never weakened):

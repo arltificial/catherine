@@ -38,10 +38,20 @@ pub const ROWS_CAP: usize = 8;
 /// Proof obligation under `cfg(kani)`.
 pub const REPORT_CAP: usize = 32;
 
+/// Cap for one declaration's arrow list (a key's arrows, a coproduct's
+/// injections) and for the walker temporaries derived from one (key
+/// tuples, injection images, coverage groups, projection buckets,
+/// fibers). The declared shapes hold at most 4 arrows per declaration;
+/// the cap carries headroom and is a proof obligation under
+/// `cfg(kani)`.
+pub const ARROWS_CAP: usize = 8;
+
 #[cfg(kani)]
 mod flavor {
+    use std::cmp::Ordering;
+
     /// The array-backed lane flavor: a fixed-capacity partial table.
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct Bounded<T, const CAP: usize> {
         slots: [Option<T>; CAP],
         len: usize,
@@ -100,6 +110,73 @@ mod flavor {
             }
         }
 
+        /// The mutable cell at `i`: `None` past the length, same
+        /// contract as [`Bounded::get`].
+        pub fn get_mut(&mut self, i: usize) -> Option<&mut Option<T>> {
+            if i < self.len {
+                Some(&mut self.slots[i])
+            } else {
+                None
+            }
+        }
+
+        /// Insertion sort over the pushed prefix — the solver-shaped
+        /// sort for lane temporaries: plain slot moves, no slice
+        /// machinery, no allocation model. Cells in `0..len` must be
+        /// `Some` (these temporaries are push-built; the walk's
+        /// tables, which hold `None` cells, never sort). Equal
+        /// elements keep insertion order — the walk's stable order.
+        pub fn sort_pushed_by(&mut self, cmp: impl Fn(&T, &T) -> Ordering) {
+            let len = self.len;
+            let mut i = 1;
+            while i < len {
+                let mut hole = i;
+                let tmp = self.slots[hole].take();
+                while hole > 0 {
+                    let greater = match (&self.slots[hole - 1], &tmp) {
+                        (Some(prev), Some(cur)) => cmp(prev, cur) == Ordering::Greater,
+                        _ => false,
+                    };
+                    if !greater {
+                        break;
+                    }
+                    self.slots[hole] = self.slots[hole - 1].take();
+                    hole -= 1;
+                }
+                self.slots[hole] = tmp;
+                i += 1;
+            }
+        }
+
+        /// Drop duplicate adjacent values from the pushed prefix — the
+        /// solver-shaped `Vec::dedup` (plain slot compaction, no tail
+        /// memmove). Same pushed-prefix contract as
+        /// [`Bounded::sort_pushed_by`]; the length shrinks to the
+        /// compacted prefix.
+        pub fn dedup_pushed(&mut self)
+        where
+            T: PartialEq + Clone,
+        {
+            let len = self.len;
+            if len <= 1 {
+                return;
+            }
+            let mut write = 1;
+            let mut read = 1;
+            while read < len {
+                let keep = match (&self.slots[read], &self.slots[write - 1]) {
+                    (Some(kept), Some(last)) => kept != last,
+                    _ => false,
+                };
+                if keep {
+                    self.slots[write] = self.slots[read].clone();
+                    write += 1;
+                }
+                read += 1;
+            }
+            self.len = write;
+        }
+
         /// The owned cell vector, for the parsed surface's materialized
         /// tables (`TypedInstance::build`).
         pub fn to_option_vec(&self) -> Vec<Option<T>>
@@ -151,11 +228,13 @@ mod flavor {
 
 #[cfg(not(kani))]
 mod flavor {
+    use std::cmp::Ordering;
+
     /// The production flavor: a plain owned cell vector. `CAP` is
     /// carried in the type so both flavors share one call surface and
     /// one walker set; it is a verification-only bound and is ignored
     /// here — parsed documents are arbitrary-sized.
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct Bounded<T, const CAP: usize>(Vec<Option<T>>);
 
     impl<T, const CAP: usize> Bounded<T, CAP> {
@@ -189,6 +268,65 @@ mod flavor {
 
         pub fn get(&self, i: usize) -> Option<&Option<T>> {
             self.0.get(i)
+        }
+
+        /// The mutable cell at `i`: `None` past the length, same
+        /// contract as [`Bounded::get`].
+        pub fn get_mut(&mut self, i: usize) -> Option<&mut Option<T>> {
+            self.0.get_mut(i)
+        }
+
+        /// Insertion sort over the pushed prefix — identical algorithm
+        /// to the verification flavor's [`Bounded::sort_pushed_by`]
+        /// (plain single-element moves), so both flavors serve one
+        /// walker set.
+        pub fn sort_pushed_by(&mut self, cmp: impl Fn(&T, &T) -> Ordering) {
+            let len = self.0.len();
+            let mut i = 1;
+            while i < len {
+                let mut hole = i;
+                let tmp = self.0[hole].take();
+                while hole > 0 {
+                    let greater = match (&self.0[hole - 1], &tmp) {
+                        (Some(prev), Some(cur)) => cmp(prev, cur) == Ordering::Greater,
+                        _ => false,
+                    };
+                    if !greater {
+                        break;
+                    }
+                    self.0[hole] = self.0[hole - 1].take();
+                    hole -= 1;
+                }
+                self.0[hole] = tmp;
+                i += 1;
+            }
+        }
+
+        /// Drop duplicate adjacent values from the pushed prefix —
+        /// identical algorithm to the verification flavor's
+        /// [`Bounded::dedup_pushed`].
+        pub fn dedup_pushed(&mut self)
+        where
+            T: PartialEq + Clone,
+        {
+            let len = self.0.len();
+            if len <= 1 {
+                return;
+            }
+            let mut write = 1;
+            let mut read = 1;
+            while read < len {
+                let keep = match (&self.0[read], &self.0[write - 1]) {
+                    (Some(kept), Some(last)) => kept != last,
+                    _ => false,
+                };
+                if keep {
+                    self.0[write] = self.0[read].clone();
+                    write += 1;
+                }
+                read += 1;
+            }
+            self.0.truncate(write);
         }
 
         /// The owned cell vector, for the parsed surface's materialized

@@ -28,7 +28,8 @@
 #![cfg(kani)]
 
 use catherine_engine::engine::{
-    engine_build, engine_families, CompactFinding, EngineSchema, EngineTyped, SortKey,
+    engine_build, engine_families, CompactFinding, EngineInstance, EngineSchema, EngineTyped,
+    SortKey,
 };
 
 mod shapes;
@@ -121,7 +122,7 @@ fn check_sortedness_panic_freedom() {
 #[kani::proof]
 fn check_equation_panic_freedom() {
     let schema = shapes::schema_equation();
-    let typed = typed_for(&schema);
+    let (instance, typed) = typed_for(&schema);
     let findings = engine_families(&schema, &typed);
     for (key, _, finding) in &findings {
         assert!(matches!(
@@ -130,7 +131,7 @@ fn check_equation_panic_freedom() {
         ));
         let _ = key;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Panic/overflow-freedom of the key family over its minimal space (one
@@ -139,7 +140,7 @@ fn check_equation_panic_freedom() {
 #[kani::proof]
 fn check_key_panic_freedom() {
     let schema = shapes::schema_key();
-    let typed = typed_for(&schema);
+    let (instance, typed) = typed_for(&schema);
     let findings = engine_families(&schema, &typed);
     for (key, _, finding) in &findings {
         assert!(matches!(
@@ -148,7 +149,7 @@ fn check_key_panic_freedom() {
         ));
         let _ = key;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Panic/overflow-freedom of the coproduct family over its minimal space
@@ -157,7 +158,7 @@ fn check_key_panic_freedom() {
 #[kani::proof]
 fn check_coproduct_panic_freedom() {
     let schema = shapes::schema_coproduct();
-    let typed = typed_for(&schema);
+    let (instance, typed) = typed_for(&schema);
     let findings = engine_families(&schema, &typed);
     for (key, _, finding) in &findings {
         assert!(matches!(
@@ -166,7 +167,7 @@ fn check_coproduct_panic_freedom() {
         ));
         let _ = key;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Panic/overflow-freedom of the pullback family over its minimal space
@@ -176,7 +177,7 @@ fn check_coproduct_panic_freedom() {
 #[kani::proof]
 fn check_pullback_panic_freedom() {
     let schema = shapes::schema_pullback();
-    let typed = typed_for(&schema);
+    let (instance, typed) = typed_for(&schema);
     let findings = engine_families(&schema, &typed);
     for (key, _, finding) in &findings {
         assert!(matches!(
@@ -185,7 +186,7 @@ fn check_pullback_panic_freedom() {
         ));
         let _ = key;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Witness soundness, equation family: every emitted violation's witness
@@ -193,13 +194,13 @@ fn check_pullback_panic_freedom() {
 /// claimed.
 #[kani::proof]
 fn soundness_equation() {
-    let (schema, typed, findings) = family_under_test(shapes::schema_equation());
+    let (schema, instance, typed, findings) = family_under_test(shapes::schema_equation());
     let mut i = 0;
     while i < findings.len() {
         soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
         i += 1;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Witness soundness, key family: every emitted collision's witness
@@ -207,13 +208,13 @@ fn soundness_equation() {
 /// ascending rows.
 #[kani::proof]
 fn soundness_key() {
-    let (schema, typed, findings) = family_under_test(shapes::schema_key());
+    let (schema, instance, typed, findings) = family_under_test(shapes::schema_key());
     let mut i = 0;
     while i < findings.len() {
         soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
         i += 1;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Witness soundness, coproduct family: coverage witnesses name rows in
@@ -221,13 +222,13 @@ fn soundness_key() {
 /// that really cover their row.
 #[kani::proof]
 fn soundness_coproduct() {
-    let (schema, typed, findings) = family_under_test(shapes::schema_coproduct());
+    let (schema, instance, typed, findings) = family_under_test(shapes::schema_coproduct());
     let mut i = 0;
     while i < findings.len() {
         soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
         i += 1;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Witness soundness, pullback family: commutes witnesses re-derive both
@@ -236,32 +237,33 @@ fn soundness_coproduct() {
 /// projections.
 #[kani::proof]
 fn soundness_pullback() {
-    let (schema, typed, findings) = family_under_test(shapes::schema_pullback());
+    let (schema, instance, typed, findings) = family_under_test(shapes::schema_pullback());
     let mut i = 0;
     while i < findings.len() {
         soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
         i += 1;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Witness soundness, dangling family: every dangling witness names a
 /// cell that really holds no row.
 #[kani::proof]
 fn soundness_dangling() {
-    let (schema, typed, findings) = family_under_test(shapes::schema_equation());
+    let (schema, instance, typed, findings) = family_under_test(shapes::schema_equation());
     let mut i = 0;
     while i < findings.len() {
         soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
         i += 1;
     }
-    std::mem::forget((schema, typed, findings));
+    std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Build the typed tables for a family's shape.
-fn typed_for(schema: &EngineSchema) -> EngineTyped {
+fn typed_for(schema: &EngineSchema) -> (EngineInstance, EngineTyped) {
     let instance = shapes::instance_for(schema);
-    engine_build(schema, &instance)
+    let typed = engine_build(schema, &instance);
+    (instance, typed)
 }
 
 /// The schema, its tables, and the keyed findings — one soundness
@@ -270,6 +272,7 @@ fn family_under_test(
     schema: EngineSchema,
 ) -> (
     EngineSchema,
+    EngineInstance,
     EngineTyped,
     Vec<(
         SortKey,
@@ -280,7 +283,7 @@ fn family_under_test(
     let instance = shapes::instance_for(&schema);
     let typed = engine_build(&schema, &instance);
     let findings = engine_families(&schema, &typed);
-    (schema, typed, findings)
+    (schema, instance, typed, findings)
 }
 
 #[kani::proof]

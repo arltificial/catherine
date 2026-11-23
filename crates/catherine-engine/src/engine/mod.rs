@@ -48,8 +48,9 @@ mod store;
 pub use compile::ident_key;
 pub(crate) use families::{
     coproduct_findings, dangling_findings, equation_findings, key_findings, pullback_findings,
+    violation_flags,
 };
-pub use store::{Bounded, REPORT_CAP, ROWS_CAP};
+pub use store::{Bounded, ARROWS_CAP, REPORT_CAP, ROWS_CAP};
 
 /// A finding's pure-int sort key — exactly the comparison prefix
 /// `Finding`'s derived order walks: kind, then violation variant, then a
@@ -87,7 +88,7 @@ pub enum CompactViolation {
     Coproduct {
         index: usize,
         row: usize,
-        injections: Vec<Nid>,
+        injections: Bounded<Nid, ARROWS_CAP>,
     },
     Pullback(CompactPullback),
 }
@@ -376,7 +377,8 @@ pub fn engine_families(
             + max_rows * (eqs + cops + pbs)
             + 1,
     );
-    dangling_findings(schema, typed, &mut out);
+    let violated = violation_flags(typed);
+    dangling_findings(schema, typed, &violated, &mut out);
     equation_findings(schema, typed, &mut out);
     key_findings(schema, typed, &mut out);
     coproduct_findings(schema, typed, &mut out);

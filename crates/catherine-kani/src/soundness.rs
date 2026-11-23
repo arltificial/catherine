@@ -17,21 +17,19 @@
 //! would prove nothing about it — the obligations here carry their own
 //! composition and table reads (never `engine::engine_compose` or the
 //! family walkers), so a kernel regression that emits a wrong witness
-//! cannot satisfy them. Id order is name order (canonical id
-//! assignment), witnesses carry canonical indices, and no solver time
-//! goes to container, string, or render modeling. Naturality/Redundant/
-//! Contradiction/Underconstraint have no `check` producer (naturality is
-//! the separate `naturality` runner; the rest are P4's) — recorded as
-//! out of this family's scope in docs/kani-lane.md.
+//! cannot satisfy them. Id order is name order, witnesses carry
+//! canonical indices, and no solver time goes to container, string, or
+//! render modeling. Naturality/Redundant/Contradiction/Underconstraint
+//! have no `check` producer — out of this family's scope
+//! (docs/kani-lane.md).
 
 use catherine_engine::engine::{
-    dedup_sorted, insertion_sort_by, CompactFinding, CompactPullback, CompactViolation,
-    EngineSchema, EngineTyped, Nid,
+    Bounded, CompactFinding, CompactPullback, CompactViolation, CompiledKey, EngineSchema,
+    EngineTyped, Nid, ARROWS_CAP, ROWS_CAP,
 };
 
-/// Compose a compiled path starting at source row `start` — the walk's
-/// composition rebuilt independently from the engine tables: each step
-/// resolves its cell to an in-target value or the path fails to compose.
+/// Compose a compiled path starting at source row `start` — rebuilt
+/// independently: each step resolves its cell or the path fails.
 fn compose(typed: &EngineTyped, path: &[Option<Nid>], start: usize) -> Option<usize> {
     let mut current = start;
     for step in path {
@@ -42,8 +40,8 @@ fn compose(typed: &EngineTyped, path: &[Option<Nid>], start: usize) -> Option<us
     Some(current)
 }
 
-/// The equation claim: both sides recomposed from the tables land
-/// exactly on the witness's values, and they disagree.
+/// The equation claim: both sides recomposed land on the witness's
+/// values, and they disagree.
 fn assert_equation_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
@@ -61,8 +59,8 @@ fn assert_equation_sound(
     let _ = schema;
 }
 
-/// The key claim: both colliding rows' key tuples fully resolve and are
-/// equal, ascending as carried.
+/// The key claim: both colliding rows' key tuples fully resolve and
+/// are equal, ascending as carried.
 fn assert_key_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
@@ -72,35 +70,48 @@ fn assert_key_sound(
 ) {
     let key = schema.keys[index].as_ref().unwrap();
     assert!(lo < hi);
-    let mut tuples: Vec<(usize, usize)> = Vec::new();
-    for row in [lo, hi] {
-        let mut tuple: Vec<usize> = Vec::new();
-        for &arrow in &key.arrows {
-            let cell = typed.tables[arrow]
-                .get(row)
-                .and_then(|cell| cell.as_ref())
-                .map(|cell| cell.0);
-            match cell {
-                Some(value) => tuple.push(value),
-                None => panic!(),
-            }
-        }
-        tuples.push((row, tuple[0]));
-    }
-    assert_eq!(tuples[0].1, tuples[1].1);
+    // Both rows' key tuples fully resolve (any unresolved cell fails
+    // the claim), and the first arrow's values agree — plain slot
+    // reads, no heap tuple (walker arena round 2).
+    let first_lo = key_first_value(typed, key, lo);
+    let first_hi = key_first_value(typed, key, hi);
+    assert_eq!(first_lo, first_hi);
     let _ = schema;
+}
+
+/// The row's key tuple fully resolves (unresolved fails the claim);
+/// the first arrow's value rides out for the equality check.
+fn key_first_value(typed: &EngineTyped, key: &CompiledKey, row: usize) -> Option<u64> {
+    let mut a = 0;
+    let mut first: Option<u64> = None;
+    while a < key.arrows.len() {
+        let cell = typed.tables[key.arrows[a]]
+            .get(row)
+            .and_then(|cell| cell.as_ref())
+            .map(|cell| cell.0);
+        match cell {
+            Some(value) => {
+                if first.is_none() {
+                    first = Some(value as u64);
+                }
+            }
+            None => panic!(),
+        }
+        a += 1;
+    }
+    assert!(first.is_some());
+    first
 }
 
 /// The coproduct claim: coverage failure (`injections` empty) means the
 /// row lies in no complete injection image; disjointness failure means
-/// every named colliding injection covers the row and at least two
-/// complete images do.
+/// every named colliding injection covers the row, at least two do.
 fn assert_coproduct_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
     index: usize,
     row: usize,
-    injections: &[Nid],
+    injections: &Bounded<Nid, ARROWS_CAP>,
 ) {
     let coproduct = schema.coproducts[index].as_ref().unwrap();
     let (images, partial) = coproduct_images(typed, &coproduct.arrows);
@@ -111,57 +122,68 @@ fn assert_coproduct_sound(
     }
 }
 /// One arrow's complete injection image (sorted distinct values) —
-/// `partial` records whether any image has an unresolved cell.
-fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (Vec<(Nid, Vec<usize>)>, bool) {
-    let mut images: Vec<(Nid, Vec<usize>)> = Vec::new();
+/// `partial` records whether any image has an unresolved cell. Same
+/// arena shape as the walk, re-derived independently.
+fn coproduct_images(
+    typed: &EngineTyped,
+    arrows: &[Nid],
+) -> (Bounded<(Nid, Bounded<u64, ROWS_CAP>), ARROWS_CAP>, bool) {
+    let mut images: Bounded<(Nid, Bounded<u64, ROWS_CAP>), ARROWS_CAP> = Bounded::new();
     let mut partial = false;
-    for &arrow in arrows {
-        let table = &typed.tables[arrow];
-        let mut values: Vec<usize> = Vec::new();
+    let mut a = 0;
+    while a < arrows.len() {
+        let table = &typed.tables[arrows[a]];
+        let mut values = Bounded::<u64, ROWS_CAP>::new();
         let mut complete = true;
-        for cell in table.iter() {
-            match cell.as_ref() {
-                Some(value) => values.push(value.0),
+        let mut idx = 0;
+        while idx < table.len() {
+            match table.get(idx).copied().flatten() {
+                Some(value) => values.push(value.0 as u64),
                 None => complete = false,
             }
+            idx += 1;
         }
         if complete {
-            insertion_sort_by(&mut values, |a, b| a.cmp(b));
-            dedup_sorted(&mut values);
-            images.push((arrow, values));
+            values.sort_pushed_by(|x, y| x.cmp(y));
+            values.dedup_pushed();
+            images.push((arrows[a], values));
         } else {
             partial = true;
         }
+        a += 1;
     }
     (images, partial)
 }
 
-/// The coverage claim: no partial image, and the row lies in no
-/// complete injection image.
-fn assert_coproduct_uncovered(images: &[(Nid, Vec<usize>)], partial: bool, row: usize) {
+/// The coverage claim: no partial image, no image covers the row.
+fn assert_coproduct_uncovered(
+    images: &Bounded<(Nid, Bounded<u64, ROWS_CAP>), ARROWS_CAP>,
+    partial: bool,
+    row: usize,
+) {
     assert!(!partial);
-    for (_, image) in images {
-        assert!(!image.contains(&row));
+    let mut i = 0;
+    while i < images.len() {
+        let (_, image) = images[i].as_ref().unwrap();
+        assert!(!image_covers(image, row as u64));
+        i += 1;
     }
 }
 
 /// The disjointness claim: every covering image is a named injection,
 /// and at least two complete images cover the row.
 fn assert_coproduct_collision(
-    images: &[(Nid, Vec<usize>)],
+    images: &Bounded<(Nid, Bounded<u64, ROWS_CAP>), ARROWS_CAP>,
     partial: bool,
     row: usize,
-    injections: &[Nid],
+    injections: &Bounded<Nid, ARROWS_CAP>,
 ) {
     let mut named = 0;
-    for (arrow, image) in images {
-        let covered = image.contains(&row);
-        let mut is_named = false;
-        for named_injection in injections {
-            if named_injection == arrow {
-                is_named = true;
-            }
-        }
+    let mut i = 0;
+    while i < images.len() {
+        let (arrow, image) = images[i].as_ref().unwrap();
+        let covered = image_covers(image, row);
+        let is_named = injection_named(injections, *arrow);
         if covered {
             assert!(is_named || partial);
             if is_named {
@@ -170,12 +192,37 @@ fn assert_coproduct_collision(
         } else {
             assert!(!is_named || partial);
         }
+        i += 1;
     }
     assert!(named >= 2);
 }
 
+/// Plain slot scan: does one complete image cover the row?
+fn image_covers(image: &Bounded<u64, ROWS_CAP>, row: u64) -> bool {
+    let mut j = 0;
+    while j < image.len() {
+        if image[j] == Some(row) {
+            return true;
+        }
+        j += 1;
+    }
+    false
+}
+
+/// Plain slot scan: is the arrow one of the witness's named injections?
+fn injection_named(injections: &Bounded<Nid, ARROWS_CAP>, arrow: Nid) -> bool {
+    let mut k = 0;
+    while k < injections.len() {
+        if injections[k] == Some(arrow) {
+            return true;
+        }
+        k += 1;
+    }
+    false
+}
+
 /// The commutes claim: both cospan compositions resolve and disagree
-/// exactly as the witness carried them.
+/// as the witness carried them.
 fn assert_commutes_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
@@ -215,7 +262,7 @@ fn assert_commutes_sound(
 }
 
 /// The covers claim: the pair shares a cospan target, and no apex row
-/// projects onto it through both legs.
+/// projects onto it through both legs of the square.
 fn assert_covers_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
@@ -258,8 +305,7 @@ fn assert_covers_sound(
 }
 
 /// The unique claim: two ascending apex rows resolve both leg
-/// projections to the same values — the square is not jointly injective
-/// there.
+/// projections to the same values — the square is not injective there.
 fn assert_unique_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
@@ -327,7 +373,6 @@ pub(super) fn assert_finding_sound(
     }
 }
 
-/// The dangling claim: the cited cell is genuinely unresolved.
 fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usize) {
     let cell = typed.tables.get(arrow).and_then(|table| table.get(src));
     match cell {
@@ -336,7 +381,7 @@ fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usize) {
     }
 }
 
-/// The pullback family's three soundness obligations, one per verdict.
+/// The pullback family's three obligations, one per verdict.
 fn assert_pullback_sound(schema: &EngineSchema, typed: &EngineTyped, pullback: &CompactPullback) {
     match pullback {
         CompactPullback::Commutes {
