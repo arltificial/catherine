@@ -229,6 +229,38 @@ on `build_panic_freedom` reaching the solver at the 8 GB standard.
 Nothing is cited as proved; the parsed kernel stays byte-identical and
 fully green.
 
+## 2026-11-21: the arena arc — the first proved harnesses (beads catherine-6g2)
+
+Two levers, in order, under the lane standard:
+
+1. **The arena** (`engine/store.rs`): one `Bounded<T, CAP>` table type —
+   array-backed under `cfg(kani)`, `Vec`-backed otherwise, identical
+   call surface — behind `EngineInstance.cells`, `EngineTyped.tables`,
+   and the build reports. Measured on the all-families build harness:
+   symex 88.7 → 70.6 s, program steps 1 146 825 → 726 468, VCCs after
+   simplification 24 066 → 11 917; the propositional reduction now
+   completes and the solver runs (17 properties solved individually)
+   before the per-property loop exceeds 8 GB. Caps are proof
+   obligations discharged against the computed exact report bound
+   (`REPORT_CAP`), never silent truncation; production keeps parsed
+   sizes and carries no cap.
+2. **Partitioning the build obligation per family** (Decision 4):
+   `build_panic_freedom_{equation,key,coproduct,pullback}` over the
+   per-family shapes. All four **proved** at the standard — the lane's
+   first verified results: 18.7 s / 1.24 GB, 17.6 s / 1.20 GB, 18.7 s /
+   1.29 GB, 36.5 s / 1.89 GB (`target/kani-timings.txt`, logs in
+   `target/part.log`).
+
+The walker harnesses (check/soundness families) moved off the memory
+wall (~2.1-2.5 GB peak, was OOM) onto a solve-time wall on their
+remaining heap machinery, and the lane's first counterexample landed
+(check_coproduct_panic_freedom) — attributed to unwinding assertions
+on allocator-model loops in `dangling_findings`' collect/`any` chain,
+not kernel logic (dispositions above). The next lever is the walker
+arena; the all-families build space stays declared with its
+disposition, its claim carried by the four per-family proofs.
+Ledger `0005` records the extension.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
@@ -264,36 +296,56 @@ modeling, not harness-side input modeling.
 
 ## Undetermined dispositions
 
-Every declared harness carries the same split obligation
-(`<harness>: undetermined — split obligation: toolchain limitation,
-revisit trigger recorded`):
+Outcomes as of 2026-11-23 (Kani 0.68.0 / CBMC 6.11.0, unwind 16, 300 s
+wall, 8 GB scope; post-arena engine, `engine/store.rs`):
 
-- build_panic_freedom: undetermined — split obligation: toolchain
-  limitation (see above); revisit on a Kani release whose
-  `String`/`BTreeMap` models do not unroll memcmp to the unwind cap, or
-  after a kernel-side ident-interning change (usize keys internally,
-  `Ident` at the API edge) — that change would be its own beads ticket.
-- check_sortedness_panic_freedom: undetermined — split obligation: same
-  toolchain limitation; revisit triggers as above.
-- check_equation_panic_freedom: undetermined — split obligation: same.
-- check_key_panic_freedom: undetermined — split obligation: same.
-- check_coproduct_panic_freedom: undetermined — split obligation: same.
-- check_pullback_panic_freedom: undetermined — split obligation: same.
-- soundness_equation: undetermined — split obligation: same.
-- soundness_key: undetermined — split obligation: same.
-- soundness_coproduct: undetermined — split obligation: same.
-- soundness_pullback: undetermined — split obligation: same.
-- soundness_dangling: undetermined — split obligation: same.
+Proved (the lane's first — the build walk's panic/overflow freedom over
+each family's declared space, partitioned per design Decision 4):
+
+- build_panic_freedom_equation: proved — 18.7 s, 1.24 GB peak.
+- build_panic_freedom_key: proved — 17.6 s, 1.20 GB peak.
+- build_panic_freedom_coproduct: proved — 18.7 s, 1.29 GB peak.
+- build_panic_freedom_pullback: proved — 36.5 s, 1.89 GB peak.
+
+Undetermined:
+
+- build_panic_freedom (all-families space): undetermined — split
+  obligation: per-property propositional encoding memory; the arena
+  halved the formula (symex 70.6 s, 11 917 VCCs after simplification)
+  and the solver now runs (17 properties solved individually), but the
+  per-property loop still exceeds 8 GB partway through. The claim is
+  carried by the four per-family proofs above.
+- check_sortedness_panic_freedom, check_equation_panic_freedom,
+  check_key_panic_freedom, check_pullback_panic_freedom,
+  soundness_equation, soundness_key, soundness_coproduct,
+  soundness_pullback, soundness_dangling: undetermined — split
+  obligation: walker allocator-model solve time. Post-arena these run
+  inside the memory cap (~2.1-2.5 GB peak); the solve phase exceeds
+  the 300 s wall on the walkers' remaining heap machinery (collect,
+  extend, iterator adapters over the findings and violated vectors).
+  Revisit trigger: the walker arena (bounded temporaries in
+  `engine/families.rs`, `engine/families/pullback.rs`, `soundness.rs`).
+
+Counterexample (Decision 5 protocol: attribution recorded, obligation
+never weakened):
+
+- check_coproduct_panic_freedom: counterexample — attributed to
+  unwinding assertions on allocator-model loops, not kernel logic: the
+  trace ends in `dangling_findings`' `violated` collect/`any` chain
+  (`slice::Iter::any` and `Vec::extend_desugared` at the unwind cap 16,
+  with `kani::mem::cbmc::same_allocation` and `usize::to_isize` from
+  Kani's allocator model). The machinery is removed by the walker
+  arena; the coproduct claim itself stays open until a clean run.
 
 Phase-2 families (taxonomy disjointness, search honesty) were **not**
 written: the stop-gate verdict (ledger `ledger/kani/`) does not fund
 them, and every harness above shares the same wall — more harnesses
 would multiply unverifiable spend, not assurance. The provocation pass
-(task 3 RED evidence) is blocked by the same wall: a counterexample
-requires the same full symbolic exploration a proof requires, and no
-budget produced one; the provocation machinery
-(`scripts/provoke-kani-harnesses.sh`, one anchored seed per harness) is
-landed so the pass runs as soon as the revisit trigger fires.
+(task 3 RED evidence) is unblocked as of 2026-11-21: the partitioned
+lane produced its first counterexample (attributed above), and the
+provocation machinery (`scripts/provoke-kani-harnesses.sh`, one
+anchored seed per harness) is landed so the pass runs per harness as
+the budget reaches it.
   2026-11-19): all 11 harnesses, per-harness invocation, unwind 16,
   300s wall, 8 GB scope - every one times out at ~5.8-6.3 GB peak
   RSS (records in `target/kani-timings.txt`, logs and time outputs

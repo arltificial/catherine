@@ -69,6 +69,10 @@ installed_release() {
 # crates/catherine-kani/src/lib.rs (every #[kani::proof] fn).
 DECLARED_HARNESSES=(
 	build_panic_freedom
+	build_panic_freedom_equation
+	build_panic_freedom_key
+	build_panic_freedom_coproduct
+	build_panic_freedom_pullback
 	check_sortedness_panic_freedom
 	check_equation_panic_freedom
 	check_key_panic_freedom

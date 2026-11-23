@@ -51,6 +51,48 @@ fn build_panic_freedom() {
     std::mem::forget((schema, instance, typed));
 }
 
+/// The build obligation over one family's minimal shape — the same
+/// panic/overflow-freedom claim as the all-families harness, partitioned
+/// per family (design Decision 4: each harness carries a minimal schema
+/// and stated bounds). The all-families space stays declared with its
+/// disposition; these carry the claim where the budget reaches it.
+macro_rules! build_panic_freedom_over {
+    ($name:ident, $shape:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[kani::proof]
+        fn $name() {
+            let schema = shapes::$shape();
+            let instance = shapes::instance_for(&schema);
+            let typed = engine_build(&schema, &instance);
+            let _ = typed.tables.len();
+            // The claim is the walk; none of these types carries a
+            // panicking drop, so the harness forgets them.
+            std::mem::forget((schema, instance, typed));
+        }
+    };
+}
+
+build_panic_freedom_over!(
+    build_panic_freedom_equation,
+    schema_equation,
+    "Panic/overflow-freedom of the engine build alone over the equation family's minimal space."
+);
+build_panic_freedom_over!(
+    build_panic_freedom_key,
+    schema_key,
+    "Panic/overflow-freedom of the engine build alone over the key family's minimal space."
+);
+build_panic_freedom_over!(
+    build_panic_freedom_coproduct,
+    schema_coproduct,
+    "Panic/overflow-freedom of the engine build alone over the coproduct family's minimal space."
+);
+build_panic_freedom_over!(
+    build_panic_freedom_pullback,
+    schema_pullback,
+    "Panic/overflow-freedom of the engine build alone over the pullback family's minimal space."
+);
+
 /// The nondeterministic `check` + diff-stable-order obligation over the
 /// whole walk: all four families declared on one minimal presentation,
 /// the emitted findings asserted totally ordered — in the int keys that
