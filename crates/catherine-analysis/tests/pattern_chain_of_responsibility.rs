@@ -202,6 +202,7 @@ fn migration_key(finding: &MigrationFinding) -> FindingKey {
     let kind = match &finding.kind {
         MigrationFindingKind::LostRow { .. } => "lost_row",
         MigrationFindingKind::LostCell { .. } => "lost_cell",
+        MigrationFindingKind::Weakened { .. } => "weakened",
     };
     (kind, label_name(finding.label))
 }

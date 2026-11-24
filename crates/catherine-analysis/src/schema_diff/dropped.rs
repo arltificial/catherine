@@ -127,7 +127,7 @@ impl<'a> Translation<'a> {
 }
 
 /// The non-null object assignments of the map as an image table.
-fn object_images<'a>(side: &'a BTreeMap<Ident, Option<Ident>>) -> BTreeMap<&'a Ident, &'a Ident> {
+fn object_images(side: &BTreeMap<Ident, Option<Ident>>) -> BTreeMap<&Ident, &Ident> {
     side.iter()
         .filter_map(|(source, image)| image.as_ref().map(|image| (source, image)))
         .collect()
@@ -135,7 +135,7 @@ fn object_images<'a>(side: &'a BTreeMap<Ident, Option<Ident>>) -> BTreeMap<&'a I
 
 /// The single-arrow arrow images of the map as an image table: a `null`
 /// assignment or a longer path leaves the arrow untranslatable.
-fn arrow_images<'a>(side: &'a BTreeMap<Ident, Option<Path>>) -> BTreeMap<&'a Ident, &'a Ident> {
+fn arrow_images(side: &BTreeMap<Ident, Option<Path>>) -> BTreeMap<&Ident, &Ident> {
     side.iter()
         .filter_map(|(source, path)| match path {
             Some(path) if path.0.len() == 1 => Some((source, &path.0[0])),

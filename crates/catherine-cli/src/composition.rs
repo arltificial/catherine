@@ -293,6 +293,15 @@ fn input_key(path: &str) -> String {
 /// Emit findings with glue source attribution: the sourced `--json`
 /// envelope, or the human lines (quiet suppresses the human output only).
 /// Returns the exit code from the findings.
+///
+/// The eight arguments are the emitter's actual arity: findings, the
+/// execution scope, the glue source, the two output-mode switches, the
+/// envelope warnings, and the two sinks — each independently meaningful
+/// at the check-side and under-constraint runners. The sinks thread
+/// through every render path here (`write_envelope` takes them the same
+/// way), so bundling them would introduce a second plumbing convention
+/// mid-tree for one lint count.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn emit_findings(
     findings: &[Finding],
     scope: Option<ExecutionScope>,

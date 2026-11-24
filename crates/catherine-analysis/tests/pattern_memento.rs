@@ -66,6 +66,7 @@ fn migration_key(
     let kind = match &finding.kind {
         MigrationFindingKind::LostRow { .. } => "lost_row",
         MigrationFindingKind::LostCell { .. } => "lost_cell",
+        MigrationFindingKind::Weakened { .. } => "weakened",
     };
     let label = match finding.label {
         EpistemicLabel::Executed => "executed",
@@ -91,6 +92,9 @@ fn lost_cells(outcome: &LensOutcome) -> Vec<(String, usize)> {
             MigrationFindingKind::LostCell { arrow, row } => (arrow.0.clone(), row.0),
             MigrationFindingKind::LostRow { object, row } => {
                 panic!("unexpected lost_row: {}#{}", object.0, row.0)
+            }
+            MigrationFindingKind::Weakened { constraint, .. } => {
+                panic!("unexpected weakened: {constraint}")
             }
         })
         .collect()

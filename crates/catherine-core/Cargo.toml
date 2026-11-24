@@ -1,12 +1,12 @@
 [package]
 name = "catherine-core"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Catherine kernel: .ct.json model document format, parser, canonical form, hash"
 
 [dependencies]
-catherine-engine = { path = "../catherine-engine", version = "0.4.1" }
+catherine-engine = { path = "../catherine-engine", version = "0.5.0" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

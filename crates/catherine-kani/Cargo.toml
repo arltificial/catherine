@@ -1,6 +1,6 @@
 [package]
 name = "catherine-kani"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Catherine Kani verification lane: bounded-model-checking harnesses over the kernel engine"
@@ -13,3 +13,10 @@ catherine-engine = { path = "../catherine-engine", default-features = false }
 # docs/kani-lane.md); plain clippy must know the cfg name or its
 # -D warnings gate fails every checkout.
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
+[lints.cargo]
+# The crate body is `#![cfg(kani)]`, so plain clippy sees no use of the
+# engine and the manifest lint would push the lane's only dependency out
+# of this manifest — the harnesses then no longer compile under
+# `cargo kani`, and policy edge `ae_kani_engine` loses its referent.
+unused_dependencies = "allow"

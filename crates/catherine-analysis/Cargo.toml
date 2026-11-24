@@ -1,12 +1,12 @@
 [package]
 name = "catherine-analysis"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Catherine analysis: bounded search, redundancy, underconstraint, distinguish, and the query traversals"
 
 [dependencies]
-catherine-core = { path = "../catherine-core", version = "0.4.1" }
+catherine-core = { path = "../catherine-core", version = "0.5.0" }
 
 [dev-dependencies]
 hegeltest = "=0.53.1"

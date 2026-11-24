@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-24
+
+The three-axis gate: the axes catherine already serves — referential
+agreement, schema evolution, executable limits — made honest and
+enforceable. Expressibility is unchanged.
+
+### Added
+
+- Execution scope on check and findings payloads (`add-execution-scope`,
+  `catherine-kpn.5`): `data.scope`
+  `{constraints_checked, rows_evaluated, equations_over_zero_rows}` names
+  the boundary a verdict was actually computed over (axis C). The shared
+  computation lives in `checks::check`; lens and analysis payloads stay
+  scope-free. The wasm `CheckReport` carries the scope as optional and the
+  web consumer renders the scope line above the findings.
+- Named bounds on unknown payloads (`catherine-kpn.6`): an unknown search
+  or diff outcome now names the bound to pass (`--rows`, `--max-candidates`)
+  through one shared hint builder; outcomes and exit codes are unchanged.
+- Architecture policy gate (`catherine-kpn.9`):
+  `policy/architecture-policy.ct.json` — the nine permitted dependency
+  edges, each with a design-doc citation — judged against the actual
+  `[dependencies]` graph by `scripts/check-architecture-policy.py`
+  (`just check-architecture-policy`, pre-push); an uncovered actual edge
+  exits 3, a policy edge the tree lacks exits 4.
+
+### Changed
+
+- Non-functorial schema maps are refused (`catherine-kpn.7`): the parser
+  types mapped-arrow endpoints, so an arrow whose image path has the wrong
+  endpoints exits 1 with `error[partial_schema_map]` naming the node and
+  the mismatched endpoint (`MigrationError::NotComposable`); previously
+  exit 0 with empty `data.lost` (`non-functorial-schema-map`, closed).
+- Migrate names dropped constraints (`catherine-kpn.14`): when the target
+  schema forgets an accepted constraint, migrate emits `weakened`/
+  `executed` findings on exit 8 with a separating witness row, via the
+  shared diff classifier; a target dropping several constraints gives
+  each one its own witness; previously exit 0 with empty `data.lost`
+  (`dropped-equations-on-migrate`, `dropped-pullbacks-on-migrate`, closed).
+- Docs honesty (`catherine-kpn.1`, `catherine-kpn.3`, `catherine-kpn.10`,
+  `catherine-kpn.11`): README and PROPOSAL describe the bounded
+  satisfying-instance search and attribute breaking/separating instances
+  to check and diff; `docs/VALUE.md` is the constraints surface — the axis
+  table, the refusal gate, the state-shape-domain definition; the
+  one-sentence value proposition is rewritten; the "model this
+  conventionally" claim is restated as the process rule it is.
+
 ## [0.4.1] - 2026-11-24
 
 ### Added
