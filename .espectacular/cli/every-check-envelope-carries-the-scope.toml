@@ -1,0 +1,11 @@
+id = "every-check-envelope-carries-the-scope"
+description = "Every check/findings JSON envelope's data carries a scope object whose keys are exactly constraints_checked, rows_evaluated, and equations_over_zero_rows, with counts matching the executed walk."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "check_payload_carries_the_execution_scope" },
+]

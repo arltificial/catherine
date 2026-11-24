@@ -1,0 +1,11 @@
+id = "check-and-findings-agree"
+description = "Running the same document through 'check --json' and 'findings --json' reports the identical data.scope values — one shared scope computation, so the two subcommands can never disagree."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "check_and_findings_agree_on_the_scope" },
+]

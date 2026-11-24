@@ -1,0 +1,11 @@
+id = "constraint-free-document-is-visible-in-the-payload"
+description = "A document with no accepted constraints that exits clean reports data.scope with constraints_checked 0 (rows_evaluated still counting the instance rows), so nothing-was-checked is distinguishable from clean."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "constraint_free_document_reports_zero_constraints_checked" },
+]

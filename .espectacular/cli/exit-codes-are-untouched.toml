@@ -1,0 +1,11 @@
+id = "exit-codes-are-untouched"
+description = "The additive data.scope field changes no exit code, including the vacuous runs that exit 0 with a zero scope; the pin is the zero-row case, which asserts both the exit code and the zero scope on one run."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "zero_row_instance_reports_its_vacuous_scope_and_keeps_exit_0" },
+]

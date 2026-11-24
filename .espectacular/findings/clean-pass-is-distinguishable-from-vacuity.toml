@@ -1,0 +1,11 @@
+id = "clean-pass-is-distinguishable-from-vacuity"
+description = "A findings payload with an empty data.findings array and a non-zero constraints_checked and rows_evaluated states the walk ran over real constraints and rows and found nothing — a genuine clean result, not vacuity."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "execution_scope_rides_on_the_core_result" },
+]

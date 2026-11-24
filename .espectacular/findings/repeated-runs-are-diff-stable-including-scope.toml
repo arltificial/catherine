@@ -1,0 +1,11 @@
+id = "repeated-runs-are-diff-stable-including-scope"
+description = "Repeated runs of the same document serialize byte-identical payloads including data.scope, and the pre-existing fields' bytes are unchanged; the pin is the scope-agreement case, whose compared payload includes the scope alongside the diff-stable findings."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "check_and_findings_agree_on_the_scope" },
+]

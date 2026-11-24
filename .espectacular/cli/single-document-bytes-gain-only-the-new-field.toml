@@ -1,0 +1,11 @@
+id = "single-document-bytes-gain-only-the-new-field"
+description = "The single-document --json envelope is byte-identical to the captured baseline except for the added data.scope object — envelope kind, version, findings, warnings, and hints bytes are unchanged."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "single_document_invocations_are_byte_identical" },
+]

@@ -1,0 +1,11 @@
+id = "non-executing-commands-stay-scope-free"
+description = "Commands that execute no accepted constraints over an instance (search, diff, migrate, rules, the pattern and naturality lenses, query) emit no data.scope field — the lens findings-envelope path passes no scope, and the payload serializes without the field."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "lens_payloads_stay_scope_free" },
+]

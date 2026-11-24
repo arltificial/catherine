@@ -1,0 +1,11 @@
+id = "the-web-consumer-binds-to-the-scope"
+description = "The wasm boundary mirrors data.scope with the same three keys to the web client, which can branch on it without parsing findings or warnings; the vitest case lands with the wasm/web half (catherine-kpn.12, next wave)."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+vitest = [
+    { flags = "the_scope_is_surfaced_next_to_findings" },
+]

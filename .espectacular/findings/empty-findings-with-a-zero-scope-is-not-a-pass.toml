@@ -1,0 +1,11 @@
+id = "empty-findings-with-a-zero-scope-is-not-a-pass"
+description = "A findings payload whose data.findings is empty and whose data.scope is all zeros states nothing was executed — the emptiness is attributable to a vacuous run (here: one accepted equation bound over zero rows), not to a verified clean result."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.2"
+
+[tests]
+cargo = [
+    { flags = "zero_rows_scope_counts_the_equation_over_the_empty_table" },
+]

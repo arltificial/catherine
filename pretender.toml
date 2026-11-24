@@ -1,7 +1,7 @@
 [pretender]
 mode = "gate"
 languages = ["auto"]
-exclude = ["vendor/**", "node_modules/**", "**/*_generated.*"]
+exclude = ["**/vendor/**", "**/node_modules/**", "**/book/**", "**/web/pkg/**", "**/lean/**", "**/target/**", "**/app.js", "**/*_generated.*"]
 
 [roles.test]
 paths = ["tests/**", "**/*_test.*", "spec/**"]
