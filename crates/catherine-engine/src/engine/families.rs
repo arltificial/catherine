@@ -3,7 +3,7 @@
 
 use super::{
     engine_compose, Bounded, CompactFinding, CompactViolation, EngineSchema, EngineTyped, SortKey,
-    ROWS_CAP,
+    REPORT_CAP, ROWS_CAP,
 };
 use crate::{findings::EpistemicLabel, model::RowId};
 
@@ -16,6 +16,30 @@ pub(crate) use keys::key_findings;
 pub(crate) use pullback::pullback_findings;
 
 pub(crate) use super::push_bounded;
+
+/// The families' emission sink: the walkers fill either storage — the
+/// heap `Vec` (parsed flavor, `engine_families`' single sorted output)
+/// or the bounded table (the lane's partitioned entries, ledger `0007`:
+/// the slice sort and symbolic slice iteration were the solve-phase
+/// wall's last heap machinery). Monomorphized per call site, so the
+/// lane's formula inlines slot writes and the parsed flavor keeps the
+/// asserted-append Vec; both arms are capacity-asserted appends, never
+/// allocation branches.
+pub(crate) trait FindingSink {
+    fn emit(&mut self, finding: (SortKey, EpistemicLabel, CompactFinding));
+}
+
+impl FindingSink for Vec<(SortKey, EpistemicLabel, CompactFinding)> {
+    fn emit(&mut self, finding: (SortKey, EpistemicLabel, CompactFinding)) {
+        push_bounded(self, finding);
+    }
+}
+
+impl<const CAP: usize> FindingSink for Bounded<(SortKey, EpistemicLabel, CompactFinding), CAP> {
+    fn emit(&mut self, finding: (SortKey, EpistemicLabel, CompactFinding)) {
+        Bounded::push(self, finding);
+    }
+}
 
 /// Per-slot violation flags — the dangling family's exclusion set as
 /// flat reads: one plain pass over the violations table (the old
@@ -52,7 +76,7 @@ pub(crate) fn dangling_findings(
     schema: &EngineSchema,
     typed: &EngineTyped,
     violated: &[Bounded<bool, ROWS_CAP>],
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
 ) {
     // Emission order is unchanged: arrow id order, then cell order.
     for (nid, table) in typed.tables.iter().enumerate() {
@@ -63,17 +87,14 @@ pub(crate) fn dangling_findings(
                 .map(|slot| slot == &Some(true))
                 .unwrap_or(false);
             if cell.is_none() && !flagged {
-                push_bounded(
-                    out,
-                    (
-                        (1, 0, 0, nid as u64, idx as u64, 0, 0, 0),
-                        EpistemicLabel::Executed,
-                        CompactFinding::Dangling {
-                            arrow: nid,
-                            src: idx,
-                        },
-                    ),
-                );
+                out.emit((
+                    (1, 0, 0, nid as u64, idx as u64, 0, 0, 0),
+                    EpistemicLabel::Executed,
+                    CompactFinding::Dangling {
+                        arrow: nid,
+                        src: idx,
+                    },
+                ));
             }
         }
     }
@@ -86,7 +107,7 @@ pub(crate) fn dangling_findings(
 pub(crate) fn equation_findings(
     schema: &EngineSchema,
     typed: &EngineTyped,
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
 ) {
     for (index, equation) in schema.equations.iter().enumerate() {
         let Some(domain) = equation.domain.and_then(|d| typed.row_counts[d]) else {
@@ -108,24 +129,62 @@ pub(crate) fn equation_findings(
 
 /// One equation-disagreement finding for a composed row pair.
 fn push_equation_finding(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     index: usize,
     row: usize,
     lhs: usize,
     rhs: usize,
     status: crate::model::ConstraintStatus,
 ) {
-    push_bounded(
-        out,
-        (
-            (0, 0, 0, index as u64, row as u64, lhs as u64, rhs as u64, 0),
-            crate::findings::label_for(status),
-            CompactFinding::Violation(CompactViolation::Equation {
-                index,
-                row,
-                lhs,
-                rhs,
-            }),
-        ),
-    );
+    out.emit((
+        (0, 0, 0, index as u64, row as u64, lhs as u64, rhs as u64, 0),
+        crate::findings::label_for(status),
+        CompactFinding::Violation(CompactViolation::Equation {
+            index,
+            row,
+            lhs,
+            rhs,
+        }),
+    ));
+}
+
+/// The dangling family alone, compact and sorted — the check side's
+/// per-family partition entry over the equation shape (the lane's
+/// Decision 4 at walker granularity: one harness formula carries one
+/// family's walk; ledger `0007`'s recorded trigger). Lane-only surface:
+/// the parsed flavor serves [`super::engine_families`]. The output is a
+/// bounded table, not a heap `Vec`: the slice sort and the symbolic
+/// slice iteration were the solve-phase wall's last heap machinery
+/// (measured 2026-11-23: the partitioned formulas died in the solver
+/// down to 3 156 post-slicing VCCs while the sort-free build proofs
+/// solved at ~1.2 GB) — slot writes and [`Bounded::sort_pushed_by`]
+/// replace them, the identical stable order.
+pub fn engine_dangling_findings(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
+    // Worst case: every arrow's every source row dangles — a concrete
+    // bound (the shapes hold 7 arrows × 2 rows = 14), so the capacity
+    // asserts discharge and the walk never reallocates.
+    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
+    let violated = violation_flags(typed);
+    dangling_findings(schema, typed, &violated, &mut out);
+    out.sort_pushed_by(|a, b| a.0.cmp(&b.0));
+    out
+}
+
+/// The equation family alone, compact and sorted — the check side's
+/// per-family partition entry (see [`engine_dangling_findings`]; the
+/// bounded-table output rationale is recorded there).
+pub fn engine_equation_findings(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
+    // Worst case: every equation disagrees on every domain row —
+    // concrete under the declared shapes (≤ 6 emissions), well under
+    // the cap; the capacity asserts discharge.
+    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
+    equation_findings(schema, typed, &mut out);
+    out.sort_pushed_by(|a, b| a.0.cmp(&b.0));
+    out
 }

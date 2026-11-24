@@ -74,6 +74,7 @@ DECLARED_HARNESSES=(
 	build_panic_freedom_coproduct
 	build_panic_freedom_pullback
 	check_sortedness_panic_freedom
+	check_dangling_panic_freedom
 	check_equation_panic_freedom
 	check_key_panic_freedom
 	check_coproduct_panic_freedom

@@ -51,6 +51,7 @@ pub(crate) use families::{
     coproduct_findings, dangling_findings, equation_findings, key_findings, pullback_findings,
     violation_flags,
 };
+pub use families::{engine_dangling_findings, engine_equation_findings};
 pub use store::{Bounded, ARROWS_CAP, REPORT_CAP, ROWS_CAP};
 
 pub(crate) use compose::engine_compose;

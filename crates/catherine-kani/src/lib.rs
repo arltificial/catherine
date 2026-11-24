@@ -28,8 +28,8 @@
 #![cfg(kani)]
 
 use catherine_engine::engine::{
-    engine_build, engine_families, CompactFinding, EngineInstance, EngineSchema, EngineTyped,
-    SortKey,
+    engine_build, engine_dangling_findings, engine_equation_findings, engine_families,
+    CompactFinding, CompactViolation, EngineInstance, EngineSchema, EngineTyped, SortKey,
 };
 
 mod shapes;
@@ -116,20 +116,49 @@ fn check_sortedness_panic_freedom() {
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Panic/overflow-freedom of the equation family over its minimal space
-/// (parallel pair `[e1] = [e2]`; both sides must resolve or the row
-/// emits nothing — recorded by dangling, never crashed).
+/// Panic/overflow-freedom of the equation family's walk over its minimal
+/// space — the check side's per-family partition (Decision 4 at walker
+/// granularity, ledger `0007`'s recorded trigger): this harness's
+/// formula carries only the equation walk; the dangling partition is
+/// `check_dangling_panic_freedom`'s, and the two together carry the
+/// whole-walk claim over the equation shape (the sort machinery and the
+/// per-family walkers are each exercised in exactly one partition).
 #[kani::proof]
 fn check_equation_panic_freedom() {
     let schema = shapes::schema_equation();
     let (instance, typed) = typed_for(&schema);
-    let findings = engine_families(&schema, &typed);
-    for (key, _, finding) in &findings {
+    let findings = engine_equation_findings(&schema, &typed);
+    let mut i = 0;
+    while i < findings.len() {
         assert!(matches!(
-            finding,
-            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
+            &findings[i],
+            Some((
+                _,
+                _,
+                CompactFinding::Violation(CompactViolation::Equation { .. })
+            ))
         ));
-        let _ = key;
+        i += 1;
+    }
+    std::mem::forget((schema, instance, typed, findings));
+}
+
+/// Panic/overflow-freedom of the dangling family's walk over its minimal
+/// space (the equation shape's dangling partition — the probe that
+/// verified 47.7 s at the 2026-11-23 standard, now declared). The
+/// equation partition is `check_equation_panic_freedom`'s.
+#[kani::proof]
+fn check_dangling_panic_freedom() {
+    let schema = shapes::schema_equation();
+    let (instance, typed) = typed_for(&schema);
+    let findings = engine_dangling_findings(&schema, &typed);
+    let mut i = 0;
+    while i < findings.len() {
+        assert!(matches!(
+            &findings[i],
+            Some((_, _, CompactFinding::Dangling { .. }))
+        ));
+        i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
 }
@@ -189,15 +218,35 @@ fn check_pullback_panic_freedom() {
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Witness soundness, equation family: every emitted violation's witness
-/// re-evaluated independently (soundness submodule) disagrees exactly as
-/// claimed.
+/// Witness soundness, equation family: every emitted equation
+/// violation's witness re-evaluated independently (soundness submodule)
+/// disagrees exactly as claimed. The dispatch is partitioned per witness
+/// kind (Decision 4 at dispatch granularity, ledger `0007`'s recorded
+/// trigger): this harness carries only the equation arm over the
+/// equation family's own bounded partition — the other families'
+/// witnesses are their harnesses' obligations, and their obligation code
+/// stays out of this formula.
 #[kani::proof]
 fn soundness_equation() {
-    let (schema, instance, typed, findings) = family_under_test(shapes::schema_equation());
+    let schema = shapes::schema_equation();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_equation_findings(&schema, &typed);
     let mut i = 0;
     while i < findings.len() {
-        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        if let Some((
+            _,
+            _,
+            CompactFinding::Violation(CompactViolation::Equation {
+                index,
+                row,
+                lhs,
+                rhs,
+            }),
+        )) = &findings[i]
+        {
+            soundness::assert_equation_sound(&schema, &typed, *index, *row, *lhs, *rhs);
+        }
         i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
@@ -247,13 +296,19 @@ fn soundness_pullback() {
 }
 
 /// Witness soundness, dangling family: every dangling witness names a
-/// cell that really holds no row.
+/// cell that really holds no row (its own dispatch arm — see
+/// `soundness_equation` for the partition rationale).
 #[kani::proof]
 fn soundness_dangling() {
-    let (schema, instance, typed, findings) = family_under_test(shapes::schema_equation());
+    let schema = shapes::schema_equation();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_dangling_findings(&schema, &typed);
     let mut i = 0;
     while i < findings.len() {
-        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        if let Some((_, _, CompactFinding::Dangling { arrow, src })) = &findings[i] {
+            soundness::assert_dangling_sound(&typed, *arrow, *src);
+        }
         i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));

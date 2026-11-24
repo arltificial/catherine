@@ -58,7 +58,7 @@ fn compose(typed: &EngineTyped, path: &Bounded<Step, ARROWS_CAP>, start: usize) 
 
 /// The equation claim: both sides recomposed land on the witness's
 /// values, and they disagree.
-fn assert_equation_sound(
+pub(super) fn assert_equation_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
     index: usize,
@@ -271,7 +271,7 @@ pub(super) fn assert_finding_sound(
     }
 }
 
-fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usize) {
+pub(super) fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usize) {
     let cell = typed.tables.get(arrow).and_then(|table| table.get(src));
     match cell {
         Some(None) => {}
