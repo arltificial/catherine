@@ -4,6 +4,10 @@ Status: usage guide v1 (2026-11-11) · audience: anyone about to point catherine
 at a problem — human, or an agent with a shell. Companions: `PROPOSAL.md`
 (why), `THEORY.md` (the mathematics), `ref/category_theoretic_modeling_
 methodology.md` (the modeling procedure), `DESIGN.md` §5 (validation plan).
+The normative constraints surface is [VALUE.md](VALUE.md): the three axes
+(A referential agreement, B schema evolution, C executable limits), the
+refusal gate, and the state-shape-domain definition — where this guide and
+VALUE.md disagree, VALUE.md wins.
 
 > **Epistemic status of this document.** The runs in §Probe evidence are
 > **EXECUTED** — captured from the shipped CLI on 2026-11-13 and cited to
@@ -92,11 +96,12 @@ report a model as "verified" unless you ran the check and can quote the
 output. Do not rewrite the requirements to make the model pass (kata
 protocol rule 2: the baseline is frozen before formalisms enter).
 
-### When the tool tells you to go away
+### When to walk away yourself
 
 On rule-based or trivial problems (parsing, formatting, scoring rules) the
-correct use of catherine is to hear "model this conventionally" and comply —
-the FizzBuzz negative control is a release gate (E4: kata-6 killed at a
+process rule is: model this conventionally. catherine stays silent on such
+problems by design — don't read that silence as a verdict, decide it
+yourself — and the FizzBuzz negative control is a release gate (E4: kata-6 killed at a
 7-line conditional; the checks worked, the cost didn't). If your problem is
 a rule table *above* the triviality floor, the rule lens is the relevant
 surface — but only for **extracted** tables (prose/PDF sources no DMN
@@ -221,9 +226,10 @@ Equally load-bearing — each line with its source:
 - **No theorem proving, rewriting engines, wiring diagrams, multi-logic
   translation, persistence, or servers.** Release criteria, not aspirations
   (PROPOSAL §3).
-- **Nothing for rule-based logic at or below the triviality floor.** It says
-  "model this conventionally" — and that verdict is a feature with a
-  release gate (E4, kata-6).
+- **Nothing for rule-based logic at or below the triviality floor.** There
+  catherine is silent by design, and the process rule is: model this
+  conventionally — with a release gate keeping that silence honest (E4,
+  kata-6).
 - **Never a detection-rate win over a competent conventional test suite.**
   catherine complements tests (construction-time rejection, discovery
   pressure, migration); it does not out-detect them (E4). Keep your tests.

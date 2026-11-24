@@ -82,7 +82,30 @@ fn assert_lossless(name: &str, value: &serde_json::Value, expected_objects: &[&s
 }
 
 pub(super) fn non_functorial_schema_map() -> Observation {
-    migrate_without_loss("nonfunctorial_schema_map.ct.json", &["X", "Y"])
+    nonfunctorial_refusal("nonfunctorial_schema_map.ct.json")
+}
+
+/// The fixed signature for the non-functorial map (catherine-kpn.7):
+/// `migrate` refuses to run the ill-typed map — exit 1, the labeled
+/// `partial_schema_map` error naming the offending arrow and objects —
+/// instead of silently migrating through the wrong-endpoint path. Any
+/// other exit panics.
+fn nonfunctorial_refusal(name: &str) -> Observation {
+    let path = probe::fixture(name);
+    let out = common::run(&["migrate", &path, "--json"]);
+    assert_eq!(common::code(&out), 1, "{name}: the refusal is exit 1");
+    let value = envelope(&out, name);
+    assert_eq!(value["ok"], false, "{name}: exit 1 is the error envelope");
+    let code = value["data"]["code"]
+        .as_str()
+        .unwrap_or_else(|| panic!("{name}: the refusal carries its error code"));
+    assert_eq!(
+        code, "partial_schema_map",
+        "{name}: the parser's schema-map typing check is the fix"
+    );
+    let text = format!("{code}: {}", value["data"]["message"].as_str().unwrap_or_default());
+    assert_diagnostic_names(name, &text, &["f", "A", "B", "X", "Y", "endpoint"]);
+    Observation::Cleared
 }
 
 pub(super) fn dropped_equations_on_migrate() -> Observation {

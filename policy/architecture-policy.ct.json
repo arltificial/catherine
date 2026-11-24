@@ -6,6 +6,12 @@
     "bead": "catherine-kpn.15",
     "purpose": "The complete set of permitted crate dependency edges in the catherine workspace, stated as referential-agreement claims. The paired actual edges (Dep) must agree with the allowed edges (AllowedEdge) via the inject coproduct equations; any crate dependency outside this set is unpaired, and any edge whose direction differs fails the equations.",
     "scope_note": "Authored from the design documents, not mirrored from Cargo.toml: the policy may match today's tree only by agreement, never by construction.",
+    "responsibilities": [
+      "Declare the complete set of permitted crate dependency edges as referential-agreement claims; the architecture policy gate (scripts/check-architecture-policy.py, catherine-kpn.9) reads it as its only policy input.",
+      "Carry the .ct.json schema (arrows, equations, coproduct) the gate's generated actual+policy models reuse verbatim.",
+      "Cite the design document behind every permitted edge so the policy stays authored design intent (docs/DESIGN.md:156-159, README.md:205, docs/kani-lane.md)."
+    ],
+    "rationale": "Data, not code: the gate reads this artifact read-only and never regenerates or modifies it from Cargo.toml; the purpose/responsibilities/rationale header block was added for catherine-kpn.9 by extending this metadata block, not restructuring the artifact.",
     "edge_citations": {
       "ae_core_engine": "The engine is the dependency-light interned execution core split out of the kernel; the kernel wraps it verbatim and downstream paths depend on it through core. docs/kani-lane.md: 'the engine moved out of the kernel into crates/catherine-engine ... catherine-core wraps both modules verbatim (pub use catherine_engine::{engine, model})'.",
       "ae_analysis_core": "Dependency direction: analysis -> core. docs/DESIGN.md:156-158: 'Dependency direction: cli/wasm -> inquiry -> analysis -> core'. README.md:205: 'kernel stays suite-dep-free'.",

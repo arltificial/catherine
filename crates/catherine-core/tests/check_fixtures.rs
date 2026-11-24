@@ -22,7 +22,7 @@ mod common;
 
 use common::load_presentation;
 
-use catherine_core::checks::check;
+use catherine_core::checks::{check, check_with_scope, ExecutionScope};
 use catherine_core::findings::{
     DanglingWitness, EpistemicLabel, EquationWitness, Finding, FindingKind, ViolationWitness,
 };
@@ -219,4 +219,68 @@ fn consistent_instance_is_silent() {
         "rows were stored — the silence is post-evaluation"
     );
     assert_eq!(findings, vec![], "a consistent instance emits nothing");
+}
+
+// ── The execution scope (openspec change `add-execution-scope`) ─────
+
+/// The scope rides on the core result: one accepted equation over
+/// A's two rows (4 rows total across A and B), none of them vacuous.
+#[test]
+fn execution_scope_rides_on_the_core_result() {
+    let model = parse(&read_fixture("violation_accepted.json")).expect("fixture parses");
+    let built = TypedInstance::build(&model.schema, &model.instance);
+    let (findings, scope) = check_with_scope(&model.schema, &built);
+    assert_eq!(
+        findings.len(),
+        1,
+        "the pinned violation is still the only finding"
+    );
+    assert_eq!(
+        scope,
+        ExecutionScope {
+            constraints_checked: 1,
+            rows_evaluated: 4,
+            equations_over_zero_rows: 0,
+        },
+        "the same walk's scope: one accepted equation, four rows, none vacuous"
+    );
+}
+
+/// A zero-row instance is visibly vacuous: the accepted equation still
+/// counts as checked, the rows are zero, and the equation is one that
+/// binds zero rows — the walk executes nothing, honestly reported.
+#[test]
+fn zero_rows_scope_counts_the_equation_over_the_empty_table() {
+    let model = parse(&read_fixture("zero_rows.json")).expect("fixture parses");
+    let built = TypedInstance::build(&model.schema, &model.instance);
+    let (findings, scope) = check_with_scope(&model.schema, &built);
+    assert_eq!(findings, vec![], "a zero-row instance emits nothing");
+    assert_eq!(
+        scope,
+        ExecutionScope {
+            constraints_checked: 1,
+            rows_evaluated: 0,
+            equations_over_zero_rows: 1,
+        },
+        "the vacuity is in the payload: one equation, zero rows, one over zero rows"
+    );
+}
+
+/// A constraint-free document reports the honest empty scope: zeros
+/// across the board, so nothing-checked is distinguishable from clean.
+#[test]
+fn constraint_free_document_scope_is_all_zeros() {
+    let model = parse(&read_fixture("empty_ok.json")).expect("fixture parses");
+    let built = TypedInstance::build(&model.schema, &model.instance);
+    let (findings, scope) = check_with_scope(&model.schema, &built);
+    assert_eq!(findings, vec![], "an empty document emits nothing");
+    assert_eq!(
+        scope,
+        ExecutionScope {
+            constraints_checked: 0,
+            rows_evaluated: 0,
+            equations_over_zero_rows: 0,
+        },
+        "all zeros — the honest empty scope"
+    );
 }

@@ -1,0 +1,12 @@
+{
+  "format_version": "1.0",
+  "schema": {
+    "objects": ["N"],
+    "arrows": [{"name": "f", "src": "N", "tgt": "N"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"N": ["a", "b"]},
+    "tables": {"f": {"a": "a", "b": "a"}}
+  }
+}

@@ -149,7 +149,7 @@ fn render_findings(
 ) -> i32 {
     print_run_warnings(json, &warnings, stderr);
     if json {
-        let envelope = render::findings_envelope(findings, warnings);
+        let envelope = render::findings_envelope(findings, None, warnings);
         write_envelope(&envelope, stdout, stderr, "naturality");
     } else if !quiet {
         for line in render::render_findings(findings, schema) {

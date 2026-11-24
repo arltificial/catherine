@@ -14,6 +14,11 @@ coproducts). Read those sections as design history, not current API.
 Naming: *catherine* — cat, from *categories*. The pun is the scope warning:
 this is the small cat, not the whole zoo.
 
+Normative constraints surface: `VALUE.md` (axes A referential agreement /
+B schema evolution / C executable limits, the refusal gate, and the
+state-shape-domain definition) governs what a capability must serve;
+where this design record and `VALUE.md` disagree, `VALUE.md` wins.
+
 Vendored references: `docs/ref/category_theoretic_modeling_methodology.md`
 (copy of the methodology v1.0 artifact; source path in the citation table).
 All other sources are cited by conversation ID + provider; transcripts live in
@@ -65,8 +70,9 @@ The finding taxonomy (which layer computes what — see §4):
 **Hypothesis (falsifiable).** A browser-runnable kernel with enforced
 path-equation checks and finding-typed output helps an agent or human find
 more specification defects earlier than schema-less inspection, on
-state-shape domains, at acceptable effort cost — and *says so* (recommends
-conventional modeling) on rule-based domains per E4.
+state-shape domains, at acceptable effort cost. On rule-based domains per
+E4 the honest boundary applies: the tool stays silent by design, and the
+process rule is to model conventionally instead.
 
 **Stop condition (project-level, per E6 "refactor and stop").** The project
 is done when P6 produces its ledger entry — survived or killed. It is

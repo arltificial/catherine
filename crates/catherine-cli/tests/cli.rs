@@ -50,6 +50,14 @@ const MALFORMED: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/malformed.ct.json"
 );
+const ZERO_ROWS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/gap_suite/zero_rows_instance.ct.json"
+);
+const CONSTRAINT_FREE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/scope_constraint_free.ct.json"
+);
 /// Spawn the `catherine` binary with the given arguments.
 fn run(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_catherine"))
@@ -282,6 +290,91 @@ fn design_s5_walkthrough_violating_then_fixed() {
     assert_eq!(code(&fixed), 0, "clean re-check exit code");
     assert_eq!(stdout(&fixed), "", "zero findings print nothing");
     assert_eq!(stderr(&fixed), "", "no errors");
+}
+
+// ── The execution scope (openspec change add-execution-scope) ───────
+
+/// The scope object's exact three-key shape, asserted per payload.
+fn assert_scope_keys(scope: &serde_json::Value, where_: &str) {
+    let mut keys = scope
+        .as_object()
+        .unwrap_or_else(|| panic!("{where_}: data.scope is an object"))
+        .keys()
+        .map(|key| key.as_str())
+        .collect::<Vec<_>>();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        ["constraints_checked", "equations_over_zero_rows", "rows_evaluated"],
+        "{where_}: exactly the three snake_case keys"
+    );
+}
+
+#[test]
+fn check_payload_carries_the_execution_scope() {
+    let out = run(&["check", BOWLING, "--json"]);
+    assert_eq!(code(&out), 3, "exit code unchanged by the scope field");
+    let v = parse_json(&stdout(&out));
+    let scope = &v["data"]["scope"];
+    assert_scope_keys(scope, "check");
+    assert_eq!(
+        scope["constraints_checked"], 1,
+        "the document's one accepted equation"
+    );
+    assert_eq!(
+        scope["rows_evaluated"], 14,
+        "all instance rows: 4+4+3+3 across the four objects"
+    );
+    assert_eq!(
+        scope["equations_over_zero_rows"], 0,
+        "the equation ranges over four Assignment rows"
+    );
+}
+
+#[test]
+fn check_and_findings_agree_on_the_scope() {
+    let check = run(&["check", BOWLING, "--json"]);
+    let findings = run(&["findings", BOWLING, "--json"]);
+    assert_eq!(
+        parse_json(&stdout(&check))["data"]["scope"],
+        parse_json(&stdout(&findings))["data"]["scope"],
+        "one scope computation shared by both subcommands"
+    );
+}
+
+#[test]
+fn zero_row_instance_reports_its_vacuous_scope_and_keeps_exit_0() {
+    let out = run(&["check", ZERO_ROWS, "--json"]);
+    assert_eq!(code(&out), 0, "exit code unchanged for the vacuous run");
+    assert_eq!(stderr(&out), "", "no errors");
+    let v = parse_json(&stdout(&out));
+    let scope = &v["data"]["scope"];
+    assert_scope_keys(scope, "zero-row");
+    assert_eq!(
+        scope["constraints_checked"], 1,
+        "the accepted equation was applicable"
+    );
+    assert_eq!(scope["rows_evaluated"], 0, "the instance has no rows");
+    assert_eq!(
+        scope["equations_over_zero_rows"], 1,
+        "the equation binds zero rows — the visible vacuity"
+    );
+}
+
+#[test]
+fn constraint_free_document_reports_zero_constraints_checked() {
+    let out = run(&["check", CONSTRAINT_FREE, "--json"]);
+    assert_eq!(code(&out), 0, "exit code unchanged");
+    assert_eq!(stderr(&out), "", "no errors");
+    let v = parse_json(&stdout(&out));
+    let scope = &v["data"]["scope"];
+    assert_scope_keys(scope, "constraint-free");
+    assert_eq!(
+        scope["constraints_checked"], 0,
+        "no constraints — nothing was checked, visibly"
+    );
+    assert_eq!(scope["rows_evaluated"], 2, "the instance still has rows");
+    assert_eq!(scope["equations_over_zero_rows"], 0, "no equations at all");
 }
 
 /// catherine-uh0: the `unsupported_version` hint states the real

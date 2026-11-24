@@ -57,24 +57,103 @@ use crate::findings::Finding;
 use crate::instance::TypedInstance;
 use crate::model::Schema;
 use crate::render::render_compact;
+use serde::Serialize;
+
+/// What the check walk actually executed (openspec change
+/// `add-execution-scope`): the honesty floor that makes a clean result
+/// distinguishable from a vacuous one — a below-floor document, a
+/// constraint-free schema, and a zero-row instance would otherwise all
+/// serialize the same empty envelope as a genuine pass. The three keys
+/// are the public payload contract (`data.scope`): snake_case, integers,
+/// always present on check/findings payloads — zeros are the honest
+/// empty scope, never omission.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct ExecutionScope {
+    /// Accepted constraints the check walk executed. Zero ⇒ nothing was
+    /// checked regardless of the findings.
+    pub constraints_checked: usize,
+    /// Instance rows the walk evaluated: the sum of every object's row
+    /// space (the walks iterate those spaces). Zero ⇒ vacuous instance.
+    pub rows_evaluated: usize,
+    /// Accepted equations that bind zero rows — the subtle vacuity:
+    /// constraints and rows can both be non-zero while every equation
+    /// ranges over an empty table and the walk executes nothing.
+    pub equations_over_zero_rows: usize,
+}
 
 /// Execute every declared constraint — equations, keys, coproducts, and
 /// pullbacks — on every applicable row of the typed instance, over the
-/// interned execution core (`engine`). The finding contract is the
-/// module doc above; the engine emits the same walks over dense ids, and
-/// its int-key sort is exactly the taxonomy order this function used to
-/// sort under (id order is name order by construction — see
+/// interned execution core (`engine`), and report the [`ExecutionScope`]
+/// of the same walk. The one path both `check` and `findings` consume:
+/// the scope is computed here, from the walk's own compiled surfaces, so
+/// the two subcommands can never disagree about it. The finding contract
+/// is the module doc above; the engine emits the same walks over dense
+/// ids, and its int-key sort is exactly the taxonomy order this function
+/// used to sort under (id order is name order by construction — see
 /// `engine::EngineSchema::compile`).
-pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
+pub fn check_with_scope(
+    schema: &Schema,
+    instance: &TypedInstance,
+) -> (Vec<Finding>, ExecutionScope) {
     let compiled = crate::engine::EngineSchema::compile(schema);
     let typed = compile_typed(&compiled, instance);
-    engine_families(&compiled, &typed)
+    let scope = execution_scope(&compiled, &typed);
+    let findings = engine_families(&compiled, &typed)
         .into_iter()
         .map(|(key, label, compact)| {
             let _ = key;
             render_compact(&compiled, label, &compact)
         })
-        .collect()
+        .collect();
+    (findings, scope)
+}
+
+/// The check walk without the scope — the pre-existing entry point,
+/// unchanged for every consumer that does not need the execution scope.
+pub fn check(schema: &Schema, instance: &TypedInstance) -> Vec<Finding> {
+    check_with_scope(schema, instance).0
+}
+
+/// The walk's scope, over surfaces already compiled: accepted,
+/// applicable constraints across the four families; the summed row
+/// spaces; and the accepted equations whose domain table is empty (the
+/// walk skips them — the vacuity the third key names).
+fn execution_scope(compiled: &EngineSchema, typed: &EngineTyped) -> ExecutionScope {
+    let row = |nid: usize| typed.row_counts[nid].unwrap_or(0);
+    let equations = compiled
+        .equations
+        .iter()
+        .filter(|equation| {
+            equation.status == crate::model::ConstraintStatus::Accepted
+                && equation.domain.is_some()
+        })
+        .collect::<Vec<_>>();
+    let accepted =
+        count_accepted(&compiled.keys, |key| &key.status)
+            + count_accepted(&compiled.coproducts, |c| &c.status)
+            + count_accepted(&compiled.pullbacks, |pb| &pb.status);
+    ExecutionScope {
+        constraints_checked: equations.len() + accepted,
+        rows_evaluated: typed.row_counts.iter().map(|rows| rows.unwrap_or(0)).sum(),
+        equations_over_zero_rows: equations
+            .iter()
+            .filter(|equation| row(equation.domain.unwrap()) == 0)
+            .count(),
+    }
+}
+
+/// The accepted, walk-applicable declarations in one family's compiled
+/// list (`None` entries are the walk's skip cases — never counted).
+fn count_accepted<T>(
+    list: &[Option<T>],
+    status_of: impl Fn(&T) -> &crate::model::ConstraintStatus,
+) -> usize {
+    list.iter()
+        .flatten()
+        .filter(|constraint| {
+            *status_of(constraint) == crate::model::ConstraintStatus::Accepted
+        })
+        .count()
 }
 
 /// Intern a typed instance's tables against a compiled presentation

@@ -46,5 +46,14 @@ pub(super) fn composition(
     composition::warn_empty_interface(&glued, json, &mut warnings, stderr);
     let findings =
         catherine_analysis::parallel::underconstraint(&glued.schema, &path_caps(max_path_length));
-    composition::emit_findings(&findings, &glued, json, quiet, warnings, stdout, stderr)
+    composition::emit_findings(
+        &findings,
+        None,
+        &glued,
+        json,
+        quiet,
+        warnings,
+        stdout,
+        stderr,
+    )
 }

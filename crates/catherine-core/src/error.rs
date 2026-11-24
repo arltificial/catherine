@@ -31,7 +31,9 @@ pub enum ErrorCode {
     InvalidStatus,
     UnsupportedVersion,
     /// A schema map that fails to assign every declared source object or
-    /// arrow — never repaired with a silent default.
+    /// arrow, or whose mapped arrow paths do not compose between the
+    /// mapped objects' images (a non-functorial map) — never repaired
+    /// with a silent default.
     PartialSchemaMap,
     /// A rule presentation's `domain` names no declared schema object.
     UndeclaredRuleDomain,

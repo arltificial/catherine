@@ -17,6 +17,7 @@
 //! byte-identical.
 
 use crate::render::{self, LabeledError, SourcedFinding};
+use catherine_core::checks::ExecutionScope;
 use catherine_core::composition::{glue, parse_document, CompositionError, Document, Glued};
 use catherine_core::findings::{DomainQuestion, Finding, FindingKind, ViolationWitness};
 use catherine_core::model::Schema;
@@ -294,6 +295,7 @@ fn input_key(path: &str) -> String {
 /// Returns the exit code from the findings.
 pub(crate) fn emit_findings(
     findings: &[Finding],
+    scope: Option<ExecutionScope>,
     glued: &Glued,
     json: bool,
     quiet: bool,
@@ -303,7 +305,7 @@ pub(crate) fn emit_findings(
 ) -> i32 {
     let attributed = sourced(findings.to_vec(), glued);
     if json {
-        let envelope = render::sourced_findings_envelope(attributed, warnings);
+        let envelope = render::sourced_findings_envelope(attributed, scope, warnings);
         crate::run::write_envelope(&envelope, stdout, stderr, "findings");
     } else if !quiet {
         for line in render_sourced(&attributed, &glued.schema) {

@@ -5,10 +5,14 @@
 //! maps are total over the declared source elements with targets declared
 //! in the target.
 //!
-//! Rationale: declared data only — no functoriality is enforced here;
-//! execution (pullback reindex, lost-data enumeration) is phase B
-//! (`catherine_core::migrate`). A partial map is the labeled
-//! `partial_schema_map` build error naming the unmapped element.
+//! Rationale: declared data only, but declared *typed* data — every
+//! mapped arrow path is checked composable and endpoint-typed against
+//! the mapped objects (catherine-kpn.7); execution (pullback reindex,
+//! lost-data enumeration) remains phase B
+//! (`catherine_core::migrate`). A partial map — or a map whose arrow
+//! paths do not compose between the mapped objects' images — is the
+//! labeled `partial_schema_map` build error naming the offending
+//! element.
 
 use super::coproducts::check_coproducts;
 use super::keys::check_keys;
@@ -77,9 +81,10 @@ fn target_spans(spans: &Spans) -> Spans {
 /// Build the typed schema map from the raw 1.1 section: totality over
 /// the declared source objects and arrows (a missing entry is the
 /// labeled `partial_schema_map` error naming the unmapped element),
-/// assignment targets declared in the target schema, and explicit-drop
-/// `null` assignments. Declared data only — no functoriality check
-/// (execution is phase B).
+/// assignment targets declared in the target schema, explicit-drop
+/// `null` assignments, and composable-path endpoint typing (a
+/// non-functorial map is a labeled refusal, never deferred to
+/// execution).
 pub(super) fn build_schema_map(
     raw: &RawSchemaMap,
     objects: &BTreeMap<Ident, ()>,
@@ -96,11 +101,136 @@ pub(super) fn build_schema_map(
     let target = validated_target(target_raw, spans)?;
     let mapped_objects = mapped_objects(raw, objects, &target, spans)?;
     let mapped_arrows = mapped_arrows(raw, arrows, &target, spans)?;
+    check_arrow_typing(&mapped_objects, arrows, &mapped_arrows, &target, spans)?;
     Ok(SchemaMap {
         target,
         objects: mapped_objects,
         arrows: mapped_arrows,
     })
+}
+
+/// The composable-path typing check (catherine-kpn.7): every mapped
+/// arrow's path must compose from the source object's image to the
+/// target object's image in the target schema. An endpoint or
+/// composition mismatch is the labeled `partial_schema_map` error
+/// naming the arrow and the objects involved.
+fn check_arrow_typing(
+    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
+    arrows: &BTreeMap<Ident, crate::model::Arrow>,
+    mapped_arrows: &BTreeMap<Ident, Option<Path>>,
+    target: &Schema,
+    spans: &Spans,
+) -> Result<(), crate::error::ParseError> {
+    for (name, path) in mapped_arrows {
+        let Some(path) = path else {
+            continue;
+        };
+        let typed: Vec<&crate::model::Arrow> = path
+            .0
+            .iter()
+            .map(|element| &target.arrows[element])
+            .collect();
+        let pointer = format!("/schema_map/arrows/{}", name.0);
+        check_path_source(&pointer, name, &arrows[name], path, &typed, mapped_objects, spans)?;
+        check_path_composes(&pointer, name, path, &typed, spans)?;
+        check_path_target(&pointer, name, &arrows[name], path, &typed, mapped_objects, spans)?;
+    }
+    Ok(())
+}
+
+/// The path's source endpoint: the first path arrow must be sourced at
+/// the source object's image — skipped when the source object is
+/// dropped explicitly (`null`), whose image does not exist.
+fn check_path_source(
+    pointer: &str,
+    name: &Ident,
+    source: &crate::model::Arrow,
+    path: &Path,
+    typed: &[&crate::model::Arrow],
+    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
+    spans: &Spans,
+) -> Result<(), crate::error::ParseError> {
+    let Some(image) = image_of(mapped_objects, &source.src) else {
+        return Ok(());
+    };
+    let first = typed[0].src.0.as_str();
+    let path_head = path.0[0].0.as_str();
+    if first == image.0 {
+        return Ok(());
+    }
+    Err(spans.semantic(
+        pointer,
+        ErrorCode::PartialSchemaMap,
+        format!(
+            "arrow `{}` maps `{}` -> `{}` onto [`{}`], whose source endpoint `{first}` is not `{}`, the image of `{}` — the schema map is not functorial",
+            name.0, source.src.0, source.tgt.0, path_head, image.0, source.src.0
+        ),
+    ))
+}
+
+/// The path's target endpoint: the last path arrow must land at the
+/// target object's image — skipped when the target object is dropped
+/// explicitly (`null`).
+fn check_path_target(
+    pointer: &str,
+    name: &Ident,
+    source: &crate::model::Arrow,
+    path: &Path,
+    typed: &[&crate::model::Arrow],
+    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
+    spans: &Spans,
+) -> Result<(), crate::error::ParseError> {
+    let Some(image) = image_of(mapped_objects, &source.tgt) else {
+        return Ok(());
+    };
+    let last = typed[typed.len() - 1].tgt.0.as_str();
+    let path_tail = path.0[path.0.len() - 1].0.as_str();
+    if last == image.0 {
+        return Ok(());
+    }
+    Err(spans.semantic(
+        pointer,
+        ErrorCode::PartialSchemaMap,
+        format!(
+            "arrow `{}` maps `{}` -> `{}` onto [`{}`], whose target endpoint `{last}` is not `{}`, the image of `{}` — the schema map is not functorial",
+            name.0, source.src.0, source.tgt.0, path_tail, image.0, source.tgt.0
+        ),
+    ))
+}
+
+/// The path composes element-wise: each path arrow's target is the next
+/// one's source.
+fn check_path_composes(
+    pointer: &str,
+    name: &Ident,
+    path: &Path,
+    typed: &[&crate::model::Arrow],
+    spans: &Spans,
+) -> Result<(), crate::error::ParseError> {
+    for (index, window) in typed.windows(2).enumerate() {
+        let (here, next) = (&window[0].tgt.0, &window[1].src.0);
+        if here == next {
+            continue;
+        }
+        return Err(spans.semantic(
+            pointer,
+            ErrorCode::PartialSchemaMap,
+            format!(
+                "arrow `{}` maps onto a path that does not compose: element `{}`'s target `{here}` is not element `{}`'s source `{next}`",
+                name.0, path.0[index].0, path.0[index + 1].0
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// A source object's image in the target — `None` when the object is
+/// dropped explicitly (`null` assignment).
+fn image_of(
+    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
+    object: &Ident,
+) -> Option<Ident> {
+    mapped_objects.get(object).cloned().flatten()
 }
 
 /// The object assignments: every declared source object carries an
@@ -203,8 +333,8 @@ fn mapped_arrows(
 }
 
 /// The declared target path for one source arrow: non-empty, and every
-/// element a declared target arrow (target-declaredness only — the
-/// composable-path typing check is phase B).
+/// element a declared target arrow (endpoint typing runs in
+/// `check_arrow_typing` once both assignment maps exist).
 fn declared_path(
     path: &[String],
     target: &Schema,

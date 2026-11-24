@@ -29,6 +29,23 @@ check-wasm:
     rustup target add wasm32-unknown-unknown
     cargo check -p catherine-wasm --target wasm32-unknown-unknown
 
+# Architecture policy gate (bead catherine-kpn.9): the workspace's ACTUAL
+# [dependencies] graph must agree with policy/architecture-policy.ct.json
+# (the nine permitted edges with design-doc citations) — an actual edge no
+# policy edge covers exits 3, a policy edge the tree lacks exits 4, clean
+# exits 0. The policy is never derived from Cargo.toml; the gate judges
+# agreement only. Builds the catherine CLI first when the debug binary is
+# missing, so the recipe works on a fresh checkout. Wired into lefthook's
+# pre-push (command `architecture-policy-gate`), after ah-check-run-tests
+# has already built the binary.
+check-architecture-policy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -x target/debug/catherine ]; then
+        cargo build -p catherine-cli
+    fi
+    python3 scripts/check-architecture-policy.py
+
 # Lean assurance twin gate (openspec change `add-lean-kernel-model`, task
 # 11): build the twin, run both parity oracles over the
 # check-applicable fixture corpus (`lean-parity` for findings,

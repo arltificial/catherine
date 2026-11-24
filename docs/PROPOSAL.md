@@ -59,7 +59,7 @@ From the cotorreo corpus and the ct-catlab series; full citations in
 | # | Conclusion | What it means for the tool |
 |---|-----------|---------------------------|
 | C1 | Declarations don't enforce; checks do (Catlab equations are docs-only) | Executed checks ARE the product. A schema without execution is a bug. |
-| C2 | CT's validated value is bounded: state-shape invariants, discovery pressure, migration axis; nothing for rule-based logic *at the triviality floor* (kata-6 killed the schema-lens rule table on a 7-line conditional — the checks worked, the cost didn't); never a detection-rate win | The tool must know its limits and say "model this conventionally" (the negative control is a feature). The rule lens for systems *above* the floor is a pre-registered hypothesis (P8), not a claim. |
+| C2 | CT's validated value is bounded: state-shape invariants, discovery pressure, migration axis; nothing for rule-based logic *at the triviality floor* (kata-6 killed the schema-lens rule table on a 7-line conditional — the checks worked, the cost didn't); never a detection-rate win | The tool must know its limits and stay silent below the triviality floor; the process rule there is "model this conventionally" (the negative control is a feature). The rule lens for systems *above* the floor is a pre-registered hypothesis (P8), not a claim. (Status tension: README.md's capability table now records the rule lens as "executed; scoped to extracted tables"; [VALUE.md](VALUE.md) is the normative home for which statements are claims.) |
 | C3 | The migration axis is a capability gap conventional tooling cannot match (loud lost-data counterexamples, unsupported-inverse proofs) | Migration (Δ) is the flagship scenario, not a bolt-on. |
 | C4 | A fixed-schema kernel is small; specodelic's 3.3k-line acset is big because of generics + lossless writer + parity harness | The kernel stays fixed-scope; smallness is a feature and a falsifiable claim. |
 | C5 | "LLM proposes, deterministic tools evaluate" + epistemic labels (PROVED/EXECUTED/ILLUSTRATED/HYPOTHESIZED/UNKNOWN) | The tool is the evaluator in an agent loop; it never guesses; every answer carries its justification status. |
@@ -92,12 +92,21 @@ parallel paths), redundancy — plus bounded counterexample search and Δ
 migration. Post-v1, named now so scope is honest: *missing-concept*
 scaffolds, *view-update* analysis (unupdatable finding, Johnson–Rosebrugh
 fibrations), and the **rule lens** (P8: rule systems as subobjects of the
-input domain with a resolution policy — see `DESIGN.md` §4.4).
+input domain with a resolution policy — see `DESIGN.md` §4.4; status
+tension: README.md records this lens as executed and scoped to extracted
+tables, while this proposal still calls it a post-v1 hypothesis —
+[VALUE.md](VALUE.md) is the normative home for the settled status).
 
 Out of scope (release criteria, not aspirations): theorem proving, rewriting
 engines, wiring diagrams, multi-logic translation, persistence/servers.
 
 ## 4. Value proposition
+
+> The normative constraints surface lives in [VALUE.md](VALUE.md): the
+> three axes (A referential agreement, B schema evolution, C executable
+> limits), the refusal gate, and the state-shape-domain definition. This
+> section records the original case; where it and VALUE.md disagree,
+> VALUE.md wins.
 
 ### For an agent (the primary user)
 
@@ -112,8 +121,9 @@ satisfying-instance search returns the smallest fully resolved instance
 satisfying every accepted equation — or `UNKNOWN {scope}` where the
 bound was exhausted before it could decide. Each loop is seconds, local, offline. Agents generate plausible
 models fast and verify poorly; catherine is the deterministic evaluator
-that never hallucinates a verdict, and on rule-based problems (parsing,
-formatting, scoring) it says so: model it conventionally.
+that never hallucinates a verdict; on rule-based problems (parsing,
+formatting, scoring) it stays silent, and the process rule is yours to
+apply: model it conventionally.
 
 ### For a human
 

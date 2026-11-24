@@ -70,6 +70,15 @@ pre-push:
     # high threshold — that is intended.
     vampiro-seam-gate:
       run: vampiro check -p crates --mode gate --severity-threshold high
+    # catherine-kpn.9: architecture policy gate — every ACTUAL [dependencies]
+    # edge must be covered by exactly one edge of
+    # policy/architecture-policy.ct.json and every policy edge must exist in
+    # the tree (exit 3 uncovered / exit 4 dangling; the failure lines name
+    # the offending edge). Sits after ah-check-run-tests so
+    # target/debug/catherine is already built; fails closed when it is not
+    # (`just check-architecture-policy` builds it).
+    architecture-policy-gate:
+      run: scripts/check-architecture-policy.py
     # catherine-3zs: advisory diff-coverage, report-only this phase (the
     # ~80% changed-lines gate is a later, deliberate phase). A missing
     # cargo-llvm-cov degrades to an advisory line, never a failure.

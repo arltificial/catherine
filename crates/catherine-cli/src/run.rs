@@ -89,10 +89,10 @@ pub fn run(
     };
 
     let typed = TypedInstance::build(&model.schema, &model.instance);
-    let findings = checks::check(&model.schema, &typed);
+    let (findings, scope) = checks::check_with_scope(&model.schema, &typed);
 
     if json {
-        let envelope = render::findings_envelope(&findings, warnings);
+        let envelope = render::findings_envelope(&findings, Some(&scope), warnings);
         let line = serde_json::to_string(&envelope)
             .map_err(|error| error.to_string())
             .and_then(|text| writeln!(stdout, "{text}").map_err(|error| error.to_string()));
@@ -126,8 +126,17 @@ fn run_composition(
     };
     crate::composition::warn_empty_interface(&glued, json, &mut warnings, stderr);
     let typed = TypedInstance::build(&glued.schema, &glued.instance);
-    let findings = checks::check(&glued.schema, &typed);
-    crate::composition::emit_findings(&findings, &glued, json, quiet, warnings, stdout, stderr)
+    let (findings, scope) = checks::check_with_scope(&glued.schema, &typed);
+    crate::composition::emit_findings(
+        &findings,
+        Some(scope),
+        &glued,
+        json,
+        quiet,
+        warnings,
+        stdout,
+        stderr,
+    )
 }
 
 /// Emit a labeled error on the error stream — human two-liner, or the

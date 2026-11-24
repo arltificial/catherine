@@ -8,10 +8,14 @@ instance as JSON), executes its declared constraints, and returns
 finding-typed diagnostics with witnesses — callable from a CLI by agents
 and openable in a browser by humans.**
 
-**Value proposition (one sentence):** catherine turns "do these
-declarations actually hold?" from a human-reviewed diagram into an
-executed, witness-backed check that any agent or browser can run — and
-tells you when modeling is a waste of time.
+**Value proposition (one sentence):** catherine executes the referential
+claims of the state-shape domain — every stated path agreement, key,
+coproduct and pullback lands with a witness row — and the schema-evolution
+axis, where a `migrate`/`diff` change is loud about any lost instance row
+or constraint — capabilities a generic model checker that declares
+formulas but executes nothing against stored rows cannot match; the axes,
+the refusal gate, and the state-shape definition are normative in
+[VALUE.md](docs/VALUE.md).
 
 ## What you get
 
@@ -24,12 +28,14 @@ tells you when modeling is a waste of time.
 | Redundancy & equivalence | derivable paths flagged; models compared via `distinguish` with witness inputs |
 | Migration safety (P7) | Δ reindexing with loud lost-data counterexamples — measured against a committed conventional baseline (statement lint + row-count/checksum dry run) on three pilot-scale fixtures: 10 named cell losses and 1 round-trip counterexample the baseline cannot identify ([probe ledger](fixtures/probes/migration/README.md), entries `ledger/probes/migration/`, `catherine-1od`) |
 | Schema diff (P10) | v1→v2 edits classified accreted / weakened-with-witness (an instance v2 accepts and v1 rejects) / equivalent-in-scope / cosmetic (silent) |
-| Rule lens (P8, executed; scoped to extracted tables) | rules as subobjects + policy: gap/overlap/shadow/derivable; simplifications proven compliant. Scoped to **extracted** prose/PDF tables no DMN analyzer ingests — authored decision tables are commodity (Calvanese et al., [arXiv:1603.07466](https://arxiv.org/abs/1603.07466); Signavio, OpenRules); extracted-table evidence ([probe ledger](fixtures/probes/rule_lens/README.md), entries `ledger/probes/rule-lens-extracted/`, `catherine-1od`) |
+| Rule lens (P8, executed; scoped to extracted tables — status tension: PROPOSAL.md still classifies the rule lens as a post-v1 hypothesis; [VALUE.md](docs/VALUE.md) is the normative home for what is a claim vs a hypothesis) | rules as subobjects + policy: gap/overlap/shadow/derivable; simplifications proven compliant. Scoped to **extracted** prose/PDF tables no DMN analyzer ingests — authored decision tables are commodity (Calvanese et al., [arXiv:1603.07466](https://arxiv.org/abs/1603.07466); Signavio, OpenRules); extracted-table evidence ([probe ledger](fixtures/probes/rule_lens/README.md), entries `ledger/probes/rule-lens-extracted/`, `catherine-1od`) |
 | Epistemic labels | PROVED / EXECUTED / HYPOTHESIZED / UNKNOWN on every answer |
 
 **The honest boundary is part of the product:** on rule-based or trivial
-problems the tool says *"model this conventionally"* (FizzBuzz negative
-control is a release gate).
+problems catherine stays silent by design — no finding is the right
+answer there. The process rule for those problems is: model this
+conventionally (the FizzBuzz negative control — silence, exit 0, empty
+warnings — is a release gate that keeps that silence honest).
 
 ## The CLI (P3)
 
@@ -155,6 +161,7 @@ rule lenses alongside them.
 
 | Doc | Contents |
 |---|---|
+| [`docs/VALUE.md`](docs/VALUE.md) | the normative constraints surface: the three axes (A referential agreement, B schema evolution, C executable limits), the refusal gate, and the state-shape-domain definition |
 | [`docs/PROPOSAL.md`](docs/PROPOSAL.md) | why & what: evidence base, conclusions, value proposition |
 | [`docs/THEORY.md`](docs/THEORY.md) | the mathematics: each construction, what it buys, where validated, reading order, glossary |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | how: architecture, kernel spec, technology decisions, phased plan |

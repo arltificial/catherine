@@ -12,27 +12,36 @@
 
 use super::errors::LabeledError;
 use super::CLI_VERSION;
+use catherine_core::checks::ExecutionScope;
 use catherine_core::findings::Finding;
 use genesis::envelope::{Envelope, EnvelopeKind, ErrorResult, RemediationEntry, Warning};
 use serde::Serialize;
 
 /// The findings payload: P2's serialization verbatim — the kernel's
-/// `Vec<Finding>` under `data.findings`, no reshaping.
+/// `Vec<Finding>` under `data.findings`, no reshaping — plus the
+/// additive `data.scope` (openspec change `add-execution-scope`): what
+/// the producing walk actually executed. Present on every check/findings
+/// payload (zeros are the honest empty scope); absent only for the
+/// findings-bearing lenses that execute no accepted constraints over an
+/// instance (the naturality lens), whose bytes stay frozen.
 #[derive(Serialize)]
 pub struct FindingsData<'a> {
     pub findings: &'a [Finding],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<&'a ExecutionScope>,
 }
 
 /// The one findings-envelope path both subcommands share: kind `Check`,
 /// empty hints, the caller's warnings carried alongside the data.
-pub fn findings_envelope(
-    findings: &[Finding],
+pub fn findings_envelope<'a>(
+    findings: &'a [Finding],
+    scope: Option<&'a ExecutionScope>,
     warnings: Vec<Warning>,
-) -> Envelope<FindingsData<'_>> {
+) -> Envelope<FindingsData<'a>> {
     Envelope::success(
         CLI_VERSION,
         EnvelopeKind::Check,
-        FindingsData { findings },
+        FindingsData { findings, scope },
         warnings,
         Vec::new(),
     )
@@ -52,10 +61,16 @@ pub struct SourcedFinding {
 }
 
 /// The multi-document findings payload (the same `data.findings` array,
-/// each element carrying the additive `source` field).
+/// each element carrying the additive `source` field, plus the joint
+/// walk's `scope` — the composition's totals, always present on the
+/// check/findings composition; the underconstraint lens composition
+/// executes no accepted constraints over an instance and stays
+/// scope-free).
 #[derive(Serialize)]
 pub struct SourcedFindingsData {
     pub findings: Vec<SourcedFinding>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<ExecutionScope>,
 }
 
 /// The multi-document findings envelope: the same kind and warnings
@@ -63,12 +78,13 @@ pub struct SourcedFindingsData {
 /// every finding the glue can attribute.
 pub fn sourced_findings_envelope(
     findings: Vec<SourcedFinding>,
+    scope: Option<ExecutionScope>,
     warnings: Vec<Warning>,
 ) -> Envelope<SourcedFindingsData> {
     Envelope::success(
         CLI_VERSION,
         EnvelopeKind::Check,
-        SourcedFindingsData { findings },
+        SourcedFindingsData { findings, scope },
         warnings,
         Vec::new(),
     )
@@ -226,7 +242,12 @@ mod tests {
     #[test]
     fn findings_envelope_carries_the_suite_shape() {
         let findings = vec![violation()];
-        let envelope = findings_envelope(&findings, Vec::new());
+        let scope = ExecutionScope {
+            constraints_checked: 2,
+            rows_evaluated: 7,
+            equations_over_zero_rows: 1,
+        };
+        let envelope = findings_envelope(&findings, Some(&scope), Vec::new());
         let v: serde_json::Value = serde_json::to_value(&envelope).expect("envelope serializes");
         for key in ["ok", "envelope_kind", "data", "warnings", "hints"] {
             assert!(v.get(key).is_some(), "envelope key `{key}` present");
@@ -234,6 +255,26 @@ mod tests {
         assert_eq!(v["ok"], true);
         assert_eq!(v["data"]["findings"][0]["kind"], "violation");
         assert_eq!(v["data"]["findings"][0]["witness"]["equation"], 0);
+        assert_eq!(
+            v["data"]["scope"],
+            serde_json::json!({
+                "constraints_checked": 2,
+                "rows_evaluated": 7,
+                "equations_over_zero_rows": 1,
+            }),
+            "the scope rides on the payload with exactly its three keys"
+        );
+    }
+
+    #[test]
+    fn lens_payloads_stay_scope_free() {
+        let findings = vec![violation()];
+        let envelope = findings_envelope(&findings, None, Vec::new());
+        let v: serde_json::Value = serde_json::to_value(&envelope).expect("envelope serializes");
+        assert!(
+            v["data"].get("scope").is_none(),
+            "a lens that executed no constraints over an instance carries no scope"
+        );
     }
 
     #[test]
