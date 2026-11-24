@@ -458,6 +458,80 @@ per-family partition, findings arena, declared unwind sized to the
 shape's concrete loop bounds, sort relocated to the order-needing
 claims, claim split per composition side — recorded, not funded.
 
+## 2026-11-24: the coproduct family proves — mirror stripped, obligation fused, claim split and filtered (beads catherine-6g2)
+
+The key family's round (unwind 9, sort relocated, witness claim split)
+cleared `check_key_panic_freedom` and `soundness_key`; the partition
+ladder's next rung took `check_coproduct_panic_freedom` at unwind 8
+(the in-harness sort relocated from the engine partition entry, same
+as the key family). `soundness_coproduct` followed through the same
+ladder plus one more rung. Its measured ladder, each rung profiled:
+
+- **Start**: symex 283 s, 52.5 k VCCs after simplification — 10× the
+  key soundness formula; CBMC timed out at the 300 s wall.
+- **Mirror strip** — the sorted-distinct image mirror (the walk's
+  `sort_pushed_by` + `dedup_pushed` and the re-derivation's own copy)
+  removed: the coproduct's emissions consume images by membership only
+  (`row_covering` counts arrows, `image_has` scans values), the merged
+  cross-family sort fixes final order, and the parsed flavor's
+  `BTreeSet` semantics were the only reason the mirror existed. 51.4 k
+  VCCs — barely moved: **the mirror was not the mass**. Kept anyway —
+  strictly cheaper and strictly more independent; parsed fixtures stay
+  byte-identical (633 contract tests green).
+- **Claim split per witness shape** (Decision 4 at obligation
+  granularity): coverage half and collision half, one harness each —
+  and both halves produced the **identical** 117 k / 40 k formula: the
+  arm code is negligible, the shared re-derivation is the mass. Split
+  kept; it carries the later filter.
+- **Fusion** — the re-derivation stopped materializing the
+  `Bounded<(Nid, Bounded<u64, 8>), 8>` image table entirely:
+  `arrow_image_facts` resolves each arrow's table once, folding
+  completeness and row-membership into scalars mid-loop. 70 k / 24 k,
+  symex 91 s.
+- **Walk-only probe** — a variant harness running the walk with the
+  obligation stubbed generated the identical 70 k: the obligation
+  contributes ~0 VCCs; **the walk at unwind 9 is the formula**. The 9
+  was the mirror-era bound (merged lens ≤ 8 + exit for the deleted
+  sort/dedup loops); under the fused harness every loop is concretely
+  bounded by 8, so the declared unwind drops to 8 — the mirror-era 9
+  had unrolled every walk loop one extra level for nothing.
+- **The incident (Decision 5 protocol)** — the unwind-8 run produced
+  verdicts, and two properties FAILED: `!covered` and
+  `named_covering >= 2`. Attribution before any kernel suspicion: the
+  claim split had dropped the original dispatcher's witness-shape
+  filter (`injections.is_empty()`), so the coverage harness evaluated
+  the coverage claim on *collision* witnesses — whose rows are by
+  definition covered — and the collision harness demanded two named
+  covering injections on *coverage* witnesses, which have none. The
+  counterexample space is witness-shape mismatch, harness-side; the
+  kernel has never produced a soundness counterexample. The filter is
+  restored per half, and the two harnesses' union still carries the
+  family's claim exactly.
+- **Result**: coverage half **proved** (symex 23.8 s, 33.6 k VCCs,
+  14.3 k after simplification); collision half **proved** (symex
+  48.6 s, 56.4 k / 18.8 k) — but uncapped, and the lane's scoped
+  re-runs killed both at the 8 GB budget: the standard's verdicts.
+  Measured peak uncapped: 9.93 GB — 1.9 GB over the scope.
+- **Declared unwind sized to the shape's concrete loop bounds**: the
+  coproduct shape (3 objects, 2 arrows, dense 2-row tables) bounds
+  every loop at 2 trips + the exit check, so the soundness halves
+  drop from the mirror-era 8 to 4. Under the scoped 8 GB scope:
+  coverage **proved 1:11.76 wall / 2.82 GB peak**, collision
+  **proved 1:14.86 wall / 2.98 GB peak** (both at unwind 4, the
+  `--exact` lane invocation). The coproduct family fully verifies at
+  the standard; the lane's proof count stands at 14.
+
+Incidental find, recorded because it touched every earlier timing:
+Kani 0.68's `--harness` filter matches by substring —
+`soundness_coproduct` also ran `soundness_coproduct_collision`,
+`soundness_equation` also ran its rhs half, and the parent
+`build_panic_freedom` ran all five build harnesses in one pass. The
+lane takes the last verdict line, so outcomes were never wrong, but
+bundled wall/peak records overstate the single-harness cost (the
+equation lhs's recorded 5:11.59 wall includes its rhs sibling). The
+lane now passes `--exact`, and the table below is re-measured per
+harness.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
@@ -493,71 +567,64 @@ modeling, not harness-side input modeling.
 
 ## Undetermined dispositions
 
-Outcomes as of 2026-11-24 (Kani 0.68.0 / CBMC 6.11.0, unwind 16, 300 s
-wall, 8 GB scope; post-partition, post-findings-arena engine):
+Outcomes as of 2026-11-24 (Kani 0.68.0 / CBMC 6.11.0, the `--exact`
+lane: 300 s wall, 8 GB scope, one invocation per harness;
+post-partition, post-findings-arena, post mirror-strip engine). The
+lane passes: **14 of 18 declared harnesses prove at the standard**;
+every undetermined carries a recorded disposition. The lane's
+timings file is the per-harness provenance record.
 
-Proved (the build walk's panic/overflow freedom over each family's
-declared space, partitioned per design Decision 4, the dangling
-family's walk and witness obligations, and the equation family's walk
-and both witness halves — nine proofs as of 2026-11-24; provenance per
-the arcs above):
+Proved:
 
-- build_panic_freedom_equation: proved — 18.7 s, 1.24 GB peak.
-- build_panic_freedom_key: proved — 17.6 s, 1.20 GB peak.
-- build_panic_freedom_coproduct: proved — 18.7 s, 1.29 GB peak.
-- build_panic_freedom_pullback: proved — 36.5 s, 1.89 GB peak.
-- check_dangling_panic_freedom: proved — 3:30 wall, 4.96 GB peak
-  (2026-11-24, post-partition and post-arena).
-- soundness_dangling: proved — 3:59 wall, 5.92 GB peak (2026-11-24,
-  post-partition and post-arena).
-- check_equation_panic_freedom: proved — 2:00.79 wall, 4.94 GB peak
-  (2026-11-24 continuation, declared unwind 8, in-harness sort).
-- soundness_equation: proved — 5:11.59 wall, 5.84 GB peak
-  (2026-11-24 continuation, lhs half, declared unwind 8, unsorted
-  partition input).
-- soundness_equation_rhs: proved — 2:25.79 wall, 5.84 GB peak
-  (2026-11-24 continuation, rhs half, declared unwind 8, unsorted
-  partition input).
+- build_panic_freedom_equation: proved — 19.16 s, 1.20 GB peak.
+- build_panic_freedom_key: proved — 19.16 s, 1.20 GB peak.
+- build_panic_freedom_coproduct: proved — 18.77 s, 1.29 GB peak.
+- build_panic_freedom_pullback: proved — 27.72 s, 1.90 GB peak.
+- check_dangling_panic_freedom: proved — 4:11.81 wall, 4.87 GB peak
+  (post-partition and post-arena).
+- check_equation_panic_freedom: proved — 1:59.00 wall, 4.94 GB peak
+  (declared unwind 8, in-harness sort).
+- check_key_panic_freedom: proved — 3:51.86 wall, 4.23 GB peak
+  (unwind 9, sort relocated, witness claim split).
+- check_coproduct_panic_freedom: proved — 1:36.65 wall, 2.86 GB peak
+  (unwind 8, in-harness sort relocated from the engine partition
+  entry; the mirror strip paid here: 2:14.03/3.30 GB before it).
+- soundness_equation: proved — 2:17.97 wall, 5.79 GB peak (lhs half).
+- soundness_equation_rhs: proved — 2:13.40 wall, 5.84 GB peak.
+- soundness_key: proved — 3:21.35 wall, 5.01 GB peak (unwind 9,
+  unsorted partition input, claim split).
+- soundness_coproduct: proved — 59.44 s wall, 2.82 GB peak (unwind 4,
+  coverage half; the coproduct arc's sizing rung).
+- soundness_coproduct_collision: proved — 1:08.74 wall, 2.98 GB peak
+  (unwind 4, collision half).
+- soundness_dangling: proved — 4:59.74 wall, 5.94 GB peak.
 
 Undetermined:
 
 - build_panic_freedom: undetermined — split obligation: per-property
-  propositional encoding memory; the arena halved the formula (symex
-  70.6 s, 11 917 VCCs after simplification) and the solver now runs
-  (17 properties solved individually), but the per-property loop still
-  exceeds 8 GB partway through. The claim is carried by the four
-  per-family proofs above.
-- check_sortedness_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall, post-walker-arena engine); not re-run since; its
-  recorded path is the same partition-plus-arena pattern (2026-11-24
-  arc above).
-- check_dangling_panic_freedom: proved (see above).
-- check_equation_panic_freedom: proved (see above) — 2026-11-24
-  continuation: declared unwind 8 (the shape's loops are concretely
-  bounded by 8) and the family's sort relocated into the harness
-  (walk order is already key order; the merged sort lives in
+  propositional encoding memory; the arena halved the formula and the
+  solver now runs (17 properties solved individually), but the
+  per-property loop still exceeds 8 GB partway through. The claim is
+  carried by the four per-family proofs above.
+- check_sortedness_panic_freedom: undetermined — CBMC timed out at
+  the 300 s wall (5:03.39, 2.50 GB peak at the kill). Recorded path:
+  the partition ladder — its sort placement and unwind sizing are
+  the open questions (the merged all-families sort lives in
   engine_families).
-- check_key_panic_freedom: undetermined — at the 2026-11-23 re-runs
-  (300 s wall); not re-run since; recorded path: the partition ladder
-  (partition, arena, sized unwind, sort placement, claim split).
-- check_coproduct_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall); not re-run since; recorded path: the partition
-  ladder.
-- check_pullback_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall); not re-run since; recorded path: the partition
-  ladder.
-- soundness_dangling: proved (see above).
-- soundness_equation: proved (see above) — 2026-11-24 continuation:
-  lhs half of the split claim, declared unwind 8, unsorted partition
-  input; soundness_equation_rhs carries the rhs half.
-- soundness_equation_rhs: proved (see above) — 2026-11-24
-  continuation, rhs half of the split claim.
-- soundness_key: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run since; recorded path: the partition ladder.
-- soundness_coproduct: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run since; recorded path: the partition ladder.
-- soundness_pullback: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run since; recorded path: the partition ladder.
+- check_pullback_panic_freedom: undetermined — memory budget
+  exceeded (killed at the scope). Recorded path: the ladder's next
+  rungs — the pullback walker still carries projection/fiber bucket
+  machinery and two sorts (families/pullback.rs), the same dead
+  weight the key family's flat-scan conversion removed.
+- soundness_pullback: undetermined — memory budget exceeded (killed
+  at the scope; one run reached the 300 s wall at 8.09 GB — the
+  formula sits at the scope's edge). Same recorded path.
+
+Variance note, recorded because the lane is the enforcement:
+soundness_dangling solves in 3:59–4:20 on a quiet machine and
+crossed the 300 s wall once under back-to-back lane load (attempt 2
+of this date's lane runs); its margin is ~15%. The lane re-runs
+cleanly on an idle machine — attempt 3 passed with the table above.
 
 Counterexample (Decision 5 protocol: attribution recorded, obligation
 never weakened):
