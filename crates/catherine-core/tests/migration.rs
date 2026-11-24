@@ -108,6 +108,9 @@ fn drop_object_enumerates_one_lost_data_finding_per_dropped_row() {
                 );
                 lost_cells += 1;
             }
+            MigrationFindingKind::Weakened { .. } => {
+                panic!("a pure data drop emits no constraint-level finding")
+            }
         }
     }
     dropped_rows.sort();

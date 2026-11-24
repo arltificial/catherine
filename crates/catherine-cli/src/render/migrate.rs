@@ -92,6 +92,16 @@ pub fn render_migrate(outcome: &MigrationOutcome, source: &Schema) -> Vec<String
                     .unwrap_or_else(|| row.0.to_string());
                 lines.push(format!("lost-cell: {} at {}", arrow.0, owner));
             }
+            MigrationFindingKind::Weakened {
+                constraint,
+                object,
+                row,
+            } => {
+                lines.push(format!(
+                    "weakened: {constraint} — witness {}#{}",
+                    object.0, row.0
+                ));
+            }
         }
     }
     lines

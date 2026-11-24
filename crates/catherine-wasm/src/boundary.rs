@@ -86,10 +86,15 @@ pub struct AnalysisConfig {
 }
 
 /// The `check` report: the kernel's findings under `findings` — the same
-/// encoding the CLI forwards in `data.findings`, no reshaping.
+/// encoding the CLI forwards in `data.findings`, no reshaping — plus the
+/// walk's execution scope under `scope` (catherine-kpn.12, mirroring the
+/// CLI envelope's `data.scope` from catherine-kpn.5): present only when
+/// checks actually executed, omitted (never null) for scope-free reports.
 #[derive(Debug, Serialize)]
 pub struct CheckReport<'a> {
     pub findings: &'a [Finding],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<checks::ExecutionScope>,
 }
 
 /// The scope a non-answer (`unknown`) explored — the honest first-class
@@ -152,9 +157,10 @@ fn decode(document: &str) -> Result<Model, BoundaryError> {
 pub fn check(document: &str) -> Result<String, BoundaryError> {
     let model = decode(document)?;
     let typed = TypedInstance::build(&model.schema, &model.instance);
-    let findings = checks::check(&model.schema, &typed);
+    let (findings, scope) = checks::check_with_scope(&model.schema, &typed);
     serde_json::to_string(&CheckReport {
         findings: &findings,
+        scope: Some(scope),
     })
     .map_err(|_| BoundaryError::AnalysisConfig {
         message: "findings serialization failed".to_string(),

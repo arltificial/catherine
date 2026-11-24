@@ -281,20 +281,25 @@ fn strengthened_lines(added: &[EnforcedConstraint], scope: &SearchScope) -> Vec<
 /// key as `key Object(a∘b)`, a coproduct as `coproduct C(i1∘i2)`, a
 /// pullback as `pullback P(p1∘p2 → f∘g)`.
 fn added_line(constraint: &EnforcedConstraint) -> String {
+    format!("  added: {}", spelled(constraint))
+}
+
+/// One enforced constraint, spelled (`a∘b = c`, `key O(a∘b)`,
+/// `coproduct C(i1∘i2)`, `pullback P(p1∘p2 → f∘g)`) — the shared
+/// spelling the diff and migrate renderers both print.
+pub(crate) fn spelled(constraint: &EnforcedConstraint) -> String {
     match constraint {
-        EnforcedConstraint::Equation { lhs, rhs } => format!(
-            "  added: {} = {}",
-            super::path_string(lhs),
-            super::path_string(rhs)
-        ),
+        EnforcedConstraint::Equation { lhs, rhs } => {
+            format!("{} = {}", super::path_string(lhs), super::path_string(rhs))
+        }
         EnforcedConstraint::Key { object, arrows } => {
-            format!("  added: key {}({})", object.0, arrows_joined(arrows))
+            format!("key {}({})", object.0, arrows_joined(arrows))
         }
         EnforcedConstraint::Coproduct { object, arrows } => {
-            format!("  added: coproduct {}({})", object.0, arrows_joined(arrows))
+            format!("coproduct {}({})", object.0, arrows_joined(arrows))
         }
         EnforcedConstraint::Pullback { apex, legs, cospan } => format!(
-            "  added: pullback {}({} → {})",
+            "pullback {}({} → {})",
             apex.0,
             arrows_joined(legs),
             arrows_joined(cospan)

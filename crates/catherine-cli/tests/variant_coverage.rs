@@ -27,9 +27,17 @@ use std::process::Command;
 
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/");
 /// The committed migration fixtures (shared with the kernel suites) —
-/// both `MigrationFindingKind` variants fire across these two maps.
-const MIGRATION_FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/migration/");
-const MIGRATION_COVERAGE_RUNS: [&str; 2] = ["drop_object.ct.json", "bogart_rehearsal.ct.json"];
+/// plus the gap-suite dropped-equation map, so every
+/// `MigrationFindingKind` variant fires across these maps.
+const MIGRATION_FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../");
+const MIGRATION_COVERAGE_RUNS: [(&str, &str); 3] = [
+    ("fixtures/migration/", "drop_object.ct.json"),
+    ("fixtures/migration/", "bogart_rehearsal.ct.json"),
+    (
+        "crates/catherine-cli/tests/fixtures/gap_suite/",
+        "dropped_equation_migration.ct.json",
+    ),
+];
 const ALL_KINDS: [&str; 5] = [
     "violation",
     "dangling",
@@ -37,7 +45,7 @@ const ALL_KINDS: [&str; 5] = [
     "contradiction",
     "underconstraint",
 ];
-const ALL_MIGRATION_KINDS: [&str; 2] = ["lost_row", "lost_cell"];
+const ALL_MIGRATION_KINDS: [&str; 3] = ["lost_row", "lost_cell", "weakened"];
 const ALL_LABELS: [&str; 3] = ["executed", "hypothesized", "unknown"];
 const ALL_QUESTIONS: [&str; 2] = ["parallel_paths", "uncovered_inputs"];
 const ALL_OUTCOMES: [&str; 3] = ["witness", "contradiction", "unknown"];
@@ -70,6 +78,7 @@ fn migration_kind_name(kind: &MigrationFindingKind) -> &'static str {
     match kind {
         MigrationFindingKind::LostRow { .. } => "lost_row",
         MigrationFindingKind::LostCell { .. } => "lost_cell",
+        MigrationFindingKind::Weakened { .. } => "weakened",
     }
 }
 
@@ -172,8 +181,8 @@ fn outcome_of(output: &str) -> String {
 /// `MigrationFinding` — a lost finding that does not deserialize is
 /// contract drift and fails loudly (the same ratchet rule as `Finding`).
 fn harvest_migration(kinds: &mut BTreeSet<String>) {
-    for name in MIGRATION_COVERAGE_RUNS {
-        let output = run(&["migrate", &format!("{MIGRATION_FIXTURES}{name}"), "--json"]);
+    for (prefix, name) in MIGRATION_COVERAGE_RUNS {
+        let output = run(&["migrate", &format!("{MIGRATION_FIXTURES}{prefix}{name}"), "--json"]);
         let value = serde_json::from_str::<Value>(&output).expect("migrate envelope parses");
         let lost = value["data"]["lost"].as_array().expect("data.lost array");
         assert!(

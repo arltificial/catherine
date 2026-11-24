@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { renderFindings, witnessText, type FindingEnc } from "../src/findings";
+import type { ExecutionScope } from "../src/types/ct-schema-v1";
 import {
   coproductCoverageFixture,
   coproductDualFixture,
@@ -112,5 +113,31 @@ describe("findings panel (golden DOM)", () => {
     renderFindings([], panel);
     expect(panel.querySelectorAll("li.finding")).toHaveLength(0);
     expect(panel.querySelector("ul.findings")).not.toBeNull();
+  });
+
+  // catherine-kpn.12: "checked and clean" must not look like "nothing was
+  // checked" — the execution scope rides next to the findings.
+  it("the_scope_is_surfaced_next_to_findings", () => {
+    const scope: ExecutionScope = {
+      constraints_checked: 4,
+      rows_evaluated: 7,
+      equations_over_zero_rows: 1,
+    };
+    const checked = document.createElement("div");
+    renderFindings([], checked, scope);
+    const scopeRow = checked.querySelector(".scope");
+    expect(scopeRow).not.toBeNull();
+    expect(scopeRow!.textContent).toContain("constraints checked: 4");
+    expect(scopeRow!.textContent).toContain("rows evaluated: 7");
+    expect(scopeRow!.textContent).toContain("equations over zero rows: 1");
+    expect(checked.querySelectorAll("li.finding")).toHaveLength(0);
+
+    // A scope-free (non-executing) payload shows no scope at all — the
+    // field is absent, never rendered as zeros or `undefined`.
+    const unchecked = document.createElement("div");
+    renderFindings([], unchecked);
+    expect(unchecked.querySelector(".scope")).toBeNull();
+    expect(unchecked.textContent).not.toContain("constraints checked");
+    expect(unchecked.textContent).not.toContain("undefined");
   });
 });

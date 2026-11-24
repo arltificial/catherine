@@ -14,10 +14,11 @@
 // step owns the instantiation.
 
 import type { FindingEnc } from "./findings";
+import type { ExecutionScope } from "./types/ct-schema-v1";
 
 /** The wasm export surface (installed by the browser glue as `window.catherineWasm`). */
 export interface CatherineWasm {
-  /** JSON document in → `{"findings":[...]}` out; a boundary rejection throws the typed error's JSON string. */
+  /** JSON document in → `{"findings":[...], "scope"?: {...}}` out; a boundary rejection throws the typed error's JSON string. */
   check(document: string): string;
   /** JSON document + config in → `{"findings":[...], "unknown"?: {...}}` out; same error discipline. */
   analyze(document: string, config: string): string;
@@ -48,9 +49,12 @@ export type BoundaryErrorEnc =
   | { code: "parse"; line: number; column: number; message: string }
   | { code: "analysis_config"; message: string };
 
+/** The typed ExecutionScope mirror — the boundary's `data.scope` (catherine-kpn.12). */
+export type { ExecutionScope } from "./types/ct-schema-v1";
+
 /** One export call's outcome: findings (plus `analyze`'s search-outcome discriminator), or the typed boundary error. */
 export type BoundaryResult =
-  | { ok: true; findings: FindingEnc[]; outcome?: string }
+  | { ok: true; findings: FindingEnc[]; outcome?: string; scope?: ExecutionScope }
   | { ok: false; error: BoundaryErrorEnc };
 
 /** A `check`/`analyze` report as decoded JSON. */
@@ -58,6 +62,8 @@ interface FindingsReport {
   findings: FindingEnc[];
   /** `analyze` only: `"witness" | "contradiction" | "unknown"`. */
   outcome?: string;
+  /** The check walk's execution scope — present only when checks actually executed. */
+  scope?: ExecutionScope;
 }
 
 /** Runtime guard for the boundary report's shape (the one field the views read). */
@@ -94,7 +100,7 @@ function run(call: () => string): BoundaryResult {
   if (!isFindingsReport(parsed)) {
     throw new Error("catherine web: boundary report is not a findings report");
   }
-  return { ok: true, findings: parsed.findings, outcome: parsed.outcome };
+  return { ok: true, findings: parsed.findings, outcome: parsed.outcome, scope: parsed.scope };
 }
 
 /** `JSON.parse` that answers undefined instead of throwing. */

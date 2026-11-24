@@ -52,7 +52,7 @@ function renderAll(): void {
   renderSchemaGraph(document.schema, byId<SVGSVGElement>("schema-graph"));
   const result = runCheck(byId<HTMLTextAreaElement>("doc").value);
   if (result.ok) {
-    renderFindings(result.findings, byId<HTMLElement>("findings-panel"));
+    renderFindings(result.findings, byId<HTMLElement>("findings-panel"), result.scope);
   } else {
     showError(errorText(result.error));
     renderFindings([], byId<HTMLElement>("findings-panel"));

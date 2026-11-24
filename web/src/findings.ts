@@ -22,6 +22,7 @@
 // textarea is the document, this is only its view.
 
 import { clear, el, text } from "./dom";
+import type { ExecutionScope } from "./types/ct-schema-v1";
 
 /** The epistemic label — exactly the three spellings the kernel type allows. */
 export type EpistemicLabel = "executed" | "hypothesized" | "unknown";
@@ -185,10 +186,29 @@ export function witnessText(finding: FindingEnc): string {
 /**
  * Render the findings into `container` (which the panel owns: it is
  * cleared first). One `li.finding` per finding — kind label, epistemic
- * label, witness facts, in the kernel's order.
+ * label, witness facts, in the kernel's order. When the boundary report
+ * carried an execution scope (checks actually ran), a `.scope` line above
+ * the list surfaces what was executed, so "checked and clean" never
+ * renders identically to "nothing was checked"; a scope-free payload
+ * renders no scope line at all.
  */
-export function renderFindings(findings: readonly FindingEnc[], container: Element): void {
+export function renderFindings(
+  findings: readonly FindingEnc[],
+  container: Element,
+  scope?: ExecutionScope,
+): void {
   clear(container);
+  if (scope !== undefined) {
+    container.append(
+      el("p", { class: "scope" }, [
+        text(
+          `constraints checked: ${scope.constraints_checked}` +
+            ` · rows evaluated: ${scope.rows_evaluated}` +
+            ` · equations over zero rows: ${scope.equations_over_zero_rows}`,
+        ),
+      ]),
+    );
+  }
   const list = el("ul", { class: "findings" });
   for (const finding of findings) {
     list.append(

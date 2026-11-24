@@ -196,6 +196,9 @@ fn the_dropped_step_reports_every_lost_row_and_cell() {
             MigrationFindingKind::LostCell { arrow, row } => {
                 cells.push((arrow.0.clone(), row.0));
             }
+            MigrationFindingKind::Weakened { constraint, .. } => {
+                panic!("unexpected weakened: {constraint}")
+            }
         }
     }
     assert_eq!(rows, vec![0, 1, 2, 3, 4]);

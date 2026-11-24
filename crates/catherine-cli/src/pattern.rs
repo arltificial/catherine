@@ -276,6 +276,11 @@ fn render_migrations(findings: &[MigrationFinding], schema: &Schema) -> Vec<Stri
                     .unwrap_or_else(|| row.0.to_string());
                 format!("lost-cell: {} at {}", arrow.0, owner)
             }
+            MigrationFindingKind::Weakened {
+                constraint,
+                object,
+                row,
+            } => format!("weakened: {constraint} — witness {}#{}", object.0, row.0),
         })
         .collect()
 }

@@ -61,6 +61,21 @@ pub enum MigrationFindingKind {
         /// The source row whose cell held a value.
         row: RowId,
     },
+    /// The target schema no longer enforces a constraint the source
+    /// schema accepts (catherine-kpn.8 option (a)): the shared diff
+    /// classifier's weakened verdict, witnessed by a row of the
+    /// constraint's domain object. The rows and cells migrate exactly
+    /// as before — this is the constraint-level signal, not lost data.
+    Weakened {
+        /// The dropped constraint, in the enforced-set spelling
+        /// (`g∘f = k`, `key O(a∘b)`, `pullback P(p1∘p2 → f∘g)`).
+        constraint: String,
+        /// The constraint's source domain object.
+        object: Ident,
+        /// The witness row on that object: the bounded scan's
+        /// separating row, or the first surviving row of the object.
+        row: RowId,
+    },
 }
 
 /// A migration finding: the taxonomy shape (label + kind-with-witness),

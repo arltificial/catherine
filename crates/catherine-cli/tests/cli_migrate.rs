@@ -46,6 +46,13 @@ const GARBAGE_ROWS: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/migrate_garbage_rows.ct.json"
 );
+/// The dropped-equation fixture (shared with the expressibility-gap
+/// suite): the target schema renames the vocabulary and forgets the
+/// accepted triangle equation, while the data migrates losslessly.
+const DROPPED_EQUATION: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/gap_suite/dropped_equation_migration.ct.json"
+);
 /// A pre-map document: parses, carries no `schema_map`.
 const NO_MAP: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -223,6 +230,53 @@ fn migrate_human_lines_name_every_lost_element() {
         "witness lines are countable"
     );
     assert_eq!(lines[4], "lost-cell: scratch_note at Scratch#0");
+}
+
+/// The constraint-level signal (catherine-kpn.8 option (a)): migrate
+/// runs the shared diff classifier over the embedded target schema, so
+/// a target that forgets an accepted constraint is a finding-bearing
+/// run — one `weakened` finding naming the dropped constraint with its
+/// separating witness row — while the rows and cells still migrate
+/// exactly as before (no lost-row/lost-cell findings here).
+#[test]
+fn migrate_target_dropping_an_accepted_constraint_emits_the_weakened_finding() {
+    let out = run(&["migrate", DROPPED_EQUATION, "--json"]);
+    assert_eq!(
+        code(&out),
+        8,
+        "a weakened migration is a finding-bearing run"
+    );
+    assert_eq!(stderr(&out), "", "the error stream stays empty");
+    let v = parse_json(&stdout(&out));
+    let lost = v["data"]["lost"].as_array().expect("data.lost array");
+    assert!(
+        !lost
+            .iter()
+            .any(|f| f["kind"] == "lost_row" || f["kind"] == "lost_cell"),
+        "the data migration itself is lossless: {lost:?}"
+    );
+    let weakened: Vec<_> = lost
+        .iter()
+        .filter(|f| f["kind"] == "weakened")
+        .collect();
+    assert_eq!(
+        weakened.len(),
+        1,
+        "exactly one constraint-level finding: {lost:?}"
+    );
+    assert_eq!(weakened[0]["label"], "executed", "drift is executed fact");
+    let witness = &weakened[0]["witness"];
+    assert_eq!(
+        witness["object"], "A",
+        "the witness row sits on the dropped equation's domain object"
+    );
+    let constraint = witness["constraint"]
+        .as_str()
+        .expect("the finding names the dropped constraint");
+    assert!(
+        constraint.contains("f") && constraint.contains("g") && constraint.contains("k"),
+        "the finding names the dropped triangle `{constraint}`"
+    );
 }
 
 // ── task 8: the bogart rehearsal fixture, end to end ─────────────────

@@ -57,6 +57,17 @@ fn under_cap_document_reaches_the_kernel() {
     let report = check(document).expect("minimal document parses");
     let value: serde_json::Value = serde_json::from_str(&report).expect("report is JSON");
     assert_eq!(value["findings"], serde_json::json!([]));
+    // The scope rides next to the findings (catherine-kpn.12, mirroring
+    // the CLI's `data.scope`): the honest empty scope — keys present,
+    // never omitted or null — for a document that checked nothing.
+    assert_eq!(
+        value["scope"],
+        serde_json::json!({
+            "constraints_checked": 0,
+            "rows_evaluated": 0,
+            "equations_over_zero_rows": 0
+        })
+    );
 }
 
 #[test]

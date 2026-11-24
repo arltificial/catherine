@@ -239,7 +239,7 @@ fn report(
 /// instance space cannot distinguish the copies). Proposed keys,
 /// coproducts, and pullbacks are presentation, exactly like proposed
 /// equations.
-fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
+pub(super) fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
     let mut multiset = BTreeMap::new();
     for equation in &schema.equations {
         if equation.status == ConstraintStatus::Accepted {
@@ -308,3 +308,8 @@ fn violation(schema: &Schema, typed: &TypedInstance) -> Option<Finding> {
         .into_iter()
         .find(|finding| matches!(finding.kind, FindingKind::Violation(_)))
 }
+
+mod dropped;
+
+pub use dropped::{DroppedConstraint, dropped_constraints};
+

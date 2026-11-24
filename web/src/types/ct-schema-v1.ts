@@ -4,6 +4,21 @@
 
 export type Ident = string;
 
+/**
+ * The check walk's execution scope (openspec change `add-execution-scope`,
+ * catherine-kpn.5) — what the wasm boundary forwards as `data.scope` on the
+ * check/findings report. Hand-added mirror of the kernel payload: the
+ * generator derives only the input-document surface, so this block is
+ * maintained beside the generated output, not by scripts/generate-types.mjs.
+ * Present on a report only when checks actually executed (the field is
+ * omitted, never null, for scope-free payloads).
+ */
+export type ExecutionScope = {
+  "constraints_checked": number;
+  "rows_evaluated": number;
+  "equations_over_zero_rows": number;
+};
+
 export type Path = Array<Ident>;
 
 export type Key = {

@@ -34,7 +34,7 @@
 //! stable for the callers.
 
 mod analysis;
-mod diff;
+pub(crate) mod diff;
 mod envelope;
 mod errors;
 mod migrate;

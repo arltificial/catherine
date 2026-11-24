@@ -22,8 +22,13 @@
 use crate::cli::LOST_DATA_EXIT_CODE;
 use crate::render::{self, LabeledError};
 use crate::run::{emit_error, load_model, write_envelope};
-use catherine_core::migrate::{self, MigrationFinding};
+use catherine_analysis::bounds::{ScopeCaps, SearchBounds};
+use catherine_analysis::schema_diff;
+use catherine_core::findings::EpistemicLabel;
+use catherine_core::migrate::{self, MigrationFinding, MigrationFindingKind};
+use catherine_core::model::{Ident, Model, SchemaMap};
 use genesis::envelope::Warning;
+use std::collections::BTreeMap;
 use std::io::Write;
 
 /// Execute `model_path`'s declared migration once and render. Returns
@@ -45,6 +50,8 @@ pub fn run_migrate(
     let Some(outcome) = migrate::reindex(&model) else {
         return emit_error(&no_schema_map(model_path), json, warnings, stdout, stderr);
     };
+    let mut outcome = outcome;
+    weaken_constraints(&model, &mut outcome);
     print_warnings(json, &warnings, stderr);
     if json {
         let envelope = render::migrate_envelope(&outcome, warnings);
@@ -60,12 +67,67 @@ pub fn run_migrate(
 /// The migration exit decision: lost data is a finding-bearing run —
 /// the table's lost-data class; a lossless migration is clean. The
 /// migration taxonomy has exactly one finding class, so the
-/// min-over-class convention collapses to this presence test.
+/// min-over-class convention collapses to this presence test. The
+/// constraint-level `weakened` findings ride the same class: a
+/// weakened migration is a finding-bearing run, not a new exit.
 fn migration_exit(lost: &[MigrationFinding]) -> i32 {
     if lost.is_empty() {
         0
     } else {
         LOST_DATA_EXIT_CODE
+    }
+}
+
+/// The constraint-level signal (catherine-kpn.8, option (a)): run the
+/// shared diff classifier (`schema_diff::dropped_constraints`) over the
+/// document's accepted constraints translated through the declared map
+/// into the embedded target schema, and append one `weakened` finding
+/// per dropped constraint — the witness row names the constraint.
+/// Rows and cells migrate exactly as [`migrate::reindex`] migrated
+/// them; this only adds findings, re-sorted into the deterministic
+/// order the kernel enumerates in.
+fn weaken_constraints(model: &Model, outcome: &mut migrate::MigrationOutcome) {
+    let Some(map) = &model.schema_map else {
+        return;
+    };
+    let bound = weaken_bound(&model.instance, map);
+    for dropped in schema_diff::dropped_constraints(&model.schema, &model.instance, map, &bound) {
+        outcome.lost.push(MigrationFinding {
+            label: EpistemicLabel::Executed,
+            kind: MigrationFindingKind::Weakened {
+                constraint: render::diff::spelled(&dropped.constraint),
+                object: dropped.object,
+                row: dropped.row,
+            },
+        });
+    }
+    outcome.lost.sort();
+}
+
+/// The scan's bound: the target vocabulary's objects, each with room
+/// for the migrated data (the source rows its map preimage carries)
+/// plus two separating rows — enough for the smallest witness of any
+/// single-arrow-path constraint violation, never grown by the engine.
+/// The candidate budget is the analysis default, the same one the
+/// `diff` surface starts from.
+fn weaken_bound(
+    instance: &catherine_core::model::Instance,
+    map: &SchemaMap,
+) -> SearchBounds {
+    let mut max_rows: BTreeMap<Ident, usize> = BTreeMap::new();
+    for target_object in map.target.objects.keys() {
+        let source_rows = map
+            .objects
+            .values()
+            .filter_map(|image| image.as_ref())
+            .filter(|image| *image == target_object)
+            .map(|image| instance.rows.get(image).map(Vec::len).unwrap_or(0))
+            .sum::<usize>();
+        max_rows.insert(target_object.clone(), source_rows + 2);
+    }
+    SearchBounds {
+        max_rows,
+        max_candidates: ScopeCaps::default().max_candidates,
     }
 }
 
