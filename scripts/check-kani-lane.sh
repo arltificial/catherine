@@ -158,7 +158,13 @@ for harness in "${run_harnesses[@]}"; do
 	# budget-kill surfaces as rc 137 (SIGKILL at MemoryMax). Both are
 	# resource limits, not proof results: UNDETERMINED with a required
 	# disposition — loud, never silently green, never "counterexample".
-	if [ "$rc" -eq 137 ] || grep -q 'exited with non-zero status 137' "$timefile" 2>/dev/null; then
+	# A MemoryMax breach TERM-inates the whole scope (rc 143) before the
+	# kernel's cgroup OOM-kill lands the SIGKILL (rc 137) — both are the
+	# budget arm (beads catherine-6g2: soundness_equation died at the
+	# 2026-11-23 reduction wall as a scope TERM).
+	if [ "$rc" -eq 137 ] || [ "$rc" -eq 143 ] \
+		|| grep -q 'exited with non-zero status 137' "$timefile" 2>/dev/null \
+		|| grep -q 'exited with non-zero status 143' "$timefile" 2>/dev/null; then
 		kind="budget"
 	elif [ -n "$verdict_line" ] && printf '%s' "$verdict_line" | grep -qi FAILED \
 		&& printf '%s' "$out" | grep -qi 'CBMC timed out'; then

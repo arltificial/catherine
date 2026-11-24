@@ -81,9 +81,11 @@ An uncapped crate-wide `cargo kani` run OOM-killed the workstation on
 - **Timeouts and budget-kills are UNDETERMINED, not counterexamples.**
   CBMC emits `VERIFICATION:- FAILED` both for a found counterexample
   and for "CBMC timed out"; the lane discriminates on the timeout
-  banner, and a SIGKILL at the memory cap (rc 137) is likewise
-  undetermined. Both still require a recorded disposition below or
-  the lane fails.
+  banner, and a kill at the memory cap is likewise undetermined — the
+  kernel's cgroup SIGKILL (rc 137) or the scope-level systemd TERM
+  that precedes it (rc 143; seen 2026-11-23 on `soundness_equation` at
+  the reduction wall). Both still require a recorded disposition below
+  or the lane fails.
 - **Maintenance subsets**: `KANI_HARNESS_FILTER=<regex>` runs part of
   the declared list under identical enforcement and the identical
   disposition rule.
