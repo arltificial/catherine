@@ -115,6 +115,21 @@ fn weakened_edit_exits_3_with_witness_and_budget_expiry_is_unknown() {
         next["data"].get("witness").is_none(),
         "an unknown classification carries no witness"
     );
+    assert_eq!(
+        next["data"]["hint"],
+        "bound exhausted; pass --rows OBJECT=N or --max-candidates=N to explore further",
+        "the unknown classification names the flags that make it answerable"
+    );
+
+    let unbounded = run(&["diff", WEAKENED_V1, WEAKENED_V2, "--json"]);
+    assert_eq!(code(&unbounded), 0, "a completed bounded run exits 0");
+    let empty = envelope(&unbounded);
+    assert_eq!(empty["data"]["outcome"], "unknown");
+    assert_eq!(
+        empty["data"]["hint"],
+        "no rows bound; pass --rows OBJECT=N",
+        "an unknown classification with no rows bound names the --rows flag"
+    );
 }
 
 #[test]

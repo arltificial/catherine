@@ -106,9 +106,11 @@ Modeling becomes a **propose → execute → refine** loop. The agent writes a
 what it *implies*, then runs `catherine check`. Back come specific,
 witness-backed findings: this constraint is violated by row #3; these two
 parallel paths were never declared equal; this arrow dangles; this
-declaration is derivable (redundant); here is the smallest instance that
-breaks the assumption — or `UNKNOWN {scope}` where bounded search couldn't
-decide. Each loop is seconds, local, offline. Agents generate plausible
+declaration is derivable (redundant); `catherine check` on a supplied
+instance points at the rows that break the assumption, and the bounded
+satisfying-instance search returns the smallest fully resolved instance
+satisfying every accepted equation — or `UNKNOWN {scope}` where the
+bound was exhausted before it could decide. Each loop is seconds, local, offline. Agents generate plausible
 models fast and verify poorly; catherine is the deterministic evaluator
 that never hallucinates a verdict, and on rule-based problems (parsing,
 formatting, scoring) it says so: model it conventionally.

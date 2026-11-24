@@ -108,6 +108,11 @@ fn analysis_search_unknown_payload_names_the_explored_scope() {
         v["data"]["scope"]["rows"]["a"], 1,
         "the scope names the row bounds"
     );
+    assert_eq!(
+        v["data"]["hint"],
+        "bound exhausted; pass --rows OBJECT=N or --max-candidates=N to explore further",
+        "the unknown payload names the flags that make it answerable"
+    );
     let findings = v["data"]["findings"].as_array().expect("findings array");
     assert!(
         findings.is_empty(),
@@ -138,6 +143,11 @@ fn analysis_search_zero_size_bound_yields_unknown_empty_scope() {
         .expect("scope rows object");
     assert!(rows.is_empty(), "the empty scope is the empty row map");
     assert_eq!(v["data"]["scope"]["candidates_explored"], 0);
+    assert_eq!(
+        v["data"]["hint"],
+        "no rows bound; pass --rows OBJECT=N",
+        "the empty-scope unknown names the --rows flag"
+    );
     assert!(
         v["data"]["findings"]
             .as_array()

@@ -19,7 +19,7 @@ tells you when modeling is a waste of time.
 |---|---|
 | Executed declarations | path equations run on instances with witness rows (Catlab declares, doesn't enforce — we enforce) |
 | Finding-typed diagnostics | violation / dangling / contradiction / underconstraint / redundant — each with the concrete row/path that proves it |
-| Bounded counterexample search | smallest breaking instance, or honest `UNKNOWN {scope}` — never a naked "no violation found" |
+| Bounded satisfying-instance search | the smallest fully resolved instance satisfying every accepted equation, or honest `UNKNOWN {scope}` when the bound is exhausted — never a naked "no violation found". Breaking/separating instances come from `catherine check` over a supplied instance and `diff` as a separating witness |
 | Discovery questions | parallel paths without equations surface as domain questions (spec-ambiguity mechanism) |
 | Redundancy & equivalence | derivable paths flagged; models compared via `distinguish` with witness inputs |
 | Migration safety (P7) | Δ reindexing with loud lost-data counterexamples — measured against a committed conventional baseline (statement lint + row-count/checksum dry run) on three pilot-scale fixtures: 10 named cell losses and 1 round-trip counterexample the baseline cannot identify ([probe ledger](fixtures/probes/migration/README.md), entries `ledger/probes/migration/`, `catherine-1od`) |

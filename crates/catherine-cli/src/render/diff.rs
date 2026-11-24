@@ -19,7 +19,7 @@
 //! the v1 schema (the side that enforced the equation), so its equation
 //! index resolves to the exact lost constraint.
 
-use super::analysis::{BoundView, InstanceView, ScopeView};
+use super::analysis::{unknown_hint, BoundView, InstanceView, ScopeView};
 use super::render_one;
 use super::CLI_VERSION;
 use catherine_analysis::bounds::SearchScope;
@@ -124,6 +124,9 @@ pub struct DiffData<'a> {
     /// The exact scope of a bounded claim.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<ScopeView>,
+    /// The answerability hint, present exactly for `outcome: "unknown"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
     /// The weakening witness instance (v2-clean, v1-violating).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub witness: Option<InstanceView>,
@@ -136,7 +139,7 @@ pub struct DiffData<'a> {
 
 /// The one diff-envelope path.
 pub fn diff_envelope(report: &SchemaDiffReport, warnings: Vec<Warning>) -> Envelope<DiffData<'_>> {
-    let (outcome, scope, witness, added) = outcome_parts(&report.outcome);
+    let (outcome, scope, hint, witness, added) = outcome_parts(&report.outcome);
     Envelope::success(
         CLI_VERSION,
         EnvelopeKind::Check,
@@ -144,6 +147,7 @@ pub fn diff_envelope(report: &SchemaDiffReport, warnings: Vec<Warning>) -> Envel
             outcome,
             bound: BoundView::of(&report.bound),
             scope,
+            hint,
             witness,
             added,
             findings: &report.findings,
@@ -153,43 +157,62 @@ pub fn diff_envelope(report: &SchemaDiffReport, warnings: Vec<Warning>) -> Envel
     )
 }
 
-/// One classification as the payload fields: the outcome string, the
-/// scope exactly when the claim is bounded, the witness exactly for
-/// `weakened`, and the accreted constraints (empty otherwise).
-fn outcome_parts(
-    outcome: &SchemaDiffOutcome,
-) -> (
+/// The payload fields of one classification, as a tuple (the match
+/// arms' shape).
+type Parts = (
     &'static str,
     Option<ScopeView>,
+    Option<String>,
     Option<InstanceView>,
     Vec<ConstraintView>,
-) {
+);
+
+/// The parts of an unbounded, unhinted claim: no scope, no hint, no
+/// witness, and the given accreted constraints.
+fn plain_parts(outcome: &'static str, added: Vec<ConstraintView>) -> Parts {
+    (outcome, None, None, None, added)
+}
+
+/// The parts of a bounded claim that is not unknown: the scope, no
+/// hint, no witness.
+fn scoped_parts(outcome: &'static str, scope: &SearchScope, added: Vec<ConstraintView>) -> Parts {
+    (outcome, Some(ScopeView::of(scope)), None, None, added)
+}
+
+/// The parts of the `unknown` classification: the scope plus the shared
+/// answerability hint ([`unknown_hint`] — the one hint source).
+fn unknown_parts(scope: &SearchScope) -> Parts {
+    let view = ScopeView::of(scope);
+    let hint = unknown_hint(&view);
+    ("unknown", Some(view), Some(hint), None, Vec::new())
+}
+
+/// One classification as the payload fields: the outcome string, the
+/// scope exactly when the claim is bounded, the answerability hint
+/// exactly for `unknown`, the witness exactly for `weakened`, and the
+/// accreted constraints (empty otherwise).
+fn outcome_parts(outcome: &SchemaDiffOutcome) -> Parts {
     match outcome {
-        SchemaDiffOutcome::Cosmetic => ("cosmetic", None, None, Vec::new()),
-        SchemaDiffOutcome::Accreted { added } => ("accreted", None, None, constraint_views(added)),
+        SchemaDiffOutcome::Cosmetic => plain_parts("cosmetic", Vec::new()),
+        SchemaDiffOutcome::Accreted { added } => plain_parts("accreted", constraint_views(added)),
         SchemaDiffOutcome::Weakened { witness } => (
             "weakened",
+            None,
             None,
             Some(InstanceView::of(witness)),
             Vec::new(),
         ),
-        SchemaDiffOutcome::StrengthenedInScope { added, scope } => (
+        SchemaDiffOutcome::StrengthenedInScope { added, scope } => scoped_parts(
             "strengthened-in-scope",
-            Some(ScopeView::of(scope)),
-            None,
+            scope,
             constraint_views(added),
         ),
-        SchemaDiffOutcome::EquivalentInScope { scope } => (
-            "equivalent-in-scope",
-            Some(ScopeView::of(scope)),
-            None,
-            Vec::new(),
-        ),
-        SchemaDiffOutcome::Unknown { scope } => {
-            ("unknown", Some(ScopeView::of(scope)), None, Vec::new())
+        SchemaDiffOutcome::EquivalentInScope { scope } => {
+            scoped_parts("equivalent-in-scope", scope, Vec::new())
         }
+        SchemaDiffOutcome::Unknown { scope } => unknown_parts(scope),
         // The runner refuses this class before rendering (labeled error).
-        SchemaDiffOutcome::Incomparable => ("incomparable", None, None, Vec::new()),
+        SchemaDiffOutcome::Incomparable => plain_parts("incomparable", Vec::new()),
     }
 }
 

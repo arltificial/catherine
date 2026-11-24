@@ -101,6 +101,23 @@ impl InstanceView {
     }
 }
 
+/// The one UNKNOWN hint, shared by the search and diff payloads: the
+/// honest non-answer names what the user could pass to make it
+/// answerable. The hint only NAMES a flag — it never derives a bound
+/// from the instance (the search space is a shape; the instance a
+/// sample): an empty scope means nothing was bound, so `--rows` names
+/// the shape; a nonempty scope that still returned unknown means the
+/// budget or the bound ran out, so `--rows` or `--max-candidates`
+/// explores further.
+pub fn unknown_hint(scope: &ScopeView) -> String {
+    if scope.rows.is_empty() {
+        "no rows bound; pass --rows OBJECT=N".to_string()
+    } else {
+        "bound exhausted; pass --rows OBJECT=N or --max-candidates=N to explore further"
+            .to_string()
+    }
+}
+
 /// The search payload: the outcome string is the epistemic state —
 /// `"witness"`, `"contradiction"` (with the finding under `findings`),
 /// or `"unknown"` (with the scope object). A completed bounded run is a
@@ -112,6 +129,9 @@ pub struct SearchData<'a> {
     pub bound: BoundView,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<ScopeView>,
+    /// The answerability hint, present exactly for `outcome: "unknown"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub witness: Option<InstanceView>,
     pub findings: &'a [Finding],
@@ -119,14 +139,22 @@ pub struct SearchData<'a> {
 
 /// The one search-envelope path.
 pub fn search_envelope(report: &SearchReport, warnings: Vec<Warning>) -> Envelope<SearchData<'_>> {
-    let (outcome, scope, witness, findings) = match &report.outcome {
+    let (outcome, scope, hint, witness, findings) = match &report.outcome {
         SearchOutcome::Witness { instance } => {
-            ("witness", None, Some(InstanceView::of(instance)), &[][..])
+            ("witness", None, None, Some(InstanceView::of(instance)), &[][..])
         }
-        SearchOutcome::Contradiction { finding } => {
-            ("contradiction", None, None, std::slice::from_ref(finding))
+        SearchOutcome::Contradiction { finding } => (
+            "contradiction",
+            None,
+            None,
+            None,
+            std::slice::from_ref(finding),
+        ),
+        SearchOutcome::Unknown { scope } => {
+            let view = ScopeView::of(scope);
+            let hint = unknown_hint(&view);
+            ("unknown", Some(view), Some(hint), None, &[][..])
         }
-        SearchOutcome::Unknown { scope } => ("unknown", Some(ScopeView::of(scope)), None, &[][..]),
     };
     Envelope::success(
         CLI_VERSION,
@@ -135,6 +163,7 @@ pub fn search_envelope(report: &SearchReport, warnings: Vec<Warning>) -> Envelop
             outcome,
             bound: BoundView::of(&report.bound),
             scope,
+            hint,
             witness,
             findings,
         },

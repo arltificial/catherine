@@ -1,0 +1,181 @@
+{
+  "format_version": "1.5",
+  "policy": {
+    "name": "catherine-kpn.15 architecture policy",
+    "epic": "catherine-kpn",
+    "bead": "catherine-kpn.15",
+    "purpose": "The complete set of permitted crate dependency edges in the catherine workspace, stated as referential-agreement claims. The paired actual edges (Dep) must agree with the allowed edges (AllowedEdge) via the inject coproduct equations; any crate dependency outside this set is unpaired, and any edge whose direction differs fails the equations.",
+    "scope_note": "Authored from the design documents, not mirrored from Cargo.toml: the policy may match today's tree only by agreement, never by construction.",
+    "edge_citations": {
+      "ae_core_engine": "The engine is the dependency-light interned execution core split out of the kernel; the kernel wraps it verbatim and downstream paths depend on it through core. docs/kani-lane.md: 'the engine moved out of the kernel into crates/catherine-engine ... catherine-core wraps both modules verbatim (pub use catherine_engine::{engine, model})'.",
+      "ae_analysis_core": "Dependency direction: analysis -> core. docs/DESIGN.md:156-158: 'Dependency direction: cli/wasm -> inquiry -> analysis -> core'. README.md:205: 'kernel stays suite-dep-free'.",
+      "ae_cli_core": "docs/DESIGN.md:156-158: 'Dependency direction: cli/wasm -> inquiry -> analysis -> core'; cli reaches the kernel. README.md:205: CLI plumbing via genesis-vibes 'CLI crate only; kernel stays suite-dep-free'.",
+      "ae_cli_analysis": "docs/DESIGN.md:156-158: 'cli/wasm -> inquiry -> analysis -> core'; the headless CLI runner uses 'same core' per the crate map in docs/DESIGN.md:150-155.",
+      "ae_cli_genesis_vibes": "docs/DESIGN.md:156-158: 'catherine-cli additionally consumes genesis-vibes (envelope/guide only — never leaks into the kernel)'. README.md:205: 'genesis-vibes (CLI crate only; kernel stays suite-dep-free)'.",
+      "ae_wasm_core": "docs/DESIGN.md:156-158: 'Dependency direction: cli/wasm -> inquiry -> analysis -> core'; wasm reaches the kernel, genesis-free per docs/DESIGN.md:132.",
+      "ae_wasm_analysis": "docs/DESIGN.md:156-158: 'cli/wasm -> inquiry -> analysis -> core'; wasm bindings are 'no logic of its own' over analysis, genesis-free (docs/DESIGN.md:132).",
+      "ae_ledger_core": "The decision ledger records kernel decisions and depends on the kernel only; docs/kani-lane.md cites ledger entries (e.g. 'ledger 0005', 'ledger/kani/') as records over the shipped kernel.",
+      "ae_kani_engine": "Lane isolation: the Kani harness crate depends on the engine only. docs/kani-lane.md: 'the harnesses moved to a new workspace member crates/catherine-kani that depends only on it — cargo kani -p catherine-kani compiles the execution core, the harnesses, and nothing else'."
+    }
+  },
+  "schema": {
+    "objects": [
+      "Crate",
+      "Dep",
+      "AllowedEdge"
+    ],
+    "arrows": [
+      {
+        "name": "dep_from",
+        "src": "Dep",
+        "tgt": "Crate"
+      },
+      {
+        "name": "dep_to",
+        "src": "Dep",
+        "tgt": "Crate"
+      },
+      {
+        "name": "allowed_from",
+        "src": "AllowedEdge",
+        "tgt": "Crate"
+      },
+      {
+        "name": "allowed_to",
+        "src": "AllowedEdge",
+        "tgt": "Crate"
+      },
+      {
+        "name": "inject",
+        "src": "AllowedEdge",
+        "tgt": "Dep"
+      }
+    ],
+    "equations": [
+      {
+        "lhs": [
+          "inject",
+          "dep_to"
+        ],
+        "rhs": [
+          "allowed_to"
+        ],
+        "rationale": "the paired actual dependency edge targets the crate the policy allows",
+        "status": "accepted"
+      },
+      {
+        "lhs": [
+          "inject",
+          "dep_from"
+        ],
+        "rhs": [
+          "allowed_from"
+        ],
+        "rationale": "the paired actual dependency edge starts at the crate the policy allows",
+        "status": "accepted"
+      }
+    ],
+    "coproducts": [
+      {
+        "object": "Dep",
+        "arrows": [
+          "inject"
+        ],
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Crate": [
+        "core",
+        "engine",
+        "analysis",
+        "cli",
+        "genesis_vibes",
+        "wasm",
+        "ledger",
+        "kani"
+      ],
+      "Dep": [
+        "dep_core_engine",
+        "dep_analysis_core",
+        "dep_cli_core",
+        "dep_cli_analysis",
+        "dep_cli_genesis_vibes",
+        "dep_wasm_core",
+        "dep_wasm_analysis",
+        "dep_ledger_core",
+        "dep_kani_engine"
+      ],
+      "AllowedEdge": [
+        "ae_core_engine",
+        "ae_analysis_core",
+        "ae_cli_core",
+        "ae_cli_analysis",
+        "ae_cli_genesis_vibes",
+        "ae_wasm_core",
+        "ae_wasm_analysis",
+        "ae_ledger_core",
+        "ae_kani_engine"
+      ]
+    },
+    "tables": {
+      "dep_from": {
+        "dep_core_engine": "core",
+        "dep_analysis_core": "analysis",
+        "dep_cli_core": "cli",
+        "dep_cli_analysis": "cli",
+        "dep_cli_genesis_vibes": "cli",
+        "dep_wasm_core": "wasm",
+        "dep_wasm_analysis": "wasm",
+        "dep_ledger_core": "ledger",
+        "dep_kani_engine": "kani"
+      },
+      "dep_to": {
+        "dep_core_engine": "engine",
+        "dep_analysis_core": "core",
+        "dep_cli_core": "core",
+        "dep_cli_analysis": "analysis",
+        "dep_cli_genesis_vibes": "genesis_vibes",
+        "dep_wasm_core": "core",
+        "dep_wasm_analysis": "analysis",
+        "dep_ledger_core": "core",
+        "dep_kani_engine": "engine"
+      },
+      "allowed_from": {
+        "ae_core_engine": "core",
+        "ae_analysis_core": "analysis",
+        "ae_cli_core": "cli",
+        "ae_cli_analysis": "cli",
+        "ae_cli_genesis_vibes": "cli",
+        "ae_wasm_core": "wasm",
+        "ae_wasm_analysis": "wasm",
+        "ae_ledger_core": "ledger",
+        "ae_kani_engine": "kani"
+      },
+      "allowed_to": {
+        "ae_core_engine": "engine",
+        "ae_analysis_core": "core",
+        "ae_cli_core": "core",
+        "ae_cli_analysis": "analysis",
+        "ae_cli_genesis_vibes": "genesis_vibes",
+        "ae_wasm_core": "core",
+        "ae_wasm_analysis": "analysis",
+        "ae_ledger_core": "core",
+        "ae_kani_engine": "engine"
+      },
+      "inject": {
+        "ae_core_engine": "dep_core_engine",
+        "ae_analysis_core": "dep_analysis_core",
+        "ae_cli_core": "dep_cli_core",
+        "ae_cli_analysis": "dep_cli_analysis",
+        "ae_cli_genesis_vibes": "dep_cli_genesis_vibes",
+        "ae_wasm_core": "dep_wasm_core",
+        "ae_wasm_analysis": "dep_wasm_analysis",
+        "ae_ledger_core": "dep_ledger_core",
+        "ae_kani_engine": "dep_kani_engine"
+      }
+    }
+  }
+}
