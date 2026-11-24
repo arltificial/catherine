@@ -194,3 +194,56 @@ pub fn engine_equation_findings(
     equation_findings(schema, typed, &mut out);
     out
 }
+
+/// The key family's emissions in walk order — the check side's
+/// per-family partition entry (see [`engine_dangling_findings`] and
+/// [`engine_equation_findings`] for the bounded-table and walk-order
+/// rationale). One finding per unordered equal-tuple pair, ascending
+/// tuples and rows, so walk order is already the family's key order and
+/// this entry does not sort: the sort obligation over the partition's
+/// symbolic keys is the check harness's own `sort_pushed_by` call, and
+/// the soundness harness consumes the emissions without it.
+pub fn engine_key_findings(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
+    // Worst case: every resolved row pair collides — concrete under the
+    // declared shape (≤ 1 emission), well under the cap.
+    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
+    key_findings(schema, typed, &mut out);
+    out
+}
+
+/// The coproduct family's emissions in walk order — the check side's
+/// per-family partition entry (see [`engine_key_findings`]). One finding
+/// per row whose coverage verdict is decidable and failed, ascending
+/// rows, so walk order is already the family's key order.
+pub fn engine_coproduct_findings(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
+    // Worst case: every target row uncovered or colliding — concrete
+    // under the declared shape (≤ 2 emissions), well under the cap.
+    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
+    coproduct_findings(schema, typed, &mut out);
+    out
+}
+
+/// The pullback family's emissions in walk order — the check side's
+/// per-family partition entry (see [`engine_key_findings`]). Walk order
+/// is commutes rows, then unique bucket pairs, then covers fiber pairs
+/// — NOT the family's key order (the verdict discriminators sort
+/// commutes < covers < unique), so the check harness's `sort_pushed_by`
+/// is load-bearing here, not just uniform: it is what keeps the sort's
+/// panic-freedom over the partition's symbolic keys a proven claim.
+pub fn engine_pullback_findings(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
+    // Worst case: every resolved apex row disagrees, every fiber pair is
+    // uncovered, and the apex pair shares a projection — concrete under
+    // the declared shape (≤ 7 emissions), well under the cap.
+    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
+    pullback_findings(schema, typed, &mut out);
+    out
+}

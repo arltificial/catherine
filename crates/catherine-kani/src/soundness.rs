@@ -11,7 +11,9 @@
 //! family's claim (equation disagreement, key collision, coproduct
 //! coverage/disjointness, pullback commutes/covers/unique, dangling
 //! cell) over the lane flavor's compact witnesses (ids, zero Strings);
-//! [`assert_finding_sound`] dispatches one finding to its obligation.
+//! each soundness harness calls its family's obligation directly — the
+//! dispatch is partitioned per witness kind, exactly like the walkers
+//! (2026-11-24, Decision 4 at obligation granularity).
 //!
 //! Rationale: an independent evaluator that reused the kernel's walk
 //! would prove nothing about it — the obligations here carry their own
@@ -24,11 +26,12 @@
 //! (docs/kani-lane.md).
 
 use catherine_engine::engine::{
-    Bounded, CompactFinding, CompactPullback, CompactViolation, CompiledKey, EngineSchema,
-    EngineTyped, Nid, Step, ARROWS_CAP, ROWS_CAP,
+    Bounded, CompactPullback, CompiledKey, EngineSchema, EngineTyped, Step, ARROWS_CAP,
 };
 
 mod coprod;
+
+pub(super) use coprod::{assert_coproduct_collision_sound, assert_coproduct_coverage_sound};
 
 /// Compose a compiled path starting at source row `start` — rebuilt
 /// independently: each step resolves its cell or the path fails. Same
@@ -54,25 +57,6 @@ fn compose(typed: &EngineTyped, path: &Bounded<Step, ARROWS_CAP>, start: usize) 
         i += 1;
     }
     Some(current)
-}
-
-/// The equation claim: both sides recomposed land on the witness's
-/// values, and they disagree.
-pub(super) fn assert_equation_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    row: usize,
-    lhs: usize,
-    rhs: usize,
-) {
-    let equation = &schema.equations[index];
-    let left = compose(typed, &equation.lhs, row);
-    let right = compose(typed, &equation.rhs, row);
-    assert_eq!(left, Some(lhs));
-    assert_eq!(right, Some(rhs));
-    assert_ne!(lhs, rhs);
-    let _ = schema;
 }
 
 /// The equation claim's left half: the lhs side recomposed
@@ -114,8 +98,11 @@ pub(super) fn assert_equation_rhs_sound(
 }
 
 /// The key claim: both colliding rows' key tuples fully resolve and
-/// are equal, ascending as carried.
-fn assert_key_sound(
+/// are equal, ascending as carried. The soundness harness calls its
+/// family's obligation directly — the merged per-finding dispatch is
+/// gone (2026-11-24: the dispatch split per witness kind, Decision 4 at
+/// obligation granularity).
+pub(super) fn assert_key_sound(
     schema: &EngineSchema,
     typed: &EngineTyped,
     index: usize,
@@ -279,36 +266,6 @@ fn assert_unique_sound(
     let _ = schema;
 }
 
-/// The independent soundness obligation for one compact finding: every
-/// witness re-evaluated from the interned tables fails exactly as
-/// claimed.
-pub(super) fn assert_finding_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    finding: &CompactFinding,
-) {
-    match finding {
-        CompactFinding::Dangling { arrow, src } => assert_dangling_sound(typed, *arrow, *src),
-        CompactFinding::Violation(CompactViolation::Equation {
-            index,
-            row,
-            lhs,
-            rhs,
-        }) => assert_equation_sound(schema, typed, *index, *row, *lhs, *rhs),
-        CompactFinding::Violation(CompactViolation::Key { index, lo, hi }) => {
-            assert_key_sound(schema, typed, *index, *lo, *hi)
-        }
-        CompactFinding::Violation(CompactViolation::Coproduct {
-            index,
-            row,
-            injections,
-        }) => coprod::assert_coproduct_sound(schema, typed, *index, *row, injections),
-        CompactFinding::Violation(CompactViolation::Pullback(pullback)) => {
-            assert_pullback_sound(schema, typed, pullback)
-        }
-    }
-}
-
 pub(super) fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usize) {
     let cell = typed.tables.get(arrow).and_then(|table| table.get(src));
     match cell {
@@ -318,7 +275,11 @@ pub(super) fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usiz
 }
 
 /// The pullback family's three obligations, one per verdict.
-fn assert_pullback_sound(schema: &EngineSchema, typed: &EngineTyped, pullback: &CompactPullback) {
+pub(super) fn assert_pullback_sound(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+    pullback: &CompactPullback,
+) {
     match pullback {
         CompactPullback::Commutes {
             index,

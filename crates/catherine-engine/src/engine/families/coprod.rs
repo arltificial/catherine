@@ -3,16 +3,15 @@
 //! over the arena.
 
 use super::super::{
-    Bounded, CompactFinding, CompactViolation, EngineSchema, EngineTyped, Nid, SortKey, ARROWS_CAP,
-    ROWS_CAP,
+    Bounded, CompactFinding, CompactViolation, EngineSchema, EngineTyped, Nid, ARROWS_CAP, ROWS_CAP,
 };
-use super::push_bounded;
+use super::FindingSink;
 use crate::findings::EpistemicLabel;
 
 pub(crate) fn coproduct_findings(
     schema: &EngineSchema,
     typed: &EngineTyped,
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
 ) {
     for (index, coproduct) in schema.coproducts.iter().enumerate() {
         let Some(coproduct) = coproduct else { continue };
@@ -45,9 +44,15 @@ fn image_has(image: &Bounded<u64, ROWS_CAP>, row: u64) -> bool {
     false
 }
 
-/// The coproduct's complete injection images, ascending distinct target
-/// values each — the walk's `BTreeSet` images; `partial` is true when
-/// any injection image has an unresolved cell.
+/// The coproduct's complete injection images, resolved target values in
+/// walk order — `partial` is true when any injection image has an
+/// unresolved cell. No sort, no dedup: the walk consumes the images by
+/// membership only (`row_covering`), the merged cross-family sort fixes
+/// the final order, and the parsed flavor's `BTreeSet` semantics were
+/// the only reason for the sorted-distinct mirror — charging it to the
+/// lane's symex without changing a single emission (measured
+/// 2026-11-24: the mirror alone kept soundness_coproduct over the
+/// 300 s wall at unwind 8 and 9).
 fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (CoproductImages, bool) {
     let mut images = CoproductImages::new();
     let mut complete = true;
@@ -70,8 +75,6 @@ fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (CoproductImages, bo
             idx += 1;
         }
         if resolved {
-            values.sort_pushed_by(|a, b| a.cmp(b));
-            values.dedup_pushed();
             images.push((arrows[a], values));
         } else {
             complete = false;
@@ -86,7 +89,7 @@ fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (CoproductImages, bo
 /// partial image, coverage is undecidable and only a collision of two or
 /// more complete images is decidable.
 fn coproduct_row_findings(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     images: &CoproductImages,
     complete: bool,
     index: usize,
@@ -102,18 +105,15 @@ fn coproduct_row_findings(
             covering.len() >= 2
         };
         if emit {
-            push_bounded(
-                out,
-                (
-                    (0, 3, 0, index as u64, row as u64, 0, 0, 0),
-                    label,
-                    CompactFinding::Violation(CompactViolation::Coproduct {
-                        index,
-                        row,
-                        injections: covering,
-                    }),
-                ),
-            );
+            out.emit((
+                (0, 3, 0, index as u64, row as u64, 0, 0, 0),
+                label,
+                CompactFinding::Violation(CompactViolation::Coproduct {
+                    index,
+                    row,
+                    injections: covering,
+                }),
+            ));
         }
         row += 1;
     }

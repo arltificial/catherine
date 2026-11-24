@@ -6,8 +6,8 @@
 //! order, so buckets, fibers, and findings are exactly the walk's.
 
 use super::super::{Bounded, CompactFinding, CompactViolation, ARROWS_CAP, ROWS_CAP};
-use super::super::{CompactPullback, CompiledPullback, EngineSchema, EngineTyped, Nid, SortKey};
-use super::push_bounded;
+use super::super::{CompactPullback, CompiledPullback, EngineSchema, EngineTyped, Nid};
+use super::FindingSink;
 use crate::findings::EpistemicLabel;
 
 /// The apex rows bucketed by their resolved leg projection — ascending
@@ -30,7 +30,7 @@ type Fibers = Bounded<(u64, Bounded<usize, ROWS_CAP>), ROWS_CAP>;
 pub(crate) fn pullback_findings(
     schema: &EngineSchema,
     typed: &EngineTyped,
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
 ) {
     for (index, pullback) in schema.pullbacks.iter().enumerate() {
         let Some(pullback) = pullback else { continue };
@@ -54,7 +54,7 @@ pub(crate) fn pullback_findings(
 /// leg cell was unresolved.
 fn pullback_projections(
     typed: &EngineTyped,
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     pullback: &CompiledPullback,
     index: usize,
     apex_rows: usize,
@@ -111,32 +111,29 @@ fn push_projection(projections: &mut ProjectionBuckets, projection: (u64, u64), 
 /// One commutes finding for a cospan pair disagreeing on the apex row.
 /// projection, ascending rows within an ascending-projection bucket walk.
 fn push_commutes_finding(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     index: usize,
     row: usize,
     lhs: usize,
     rhs: usize,
     label: EpistemicLabel,
 ) {
-    push_bounded(
-        out,
-        (
-            (0, 4, 0, index as u64, row as u64, lhs as u64, rhs as u64, 0),
-            label,
-            CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Commutes {
-                index,
-                row,
-                lhs,
-                rhs,
-            })),
-        ),
-    );
+    out.emit((
+        (0, 4, 0, index as u64, row as u64, lhs as u64, rhs as u64, 0),
+        label,
+        CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Commutes {
+            index,
+            row,
+            lhs,
+            rhs,
+        })),
+    ));
 }
 
 /// Uniqueness: one finding per unordered pair of apex rows sharing a
 /// projection, ascending rows within an ascending-projection bucket walk.
 fn emit_pullback_unique(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     projections: &ProjectionBuckets,
     index: usize,
     label: EpistemicLabel,
@@ -153,7 +150,7 @@ fn emit_pullback_unique(
 /// One finding per unordered pair within one projection bucket,
 /// ascending rows.
 fn emit_bucket_pairs(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     rows: &Bounded<usize, ROWS_CAP>,
     index: usize,
     label: EpistemicLabel,
@@ -168,19 +165,14 @@ fn emit_bucket_pairs(
             let Some(&hi) = rows[hi_index].as_ref() else {
                 break;
             };
-            push_bounded(
-                out,
-                (
-                    (0, 4, 2, index as u64, lo as u64, hi as u64, 0, 0),
-                    label,
-                    CompactFinding::Violation(CompactViolation::Pullback(
-                        CompactPullback::Unique {
-                            index,
-                            rows: [lo, hi],
-                        },
-                    )),
-                ),
-            );
+            out.emit((
+                (0, 4, 2, index as u64, lo as u64, hi as u64, 0, 0),
+                label,
+                CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Unique {
+                    index,
+                    rows: [lo, hi],
+                })),
+            ));
             hi_index += 1;
         }
         position += 1;
@@ -192,7 +184,7 @@ fn emit_bucket_pairs(
 fn emit_pullback_covers(
     schema: &EngineSchema,
     typed: &EngineTyped,
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     projections: &ProjectionBuckets,
     pullback: &CompiledPullback,
     index: usize,
@@ -233,7 +225,7 @@ fn matching_fiber<'a>(b_fiber: &'a Fibers, target: &u64) -> Option<&'a Bounded<u
 /// One missing-cover finding per fiber pair with no projecting apex row,
 /// ascending targets and rows.
 fn emit_fiber_pairs(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     projections: &ProjectionBuckets,
     index: usize,
     label: EpistemicLabel,
@@ -260,7 +252,7 @@ fn emit_fiber_pairs(
 /// One missing-cover finding when no apex row projects onto the cospan
 /// pair through both legs.
 fn emit_cover_finding(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     projections: &ProjectionBuckets,
     index: usize,
     label: EpistemicLabel,
@@ -280,17 +272,14 @@ fn emit_cover_finding(
         i += 1;
     }
     if !covered {
-        push_bounded(
-            out,
-            (
-                (0, 4, 1, index as u64, a as u64, b as u64, 0, 0),
-                label,
-                CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Covers {
-                    index,
-                    pair: [a, b],
-                })),
-            ),
-        );
+        out.emit((
+            (0, 4, 1, index as u64, a as u64, b as u64, 0, 0),
+            label,
+            CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Covers {
+                index,
+                pair: [a, b],
+            })),
+        ));
     }
 }
 

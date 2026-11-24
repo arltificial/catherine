@@ -1,108 +1,70 @@
-//! Purpose: the Kani bounded-model-checking harnesses over the shipped
+//! Purpose: Kani bounded-model-checking harnesses over the shipped
 //! kernel (`catherine-core`) — panic/overflow-freedom over the
-//! post-parse execution path (engine build, path composition inside the
-//! `check` walk, equation/key/coprod/pullback families) and witness
-//! soundness on emitted findings (re-evaluation half in the `soundness`
-//! submodule) — openspec change `add-kani-verification-lane`, beads
-//! `catherine-6g2` (the interning that made the lane runnable).
+//! post-parse execution path (build, walk composition, four families)
+//! and witness soundness on emitted findings (`soundness` submodule);
+//! openspec `add-kani-verification-lane`, beads `catherine-6g2`.
 //!
-//! Responsibilities: harnesses are PARTITIONED PER CHECK FAMILY, each
-//! with its own minimal schema and stated bounds (design Decision 4).
-//! Synthesis is nondeterministic `kani::any()` scalars composed into
-//! dense id tables by deterministic insertion loops (Decision 2: never
-//! the map-bearing domain types themselves, never serde strings — and,
-//! since catherine-amh, never any `BTreeMap` op: container modeling is
-//! the measured wall). Bounds are non-vacuous per family: each harness's
-//! space admits a document exercising its family's failure shapes; the
-//! provocation pass (task 3) demonstrates each harness can fail.
+//! Responsibilities: harnesses are PARTITIONED PER CHECK FAMILY
+//! (Decision 4), each with its own minimal schema and stated bounds;
+//! synthesis is nondeterministic `kani::any()` scalars composed into
+//! dense id tables by deterministic insertion loops (Decision 2: no
+//! map-bearing domain types, no serde strings, no `BTreeMap` ops —
+//! container modeling is the measured wall); bounds are non-vacuous,
+//! and the provocation pass demonstrates each can fail.
 //!
-//! Rationale: the checker sets `cfg(kani)`; this module compiles only
-//! under verification. The sortedness obligation asserts the canonical
-//! taxonomy order over the engine's int sort keys — the exact comparison
-//! prefix of `Finding::cmp` (id order is name order by construction),
-//! without charging a `&str` comparison to the solver (the memcmp model
-//! is measured fatal inside sort comparators). Kani's UNDETERMINED and
-//! any counterexample follow the counterexample protocol (design
-//! Decision 5): attribution recorded, obligations never weakened.
+//! Rationale: the checker sets `cfg(kani)`, so this module compiles only
+//! under verification; the sortedness obligation asserts the canonical
+//! order over int sort keys — the comparison prefix of `Finding::cmp`
+//! — with no `&str` charged to the solver (memcmp is measured fatal
+//! inside sort comparators); UNDETERMINED and counterexamples follow
+//! Decision 5: attribution recorded, obligations never weakened.
 
 #![cfg(kani)]
 
 use catherine_engine::engine::{
-    engine_build, engine_dangling_findings, engine_equation_findings, engine_families,
-    CompactFinding, CompactViolation, EngineInstance, EngineSchema, EngineTyped, SortKey,
+    engine_build, engine_coproduct_findings, engine_dangling_findings, engine_equation_findings,
+    engine_families, engine_key_findings, engine_pullback_findings, CompactFinding,
+    CompactViolation, EngineInstance, EngineSchema, EngineTyped,
 };
 
 mod shapes;
 mod soundness;
 
-/// Panic/overflow-freedom of the engine build alone over the full arrow
-/// space, including dangling and typing-violation branches (build is
-/// infallible by contract: every value lands somewhere, never a hard
-/// failure).
+/// Panic/overflow-freedom of the engine build alone (infallible by
+/// contract: every value lands somewhere).
 #[kani::proof]
 fn build_panic_freedom() {
     let schema = shapes::schema_all_families();
     let instance = shapes::instance_for(&schema);
     let typed = engine_build(&schema, &instance);
     let _ = typed.tables.len();
-    // Drop glue and deallocation paths dominate the solver's symbolic
-    // execution (catherine-6g2, measured: 154 s symex, 1.17 M steps,
-    // nearly all drop/dealloc); the claim is the walk, and none of
-    // these types carries a panicking drop, so the harness forgets them.
+    // Drop glue dominates the solver (measured 154 s of 300 s on build).
     std::mem::forget((schema, instance, typed));
 }
 
-/// The build obligation over one family's minimal shape — the same
-/// panic/overflow-freedom claim as the all-families harness, partitioned
-/// per family (design Decision 4: each harness carries a minimal schema
-/// and stated bounds). The all-families space stays declared with its
-/// disposition; these carry the claim where the budget reaches it.
+/// The build obligation over one family's minimal shape (Decision 4).
 macro_rules! build_panic_freedom_over {
-    ($name:ident, $shape:ident, $doc:literal) => {
-        #[doc = $doc]
+    ($name:ident, $shape:ident) => {
+        #[doc = "Panic/overflow-freedom of the engine build alone over one family's minimal space (the all-families claim partitioned per family, Decision 4)."]
         #[kani::proof]
         fn $name() {
             let schema = shapes::$shape();
             let instance = shapes::instance_for(&schema);
             let typed = engine_build(&schema, &instance);
             let _ = typed.tables.len();
-            // The claim is the walk; none of these types carries a
-            // panicking drop, so the harness forgets them.
             std::mem::forget((schema, instance, typed));
         }
     };
 }
 
-build_panic_freedom_over!(
-    build_panic_freedom_equation,
-    schema_equation,
-    "Panic/overflow-freedom of the engine build alone over the equation family's minimal space."
-);
-build_panic_freedom_over!(
-    build_panic_freedom_key,
-    schema_key,
-    "Panic/overflow-freedom of the engine build alone over the key family's minimal space."
-);
-build_panic_freedom_over!(
-    build_panic_freedom_coproduct,
-    schema_coproduct,
-    "Panic/overflow-freedom of the engine build alone over the coproduct family's minimal space."
-);
-build_panic_freedom_over!(
-    build_panic_freedom_pullback,
-    schema_pullback,
-    "Panic/overflow-freedom of the engine build alone over the pullback family's minimal space."
-);
+build_panic_freedom_over!(build_panic_freedom_equation, schema_equation);
+build_panic_freedom_over!(build_panic_freedom_key, schema_key);
+build_panic_freedom_over!(build_panic_freedom_coproduct, schema_coproduct);
+build_panic_freedom_over!(build_panic_freedom_pullback, schema_pullback);
 
-/// The nondeterministic `check` + diff-stable-order obligation over the
-/// whole walk: all four families declared on one minimal presentation,
-/// the emitted findings asserted totally ordered — in the int keys that
-/// `Finding::cmp` compares (kind, variant, witness ids, label). The
-/// all-families space emits up to 45 findings (concrete bound:
-/// `arrow_src.len() * max_rows + max_rows^2 * (eqs + keys + cops + 3 *
-/// pbs) + ...`), so the sort loops need their own unwind — the declared
-/// per-harness bound (design Decision 4); every other loop here stays
-/// within the lane's default 16.
+/// The nondeterministic `check` + diff-stable-order obligation: all
+/// four families on one minimal presentation, emissions totally ordered
+/// in the int keys `Finding::cmp` compares (sort loops declare 48).
 #[kani::proof]
 #[kani::unwind(48)]
 fn check_sortedness_panic_freedom() {
@@ -116,24 +78,11 @@ fn check_sortedness_panic_freedom() {
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Panic/overflow-freedom of the equation family's walk over its minimal
-/// space — the check side's per-family partition (Decision 4 at walker
-/// granularity, ledger `0007`'s recorded trigger): this harness's
-/// formula carries only the equation walk; the dangling partition is
-/// `check_dangling_panic_freedom`'s, and the two together carry the
-/// whole-walk claim over the equation shape (the sort machinery and the
-/// per-family walkers are each exercised in exactly one partition).
-///
-/// The declared unwind is 8, not the lane default 16: every loop this
-/// harness executes is concretely bounded under the shape by 8 — the
-/// synthesis scans (≤ 7 arrows, ≤ 4 objects, ≤ 2 rows per arrow, the
-/// 8-byte `ident_key` pad), the build walk (7 arrows × 2 cells), the
-/// compose path (1 step), the equation rows (2), the sort (≤ 2
-/// emissions), and the harness loop — so 8 discharges every unwinding
-/// assertion and halves the unrolled formula mass against the 8 GB
-/// reduction (the equation partition's wall; check_dangling cleared the
-/// same wall at 7 M clauses and 16 unwind). A loop that outgrows 8
-/// fails loudly as an unwinding assertion, never silently.
+/// Panic/overflow-freedom of the equation family's walk — the check
+/// side's per-family partition (Decision 4, ledger `0007`): this
+/// formula carries only the equation walk; `check_dangling_panic_freedom`
+/// carries the dangling partition; together the whole-walk claim.
+/// Unwind 8.
 #[kani::proof]
 #[kani::unwind(8)]
 fn check_equation_panic_freedom() {
@@ -141,10 +90,7 @@ fn check_equation_panic_freedom() {
     let (instance, typed) = typed_for(&schema);
     let mut findings = engine_equation_findings(&schema, &typed);
     // The family's sort obligation lives here (the entry emits in walk
-    // order): the sort's panic-freedom over the equation partition's
-    // symbolic keys stays a proven claim of this harness, while the
-    // soundness harness — whose claims are order-free — consumes the
-    // emissions without it.
+    // order); the soundness harness's formula carries no sort.
     findings.sort_pushed_by(|a, b| a.0.cmp(&b.0));
     let mut i = 0;
     while i < findings.len() {
@@ -161,10 +107,7 @@ fn check_equation_panic_freedom() {
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Panic/overflow-freedom of the dangling family's walk over its minimal
-/// space (the equation shape's dangling partition — the probe that
-/// verified 47.7 s at the 2026-11-23 standard, now declared). The
-/// equation partition is `check_equation_panic_freedom`'s.
+/// Panic/overflow-freedom of the dangling family's walk (the equation shape's dangling partition).
 #[kani::proof]
 fn check_dangling_panic_freedom() {
     let schema = shapes::schema_equation();
@@ -181,71 +124,85 @@ fn check_dangling_panic_freedom() {
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Panic/overflow-freedom of the key family over its minimal space (one
-/// two-arrow key over a two-row object; unresolved cells exclude their
-/// row from the collision scan — never double-reported).
+/// Panic/overflow-freedom of the key family (unresolved cells exclude
+/// their row from the collision scan — never double-reported).
+/// Partitioned per family; sort obligation here; unwind 9.
 #[kani::proof]
+#[kani::unwind(9)]
 fn check_key_panic_freedom() {
     let schema = shapes::schema_key();
     let (instance, typed) = typed_for(&schema);
-    let findings = engine_families(&schema, &typed);
-    for (key, _, finding) in &findings {
+    let mut findings = engine_key_findings(&schema, &typed);
+    findings.sort_pushed_by(|a, b| a.0.cmp(&b.0));
+    let mut i = 0;
+    while i < findings.len() {
         assert!(matches!(
-            finding,
-            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
+            &findings[i],
+            Some((
+                _,
+                _,
+                CompactFinding::Violation(CompactViolation::Key { .. })
+            ))
         ));
-        let _ = key;
+        i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Panic/overflow-freedom of the coproduct family over its minimal space
-/// (two injections into a two-row target; coverage and disjointness
-/// decided only on resolvable cells).
+/// Panic/overflow-freedom of the coproduct family (two injections into
+/// a two-row target, decided only on resolvable cells). Unwind 8.
 #[kani::proof]
+#[kani::unwind(8)]
 fn check_coproduct_panic_freedom() {
     let schema = shapes::schema_coproduct();
     let (instance, typed) = typed_for(&schema);
-    let findings = engine_families(&schema, &typed);
-    for (key, _, finding) in &findings {
+    let mut findings = engine_coproduct_findings(&schema, &typed);
+    findings.sort_pushed_by(|a, b| a.0.cmp(&b.0));
+    let mut i = 0;
+    while i < findings.len() {
         assert!(matches!(
-            finding,
-            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
+            &findings[i],
+            Some((
+                _,
+                _,
+                CompactFinding::Violation(CompactViolation::Coproduct { .. })
+            ))
         ));
-        let _ = key;
+        i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Panic/overflow-freedom of the pullback family over its minimal space
-/// (apex with two legs, cospan over a two-row target so commutes can
-/// disagree; dangling legs suspend a row's verdicts, dangling cospan
-/// cells shrink the decidable fiber).
+/// Panic/overflow-freedom of the pullback family (apex with two legs,
+/// cospan over a two-row target so commutes can disagree; dangling legs
+/// suspend a row's verdicts, dangling cospan cells shrink the decidable
+/// fiber). Partitioned per family, unwind 8; the sort is load-bearing.
 #[kani::proof]
+#[kani::unwind(8)]
 fn check_pullback_panic_freedom() {
     let schema = shapes::schema_pullback();
     let (instance, typed) = typed_for(&schema);
-    let findings = engine_families(&schema, &typed);
-    for (key, _, finding) in &findings {
+    let mut findings = engine_pullback_findings(&schema, &typed);
+    findings.sort_pushed_by(|a, b| a.0.cmp(&b.0));
+    let mut i = 0;
+    while i < findings.len() {
         assert!(matches!(
-            finding,
-            CompactFinding::Violation(_) | CompactFinding::Dangling { .. }
+            &findings[i],
+            Some((
+                _,
+                _,
+                CompactFinding::Violation(CompactViolation::Pullback(_))
+            ))
         ));
-        let _ = key;
+        i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
 }
 
 /// Witness soundness, equation family, lhs half: every emitted equation
-/// violation's lhs side recomposed independently (soundness submodule)
-/// lands on the witness, with a genuinely disagreeing pair. The claim is
-/// split per composition side (Decision 4 at obligation granularity,
-/// 2026-11-24): the full both-sides formula exceeded the 8 GB reduction
-/// even at unwind 8 with the sort dropped, so the rhs half is
-/// `soundness_equation_rhs`'s and the two harnesses' union carries the
-/// family's claim; the dispatch is partitioned per witness kind, and the
-/// declared unwind is 8 (see `check_equation_panic_freedom` — every
-/// executed loop is concretely bounded by 8 under the shape).
+/// violation's lhs side recomposed independently lands on the witness,
+/// with a genuinely disagreeing pair. Split per composition side (Decision
+/// 4, 2026-11-24); the rhs half is `soundness_equation_rhs`'s.
 #[kani::proof]
 #[kani::unwind(8)]
 fn soundness_equation() {
@@ -273,8 +230,7 @@ fn soundness_equation() {
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Witness soundness, equation family, rhs half (see
-/// `soundness_equation` for the split rationale and the unwind bound).
+/// Witness soundness, equation family, rhs half (see `soundness_equation`).
 #[kani::proof]
 #[kani::unwind(8)]
 fn soundness_equation_rhs() {
@@ -303,51 +259,115 @@ fn soundness_equation_rhs() {
 }
 
 /// Witness soundness, key family: every emitted collision's witness
-/// re-evaluated independently finds equal, fully resolved tuples on
-/// ascending rows.
+/// re-evaluated independently finds equal, fully resolved tuples
+/// (per-kind dispatch, unwind 9, order-free claims).
 #[kani::proof]
+#[kani::unwind(9)]
 fn soundness_key() {
-    let (schema, instance, typed, findings) = family_under_test(shapes::schema_key());
+    let schema = shapes::schema_key();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_key_findings(&schema, &typed);
     let mut i = 0;
     while i < findings.len() {
-        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        if let Some((_, _, CompactFinding::Violation(CompactViolation::Key { index, lo, hi }))) =
+            &findings[i]
+        {
+            soundness::assert_key_sound(&schema, &typed, *index, *lo, *hi);
+        }
         i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Witness soundness, coproduct family: coverage witnesses name rows in
-/// no injection image; disjointness witnesses name colliding injections
-/// that really cover their row.
+/// Witness soundness, coproduct family, coverage half: a coverage
+/// witness names a row in no complete injection image. Split per
+/// witness shape (Decision 4, 2026-11-24); the collision half is
+/// `soundness_coproduct_collision`'s. Unwind 4 — the coproduct shape's
+/// loops are concrete (2 trips + exit); the mirror-era 8 unrolled past
+/// need and peaked at 9.93 GB uncapped, over the 8 GB scope.
 #[kani::proof]
+#[kani::unwind(4)]
 fn soundness_coproduct() {
-    let (schema, instance, typed, findings) = family_under_test(shapes::schema_coproduct());
+    let schema = shapes::schema_coproduct();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_coproduct_findings(&schema, &typed);
     let mut i = 0;
     while i < findings.len() {
-        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        if let Some((
+            _,
+            _,
+            CompactFinding::Violation(CompactViolation::Coproduct {
+                index,
+                row,
+                injections,
+            }),
+        )) = &findings[i]
+        {
+            if injections.is_empty() {
+                soundness::assert_coproduct_coverage_sound(&schema, &typed, *index, *row);
+            }
+        }
         i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Witness soundness, pullback family: commutes witnesses re-derive both
-/// compositions and the disagreement; covers witnesses re-derive the
-/// uncovered fiber pair; unique witnesses re-derive the shared
-/// projections.
+/// Witness soundness, coproduct family, collision half (rationale in
+/// `soundness_coproduct`'s doc). Unwind 4 — same concrete-bound sizing.
 #[kani::proof]
-fn soundness_pullback() {
-    let (schema, instance, typed, findings) = family_under_test(shapes::schema_pullback());
+#[kani::unwind(4)]
+fn soundness_coproduct_collision() {
+    let schema = shapes::schema_coproduct();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_coproduct_findings(&schema, &typed);
     let mut i = 0;
     while i < findings.len() {
-        soundness::assert_finding_sound(&schema, &typed, &findings[i].2);
+        if let Some((
+            _,
+            _,
+            CompactFinding::Violation(CompactViolation::Coproduct {
+                index,
+                row,
+                injections,
+            }),
+        )) = &findings[i]
+        {
+            if !injections.is_empty() {
+                soundness::assert_coproduct_collision_sound(
+                    &schema, &typed, *index, *row, injections,
+                );
+            }
+        }
         i += 1;
     }
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Witness soundness, dangling family: every dangling witness names a
-/// cell that really holds no row (its own dispatch arm — see
-/// `soundness_equation` for the partition rationale).
+/// Witness soundness, pullback family: each witness kind's claim
+/// re-derived independently (per-kind dispatch, order-free). Unwind 8.
+#[kani::proof]
+#[kani::unwind(8)]
+fn soundness_pullback() {
+    let schema = shapes::schema_pullback();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_pullback_findings(&schema, &typed);
+    let mut i = 0;
+    while i < findings.len() {
+        if let Some((_, _, CompactFinding::Violation(CompactViolation::Pullback(pullback)))) =
+            &findings[i]
+        {
+            soundness::assert_pullback_sound(&schema, &typed, pullback);
+        }
+        i += 1;
+    }
+    std::mem::forget((schema, instance, typed, findings));
+}
+
+/// Witness soundness, dangling family: every witness names a cell that really holds no row.
 #[kani::proof]
 fn soundness_dangling() {
     let schema = shapes::schema_equation();
@@ -369,26 +389,6 @@ fn typed_for(schema: &EngineSchema) -> (EngineInstance, EngineTyped) {
     let instance = shapes::instance_for(schema);
     let typed = engine_build(schema, &instance);
     (instance, typed)
-}
-
-/// The schema, its tables, and the keyed findings — one soundness
-/// sample space per family.
-fn family_under_test(
-    schema: EngineSchema,
-) -> (
-    EngineSchema,
-    EngineInstance,
-    EngineTyped,
-    Vec<(
-        SortKey,
-        catherine_engine::findings::EpistemicLabel,
-        CompactFinding,
-    )>,
-) {
-    let instance = shapes::instance_for(&schema);
-    let typed = engine_build(&schema, &instance);
-    let findings = engine_families(&schema, &typed);
-    (schema, instance, typed, findings)
 }
 
 #[kani::proof]

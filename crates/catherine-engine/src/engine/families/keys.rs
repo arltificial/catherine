@@ -2,18 +2,14 @@
 //! declared key over its object's rows, over the arena.
 
 use super::super::{
-    Bounded, CompactFinding, CompactViolation, CompiledKey, EngineSchema, EngineTyped, SortKey,
-    ARROWS_CAP, ROWS_CAP,
+    Bounded, CompactFinding, CompactViolation, CompiledKey, EngineSchema, EngineTyped, ARROWS_CAP,
+    ROWS_CAP,
 };
-use super::push_bounded;
+use super::FindingSink;
 use crate::findings::EpistemicLabel;
 use std::cmp::Ordering;
 
-pub(crate) fn key_findings(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
-) {
+pub(crate) fn key_findings(schema: &EngineSchema, typed: &EngineTyped, out: &mut impl FindingSink) {
     for (index, key) in schema.keys.iter().enumerate() {
         let Some(key) = key else { continue };
         let Some(rows) = typed.row_counts[key.object] else {
@@ -98,71 +94,61 @@ fn key_groups(typed: &EngineTyped, key: &CompiledKey, rows: usize) -> KeyGroups 
 
 /// One finding per unordered pair of each equal-tuple run, ascending
 /// rows within a run and ascending tuples across runs.
+///
+/// Flat concrete-index slot scan (the dangling exclusion's pattern,
+/// ledger `0006`): the table is sorted, so equal tuples are adjacent
+/// and every equal pair `(i, j)`, `i < j`, is exactly the run's
+/// unordered pair set — the old run scan (`key_run_end` + symbolic
+/// `end` bounds) emitted the same pairs in the same order while
+/// charging symex symbolic-bound loops and per-slot `Option` forks
+/// (measured 2026-11-24: both key harnesses budget-killed in symex at
+/// the standard, at unwind 8 and 16 alike; the flat scan bounds every
+/// loop concretely by the cap).
 fn emit_key_pairs(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
+    out: &mut impl FindingSink,
     grouped: &KeyGroups,
     index: usize,
     label: EpistemicLabel,
 ) {
-    let mut start = 0;
-    while start < grouped.len() {
-        let end = key_run_end(grouped, start);
-        emit_run_pairs(out, grouped, start, end, index, label);
-        start = end;
-    }
-}
-
-/// One equal-tuple run's exclusive end — the walk's run scan, ascending
-/// rows within.
-fn key_run_end(grouped: &KeyGroups, start: usize) -> usize {
-    let Some((start_tuple, _)) = grouped[start].as_ref() else {
-        return start;
-    };
-    let mut end = start;
-    while end < grouped.len() {
-        let Some((tuple, _)) = grouped[end].as_ref() else {
-            break;
-        };
-        if !tuple_eq(tuple, start_tuple) {
-            break;
+    let mut i = 0;
+    while i < ROWS_CAP {
+        let a = key_slot(grouped, i);
+        let mut j = i + 1;
+        while j < ROWS_CAP {
+            emit_key_collision(out, &a, &key_slot(grouped, j), index, label);
+            j += 1;
         }
-        end += 1;
+        i += 1;
     }
-    end
 }
 
-/// One finding per unordered pair within one equal-tuple run, ascending
-/// rows.
-fn emit_run_pairs(
-    out: &mut Vec<(SortKey, EpistemicLabel, CompactFinding)>,
-    grouped: &KeyGroups,
-    start: usize,
-    end: usize,
+/// One grouped entry by concrete slot index — `None` past the length or
+/// on an empty slot (the flat scan's guard, no symbolic bounds).
+fn key_slot(grouped: &KeyGroups, i: usize) -> Option<(&KeyTuple, usize)> {
+    let entry = grouped.get(i)?.as_ref()?;
+    Some((&entry.0, entry.1))
+}
+
+/// One collision finding when two ascending slots carry equal tuples —
+/// the run scan's unordered pair, once per pair.
+fn emit_key_collision(
+    out: &mut impl FindingSink,
+    a: &Option<(&KeyTuple, usize)>,
+    b: &Option<(&KeyTuple, usize)>,
     index: usize,
     label: EpistemicLabel,
 ) {
-    let mut lo = start;
-    while lo < end {
-        let mut hi = lo + 1;
-        while hi < end {
-            let (a, b) = (
-                grouped[lo].as_ref().map(|g| g.1).unwrap_or(0),
-                grouped[hi].as_ref().map(|g| g.1).unwrap_or(0),
-            );
-            push_bounded(
-                out,
-                (
-                    (0, 1, 0, index as u64, a as u64, b as u64, 0, 0),
-                    label,
-                    CompactFinding::Violation(CompactViolation::Key {
-                        index,
-                        lo: a,
-                        hi: b,
-                    }),
-                ),
-            );
-            hi += 1;
+    if let (Some((ta, ra)), Some((tb, rb))) = (a, b) {
+        if tuple_eq(ta, tb) {
+            out.emit((
+                (0, 1, 0, index as u64, *ra as u64, *rb as u64, 0, 0),
+                label,
+                CompactFinding::Violation(CompactViolation::Key {
+                    index,
+                    lo: *ra,
+                    hi: *rb,
+                }),
+            ));
         }
-        lo += 1;
     }
 }

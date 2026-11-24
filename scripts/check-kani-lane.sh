@@ -83,6 +83,7 @@ DECLARED_HARNESSES=(
 	soundness_equation_rhs
 	soundness_key
 	soundness_coproduct
+	soundness_coproduct_collision
 	soundness_pullback
 	soundness_dangling
 )
@@ -145,7 +146,7 @@ for harness in "${run_harnesses[@]}"; do
 		systemd-run --user --scope -p "MemoryMax=${MEMORY_BUDGET_MB}M" -p MemorySwapMax=0 \
 		/usr/bin/time -v -o "$timefile" \
 		cargo kani -Z unstable-options -p catherine-kani --default-unwind 16 \
-		--harness-timeout "$HARNESS_TIMEOUT" --harness "$harness" > "$logfile" 2>&1
+		--harness-timeout "$HARNESS_TIMEOUT" --exact --harness "$harness" > "$logfile" 2>&1
 	rc=$?
 	set -e
 	out="$(cat "$logfile")"
