@@ -182,7 +182,7 @@ fn assert_coproduct_collision(
     let mut i = 0;
     while i < images.len() {
         let (arrow, image) = images[i].as_ref().unwrap();
-        let covered = image_covers(image, row);
+        let covered = image_covers(image, row as u64);
         let is_named = injection_named(injections, *arrow);
         if covered {
             assert!(is_named || partial);
