@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use super::{
     Bounded, CompiledCoproduct, CompiledEquation, CompiledKey, CompiledPullback, EngineInstance,
-    EngineSchema, Nid, Step,
+    EngineSchema, Nid, Step, ARROWS_CAP,
 };
 use crate::model::{Ident, Instance, Path, Schema};
 
@@ -110,12 +110,16 @@ pub const fn ident_key(name: &str) -> u64 {
 
 /// Resolve a parsed path to arrow ids; `None` steps stay unresolvable
 /// (compose returns nothing past them), mirroring the walk's get-based
-/// totality.
-fn compile_path(arrows: &HashMap<&Ident, Nid>, path: &Path) -> Vec<Step> {
-    path.0
-        .iter()
-        .map(|name| arrows.get(name).copied())
-        .collect()
+/// totality. The path is a bounded table ([`Bounded`]): array-backed
+/// under `cfg(kani)` (`ARROWS_CAP` is a proof obligation discharged by
+/// the declared shapes' path lengths), `Vec`-backed and arbitrary-sized
+/// in production.
+fn compile_path(arrows: &HashMap<&Ident, Nid>, path: &Path) -> Bounded<Step, ARROWS_CAP> {
+    let mut steps = Bounded::<Step, ARROWS_CAP>::new();
+    for name in &path.0 {
+        steps.push(arrows.get(name).copied());
+    }
+    steps
 }
 
 /// Compile one key with the walk's guards: every arrow declared and
@@ -214,8 +218,9 @@ fn compile_equations(
         let lhs = compile_path(arrows, &equation.lhs);
         let rhs = compile_path(arrows, &equation.rhs);
         let domain = lhs
-            .first()
-            .and_then(|&lead| lead.map(|lead| arrow_src[lead]));
+            .get(0)
+            .and_then(|slot| slot.flatten())
+            .map(|lead| arrow_src[lead]);
         equations.push(CompiledEquation {
             lhs,
             rhs,

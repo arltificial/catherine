@@ -40,6 +40,7 @@ use std::cmp::Ordering;
 pub type Nid = usize;
 
 mod compile;
+mod compose;
 mod families;
 mod lane;
 mod store;
@@ -51,6 +52,8 @@ pub(crate) use families::{
     violation_flags,
 };
 pub use store::{Bounded, ARROWS_CAP, REPORT_CAP, ROWS_CAP};
+
+pub(crate) use compose::engine_compose;
 
 /// A finding's pure-int sort key — exactly the comparison prefix
 /// `Finding`'s derived order walks: kind, then violation variant, then a
@@ -145,8 +148,16 @@ pub struct EngineSchema {
 
 /// A compiled path equation.
 pub struct CompiledEquation {
-    pub lhs: Vec<Step>,
-    pub rhs: Vec<Step>,
+    /// The lhs/rhs paths as bounded tables — concrete-bounded slot
+    /// arrays under the lane (`cfg(kani)`; the cap is a proof
+    /// obligation discharged by the declared shapes' path lengths),
+    /// `Vec`-backed and arbitrary-sized in production. The compose walk
+    /// iterates slots against a concrete `len` and reads each step by
+    /// array index — the pointer-validity charges of walking a
+    /// heap-`Vec` path (selected at a symbolic equation index) were the
+    /// measured compose-side wall (ledger `0006`; beads `catherine-6g2`).
+    pub lhs: Bounded<Step, ARROWS_CAP>,
+    pub rhs: Bounded<Step, ARROWS_CAP>,
     /// The lhs lead arrow's source object, when the equation is
     /// applicable.
     pub domain: Option<Nid>,
@@ -278,20 +289,6 @@ pub fn engine_build(schema: &EngineSchema, instance: &EngineInstance) -> EngineT
         typing_violations,
         dangling,
     }
-}
-
-/// Compose a compiled path over the typed tables — the parsed compose
-/// walk over ids: an unresolved cell (dangling, typing-violated, or a
-/// step no arrow defines) makes the path unresolvable, never a hard
-/// failure.
-pub(crate) fn engine_compose(typed: &EngineTyped, path: &[Step], start: RowId) -> Option<RowId> {
-    let mut current = start;
-    for step in path {
-        let table = typed.tables.get((*step)?)?;
-        let cell = table.get(current.0)?;
-        current = (*cell)?;
-    }
-    Some(current)
 }
 
 /// Bounded insertion sort by comparator — the solver-shaped

@@ -7,8 +7,8 @@ use super::EngineSchema;
 
 #[cfg(kani)]
 use super::{
-    ident_key, insertion_sort_by, CompiledCoproduct, CompiledEquation, CompiledKey,
-    CompiledPullback, ConstraintStatus, Nid, Step,
+    ident_key, insertion_sort_by, Bounded, CompiledCoproduct, CompiledEquation, CompiledKey,
+    CompiledPullback, ConstraintStatus, Nid, Step, ARROWS_CAP,
 };
 
 /// Sorted (key, declaration position) entries for one id space — ids
@@ -71,19 +71,17 @@ fn compile_lane_equations(
 ) -> Vec<CompiledEquation> {
     let mut compiled: Vec<CompiledEquation> = Vec::with_capacity(equations.len());
     for (lhs, rhs, status) in equations {
-        let mut lhs_steps: Vec<Step> = Vec::with_capacity(lhs.len());
+        let mut lhs_steps = Bounded::<Step, ARROWS_CAP>::new();
         for name in lhs.iter() {
             lhs_steps.push(Some(arrow_of(ident_key(name))));
         }
-        let mut rhs_steps: Vec<Step> = Vec::with_capacity(rhs.len());
+        let mut rhs_steps = Bounded::<Step, ARROWS_CAP>::new();
         for name in rhs.iter() {
             rhs_steps.push(Some(arrow_of(ident_key(name))));
         }
         let mut domain: Option<Nid> = None;
-        if let Some(first) = lhs_steps.first() {
-            if let Some(lead) = first {
-                domain = Some(arrow_src[*lead]);
-            }
+        if let Some(lead) = lhs_steps.get(0).and_then(|slot| slot.flatten()) {
+            domain = Some(arrow_src[lead]);
         }
         compiled.push(CompiledEquation {
             lhs: lhs_steps,

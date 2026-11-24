@@ -25,19 +25,33 @@
 
 use catherine_engine::engine::{
     Bounded, CompactFinding, CompactPullback, CompactViolation, CompiledKey, EngineSchema,
-    EngineTyped, Nid, ARROWS_CAP, ROWS_CAP,
+    EngineTyped, Nid, Step, ARROWS_CAP, ROWS_CAP,
 };
 
 mod coprod;
 
 /// Compose a compiled path starting at source row `start` — rebuilt
-/// independently: each step resolves its cell or the path fails.
-fn compose(typed: &EngineTyped, path: &[Option<Nid>], start: usize) -> Option<usize> {
+/// independently: each step resolves its cell or the path fails. Same
+/// concrete-bound shape as the kernel walk's `engine_compose` (bounded
+/// path table, flat-guarded reads — ledger `0006`), sharing no code
+/// with it.
+fn compose(typed: &EngineTyped, path: &Bounded<Step, ARROWS_CAP>, start: usize) -> Option<usize> {
     let mut current = start;
-    for step in path {
-        let table = typed.tables.get((*step)?)?;
-        let cell = table.get(current)?.as_ref()?;
-        current = cell.0;
+    let mut i = 0;
+    while i < path.len() {
+        let step = match path[i] {
+            Some(Some(step)) => step,
+            _ => return None,
+        };
+        if step >= typed.tables.len() {
+            return None;
+        }
+        let cell = match typed.tables[step].get(current) {
+            Some(Some(value)) => value.0,
+            _ => return None,
+        };
+        current = cell;
+        i += 1;
     }
     Some(current)
 }

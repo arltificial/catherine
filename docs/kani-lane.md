@@ -304,6 +304,53 @@ lever is a concrete-bound, non-`?`-chained resolution walk
 and the soundness re-derivation. The contract suite, parity, and the
 four proved build harnesses are untouched and green.
 
+## 2026-11-23: the compose resolution walk — equation paths as bounded tables (beads catherine-6g2)
+
+The recorded compose-side trigger (round 2's "what remains"), executed
+under the lane standard:
+
+1. **`CompiledEquation` paths as bounded tables**: the lhs/rhs paths
+   moved from heap `Vec<Step>` to `Bounded<Step, ARROWS_CAP>` —
+   array-backed under `cfg(kani)` (the cap a proof obligation
+   discharged by the declared shapes' path lengths), `Vec`-backed and
+   arbitrary-sized in production. An equation selected at a symbolic
+   index (the soundness half's witness dispatch) no longer carries two
+   heap buffer pointers into the walk.
+2. **The concrete-bound, non-`?`-chained resolution walk** in both
+   `engine_compose` and the soundness half's independent `compose`:
+   slots read by array index against the path's concrete `len`; every
+   read's failure arm returns `None` explicitly (undeclared step, step
+   past the table space, unresolved cell) — the identical partition of
+   the old `get`-chain walk without slice machinery under symbolic
+   pointers. Parsed flavor byte-identical: the full workspace suite is
+   green, and the four proved build harnesses are untouched.
+
+Measured same-day pair, pre-change tree vs post-change tree, both at
+the standard (Kani 0.68.0 / CBMC 6.11.0, unwind 16, 300 s wall, 8 GB
+scope):
+
+| harness | pre-change | post-change |
+|---|---|---|
+| check_equation_panic_freedom | 300 s timeout in symex — memcmp churn; the slice-path compose loop unrolled to the unwind cap | symex clean **48.1 s** — 946 448 steps, 46 245 VCCs → 9 692 after slicing — then budget-killed at the 8 GB scope in the reduction (rc 143, ~6.0 GB peak) |
+| soundness_equation | 300 s timeout in symex — memcmp churn | symex clean **59.0 s** — 1 211 749 steps, 70 835 VCCs → 19 897 after slicing — then budget-killed at the 8 GB scope in the reduction |
+
+The compose-side wall is cleared: symex completes and the formula is
+bounded. What remains is the `0004`-class wall — propositional-reduction
+memory at ~10-20 k post-slicing VCCs (solver tuning is retired there;
+the budget stays closed). Revisit trigger (recorded, not funded):
+per-property partitioning of the equation-family harnesses (Decision
+4's build precedent) or a further formula-mass reduction on the family
+walk. The other eight undetermined harnesses were not re-run this
+round and keep their 2026-11-23 attributions.
+
+Two lane repairs landed with the round: the budget classifier now
+recognizes the scope-level systemd TERM (rc 143) that precedes the
+cgroup SIGKILL (rc 137) — a MemoryMax breach is undetermined, never a
+harness "error"; and `soundness.rs` at the round-2 HEAD did not compile
+under `cfg(kani)` (a lost `as u64` cast — the 2026-11-23 recorded runs
+were made on uncommitted tree state the commit did not capture), so
+the committed lane is compilable again.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
@@ -352,26 +399,45 @@ each family's declared space, partitioned per design Decision 4):
 
 Undetermined:
 
-- build_panic_freedom (all-families space): undetermined — split
-  obligation: per-property propositional encoding memory; the arena
-  halved the formula (symex 70.6 s, 11 917 VCCs after simplification)
-  and the solver now runs (17 properties solved individually), but the
-  per-property loop still exceeds 8 GB partway through. The claim is
-  carried by the four per-family proofs above.
-- check_sortedness_panic_freedom, check_equation_panic_freedom,
-  check_key_panic_freedom, check_coproduct_panic_freedom,
-  check_pullback_panic_freedom, soundness_equation, soundness_key,
-  soundness_coproduct, soundness_pullback, soundness_dangling:
-  undetermined at the 2026-11-23 re-runs (300 s wall; post-walker-arena
-  engine). Split obligation narrowed by measurement (see the 2026-11-23
-  arc above): the dangling family's per-cell violations scan was the
-  first wall and is FIXED (per-slot flags; the family verifies in 47.7 s
-  as an isolated probe) — the remaining wall is the compose-side
-  resolution walk (`engine_compose` under the families' symbolic forks,
-  pointer-validity machinery charged per re-expansion). Every emitted
-  finding's shape and the sort are unchanged; the harnesses run inside
-  the memory cap. Revisit trigger: concrete-bound resolution walk in
-  `engine_compose` and the soundness half's independent `compose`.
+- build_panic_freedom: undetermined — split obligation: per-property
+  propositional encoding memory; the arena halved the formula (symex
+  70.6 s, 11 917 VCCs after simplification) and the solver now runs
+  (17 properties solved individually), but the per-property loop still
+  exceeds 8 GB partway through. The claim is carried by the four
+  per-family proofs above.
+- check_sortedness_panic_freedom: undetermined — at the 2026-11-23
+  re-runs (300 s wall, post-walker-arena engine); the all-families
+  walk was not re-run after the compose resolution walk, which narrows
+  only its equation portion.
+- check_equation_panic_freedom: undetermined — post-resolution-walk
+  measurement (2026-11-23, see the arc above): symex clean 48.1 s,
+  46 245 VCCs → 9 692 after slicing, budget-killed at the 8 GB scope
+  in the propositional reduction (rc 143). The symex-side compose wall
+  is cleared; the remaining obligation is reduction memory (0004
+  class; next lever: per-property partitioning per Decision 4's build
+  precedent).
+- check_key_panic_freedom: undetermined — at the 2026-11-23 re-runs
+  (300 s wall); not re-run after the compose resolution walk.
+- check_coproduct_panic_freedom: undetermined — at the 2026-11-23
+  re-runs (300 s wall); not re-run after the compose resolution walk.
+- check_pullback_panic_freedom: undetermined — at the 2026-11-23
+  re-runs (300 s wall); not re-run after the compose resolution walk.
+- soundness_equation: undetermined — post-resolution-walk measurement
+  (2026-11-23, see the arc above): symex clean 59.0 s, 70 835 VCCs →
+  19 897 after slicing, budget-killed at the 8 GB scope in the
+  propositional reduction (rc 143). Same split obligation as its check
+  half; the bounded-path table removed the symbolic equation select's
+  heap-pointer walk from the soundness dispatch.
+- soundness_key: undetermined — at the 2026-11-23 re-runs (300 s
+  wall); not re-run after the compose resolution walk.
+- soundness_coproduct: undetermined — at the 2026-11-23 re-runs (300 s
+  wall); not re-run after the compose resolution walk.
+- soundness_pullback: undetermined — at the 2026-11-23 re-runs (300 s
+  wall); not re-run after the compose resolution walk.
+- soundness_dangling: undetermined — at the 2026-11-23 re-runs; the
+  family's own wall is FIXED (per-slot flags; the family verifies in
+  47.7 s as an isolated probe) and the harness itself was not re-run
+  after the compose resolution walk.
 
 Counterexample (Decision 5 protocol: attribution recorded, obligation
 never weakened):
