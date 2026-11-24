@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.1] - 2026-11-19
+## [0.4.1] - 2026-11-24
 
 ### Added
 
@@ -20,11 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   family, sortedness, five witness-soundness obligations re-evaluated
   independently of the kernel), provocation machinery
   (`scripts/provoke-kani-harnesses.sh`), and a nightly verify workflow.
-  Deliberately outside `just ci`. Stop-gate verdict: hold
+  Deliberately outside `just ci`. Stop-gate verdict at scaffolding time: hold
   (`ledger/kani/0001-8f4caa62.json`) — Kani 0.68's String-keyed
   BTreeMap model makes the proofs undetermined on this hardware
-  (evidence + dispositions in `docs/kani-lane.md`); nothing is proved,
-  nothing is cited as assurance, revisit triggers recorded.
+  (evidence + dispositions in `docs/kani-lane.md`); revisit triggers
+  recorded. Superseded within this release — see Changed.
 - Lean assurance-twin pullback model (`add-lean-kernel-model`): the Lean
   twin models the format-1.6 pullback square and its
   `commutes`/`covers`/`unique` verdicts (the `commutes` witness is
@@ -40,9 +40,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parsed-path family walkers are deleted and findings are ordered by
   pure-int sort keys exactly equivalent to the previous `Finding::cmp`.
   Parsed behavior unchanged and pinned (169 core tests, contract suite,
-  fixtures, parity). Kani lane construction is the first in-budget
-  verification (~26 s); the build/check walkers remain held
-  (`docs/kani-lane.md`, ledger decision 0002).
+  fixtures, parity). By release the lane advances from the hold verdict
+  to 14 of 18 harnesses fully proved at the 8 GB / 300 s standard
+  (ledger seals 0006–0010): the equation family proves (unwind 8, the
+  sort relocated, the claim split per side), then the key and coproduct
+  families (flat concrete-index slot scan, membership-only coproduct
+  image, per-witness-kind dispatch, sized unwind); the remaining four
+  stay held at the propositional-reduction memory wall
+  (`docs/kani-lane.md`).
+- Lane sources and engine shape (`catherine-6g2`): the Kani lane sources
+  move onto the engine and harness crates; the family walkers consume a
+  `FindingSink` instead of a `Vec` plus `push_bounded`, arena the build
+  path's symbolic tables behind bounded temporaries, resolve equation
+  paths as bounded tables (concrete-bound resolution walk), and the
+  coproduct soundness obligations split into
+  `catherine-kani/src/soundness/coprod.rs`; scope-TERM budget kills are
+  classified as undetermined.
 
 ### Fixed
 
