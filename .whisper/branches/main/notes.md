@@ -954,3 +954,731 @@
   
   REFS
   Transcript: ~/cotorreo/raw/_conversations/kimi/1a1e6da8-7562-8ae5-8000-09990426c2bf/transcript.md (688 lines; claims-tested summary + expressiveness ladder). Tickets: bd show catherine-f9z / catherine-4pc / catherine-1lf; bd comments catherine-bak. Supersession: none — this entry does not supersede resume-catherine-xvh, olog-mapping, or resume-release-v020 (different tasks, all reported complete).
+- 2026-11-18T14:58:57Z [id:4ee2efd861afe716b32a124fe4740a96c29ae3b3ba68d9db6db218a07fe32952] (#resume-bugfix-arc) Format: 1
+  Timestamp: 2026-11-18T14:58:12Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: cfc109c (concurrent session's beads-only export commit, not this arc's; this arc's tip is 6593990)
+  Session: omp session (session id unknown)
+  Task: unknown-field bug-fix arc + olog label decision
+  Previous entry: none
+  Objective: close the four bugs filed from the external black-box review of the v0.2.0 binary (catherine-bak, -f9z, -4pc, -1lf) and decide the olog label surface (catherine-c65).
+  Current phase: commit — all work landed locally, nothing in flight, one push pending.
+  Current state:
+  - Commits: 67afba1 fix(parse) unknown_field; 2056ad2 docs dangling + check scope; f541ffa docs(redundant) per-declaration + beads export; 42d8326 chore(whisper) notes mirror; 6593990 docs(olog) label decision. HEAD is cfc109c (2 ahead of origin).
+  - Pushed once under explicit authorization: bbd3824..42d8326. 6593990 and cfc109c are NOT pushed; no standing push authorization.
+  - Tickets closed: bak, f9z, 4pc, 1lf, c65. Queue: only catherine-4vs (P2, filed by a concurrent session after this arc; pullback/cone execution, HYPOTHESIZED demand from aleandro-2bc).
+  Exact next action: get explicit push instruction (pre-push runs ah check --run-tests: 238 contracts, ~80s; also bd, pretender, vampiro seam gate). If starting 4vs instead: schema.cones is now an unknown_field rejection, so cone execution needs an additive minor section (KNOWN_MINOR currently 5) plus an openspec change.
+  Key decisions/constraints:
+  - Strict parse (bak): deny_unknown_fields on every raw struct plus a per-kind predicate field whitelist; new stable ErrorCode::UnknownField at the field's line; the instance-shape gate and its tolerance tests are deleted. Rationale: additive growth bumps the minor and KNOWN_MINOR already gates it, so tolerance inside an accepted version only hid typos — a misspelled `equations` key reported a violated model clean at exit 0.
+  - 1lf: per-declaration redundancy emission is intended (builder-monoid kata pins two findings; builder.rs documents it). A dedupe was tried and reverted because it deleted the only detection of a duplicated declaration.
+  - c65: drop label field in v1; four reopen triggers and the preferred presentation-only + hash-excluded shape are recorded in docs/ref/olog-mapping.md.
+  - Expressibility rows unknown-top-level-fields and declared-cones-ignored flipped to closed with tracked evidence.
+  - Git discipline: user approves every commit; push only on explicit instruction; beads export is `bd export > .beads/issues.jsonl` then `git add -f` (global gitignore covers .beads).
+  Ticket ownership: single-author (sasha/arltificial); all arc tickets closed; 4vs unassigned and not part of this arc.
+  Validation (executed): just ci-full exit 0 (fmt, clippy -D warnings, workspace tests, gap-claims, wasm, pretender, openspec validate --all --strict 16/16, ah check); ah check --run-tests 238/238; cargo test workspace green (313 core+CLI asserts); fixture sweep — no fixtures/** document trips unknown_field; pre-commit gates green on every commit.
+  Unresolved: vampiro seam advisory (medium, pre-existing, not touched): crates/catherine-cli/src/runners/underconstraint.rs:28-50 REQ-V7 facade-leak. Concurrent sessions exist (cfc109c filed 4vs; earlier ones own .whisper mirror entries).
+  Refs: openspec/specs/model-document/spec.md (Unknown field scenario); .espectacular/model-document/unknown-field-is-rejected-at-its-node.toml; crates/catherine-core/tests/unknown_fields.rs; crates/catherine-cli/tests/negative_matrix.rs; docs/ref/expressibility-dispositions.md; docs/ref/olog-mapping.md.
+- 2026-11-18T16:00:44Z [id:02eeeeba9dfc103adfb058b1b6b5bb4811c2a320219eff00e9362c5e9412287e] (#resume-catherine-1py) Format: 1
+  Timestamp: 2026-11-18T16:00:25Z
+  Repo: at/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 65ce30a8f5e67b6412fe739996990624cd2d03c6
+  Session: 01a1ef06-11a3-7394-a903-7422f57e43de
+  Previous entry: none
+  
+  Objective: land the pullback-checks capability (catherine-4vs) via the 5-slice decomposition of openspec change add-pullback-checks, closing aleandro-2bc's HYPOTHESIZED-only reference-resolution gate.
+  
+  Current phase: green (slices filed, implementation not started).
+  
+  Current state: proposal add-pullback-checks is valid (ah check clean with change overlay; openspec validate strict clean; 13 contract TOMLs in .espectacular/changes/add-pullback-checks/). Five beads slices created and dependency-wired: catherine-1py (declarable, format 1.6, AFK complexity:l) -> catherine-a11 (executed commutes/covers/unique, L) -> {catherine-9cj enforced-set, M ∥ catherine-f75 ledger+docs, M} -> catherine-zrm conditional-refactor+properties+parity, M. All anchored at base_commit 1d9f4b5 with concrete files metadata. Parent catherine-4vs closes last; its acceptance RED is the executable gate (declared pullback rejected with error[unknown_field], exit 1 — verified by running catherine check on crates/catherine-cli/tests/fixtures/gap_suite/declared_cone.ct.json).
+  
+  Exact next action: bd update catherine-1py --claim; then task 1.1 — add fixture crates/catherine-cli/tests/fixtures/pullback_square.ct.json (accepted pullback square over a small apex/cospan schema) and pin the RED: catherine check on it exits 1 with error[unknown_field] at the pullbacks node; extend crates/catherine-core/tests/unknown_fields.rs + crates/catherine-cli/tests/negative_matrix.rs expectations; then GREEN per ticket body (parse surface, invalid_pullback with 6 rejection causes incl. arity != 2, canonical (apex, legs, cospan, status) order, hash-neutrality, status default accepted, cones still rejected; Meter: cargo test -p catherine-core pullback -q).
+  
+  Essential decisions/constraints: universal property = three checks (commutes/covers/unique — joint injectivity is load-bearing, rule-of-5 CORR-001); status defaults accepted; no cones namespace (declared-cones-ignored disposition stays closed, cross-linked); no new finding kind (PullbackWitness joins the Violation union), no new exit codes (0 clean / 3 violated); dangling keeps verdicts undefined, never double-reported; degenerate f=g cospan checked not special-cased; migration parity is a task not a spec delta (design Decision 5); gaps go to findings ledger. Refactor-first was explicitly rejected: reusable logic is function-shaped (TypedInstance::compose, label_for); walker extraction deferred to catherine-zrm under rule-of-three.
+  
+  Authorization limits: none outstanding; commit access assumed (session committed 65ce30a, 1d9f4b5, 15b801d, 083e6c2, 7f81d70). Do not push without asking.
+  
+  Ticket ownership: nothing claimed yet; all six issues open.
+  
+  Validation: ah check --changes add-pullback-checks → 0 findings (exit 0); openspec validate add-pullback-checks --strict → valid; cargo test suite green at HEAD via lefthook pre-commit.
+  
+  Unresolved/blockers: none blocking catherine-1py. Watch items: ah doctor flags lefthook pre-push not wired + config tool_version drift (0.12.0 vs binary 0.12.3) — pre-existing, not ours; .whisper/branches/main/notes.md sits dirty in worktree (pre-existing).
+  
+  Conditional refs: openspec/changes/add-pullback-checks/{proposal,design,tasks}.md; specs deltas under openspec/changes/add-pullback-checks/specs/; contract TOMLs .espectacular/changes/add-pullback-checks/; slice bodies in bd (bd show catherine-1py). Resume via /renew.
+- 2026-11-18T18:09:16Z [id:ca5fe86ed37a091b2d366452161fc4f83d1aa87673a7f8f18f8222c63efd9f04] (#resume-hegel-release) Format: 1
+  Timestamp: 2026-11-18T18:08:35Z
+  Repo: at/arltificial/catherine
+  Branch: main
+  HEAD: e421e48 (1 ahead of origin/main 1d51c6d)
+  Session: omp session, id unknown (no session env var)
+  Task: migrate all PBT from proptest to hegeltest (epic catherine-7ko), then release v0.4.0
+  Previous entry: none (superseded by 58972b3915f867c107076a0692681a6918b6c01edf34b05e7c7300d8e13c273d)
+  
+  Objective: finish the hegel migration tracked by epic catherine-7ko (7 children), then prepare and (on explicit approval) tag/publish v0.4.0 containing the pullback-checks capability.
+  
+  Phase: commit/ready. Pullback capability and its rule-of-5 fixes are committed and pushed through 1d51c6d; migration has NOT started. Local HEAD e421e48 is the concurrent session's beads-only issue-review remediation on catherine-7ko (ahead 1, not pushed).
+  
+  Current state:
+  - add-pullback-checks is complete: format 1.6 schema.pullbacks, commutes/covers/unique checks, PullbackWitness, schema-diff/search/schema-map integration, ledger/docs, properties/parity. Slices 1py/a11/9cj/f75/zrm and parent 4vs closed.
+  - Rule-of-5 fixes (catherine-ih5, closed): leg/cospan composability now rejected as invalid_pullback (false clean/fabricated violation gone); ContradictionWitness additively names keys/coproducts/pullbacks (equation-only JSON unchanged); dropped-null-support migration loss recorded as executable gap row dropped-pullbacks-on-migrate; README/ledger/parity/header fixes; negative-matrix + editor-artifact + zero-apex tests added.
+  - Epic catherine-7ko: 7 children, all open, base_commit 1d51c6d: .1 foundation (pinned hegeltest dev-deps + hegel.toml profiles + idioms), .5 checks_properties, .6 findings_properties, .4 roundtrip + roundtrip_symmetric, .7 analysis query_parity_properties, .8 convert pullbacks_properties to hegel generators, .9 remove proptest everywhere + conventions.
+  - Release state: every crate is 0.3.0; crates.io max is 0.3.0 (0.4.0 free); CHANGELOG has Unreleased content ready to promote; tag v0.4.0 not created.
+  
+  Exact next action:
+  1) Check ownership: bd show catherine-7ko and children; claim catherine-7ko.1, implement the foundation (pin hegeltest =0.53.1 exactly, hegel.toml profiles, shared generator idioms). Then dispatch/execute .5/.6/.4/.7 in parallel, .8 after, .9 last. Epic done = `rg -i proptest` zero hits, all property suites green under #[hegel::test], conventions updated.
+  2) Once migration is green and pushed: bump all five crate manifests + intra-workspace requirements to 0.4.0, refresh Cargo.lock, create `## [0.4.0] - <date>` CHANGELOG section (keep Unreleased), decide whether to archive add-pullback-checks (archiving requires moving the 13 `.espectacular/changes/add-pullback-checks/*` contract TOMLs into `.espectacular/{model-document,kernel-checks,findings,analysis}/` or plain `ah check` goes red), run just ci-full, then tag `v0.4.0` and push the tag.
+  
+  Decisions/constraints:
+  - Do NOT tag, push tags, or publish crates without explicit approval; branch pushes only when asked.
+  - hegeltest pinned exactly 0.53.1; property semantics preserved 1:1 (structural assertions, never snapshots); per child RED = ported harness catches a seeded mutation.
+  - Release workflow (.github/workflows/release.yml) gates on just ci + ah check at the tagged commit and asserts tag == published crate versions == sibling requirements; scripts/release-notes.py fails on absent/empty CHANGELOG section.
+  - catherine-wasm is bumped for consistency but not published.
+  
+  Ticket ownership: ih5/4vs and slices closed; epic 7ko unassigned at save time — re-check before claiming (concurrent session active).
+  Validation: just ci-full green, ah check --changes add-pullback-checks --run-tests 249 passed/0 findings, cargo audit exit 0 at 9887ea3; CI for 1d51c6d was in progress.
+  Unresolved: archive decision for add-pullback-checks; release blockers above; concurrent sessions may mutate main/beads.
+  Refs: bd catherine-7ko (+.1,.4,.5,.6,.7,.8,.9), CHANGELOG.md, .github/workflows/release.yml, scripts/release-notes.py, .espectacular/changes/add-pullback-checks/, crates/catherine-core/tests/{checks_properties,findings_properties,roundtrip,roundtrip_symmetric,pullbacks_properties}.rs, crates/catherine-analysis/tests/query_parity_properties.rs.
+- 2026-11-18T19:34:15Z [id:58972b3915f867c107076a0692681a6918b6c01edf34b05e7c7300d8e13c273d] (#resume-hegel-release) Format: 1
+  Timestamp: 2026-11-18T19:32:43Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 2970c0f (6 ahead of origin/main 1d51c6d; nothing pushed this session)
+  Session: omp session, id unknown (no session env var)
+  Task: migrate all PBT from proptest to hegeltest (epic catherine-7ko), then release v0.4.0
+  Previous entry: ca5fe86ed37a091b2d366452161fc4f83d1aa87673a7f8f18f8222c63efd9f04 (superseded by e786f6ba17113d863576174fd1506c3d1608318bea292ee956c061660bc12fe7)
+  
+  Objective: the proptest→hegel migration is DONE; the remaining work in this task is preparing and (on explicit approval) tagging/publishing v0.4.0 containing pullback checks.
+  
+  Phase: commit (migration closed, release not started).
+  
+  Current state:
+  - Commits this session: 1c5f772 spec change migrate-proptest-to-hegel (skip_specs, untracked dir now committed); 9721916 foundation (hegeltest exact pin =0.53.1 in core+analysis, workspace hegel.toml development 100 / ci 200, idiom map in tests/common/mod.rs, hegel_foundation.rs canary); 9d32ab9 ports 7ko.4/.5/.7/.8; 4af1308 findings port 7ko.6; 2970c0f cleanup 7ko.9.
+  - Final layout: crates/catherine-core/tests/{roundtrip_hegel.rs + roundtrip/model_fixture.rs, checks_hegel.rs + common/generators.rs, findings_hegel.rs + findings_hegel/generators.rs, pullbacks_hegel.rs, hegel_foundation.rs}; crates/catherine-analysis/tests/query_parity_hegel.rs. All old proptest files, roundtrip.proptest-regressions and the three proptest dev-deps are gone; Cargo.lock refreshed.
+  - Beads: catherine-7ko and children .1/.4/.5/.6/.7/.8/.9 all CLOSED with evidence. Nothing in flight, no agent running.
+  - .whisper/branches/main/notes.md is dirty (pre-existing handoff mirror) and NOT committed.
+  
+  Exact next action (release, gated on user approval):
+  1) Bump all five crate manifests + intra-workspace requirements to 0.4.0 (catherine-wasm included, not published), refresh Cargo.lock, add `## [0.4.0] - <date>` to CHANGELOG.md keeping Unreleased.
+  2) Decide archiving add-pullback-checks: archiving requires moving the 13 `.espectacular/changes/add-pullback-checks/*` contract TOMLs into `.espectacular/{model-document,kernel-checks,findings,analysis}/`, else plain `ah check` goes red. Same question now applies to migrate-proptest-to-hegel (skip_specs: true, no specs/ dir, so `ah check --changes migrate-proptest-to-hegel` errors "does not exist at .../specs"; plain `ah check` is green and `just ci-full` uses plain `ah check`).
+  3) Run `just ci-full` + `ah check --run-tests`, then tag v0.4.0 and push tag; release.yml asserts tag == published versions == sibling requirements and needs a non-empty CHANGELOG section (scripts/release-notes.py).
+  
+  Decisions/constraints:
+  - Do NOT tag, push tags, or publish crates without explicit approval; branch pushes only when asked.
+  - hegeltest pinned exactly =0.53.1; property semantics 1:1, structural assertions only (never byte snapshots).
+  - Case budgets come from hegel.toml/HEGEL_* (100 local / 200 CI) replacing proptest's 256; only the symmetric ratchet keeps an explicit 32 (documented envelope). Findings suite now draws the shared canonical model generator (slightly different model space, properties unchanged).
+  - Beads export discipline: `bd export > .beads/issues.jsonl` then `git add -f`; user approves every commit.
+  
+  Ticket ownership: single-author (sasha/arltificial); epic closed this session.
+  
+  Validation (executed, HEAD 2970c0f): just ci-full exit 0 (fmt check, clippy -D warnings, cargo test --workspace 128 binaries, wasm, pretender, openspec validate --changes --strict 4/4, ah check); ah check --run-tests 238 passed/0 findings; pretender check zero findings; rg -i proptest empty across crates/manifests/live docs. Seeded-mutation RED proofs executed and reverted: canonical equations dropped, dangling detection skipped, pullback declaration sort skipped, fan_in tally key swapped, findings sort reversed.
+  
+  Unresolved: migration ratchet weakness observed, pre-existing and preserved 1:1 — `symmetric_ratchet_bounded_sizes` is insensitive to row-id assignment changes (rotating dense name lists re-canonicalizes identically); no seeded mutation broke it, so its wiring proof rests on the shared roundtrip_hegel binary. Also `.wai/` research/briefs, openspec archives, the migration change docs and past CHANGELOG entries still mention proptest as history (deliberate). vampiro seam advisory at crates/catherine-cli/src/runners/underconstraint.rs:28-50 remains pre-existing.
+  
+  Refs: openspec/changes/migrate-proptest-to-hegel/{proposal,design,tasks}.md; hegel.toml; crates/catherine-core/tests/common/mod.rs (idiom map); CHANGELOG.md Unreleased > Changed; .github/workflows/release.yml; scripts/release-notes.py. (supersedes ca5fe86ed37a091b2d366452161fc4f83d1aa87673a7f8f18f8222c63efd9f04)
+- 2026-11-18T19:51:49Z [id:e786f6ba17113d863576174fd1506c3d1608318bea292ee956c061660bc12fe7] (#resume-hegel-release) Format: 1
+  Timestamp: 2026-11-18T19:55:00Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 2bac33a (9 ahead of origin/main 1d51c6d; nothing pushed)
+  Session: omp session, id unknown (no session env var)
+  Task: proptest->hegel migration (epic catherine-7ko, closed) then release v0.4.0
+  Previous entry: 58972b3915f867c107076a0692681a6918b6c01edf34b05e7c7300d8e13c273d (superseded by bd8c0bc2ef9cd59b4afe06d1cbad7c570b8dec73159532841bebcf5a8bd802cc)
+  
+  Objective: cut v0.4.0 (pullback checks + hegeltest migration). Release PREP IS DONE AND COMMITTED; tagging/publishing is the only remaining step and needs explicit approval.
+  
+  Phase: release — awaiting the tag/push authorization gate.
+  
+  Current state (3 commits on top of 2970c0f):
+  - 2076006 chore(openspec): archive add-pullback-checks (2026-11-18-add-pullback-checks, 3 added + 2 modified deltas merged into openspec/specs/*) and migrate-proptest-to-hegel (--skip-specs, no deltas). The 13 espectacular contracts moved into deployed capability dirs; the 2 colliding ones (`every-finding-kind-has-a-golden-fixture`, `accepted-equations-constrain-proposed-equations-question`) took the newer change-side bodies copied in place first — `ah archive` refuses that collision outright.
+  - 66b29ea chore(release): v0.4.0 — five manifests + 5 intra-workspace requirements at 0.4.0, Cargo.lock follows, CHANGELOG heading `## [0.4.0] - 2026-11-18` inserted under an empty Unreleased.
+  - 2bac33a chore(beads): export closed 7ko epic + children (`bd export`, git add -f) — the earlier session never refreshed the tracked export.
+  - Working tree clean except tracked-dirty .whisper/branches/main/notes.md (handoff mirror, deliberately never committed).
+  
+  Exact next action (needs explicit go): `git push origin main` then `git tag v0.4.0 && git push origin v0.4.0`. release.yml asserts tag == package versions == sibling requirements and requires a non-empty CHANGELOG section; `python3 scripts/release-notes.py --version 0.4.0 --tag v0.4.0` already renders the body correctly. Tag push publishes crates (irreversible); main push alone is reversible.
+  
+  Decisions/constraints:
+  - Do not tag, push tags, or publish crates without explicit approval; branch pushes only when asked.
+  - Archiving add-pullback-checks was required before any `ah check --changes` use; plain `ah check` is green now.
+  - `ah archive` needs `openspec archive` first (pre-archive orphan refusal) and refuses collisions — resolve by copying the newer contract over the deployed one, deleting the change copy, then archiving.
+  - hegeltest stays exact-pinned =0.53.1; case budgets from hegel.toml (100 dev / 200 ci).
+  - note: .espectacular/config.toml still says tool_version 0.12.0 while the binary and versions.ddl.toml pin 0.12.3; `ah check` is green either way — not touched.
+  
+  Ticket ownership: single-author (sasha/arltificial); no open beads tickets (`bd ready` empty).
+  
+  Validation executed at 2bac33a: just ci-full exit 0 (TMPDIR=$PWD/target/tmp); `ah check --run-tests` exit 0, 249 passed / 0 findings (was 238 — the 11 newly deployed pullback contracts now execute); `openspec validate --all --strict` 16/16; `ah check` 0 structural. Commits ran through .beads/hooks/pre-commit (lefthook chain) without failure.
+  
+  Unresolved: nothing blocking the tag. Pre-existing: `symmetric_ratchet_bounded_sizes` row-id insensitivity; vampiro seam advisory at crates/catherine-cli/src/runners/underconstraint.rs:28-50; add-lean-kernel-model and add-bogart-pilot changes left active (not in this release's scope). Native `turu recall` for this topic returns entry headers only — read bodies from the notes mirror.
+  
+  Refs: CHANGELOG.md 0.4.0 section; openspec/changes/archive/2026-11-18-*; .espectacular/{model-document,kernel-checks,findings,analysis}/*.toml; .github/workflows/release.yml; scripts/release-notes.py. (supersedes 58972b3915f867c107076a0692681a6918b6c01edf34b05e7c7300d8e13c273d)
+- 2026-11-18T20:10:02Z [id:bd8c0bc2ef9cd59b4afe06d1cbad7c570b8dec73159532841bebcf5a8bd802cc] (#resume-hegel-release) Format: 1
+  Timestamp: 2026-11-18T20:25:00Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 2bac33a (== origin/main; v0.4.0 tagged here and pushed)
+  Session: omp session, id unknown (no session env var)
+  Task: v0.4.0 release (pullback checks + hegeltest migration) — SHIPPED
+  Previous entry: e786f6ba17113d863576174fd1506c3d1608318bea292ee956c061660bc12fe7 (superseded by 8e2692d3c7373a71342807728b0a5d6aca5e679ed983db21d100bae9727080d2)
+  
+  Objective: cut and publish v0.4.0. Done.
+  
+  Phase: closed. Tag v0.4.0 at 2bac33a pushed; release workflow 44385445649 succeeded (14m14s).
+  
+  Current state:
+  - Released: GitHub Release v0.4.0 with 7 assets (5 platform bundles + checksums.txt + provenance.json); crates.io max_stable_version 0.4.0 for catherine-core, catherine-analysis, catherine-ledger, catherine-cli; downloaded linux_amd64 tarball checksum matches checksums.txt and `catherine --version` prints `catherine 0.4.0`.
+  - Commits shipped: 2076006 (openspec archive of add-pullback-checks + migrate-proptest-to-hegel), 66b29ea (chore(release): v0.4.0 — 5 manifests + intra-workspace reqs, Cargo.lock, CHANGELOG 0.4.0 heading), 2bac33a (beads export of the closed 7ko epic). main == origin/main; working tree clean except tracked-dirty .whisper/branches/main/notes.md.
+  - Pre-push gate chain (bd, ddl-ah-check, diff-coverage-advisory, vampiro-seam-gate) passed on the main push; tag push skipped path-filtered checks.
+  
+  Exact next action: none required. When new work starts: `bd ready` is empty, so pick from the deferred backlog — scaffold openspec change add-schema-diff for catherine-dvx only when P6/P7 land (they are closed: alr/9vv green) or finish add-bogart-pilot (8/10 tasks) / archive add-lean-kernel-model (complete, unarchived).
+  
+  Decisions/constraints:
+  - Release tags are lightweight on the released HEAD; release.yml asserts tag == package versions == sibling requirements and requires a non-empty CHANGELOG section (scripts/release-notes.py).
+  - `ah archive` requires `openspec archive` first and refuses collisions with deployed contracts — copy the newer change-side body into the deployed path, delete the change copy, then archive.
+  - Archiving a change without spec deltas needs `openspec archive --skip-specs` (migrate-proptest-to-hegel).
+  - Beads export must be refreshed after closures (`bd export > .beads/issues.jsonl`, `git add -f`); the migration session had left it stale.
+  - hegeltest stays exact-pinned =0.53.1; budgets from hegel.toml (100 dev / 200 ci).
+  - .espectacular/config.toml still declares tool_version 0.12.0 while binary and versions.ddl.toml pin 0.12.3 — ah check green either way, untouched.
+  
+  Ticket ownership: single-author (sasha/arltificial); no open beads tickets.
+  
+  Validation executed: just ci-full exit 0, ah check --run-tests 249 passed / 0 findings, openspec validate --all --strict 16/16, release run 44385445649 success, published binary/version/checksum verified as above.
+  
+  Unresolved (unchanged pre-existing): `symmetric_ratchet_bounded_sizes` row-id insensitivity; vampiro seam advisory at crates/catherine-cli/src/runners/underconstraint.rs:28-50. Native `turu recall` returns entry headers only for this topic — bodies live in the notes mirror.
+  
+  Refs: CHANGELOG.md 0.4.0; .github/workflows/release.yml; scripts/release-notes.py; openspec/changes/archive/2026-11-18-*; gh run 44385445649. (supersedes e786f6ba17113d863576174fd1506c3d1608318bea292ee956c061660bc12fe7)
+- 2026-11-18T20:11:53Z [id:8e2692d3c7373a71342807728b0a5d6aca5e679ed983db21d100bae9727080d2] (#resume-hegel-release) Format: 1
+  Timestamp: 2026-11-18T20:11:44Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 2bac33a (== origin/main; 0 unpushed; tag v0.4.0 -> 2bac33a)
+  Session: omp session, id unknown (no session env var)
+  Task: v0.4.0 release (pullback checks + hegeltest migration) — SHIPPED, nothing in flight
+  Previous entry: bd8c0bc2ef9cd59b4afe06d1cbad7c570b8dec73159532841bebcf5a8bd802cc
+  
+  Objective: cut and publish v0.4.0. Complete; this entry is a mid-release stash, not new work.
+  
+  Phase: closed. No work in flight, no agent running, no uncommitted product changes (only tracked-dirty .whisper/branches/main/notes.md, the handoff mirror — deliberately never committed).
+  
+  Current state:
+  - Ship: commits 2076006 (archive add-pullback-checks + migrate-proptest-to-hegel), 66b29ea (chore(release): v0.4.0), 2bac33a (beads export of closed 7ko epic). All pushed.
+  - Release run 44385445649 success: GitHub Release v0.4.0 with 7 assets, crates.io 0.4.0 for core/analysis/ledger/cli, linux_amd64 tarball checksum matches checksums.txt, binary prints `catherine 0.4.0`.
+  - Change lifecycle: add-pullback-checks archived as 2026-11-18-add-pullback-checks with deltas merged into openspec/specs/*; its 13 espectacular contracts live in the deployed capability dirs. migrate-proptest-to-hegel archived --skip-specs. Still active: add-lean-kernel-model (complete, unarchived), add-bogart-pilot (8/10 tasks).
+  
+  Exact next action: none required. Pick-up candidates when work resumes: (1) scaffold openspec change add-schema-diff for catherine-dvx (its P6/P7 gates, 9vv and alr, are closed); (2) finish catherine-ga7 (bogart emits .ct.json, external repo at/bogart); (3) archive add-lean-kernel-model via openspec archive --skip-specs if it has no unmerged deltas — verify first; (4) pre-existing low-priority polish listed in earlier entries.
+  
+  Decisions/constraints:
+  - Release tags are lightweight on the released HEAD; release.yml asserts tag == package versions == sibling requirements and needs a non-empty CHANGELOG section (scripts/release-notes.py). Never tag, push tags, or publish without explicit approval.
+  - `ah archive` requires `openspec archive` first and refuses collisions with deployed contracts: copy the newer change-side body over the deployed file, delete the change copy, then archive.
+  - Changes without spec deltas archive with `openspec archive --skip-specs`.
+  - Refresh the beads export after closures (`bd export > .beads/issues.jsonl`, `git add -f`).
+  - hegeltest exact-pinned =0.53.1; budgets from hegel.toml (100 dev / 200 ci).
+  - Local commits print a lefthook "custom hooks path" warning (core.hooksPath=.beads/hooks) but the chain still propagates failures.
+  
+  Ticket ownership: single-author (sasha/arltificial); `bd ready` empty.
+  
+  Validation (executed at 2bac33a): just ci-full exit 0; ah check --run-tests 249 passed / 0 findings; openspec validate --all --strict 16/16; release run success and published artifacts verified.
+  
+  Unresolved (pre-existing, unchanged): `symmetric_ratchet_bounded_sizes` is insensitive to row-id assignment rotation (wiring proof rests on the shared roundtrip_hegel binary); vampiro seam advisory at crates/catherine-cli/src/runners/underconstraint.rs:28-50; .espectacular/config.toml declares tool_version 0.12.0 while binary and versions.ddl.toml pin 0.12.3 (ah check green either way). Native `turu recall` serves entry headers only for this topic — bodies live in the notes mirror.
+  
+  Refs: CHANGELOG.md 0.4.0; .github/workflows/release.yml; scripts/release-notes.py; openspec/changes/archive/2026-11-18-*; gh run 44385445649. (supersedes bd8c0bc2ef9cd59b4afe06d1cbad7c570b8dec73159532841bebcf5a8bd802cc)
+- 2026-11-18T20:47:39Z [id:5f90ad4a54c111aae2e654da035a459ba33b88ea6e7c0cfe06fce0dce6cf51d9] (#resume-lean-kernel-model) Format: 1
+  Timestamp: 2026-11-18T20:47:17Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 9262811 (concurrent session's kani-change commit; 1 ahead of origin/main 2bac33a)
+  Session: omp session, id unknown (no session env var)
+  Task: complete the lean twin (pullback formalization, contracts, archive) and confirm schema-diff
+  Previous entry: none
+  
+  Objective: "can we complete the lean and schema-diff work" — finish the archived-pending add-lean-kernel-model change properly and confirm schema-diff needed nothing. Both done; only commit authorization remains.
+  
+  Phase: commit (work and validation complete, nothing uncommitted-half-done).
+  
+  Current state:
+  - schema-diff: already complete before this session (change archived 2026-11-12, specs in openspec/specs/analysis, crates/catherine-analysis/src/schema_diff.rs, CLI `catherine diff`); 12/12 tests green. No edits made.
+  - Lean twin was RED at HEAD: fixtures/parity/pullback_square/expected.json made lean-parity abort ("violation witness has no recognized variant") so 0 documents compared; `just lean` failed. User chose full formalization (not exclusion).
+  - Implemented: Schema.Pullback + mirror project/encode/decode; PullbackWitness arms (commutes/covers/unique) with taxonomy order; Check.pullbackDeclaration/commutesFinding/uniqueFinding/coversFinding/fiberPairFinding with dangling-leg and dangling-cospan rules; Parity render + Rust/expected normalizers; Proofs/Basic semantic predicates + mem_pullbackFindings_shape; Soundness five-way disjunction + mem_pullbackFindings_forward + fifth rcases branches in the four exclusion theorems and in DanglingDiscipline; 7 espectacular shell contracts bound through new scripts/check-lean-contract.sh; spec delta, proposal, design, tasks item 15, lean/README counts, CHANGELOG updated.
+  - Archived: openspec/changes/archive/2026-11-18-add-lean-kernel-model; contracts deployed at .espectacular/lean-kernel-model/; deployed spec openspec/specs/lean-kernel-model/spec.md (Purpose written by hand; archive's TBD placeholder breaks strict validate).
+  - Working tree: 20 changed/untracked paths, nothing committed; .whisper/branches/main/notes.md remains pre-existing dirty (never committed).
+  
+  Exact next action: get explicit commit approval, then the two atomic commits:
+  1) `git add lean/ CHANGELOG.md && git commit -m "feat(lean): formalize pullback verdicts in the assurance twin (parity + soundness)"`
+  2) `git add scripts/check-lean-contract.sh .espectacular/lean-kernel-model openspec/specs/lean-kernel-model openspec/changes && git commit -m "chore(spec): bind lean-kernel-model contracts and archive the change"`
+  No push without explicit instruction.
+  
+  Decisions/constraints: user approves every commit; push only on request. Twin models the pullback square's three verdicts, so the dynamic corpus needs no exclusion; shape-invalid programmatic squares skip (mirrors Rust guards). Contracts use a [[tests.shell]] runner because the twin is Lean, not cargo; the divergence contract seeds a mismatch via CATHERINE_BIN (drop one finding) rather than mutating Lean. hegeltest stays =0.53.1; ledger decision remains "hold".
+  
+  Validation (executed at 2bac33a; not re-run after the concurrent 9262811 docs commit): just lean green; lake exe lean-parity and --check-build exit 0 with total=193 rust_checkable=183 skipped_parse=10 lean_only_presentation=1 trivially_agreeing=103 findings_bearing_agreeing=81 divergences=0 build_mismatches=0; scripts/check-lean-axioms.sh 18 audited declarations, no sorryAx/axiom; ah check --changes add-lean-kernel-model --run-tests 256 passed/0 findings (249+7); after archive ah check --run-tests 256 passed; openspec validate --all --strict 17/17; just ci-full green.
+  
+  Unresolved: covers/unique arms are modeled and proof-covered but the corpus exercises only commutes (no own parity fixture yet); .spectacular/config.toml tool_version 0.12.0 vs binary 0.12.3 (pre-existing); vampiro seam advisory (pre-existing); s asymmetric_ratchet row-id insensitivity (pre-existing). Concurrent sessions: 9262811 (kani change), add-bogart-pilot 8/10.
+  
+  Refs: lean/Catherine/{Schema,Findings,Check,Mirror,Parity}.lean; lean/Catherine/Proofs/{Basic,Soundness,DanglingDiscipline}.lean; scripts/check-lean-contract.sh; .espectacular/lean-kernel-model/*.toml; openspec/specs/lean-kernel-model/spec.md; openspec/changes/archive/2026-11-18-add-lean-kernel-model/{tasks.md item 15}; lean/README.md; CHANGELOG.md Unreleased Added.
+- 2026-11-18T20:58:00Z [id:4d4d6e7f05f9bd936236dbc79c2c83991040164d810d0b13a7eb1d009af0fd62] (#resume-add-kani-verification-lane) Format: 1
+  Timestamp: 2026-11-18T20:58:00Z
+  Repo: /var/home/sasha/para/areas/dev/gh/at/catherine (catherine)
+  Branch: main · HEAD: 5b3f1aa · Session: 01a1f049-7d06-76ef-9e56-27a51358f54d
+  Previous entry: none
+  
+  ## Task: apply the add-kani-verification-lane openspec change (beads catherine-xdi)
+  
+  **Objective**: Add a Kani bounded model-checking lane verifying the Rust kernel itself (crates/catherine-core, catherine-analysis): panic/overflow-freedom over bounded adversarial model documents, witness soundness on shipped Rust, taxonomy disjointness, search-honesty invariants. New 'just verify' lane OUTSIDE 'just ci' (Lean-gate precedent). Explicitly NOT a runtime engine (anti_goal: no solver).
+  
+  **Phase**: planning complete — ready to apply. NOT yet authorized to implement (openspec planning boundary: apply only on explicit user request).
+  
+  **Current state**:
+  - Change artifacts at openspec/changes/add-kani-verification-lane/ (proposal.md, specs/kani-verification-lane/spec.md, design.md, tasks.md, ro5u-review.md) — 4/4 complete, openspec validate --strict VALID (re-validated after revision, no warnings).
+  - Committed: 9262811 (file change, beads export), fe842cb (rule-of-5 revision). Both hooks-green.
+  - Review: 10 findings (0 CRITICAL, 2 HIGH TypeSafe-verified @0.87/@0.93, FP 0%) all fixed in fe842cb. Key design calls: stop gate fires END OF PHASE 1 and gates phase-2 spend (extend/hold/retire via existing ledger decision kind, no schema extension); undetermined-without-recorded-disposition FAILS the lane (never green); harnesses use bounded kani::any() scalars + deterministic insertion loops, never serde strings (BTreeMap types in instance.rs); counterexample protocol mirrors Lean Decision 4 (harness defect vs kernel defect → beads + regression fixture).
+  - Tasks: 11 (provisioning+RED provocation → panic-freedom+witness-soundness GREEN → gated phase 2 → CI wiring/stop-gate/validate). Kani NOT yet installed on this machine; provisioning is task 1.
+  
+  **Exact next action**: user says apply → run openspec apply add-kani-verification-lane starting at tasks.md task 1 (pin Kani release, just verify recipe, cfg(kani) scaffolding, provocation pass).
+  
+  **Constraints / authorization limits**: planning boundary — no implementation without explicit request; 'just ci' must stay Kani-free (spec scenario pins it); rust-toolchain.toml (1.98.1) untouched — Kani bundles its own nightly; kernel changes only via separate beads tickets if harnesses find defects (out of lane scope).
+  
+  **Sequencing constraint**: CONCURRENT SESSION active — it committed db325fc (Lean twin pullback verdicts) and 5b3f1aa (archived add-lean-kernel-model) on top of this session's commits. Recommended (user agreed): close add-bogart-pilot (was 8/10) before starting this lane's implementation. Do not touch that stream's files.
+  
+  **Validation**: openspec validate add-kani-verification-lane --strict → valid (2026-11-18, post-fe842cb). cargo test / cargo kani not run (nothing to run yet — planning only).
+  
+  **Unresolved / unknowns**: whether openspec status still lists add-bogart-pilot as in-progress (check before apply); Kani release version to pin (decide at task 1 against latest stable Kani).
+- 2026-11-18T20:58:24Z [id:4fb6c120e4a77f5e9e9e0e25e0b9fddcdc7e1abb69c9dadfc3a0ff58d600e206] (#resume-lean-kernel-model) Format: 1
+  Timestamp: 2026-11-18T20:57:36Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 5b3f1aa (4 ahead of origin/main, 0 behind; NOT pushed)
+  Session: omp session, id unknown (no session env var)
+  Task: complete the lean twin (pullback formalization, contracts, archive) and confirm schema-diff
+  Previous entry: 5f90ad4a54c111aae2e654da035a459ba33b88ea6e7c0cfe06fce0dce6cf51d9
+  
+  Objective: finish add-lean-kernel-model (pullback verdicts, contracts, archive) and confirm schema-diff needed nothing. COMPLETE — both commits landed with user authorization this session.
+  
+  Phase: commit (work done and committed; nothing in flight).
+  
+  Current state:
+  - Commits: db325fc feat(lean) formalize pullback verdicts (Schema/Findings/Check/Mirror/Parity + Proofs/{Basic,Soundness,DanglingDiscipline}, lean/README counts, CHANGELOG); 5b3f1aa chore(spec) bind 7 espectacular shell contracts via scripts/check-lean-contract.sh, deploy openspec/specs/lean-kernel-model, archive change as openspec/changes/archive/2026-11-18-add-lean-kernel-model.
+  - Both commits passed the full lefthook pre-commit gate (bd + ah check + pretender + spk-lint + hook-swallow-guard).
+  - Concurrent sessions landed 9262811 and fe842cb (add-kani-verification-lane docs, beads catherine-xdi) — no file overlap with these commits.
+  - schema-diff needed no edits (archived 2026-11-12; crates/catherine-analysis/src/schema_diff.rs; CLI `catherine diff`).
+  - Working tree clean except .whisper/branches/main/notes.md (pre-existing dirty, never committed by design).
+  
+  Exact next action: none required. Options when work resumes: (1) push the 4 commits — needs explicit instruction; (2) bd ready = catherine-xdi (Kani bounded-verification lane, filed by concurrent session, unassigned); (3) deferred backlog: add-bogart-pilot 8/10 tasks, corpus coverage for covers/unique pullback arms (no own parity fixture yet).
+  
+  Decisions/constraints: user approves every commit; push only on explicit instruction. User chose full pullback formalization over corpus exclusion. Contracts use a [[tests.shell]] runner (twin is Lean, not cargo); the divergence contract seeds a mismatch via CATHERINE_BIN; hegeltest stays 0.53.1; ledger decision remains "hold".
+  
+  Ticket ownership: catherine-xvh CLOSED; catherine-xdi open/unassigned; single-author (sasha).
+  
+  Validation: executed pre-commit (base 2bac33a + docs-only 9262811): just lean green; lean-parity --check-build exit 0 (total=193 rust_checkable=183 skipped_parse=10 lean_only_presentation=1 trivially_agreeing=103 findings_bearing_agreeing=81 divergences=0 build_mismatches=0); scripts/check-lean-axioms.sh 18 audited declarations, no sorryAx/axiom; ah check --run-tests 256 passed / 0 findings; openspec validate --all --strict 17/17; just ci-full green. NOT re-run after commit: full ci-full at 5b3f1aa (only docs commits intervened; UNKNOWN, low risk).
+  
+  Unresolved (pre-existing): covers/unique arms proof-covered but corpus-unexercised; .espectacular/config.toml tool_version 0.12.0 vs binary 0.12.3; vampiro seam advisory at crates/catherine-cli/src/runners/underconstraint.rs:28-50; symmetric_ratchet_bounded_sizes row-id insensitivity.
+  
+  Refs: lean/Catherine/*.lean; lean/Catherine/Proofs/*.lean; scripts/check-lean-contract.sh; .espectacular/lean-kernel-model/*.toml; openspec/specs/lean-kernel-model/spec.md; openspec/changes/archive/2026-11-18-add-lean-kernel-model/tasks.md (item 15); CHANGELOG.md Unreleased.
+- 2026-11-19T15:28:24Z [id:448b0e9f5e4752e7fd49b85ff97088580f41514ddb415862d3fe747ce4d05f7a] (#resume-catherine-amh) Format: 1
+  Timestamp: 2026-11-19T02:10:00Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: a774fe4 (unpushed; origin/main at 2c1de25)
+  Session: pi session, id unknown (no session env var)
+  Task: investigate CBMC memory blowup in the Kani lane (beads catherine-amh)
+  Previous entry: none (superseded by ab7d0719a077a0a0aac634a41ad887105489336104eac60f19d82b11f68291d5)
+  
+  Objective: answer catherine-amh's three questions and make just verify budget-safe. COMPLETE (ticket closed); commits NOT made — user approves every commit.
+  
+  Phase: commit — working tree, uncommitted: scripts/check-kani-lane.sh (budget-bounded runner: systemd scope MemoryMax=8G default via KANI_MEMORY_BUDGET_MB, swap off, refuses to run without a working scope; -Z unstable-options fix; CBMC timeout and budget-kill rc137 classified undetermined with disposition required; per-harness exit/peak/wall into target/kani-timings.txt; KANI_HARNESS_FILTER maintenance subsets); docs/kani-lane.md (new "Safe invocation (catherine-amh)" section + resource-sweep evidence bullet); .beads/issues.jsonl (amh closed with findings, xdi comment added, export refreshed).
+  
+  Findings: all 11 harnesses uniform ~5.8–6.3 GB peak RSS at 300s wall (per-harness, unwind 16, capped) — every one undetermined; blowup is String-keyed BTreeMap modeling, agreeing with xdi's recorded toolchain limitation; the 15.4 GB fatal run was the uncapped crate-wide class. HOLD verdict on catherine-xdi stands.
+  
+  Residual risk: scripts/provoke-kani-harnesses.sh (xdi task 3, not yet exercised) invokes cargo kani WITHOUT the memory scope — route it through the same wrapper when task 3 starts.
+  
+  Exact next action: user authorizes → two commits: (1) perf(scripts): budget-bound the kani lane runner (catherine-amh) — script + doc; (2) chore(bd): close catherine-amh — export. Push only on explicit instruction.
+  
+  Ticket ownership: amh CLOSED; xdi in_progress assigned arltificial, lease expired 16h+ (stale — reclaim before continuing); single-author (sasha).
+  
+  Validation: ah check clean; bash -n clean; full per-harness sweep executed under the cap (target/kani-amh/ logs + time -v); filtered e2e lane run exit 0 (timeout → disposition recorded); no-match filter fails cleanly.
+  
+  Unresolved: tool-output rendering shows character-level garbling this session (transport-level; disk artifacts validated by bash -n/grep/behavioral runs — low concern, noted in amh close-out).
+  
+  Refs: docs/kani-lane.md; scripts/check-kani-lane.sh; target/kani-amh/; target/kani-timings.txt; bd catherine-amh (closed), catherine-xdi (hold).
+- 2026-11-19T16:17:49Z [id:ab7d0719a077a0a0aac634a41ad887105489336104eac60f19d82b11f68291d5] (#resume-catherine-amh) Format: 1
+  Timestamp: 2026-11-19T02:25:00Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 14e9dee (== origin/main; pushed; tree clean except whisper notes, never committed by design)
+  Session: pi session, id unknown (no session env var)
+  Task: investigate CBMC memory blowup in the Kani lane (beads catherine-amh)
+  Previous entry: 448b0e9f5e4752e7fd49b85ff97088580f41514ddb415862d3fe747ce4d05f7a
+  
+  Objective: answer catherine-amh's three questions and make just verify budget-safe. COMPLETE — commits 4961272 (fix(verify): budget-bound the kani lane runner) and 14e9dee (chore(bd): close catherine-amh — export) pushed to origin/main with user authorization.
+  
+  Phase: closed. Nothing in flight, no uncommitted product changes.
+  
+  Current state:
+  - just verify (scripts/check-kani-lane.sh) is budget-bounded: every harness inside a systemd user scope (KANI_MEMORY_BUDGET_MB default 8192, swap off), refuses to run uncapped; -Z unstable-options fix for --harness-timeout on Kani 0.68.0; CBMC timeouts and budget-kills (rc 137) classified undetermined with disposition required; per-harness exit/peak/wall rewritten into target/kani-timings.txt; KANI_HARNESS_FILTER maintenance subsets under identical enforcement.
+  - Measured: all 11 declared harnesses ~5.8–6.3 GB peak RSS at 300s wall (unwind 16) — all undetermined; uniform String-keyed BTreeMap modeling cost. Records: target/kani-timings.txt, target/kani-amh/.
+  - docs/kani-lane.md has "Safe invocation (catherine-amh)" section + resource-sweep evidence bullet.
+  - beads: catherine-amh CLOSED (full findings in comments); catherine-xdi IN_PROGRESS hold verdict, assigned arltificial, lease STALE (expired ~16h+ — reclaim before continuing).
+  
+  Exact next action: none required. Pickup candidates: (1) catherine-xdi — reclaim stale lease; route scripts/provoke-kani-harnesses.sh through the memory-scope wrapper BEFORE xdi task 3 (it invokes cargo kani uncapped); then tasks 3–5, 8–9 (provocation RED, panic-freedom, witness-soundness, taxonomy-disjointness, search-honesty). (2) deferred: corpus coverage for covers/unique pullback arms (no own parity fixture). (3) pre-existing low-priority polish: .espectacular tool_version 0.12.0 vs binary 0.12.3; symmetric_ratchet_bounded_sizes row-id insensitivity; vampiro seam advisory at crates/catherine-cli/src/runners/underconstraint.rs:28-50.
+  
+  Decisions/constraints: user approves every commit; push only on explicit instruction (both granted this session). NEVER run uncapped crate-wide cargo kani on this 60 GB shared box. hegeltest pinned =0.53.1; ledger decision remains "hold". Dispositions for undetermined outcomes must stay recorded in docs/kani-lane.md or the lane fails.
+  
+  Ticket ownership: catherine-amh closed; catherine-xdi in_progress/arltificial (stale lease); single-author (sasha); bd ready otherwise empty.
+  
+  Validation: lefthook gates green on both commits (bd, ah check, pretender-strict, spk-lint, hook-swallow-guard); ah check clean; filtered e2e lane run exit 0 (timeout → disposition recorded); no-match filter refuses cleanly; bash -n clean; full per-harness sweep executed under the cap.
+  
+  Unresolved: tool-output transport showed character-level garbling all session (disk artifacts verified clean via bash -n/grep/behavior — low concern, noted on amh close-out).
+  
+  Refs: scripts/check-kani-lane.sh; docs/kani-lane.md; target/kani-amh/; target/kani-timings.txt; bd catherine-amh (closed), catherine-xdi (hold). (supersedes 448b0e9f5e4752e7fd49b85ff97088580f41514ddb415862d3fe747ce4d05f7a)
+- 2026-11-19T20:16:38Z [id:5bb29ba7f94dfa62df48c892a0d2fdbda9a777fffd673cd4bb9b4c4db77389c6] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-19T20:16:17Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 7c016e5 (commit f063084 amended; not pushed; tree clean except whisper notes, never committed by design)
+  Session: id unknown (no session env var)
+  Task: revive the Kani verification lane — ident-interning revisit trigger executed (beads catherine-6g2, OPEN, self-claimed; acceptance item 3 unmet) (superseded by 849c3f5b9936cb5d25072baa52b64b6787eec91434be849cc4497cec04cb22c1)
+  
+  Objective: make the 11 Kani harnesses produce verdicts in budget instead of universal undetermined.
+  
+  Phase: green→held (implementation landed + committed; proof runs blocked by a measured residual wall).
+  
+  State (commit 7c016e5, all gates green: fmt/clippy -D/test --workspace/pretender; 169 core tests + ah contract suite):
+  - Interned execution core landed: crates/catherine-core/src/engine/{mod,compile,families,render,lane}.rs (split under pretender caps); checks::check and TypedInstance::build route through it; parsed-path walkers deleted; findings ordered by pure-int sort keys ≡ Finding::cmp (id order = name order).
+  - Probe matrix measured (Kani 0.68/CBMC 6.11, unwind 16; probes in target/probe-intern, probe-enginelite, probe-sortstr): BTreeMap+symbolic fatal at ANY key type; &str in comparators fatal (memcmp churn); String alloc/drop/swap in harness path fatal even concrete; Vec-of-Vec symbolic + concrete bounds proves in seconds; Option<struct> free.
+  - CONSTRUCTION VERIFIED: EngineSchema::lane + instance_for ~26 s — first in-budget lane result.
+  - STILL HELD: engine_build + check walkers (probe_build_only misses 380 s vs ~15 s standalone); residual = interprocedural Vec machinery over symbolic-length content in-crate. Dispositions + 3 revisit triggers recorded in docs/kani-lane.md (2026-11-19 section) and ledger/kani/0002-155b868c.json.
+  - Fixed pre-existing ci breakage: cfg(kani) check-cfg lints in crates/catherine-core/Cargo.toml.
+  - openspec tasks 3-5 unchecked; phase-2 unfunded (hold); provocation pass (task 3) not run.
+  
+  Exact next action: pick ONE revisit trigger and execute — recommended: standalone verification crate wrapping the engine behind a pub API (kills the in-crate vs standalone 10x unknown); alternatives: re-probe on a Kani release with stabilized push_within_capacity/cheaper alloc modeling, or --cbmc-args solver profiling. Then provocation pass (task 3) → 11 harness verdicts → tasks 3-5 + lane README + bd close + bd export.
+  
+  Constraints: lane stays outside `just ci`; never cite undetermined as proved; kernelside unsafe limited to push_bounded (capacity-asserted append, pointer checks verify it); parsed surface must stay byte-identical (169 tests + contract suite are the regression net). Ownership: catherine-6g2 self-claimed, single-author.
+  
+  Validation: just ci exit 0 at 7c016e5; cargo kani compiles the cfg(kani) surface (build_panic_freedom runs, times out as dispositioned).
+  
+  Blockers: none mechanical; the in-crate vs standalone delta is the open unknown. Unknowns: whether solver time or symex dominates (no profile taken).
+- 2026-11-20T02:10:09Z [id:849c3f5b9936cb5d25072baa52b64b6787eec91434be849cc4497cec04cb22c1] (#resume-catherine-6g2) Format: 1
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: ef507f3bcd (a4dc2585a5 + ef507f3bcd; both local, NOT pushed)
+  Session: id unknown (no session env var)
+  Task: catherine-6g2 (P1, IN_PROGRESS, self-claimed arltificial) — finish Kani lane deliverable 2 (per-harness proved at declared bounds) (superseded by 0de94806de2d708acd83c1eecb81aa8083583b0802f0cc74c1ce9717d60b4c31)
+  
+  Objective: get the 11 declared Kani harnesses to prove within the lane budget (300s wall / 8GB scope, just verify), closing openspec tasks 3-5.
+  
+  Current phase: green (blocked at the solve phase); big arc landed this session.
+  
+  Current state:
+  - Structural: engine split to crates/catherine-engine (model + EpistemicLabel + engine; serde optional feature, lane builds with default-features=false) + new crates/catherine-kani harness crate (lib.rs + shapes.rs + soundness.rs) depending only on the engine crate; lane script runs cargo kani -p catherine-kani. catherine-core wraps via pub use catherine_engine::{engine, model}; parsed adapters (compile_typed free fn in checks.rs, render.rs core-side) stay kernel-side. All downstream paths unchanged; 132 test suites + clippy -D + fmt + ah check --run-tests + ledger-check ledger/ green at HEAD.
+  - Solver-shaped on profile evidence (CBMC verbosity 9 traces + standalone probe replicas in target/probe-enginelite): insertion_sort_by/dedup_sorted replace all slice sorts in the engine (slice-sort internals were the dominant VCC source; order identical — family keys distinct per domain); binary-search membership replaced by linear scans; instance_for + lane constructors rewritten as plain capacity-asserted loops; engine_build reports use push_bounded (plain push measured 3.7x wall / 3x mem standalone); soundness harnesses are now for-all over emitted findings (stronger claim, no symbolic modulo or heap index); harnesses mem::forget their structures at tail (drop glue dominated symex: 154s of 300s on build); check_sortedness declares unwind 48 (its finding space exceeds the default 16).
+  - Measured verdict state: ALL 11 harnesses still undetermined (dispositions recorded in docs/kani-lane.md; lane passes). build_panic_freedom now REACHES the solver phase (152s symex, 24k VCCs after slicing) but 300s still exceeds it; soundness_dangling does not complete even at 900s without the forget change (7.7GB peak). kissat no better than default within budget.
+  - Ledger: 0003-1211da19.json recorded (hold; refined obligation: solve-phase volume, not toolchain modeling). Pre-existing breakage fixed: committed 0002 had proofs/defects_found/holes_found/fixture_only_comparison OUTSIDE decision{} (validator ignores them on reseal, so its committed id mismatched); re-sealed as 0002-5fd85fd1.json (old 0002-155b868c.json deleted).
+  - Untracked scratch: target/probe-enginelite/src/main.rs carries this session's probe harnesses (build_reports_plain_push/bounded_push, soundness_dangling_replica) — probe-methodology evidence; keep or clean next session.
+  
+  Exact next action: attack the remaining symex/solve volume — recorded trigger (1): cfg(kani)-shaped arena structures for the lane flavor (fixed-capacity tables + indices instead of heap vectors on the proven path), re-run build_panic_freedom first (baseline: 152s symex / 24k VCCs / solve exceeds 300s); alternative trigger (2): a stop-gate (Decision 6) budget revision if a profile shows symex well inside budget with solve dominating.
+  
+  Key constraints: lane standard stays 8GB/300s until a stop-gate decision says otherwise; dispositions must stay recorded for every undetermined harness or the lane fails; parsed kernel surface byte-identical (contract suite pins); no String/BTreeMap op charged to the solver on the symbolic path.
+  
+  Ticket ownership: catherine-6g2 self-claimed (arltificial); no third-party claims.
+  
+  Validation: cargo test --workspace green (132 suites), clippy -D warnings green, fmt clean, ah check --run-tests green (25 contract tests), ledger-check ledger/ green, lane green via recorded dispositions.
+  
+  Refs: docs/kani-lane.md (2026-11-19 continuation section), ledger/kani/0003-1211da19.json, openspec/changes/add-kani-verification-lane/tasks.md (tasks 3-5 open), beads catherine-6g2 notes. (supersedes 5bb29ba7f94dfa62df48c892a0d2fdbda9a777fffd673cd4bb9b4c4db77389c6)
+- 2026-11-20T10:44:12Z [id:0de94806de2d708acd83c1eecb81aa8083583b0802f0cc74c1ce9717d60b4c31] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-20T10:44:12Z
+  Format: 1
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: ef507f3bcd (a4dc2585a5 + ef507f3bcd; both local, NOT pushed)
+  Session: id unknown (no session env var)
+  Task: catherine-6g2 (P1, IN_PROGRESS, self-claimed arltificial) — finish Kani lane deliverable 2 (per-harness proved at declared bounds), closing openspec tasks 3-5
+  
+  Objective: get the 11 declared Kani harnesses to prove within the lane budget (300s wall / 8GB scope, just verify).
+  
+  Current phase: green (blocked at the solve phase). Work state unchanged from the prior entry's session; this snapshot adds one repository-hygiene fact.
+  
+  Exact next action:
+  1. Restage the shared index: 11 paths (crates/catherine-core/src/render.rs, crates/catherine-engine/src/engine/{compile,families,lane,mod}.rs, crates/catherine-engine/src/engine/families/pullback.rs, crates/catherine-engine/src/model/{mod,relations}.rs, crates/catherine-kani/src/{lib,shapes,soundness}.rs) hold stale staged content from the git mv flow — `git diff --cached` shows the two commits as reverted for them. Worktree content == HEAD (verified: cargo check + full gates green). Restage with `git add` on those paths (safe, non-destructive) so a stray `git commit` cannot land a broken tree.
+  2. Then the recorded trigger (ledger 0003): cfg(kani)-shaped arena structures for the lane flavor (fixed-capacity tables + indices instead of heap vectors on the proven path); re-run build_panic_freedom first (baseline: 152s symex / 24k VCCs after slicing / solve exceeds the 300s wall). Alternative trigger (2): a stop-gate (Decision 6) budget revision if a profile shows symex well inside budget with solve time dominating.
+  
+  Current state (unchanged work facts): engine split to crates/catherine-engine (model + EpistemicLabel + engine; serde optional, off for the lane) + crates/catherine-kani harness crate; core wraps via pub use catherine_engine::{engine, model}. Engine solver-shaped on profile/probe evidence: insertion_sort_by/dedup_sorted replace all slice sorts (order-identical, keys distinct per family), linear membership scans, plain capacity-asserted loops for instance_for/lane constructors, push_bounded build reports (plain push 3.7x wall/3x mem standalone), for-all soundness harnesses (no symbolic modulo/heap indexing), mem::forget at harness tails (drop glue ate 154s of 300s), check_sortedness declares unwind 48. Measured: all 11 harnesses UNDETERMINED (dispositions recorded in docs/kani-lane.md; lane green); build reaches solver phase; soundness_dangling fails 900s without forget (7.7GB peak); kissat no better in budget.
+  
+  Key constraints: lane standard stays 8GB/300s until a stop-gate decision; dispositions required for every undetermined harness or the lane fails; parsed kernel surface byte-identical (contract suite pins); no String/BTreeMap op charged to the solver on the symbolic path.
+  
+  Ticket ownership: catherine-6g2 self-claimed (arltificial); no third-party claims.
+  
+  Validation: cargo test --workspace green (132 suites), clippy -D warnings green, fmt clean, ah check --run-tests green (25 contract tests), ledger-check ledger/ green (5 entries), lane green via recorded dispositions — all at HEAD ef507f3bcd.
+  
+  Refs: docs/kani-lane.md (2026-11-19 continuation section), ledger/kani/0003-1211da19.json (hold; refined obligation: solve-phase volume), ledger/kani/0002-5fd85fd1.json (re-sealed fix), openspec/changes/add-kani-verification-lane/tasks.md (tasks 3-5 open), beads catherine-6g2 notes, untracked probe harnesses in target/probe-enginelite/src/main.rs.
+  Previous entry: 849c3f5b9936cb5d25072baa52b64b6787eec91434be849cc4497cec04cb22c1 (supersedes 849c3f5b9936cb5d25072baa52b64b6787eec91434be849cc4497cec04cb22c1)
+- 2026-11-21T12:13:50Z [id:124fee39c883cc53de483fb585c4ac063c93fcdccd70cd9fa20b08bf8e63c549] (#resume-catherine-6g2) Format: 1
+  Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 7256627 (ef507f3 + 7256627; both local, NOT pushed)
+  Session: 6g2 phase-0 record session
+  Task: catherine-6g2 (P1, IN_PROGRESS, self-claimed arltificial) — NEXT: phase 1 arena build path; gate = build_panic_freedom reaches the solver at the 8 GB standard
+  
+  Objective: get the 11 declared Kani harnesses to prove within the lane budget (8GB/300s wall); deliverable 2, openspec tasks 3-5.
+  
+  Current phase: phase 0 (corrected record) complete, committed 7256627.
+  
+  State:
+  - Wall corrected: propositional-reduction memory, not solve time. Four instrumented runs (logs target/kani-ab/): symex 88.7-94.7s clean, 72353 VCCs / 24066 after simplification, Convert SSA ~5.5s, then kernel OOM in reduction at 8GB (default solver; kissat; kissat+--slice-formula) and at 24GB (kissat, diagnostic cap). No solver runs in any capped run. Ledger 0004-c7563980 supersedes 0003; docs/kani-lane.md 2026-11-21 section records it.
+  - Live lever: arena shape — cfg(kani) fixed-capacity table ([Option<T>; CAP] + len, capacity-asserted push = push_bounded's contract now structural), Vec passthrough otherwise; one walker set; caps from shapes.rs x2 headroom (objects 8, arrows 16, rows 8, cells 16, findings 64 >= the 45-finding bound).
+  - Plan: phase 1 EngineInstance/EngineTyped/engine_build (gate: reduction completes at 8GB, solver reached); phase 2 families.rs (13 sites) + engine_compose + lane.rs (31) + compile.rs (18); phase 3 verdict + record (tasks 3-5, target/kani-timings.txt, ledger re-seal).
+  
+  Exact next action: create crates/catherine-engine/src/engine/store.rs with the cfg-swapped table type; migrate EngineInstance + EngineTyped + engine_build; run scripts/check-kani-lane.sh with KANI_HARNESS_FILTER=build_panic_freedom; require no MEMCG OOM before reading any verdict.
+  
+  Key constraints: parsed kernel surface byte-identical (contract suite 259 + parity pin it); CAP asserts are proof obligations, never silent truncation; lane standard 8GB/300s until a Decision 6 stop-gate with a profile showing reduction inside cap and solve dominating.
+  
+  Ticket ownership: catherine-6g2 self-claimed (arltificial), lease re-asserted 2026-11-20; no third-party claims.
+  
+  Validation: ah check --run-tests green (259 passed, 0 findings); ledger-check green (4 entries); commit 7256627 on ef507f3; tree clean except whisper notes (never committed).
+  
+  Refs: ledger/kani/0004-c7563980.json; docs/kani-lane.md 2026-11-21 section; target/kani-ab/ logs; openspec/changes/add-kani-verification-lane/tasks.md (3-5 open); untracked probes in target/probe-enginelite.
+  Previous entry: 0de94806de2d708acd83c1eecb81aa8083583b0802f0cc74c1ce9717d60b4c31
+- 2026-11-21T12:14:12Z [id:5ffbc7e52f3231a2b7716d6051b290d6930eb81dcd886500d758b480863f4df4] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-21T12:14:12Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 7256627 (ef507f3 + 7256627; both local, NOT pushed)
+  Session: 6g2 phase-0 record session
+  Task: catherine-6g2 (P1, IN_PROGRESS, self-claimed arltificial) — NEXT: phase 1 arena build path; gate = build_panic_freedom reaches the solver at the 8 GB standard
+  
+  Objective: get the 11 declared Kani harnesses to prove within the lane budget (8GB/300s wall); deliverable 2, openspec tasks 3-5.
+  
+  Current phase: phase 0 (corrected record) complete, committed 7256627.
+  
+  State:
+  - Wall corrected: propositional-reduction memory, not solve time. Four instrumented runs (logs target/kani-ab/): symex 88.7-94.7s clean, 72353 VCCs / 24066 after simplification, Convert SSA ~5.5s, then kernel OOM in reduction at 8GB (default solver; kissat; kissat+--slice-formula) and at 24GB (kissat, diagnostic cap). No solver runs in any capped run. Ledger 0004-c7563980 supersedes 0003; docs/kani-lane.md 2026-11-21 section records it.
+  - Live lever: arena shape — cfg(kani) fixed-capacity table ([Option<T>; CAP] + len, capacity-asserted push = push_bounded's contract now structural), Vec passthrough otherwise; one walker set; caps from shapes.rs x2 headroom (objects 8, arrows 16, rows 8, cells 16, findings 64 >= the 45-finding bound).
+  - Plan: phase 1 EngineInstance/EngineTyped/engine_build (gate: reduction completes at 8GB, solver reached); phase 2 families.rs (13 sites) + engine_compose + lane.rs (31) + compile.rs (18); phase 3 verdict + record (tasks 3-5, target/kani-timings.txt, ledger re-seal).
+  
+  Exact next action: create crates/catherine-engine/src/engine/store.rs with the cfg-swapped table type; migrate EngineInstance + EngineTyped + engine_build; run scripts/check-kani-lane.sh with KANI_HARNESS_FILTER=build_panic_freedom; require no MEMCG OOM before reading any verdict.
+  
+  Key constraints: parsed kernel surface byte-identical (contract suite 259 + parity pin it); CAP asserts are proof obligations, never silent truncation; lane standard 8GB/300s until a Decision 6 stop-gate with a profile showing reduction inside cap and solve dominating.
+  
+  Ticket ownership: catherine-6g2 self-claimed (arltificial), lease re-asserted 2026-11-20; no third-party claims.
+  
+  Validation: ah check --run-tests green (259 passed, 0 findings); ledger-check green (4 entries); commit 7256627 on ef507f3; tree clean except whisper notes (never committed).
+  
+  Refs: ledger/kani/0004-c7563980.json; docs/kani-lane.md 2026-11-21 section; target/kani-ab/ logs; openspec/changes/add-kani-verification-lane/tasks.md (3-5 open); untracked probes in target/probe-enginelite.
+  Previous entry: 124fee39c883cc53de483fb585c4ac063c93fcdccd70cd9fa20b08bf8e63c549
+- 2026-11-23T22:20:52Z [id:c28c9a53f8cab7bd390494b9abf858e9f74435b320a95689589288797f14c3d8] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-23T22:20:52Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 25183066 (5 local commits: ef507f3, 7256627, c216e41, 3b40728, 25183066; NOT pushed)
+  Session: 6g2 arena+partition sessions
+  Task: catherine-6g2 (P1, IN_PROGRESS, self-claimed arltificial) — lane has 4 PROVED harnesses; remaining 11 undetermined on walker solve time
+  
+  Objective: per-harness outcomes at the lane standard (8GB/300s); deliverable 2, openspec tasks 3-5.
+  
+  Current state:
+  - 4 PROVED at the standard: build_panic_freedom_{equation 18.7s/1.24GB, key 17.6s/1.20GB, coproduct 18.7s/1.29GB, pullback 36.5s/1.89GB} — build obligation partitioned per family (Decision 4), declared in scripts/check-kani-lane.sh.
+  - Phase 1 arena committed (engine/store.rs Bounded<T,CAP>): all-families build formula halved (symex 70.6s, 11917 VCCs after simplification); solver reached; per-property encoding loop still exceeds 8GB on the all-families space.
+  - Lane's first counterexample (check_coproduct) attributed + RESOLVED: unwinding assertions on allocator-model loops in dangling_findings' violated collect/any chain — walker arena round 1 (commit 25183066) removed the collect + vestigial sort; re-run shows no FAILED verdict, harness returns to undetermined (solve >300s, 2.95GB peak).
+  - Remaining wall: per-property SOLVE TIME on the walkers' heap machinery (key_groups nested Vecs, coproduct_row_findings covering collect, pullback fibers/buckets); memory fits (~2.1-2.95GB).
+  - Records: ledger 0005-cca9d54e (extend; supersedes 0004; proofs list = the 4 harnesses); docs/kani-lane.md dispositions rewritten to live state; beads catherine-6g2 notes consolidated (an earlier --notes update overwrote prior notes; reconstructed from ledger+doc, disclosed).
+  
+  Exact next action: EITHER continue walker arena rounds (key_groups/emit_key_pairs nested Vecs, coproduct_row_findings covering materialize-on-emit, pullback fibers — each round = implement, gates, one bounded lane run) OR stop here and take the solve-time wall to the Decision 6 stop gate with the recorded profile. No further blind runs.
+  
+  Key constraints: lane standard 8GB/300s until a Decision 6 revision with a profile showing encoding inside cap and solve dominating; CAP asserts are proof obligations; parsed surface byte-identical (259 contract tests + parity pin).
+  
+  Ticket ownership: catherine-6g2 self-claimed (arltificial); no third-party claims.
+  
+  Validation: cargo test --workspace green (132 suites), clippy -D warnings, fmt clean, ah check --run-tests green (259), ledger-check green (5 entries), lane runs recorded in target/kani-timings.txt (latest: 4 proved + 1 counterexample-resolved + timeouts), logs in target/{part,rest,cp}.log and target/kani-ab/.
+  
+  Refs: ledger/kani/0005-cca9d54e.json; docs/kani-lane.md 2026-11-21 arena arc + dispositions; openspec/changes/add-kani-verification-lane/tasks.md (3-5 open); untracked probes in target/probe-enginelite.
+  Previous entry: 5ffbc7e52f3231a2b7716d6051b290d6930eb81dcd886500d758b480863f4df4
+- 2026-11-23T23:55:21Z [id:2829bcdc21ad287e0f69957ea7009e082da997c917264c2bf76bdb4ab50a88bc] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-23T23:55:21Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 5be47b1 (walker arena round 2; follows 2518306; NOT pushed)
+  Session: 6g2 walker-arena-2 session
+  Task: catherine-6g2 (P1, IN_PROGRESS, reclaimed arltificial) — walker arena round 2 landed; dangling family verifies at probe level (47.7s); compose-side wall remains
+  
+  Previous entry: c28c9a53f8cab7bd390494b9abf858e9f74435b320a95689589288797f14c3d8 (continues its thread; not superseded — different session)
+  
+  Objective: land the recorded walker-arena lever so the check_*/soundness_* harnesses reach the solver within the 8 GB / 300s standard.
+  
+  Current phase: green→commit (round 2 landed and committed as 5be47b1; ledger 0006-dd08ae9e sealed).
+  
+  Current state:
+  - Temporaries arena landed: key tuples/groups, coproduct images/covering, projection buckets, fibers are Bounded tables (new ARROWS_CAP=8 obligation); Bounded::sort_pushed_by/dedup_pushed; CompactViolation::Coproduct witness is Bounded<Nid, ARROWS_CAP>; pullback families emit straight into out (extend gone); fiber's plain Vec::push gone; families split into families/{keys,coprod,pullback}.rs under the pretender gate.
+  - Dangling exclusion redesigned: per-cell membership scan over typing_violations (measured symex wall: probe hung past 150s alone) replaced by violation_flags(typed) — one pass, flat reads; identical partition/emission order (contract test typing_violation_is_a_build_report caught and drove the exactness of the flags design; kernel tables are POST-build).
+  - Measured: dangling family alone verifies 47.7s SUCCESSFUL (probe, deleted); rest half (equation via engine_compose + key/coprod/pullback + final sort) still times out at 300s in symex; trace: engine_compose unwind re-expansion + Kani same_allocation/to_isize charged per fork.
+  - Gates green: 132 suites / 633 tests, clippy -D warnings, fmt, ledger-check 6 entries, pretender gate passes on commit content.
+  
+  Exact next action: concrete-bound the compose-side resolution walk — CompiledEquation lhs/rhs as Bounded<Step, PATH_CAP> (both lane.rs and compile.rs constructors), non-?-chained walk in engine_compose, and the soundness half's independent compose; then re-measure check_equation first (its family isolates compose), then the sweep.
+  
+  Essential constraints: emission order/equality byte-identical (parity + contract tests pin); caps are proof obligations, never truncation; do not weaken Decision 5 (counterexamples recorded, obligations never weakened); lane stays outside just ci; 6 local commits NOT pushed (push needs explicit authorization).
+  
+  Ownership: catherine-6g2 self-claimed arltificial (reclaimed this session; lease refreshed).
+  
+  Validation: just verify with KANI_HARNESS_FILTER per harness; cargo test --workspace; ah check; ledger-check.
+  
+  Blockers/uncertain: none open; the compose fix is untried — the 1500s long-run probe was SIGTERM'd early, so the symex/solve split for the rest half is attributed from traces, not a completed run.
+  
+  Refs: docs/kani-lane.md 2026-11-23 arc; ledger/kani/0006-dd08ae9e.json; target/kani-arena2/ (probe logs, gitignored).
+- 2026-11-24T00:42:08Z [id:db8c9c9fd19c9cb18a412ff67b542a98632e64e6e6664ce301cd87fb15a6bba6] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-24T00:42:08Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: a283f25 (4 local commits over 6fa11f9: compose resolution walk; ahead 14 of origin, NOT pushed)
+  Session: 6g2 compose-resolution session
+  Task: catherine-6g2 (P1, IN_PROGRESS, claimed arltificial) — compose-side wall CLEARED at symex; equation harnesses now die at the 0004-class reduction budget
+  Objective: execute ledger 0006 hole 2 — the concrete-bound, non-?-chained resolution walk (CompiledEquation paths as bounded tables) in engine_compose and the soundness half's independent compose.
+  Current phase: green/record — measured pair landed, dispositions + ledger 0007 sealed, 4 commits in.
+  Current state:
+  - CompiledEquation lhs/rhs: Vec<Step> -> Bounded<Step, ARROWS_CAP> (array-backed under cfg(kani), Vec-backed production); compile_path/compile_lane_equations push into Bounded; domain via lhs.get(0).flatten().
+  - engine_compose extracted to engine/compose.rs (mod.rs complexity cap): slot reads against concrete len, flat-guarded None arms; soundness::compose same shape, still code-independent.
+  - Measured (same-day pair, standard 8GB/300s): check_equation 300s-symex-timeout -> symex clean 48.1s (9 692 VCCs after slicing) then rc-143 budget kill; soundness_equation -> 59.0s (19 897) then rc-143. Remaining wall = propositional reduction memory (0004 class).
+  - Repairs en route: HEAD had a broken cfg(kani) compile (lost as-u64 cast in assert_coproduct_collision — round-2 commit missed uncommitted tree state) and the lane classifier missed rc-143 scope TERMs; both fixed. soundness.rs split (coprod obligations -> soundness/coprod.rs) for the 400-line cap; engine_compose -> engine/compose.rs.
+  Exact next action: recorded trigger, NOT funded — per-property partitioning of the equation-family harnesses (Decision 4 build precedent) or further formula-mass reduction; the 8 other undetermined harnesses were NOT re-run this round (attributions stand at the 2026-11-23 re-runs).
+  Key constraints: budget stays closed (0004); nothing is cited as proved; push needs explicit authorization (14 ahead); parsed surface byte-identical (633 tests) and the four proved build harnesses untouched.
+  Ticket ownership: catherine-6g2 P1 IN_PROGRESS, assignee arltificial (lease refreshed this session).
+  Validation: fmt/clippy -D warnings/633 tests/ah check/ledger-check green; cargo kani -p catherine-kani --only-codegen green; commits a283f25, f090830, 1dc2777, 4aedffb passed the lefthook complexity gate.
+  Blockers: none for the recorded next lever; note turu archive — Previous entry: 2829bcdc21ad287e0f69957ea7009e082da997c917264c2bf76bdb4ab50a88bc (prior session's walker-arena-2 handoff, referenced not superseded).
+  Refs: docs/kani-lane.md 2026-11-23 compose-resolution arc + per-harness dispositions; ledger/kani/0007-2ec26802.json; target/kani-timings.txt.
+- 2026-11-24T10:51:04Z [id:3d0989444e9e99decd602124020bfc04793c6ecbfb77234da3b6c8ef39954d4b] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-24T10:51:04Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: c21fe86 (2 commits over a283f25: partition + arena; a283f25..c21fe86 pushed; push of the round completed under this session's authorization)
+  Session: 6g2 partition-round session
+  Task: catherine-6g2 (P1, IN_PROGRESS, claimed arltificial) — dangling family PROVES both halves (lane proofs 5-6); equation pair solve-phase-walled
+  Objective: execute ledger 0007 hole 2 — per-property partitioning of the equation-family harnesses (Decision 4 build precedent) plus the recorded second arm (formula-mass reduction on the family walk).
+  Current phase: green/record — partition + findings arena landed as 36a6577; docs + ledger 0008-ae63235a sealed as c21fe86.
+  Current state:
+  - Partition: check_dangling_panic_freedom declared (16 harnesses); check_equation narrowed to the equation walk; soundness dispatch per witness kind (equation/dangling carry only their arm).
+  - Arena: partition entries emit into Bounded<...,REPORT_CAP> via FindingSink (slot writes + sort_pushed_by); the findings heap-Vec/slice-sort/slice-iteration left the lane formulas.
+  - PROVED: check_dangling 3:30/4.96GB (symex 83.7s, 4 837 VCCs, solver 0.58s); soundness_dangling 3:59/5.92GB (85.7s, 5 029, 1.29s). Proved pairs peak ~5-6GB — solve loop grows per property.
+  - Walled: check_equation (85.7s symex, 8 545 VCCs) + soundness_equation (99.8s, 18 097) budget-killed in the solve phase; --slice-formula probe NEGATIVE (identical VCCs, no verdict). Mechanism pinned: death tracks per-property solve-loop growth, not VCC count (dangling proved with MORE VCCs than it died with pre-arena: 4 837 vs 3 156).
+  - Key measurement chain: Vec-partition round killed all four (check_dangling died in SOLVE at 3 156 VCCs, reduction complete) -> arena -> dangling proves. 0004 solver-tuning retirement extends to this wall class as measured.
+  Exact next action: recorded trigger, NOT funded — a Kani/CBMC release whose per-property solve loop stops growing (re-probe check_equation first) or a property-count reduction on the equation walk; the six other undetermined harnesses' recorded path = same partition+arena pattern (key/coprod/pullback walkers are already arena-backed internally; their emissions and the all-families walk/build Vec paths are not).
+  Key constraints: nothing cited beyond recorded proofs; parsed surface byte-identical (633 tests); lane 16 harnesses; push was authorized this session for main (backlog + this round).
+  Ticket ownership: catherine-6g2 P1 IN_PROGRESS arltificial.
+  Validation: fmt/clippy -D/633 tests/ah check/ledger-check (8 entries) green; bash -n script; kani codegen green; commits 36a6577, c21fe86 passed lefthook gates.
+  Blockers: none open. Previous entry: db8c9c9fd19c9cb18a412ff67b542a98632e64e6e6664ce301cd87fb15a6bba6 (compose-resolution session; continues its thread, not superseded — different session).
+  Refs: docs/kani-lane.md 2026-11-24 arc + dispositions; ledger/kani/0008-ae63235a.json; target/tmp/ harness logs + .time files (this round's provenance).
+- 2026-11-24T13:11:20Z [id:a5fcdc0672a838ceb7cdb36ed15c23e1ab623c3aa748efedc17fbf38a5866299] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-24T13:11:20Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: d7deed89 (2 commits over c21fe86: equation family proofs + ledger 0009; being pushed under this session's authorization)
+  Session: 6g2 equation-family session
+  Task: catherine-6g2 (P1, IN_PROGRESS, claimed arltificial) — the EQUATION FAMILY FULLY VERIFIES at the standard; lane proofs 7-9 of 17 declared
+  Objective: clear the equation pair's solve-loop wall (ledger 0008's recorded trigger).
+  Current phase: green/record — 22c59b8038 (code) + d7deed89 (docs + ledger 0009-4d84130c) landed.
+  Current state:
+  - Ladder rungs, each measured: (1) declared unwind 8 per harness (all loops concretely bounded by 8 under the shape; check_sortedness precedent) -> check_equation PROVED 2:00.79/4.94GB (symex 26.2s, 4 061 VCCs, 16 solver instances); (2) the family's sort relocated from the entry into the check harness (per-family emission order is already key order; merged sort lives in engine_families) -> soundness reached the solver at 6 057 VCCs but lost the growth race; (3) the witness claim split per composition side -> soundness_equation (lhs) PROVED 5:11.59/5.84GB (4 745 VCCs, 29 instances) + soundness_equation_rhs PROVED 2:25.79/5.84GB (14 instances).
+  - Lane: 17 declared harnesses, 9 PROVED (4 build, 2 dangling, 1 check equation, 2 soundness equation halves, this includes check_dangling+soundness_dangling from the partition round).
+  - Mechanism (0008) stands: solve loop grows per property; claims fit only in the smallest units (both-sides obligation at 6 057 VCCs did NOT fit).
+  - soundness.rs now carries assert_equation_{lhs,rhs}_sound split obligations; assert_finding_sound (dispatcher for key/coprod/pullback) unchanged.
+  Exact next action: recorded, NOT funded — the six remaining undetermined harnesses (check/soundness key, coprod, pullback; all-families walk; all-families build) take the same ladder: per-family partition, findings arena, sized unwind, sort placement, claim split. A toolchain release whose solve loop stops growing remains the re-consolidation trigger.
+  Key constraints: nothing cited beyond recorded proofs; parsed surface byte-identical (633 tests); lib.rs exactly at the 400-line cap (doc trim).
+  Ticket ownership: catherine-6g2 P1 IN_PROGRESS arltificial.
+  Validation: fmt/clippy -D/633 tests/ah check/ledger-check (9 entries)/bash -n/kani codegen green; proofs' provenance in target/tmp/ logs + .time files.
+  Blockers: none open. Previous entry: 3d0989444e9e99decd602124020bfc04793c6ecbfb77234da3b6c8ef39954d4b (partition-round session; continues its thread, not superseded).
+  Refs: docs/kani-lane.md 2026-11-24 continuation arc + dispositions; ledger/kani/0009-4d84130c.json; target/tmp/ logs. (superseded by c5b2470865e929757c47ef27c93e9eaa9e25326a4c3860bdec1ba702a15b6d79)
+- 2026-11-24T13:26:42Z [id:c5b2470865e929757c47ef27c93e9eaa9e25326a4c3860bdec1ba702a15b6d79] (#resume-catherine-6g2) Format: 1
+  Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: d7deed89 (== origin/main; the equation-family round is pushed: a283f25..c21fe86 then c21fe86..d7deed8)
+  Session: 6g2 equation-family session
+  Task: catherine-6g2 (P1, IN_PROGRESS, claimed arltificial) — the EQUATION FAMILY FULLY VERIFIES at the standard; lane proofs 7-9; 9 of 17 declared harnesses proved
+  Objective: clear the equation pair's solve-loop wall (ledger 0008's recorded trigger) via the property-count ladder.
+  Current phase: closed/record — all work landed, committed (22c59b8038 code, d7deed89de record), and pushed. Nothing in flight.
+  Current state:
+  - Ladder rungs, each measured: (1) declared unwind 8 per harness (every executed loop concretely bounded by 8 under the shape; check_sortedness precedent) -> check_equation_panic_freedom PROVED 2:00.79/4.94GB (symex 26.2s, 4 061 VCCs, 16 solver instances); (2) the family's sort relocated from the partition entry into the check harness (per-family emission order is already key order; merged sort lives in engine_families) -> soundness reached the solver at 6 057 VCCs but lost the growth race; (3) the witness claim split per composition side -> soundness_equation (lhs) PROVED 5:11.59/5.84GB (4 745 VCCs, 29 instances) + soundness_equation_rhs PROVED 2:25.79/5.84GB (14 instances).
+  - Lane: 17 declared harnesses, 9 PROVED (4 build partitions, check_dangling + soundness_dangling from the partition round, check_equation + both equation soundness halves).
+  - Mechanism (ledger 0008) stands: the solve loop grows memory per property; claims fit only in the smallest units (the both-sides obligation at 6 057 post-slicing VCCs did NOT fit; its halves at 4 745 each did).
+  - soundness.rs carries assert_equation_{lhs,rhs}_sound split obligations (assert_finding_sound unchanged for key/coprod/pullback); lib.rs exactly at the 400-line cap (doc trim, comment-only delta after the proof runs).
+  Exact next action: recorded, NOT funded — the six remaining undetermined harnesses (check/soundness key, coproduct, pullback; the all-families walk; the all-families build) take the same ladder: per-family partition, findings arena, declared unwind sized to the shape's concrete loop bounds, sort relocated to the order-needing claims, claim split per composition side. A Kani/CBMC release whose per-property solve loop stops growing remains the re-consolidation trigger for split claims.
+  Key decisions/constraints: nothing cited beyond recorded proofs; dispositions required for every undetermined harness or the lane fails; parsed surface byte-identical (633 tests); lane standard stays 8GB/300s; push was authorized this session (backlog + both rounds) — no standing authorization beyond it.
+  Ticket ownership: catherine-6g2 P1 IN_PROGRESS, assignee arltificial (claim refreshed this session).
+  Validation: fmt/clippy -D warnings/633 tests/ah check/ledger-check (9 entries)/bash -n scripts/check-kani-lane.sh/cargo kani --only-codegen all green; proof provenance in target/tmp/ logs + .time files (check_equation 2:00.79/4.94GB; soundness_equation 5:11.59/5.84GB; soundness_equation_rhs 2:25.79/5.84GB).
+  Unresolved/blockers: none open; six undetermined harnesses carry recorded paths, unfunded.
+  Refs: docs/kani-lane.md 2026-11-24 arcs (partition + continuation) and dispositions; ledger/kani/0008-ae63235a.json + 0009-4d84130c.json; target/tmp/ harness logs.
+  Previous entry: a5fcdc0672a838ceb7cdb36ed15c23e1ab623c3aa748efedc17fbf38a5866299 (same session's pre-push snapshot; superseded — the push it awaited has completed) (supersedes a5fcdc0672a838ceb7cdb36ed15c23e1ab623c3aa748efedc17fbf38a5866299)
+- 2026-11-24T18:39:55Z [id:9df308cb9fa4ced1a5c24362dd72a88d75a5ddd8959e97d22035b4f3f0a3b4f6] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-24T18:55:00Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 28ffc256ac (code 3076c9ab76 + record 28ffc256ac, NOT pushed; parent d7deed89 == origin/main)
+  Session: 6g2 key+coproduct continuation session
+  Task: catherine-6g2 (P1, IN_PROGRESS, claimed arltificial) - 14 of 18 declared harnesses prove at the 300s/8GB standard; lane passes end to end (attempt 3, exit 0)
+  Objective: work the recorded partition ladder over the six remaining undetermined harnesses.
+  Current phase: closed/record - all work landed and committed locally. Nothing in flight. NOT pushed.
+  Current state:
+  - LANE PASSES: 14/18 proved; dispositions recorded for the 4 undetermined (build parent carried by per-family proofs; check_sortedness 300s wall; pullback pair budget-killed).
+  - New proofs this round: check_key 3:51.86/4.23GB, soundness_key 3:21.35/5.01GB, check_coproduct 1:36.65/2.86GB, soundness_coproduct 59.44s/2.82GB, soundness_coproduct_collision 1:08.74/2.98GB.
+  - Landed levers: per-family partition entries + FindingSink walkers (engine), key flat-scan (concrete bounds), coproduct mirror strip (membership-only images), per-kind soundness dispatch (merged dispatcher deleted), coproduct claim split per witness shape (18 declared), coproduct soundness unwind sized 8->4 (shape's concrete loop bound: 2 trips + exit; mirror-era 8 peaked 9.93GB uncapped), lane --exact (substring-matching defect fixed, timings re-measured per harness).
+  - Ledger 0010-b2050647 sealed; docs/kani-lane.md arcs + dispositions rewritten; 633 parsed tests green; ah check clean; pretender gate 0.
+  Exact next action: the pullback rung - strip families/pullback.rs projection/fiber bucket machinery + two sorts (same flat-scan conversion the key family took; emission sets are order-free post-merged-sort, parsed fixtures pin identity), then size check/soundness_pullback unwinds to the pullback shape's concrete bounds. Also open: check_sortedness sort placement/sizing; provocation script anchors predate the engine split (src/checks/coproducts.rs gone) and need re-anchoring before extending RED evidence to the collision harness.
+  Constraints: standard is 300s wall + 8GB scoped run, one invocation per harness (--exact); claims never weakened, bounds non-vacuous; soundness_dangling margin ~15% (3:59-4:20 quiet, one 5:03 timeout under lane load) - rerun on idle machine before suspecting regressions.
+  Authorization limits: push NOT authorized this session; ask before pushing.
+  Previous entry: c5b2470865e929757c47ef27c93e9eaa9e25326a4c3860bdec1ba702a15b6d79 (superseded by 8c89423e9820d1e29b0a4cd2205d3588cd2191997506a229ca310f9a501518af)
+- 2026-11-24T18:45:42Z [id:8c89423e9820d1e29b0a4cd2205d3588cd2191997506a229ca310f9a501518af] (#resume-catherine-6g2) Format: 1
+  Timestamp: 2026-11-24T19:06:00Z
+  Repo: at/arltificial/catherine (/var/home/sasha/para/areas/dev/gh/at/catherine)
+  Branch: main
+  HEAD: 28ffc256ac (code 3076c9ab76 + record 28ffc256ac; PUSHED, == origin/main)
+  Session: 6g2 key+coproduct continuation session
+  Task: catherine-6g2 (P1, IN_PROGRESS, claimed arltificial, lease alive) - 14 of 18 declared harnesses prove at the 300s/8GB standard; lane passes end to end (exit 0)
+  Objective: work the recorded partition ladder over the remaining undetermined harnesses.
+  Current phase: closed/record - all work landed, committed, and pushed. Nothing in flight.
+  Current state:
+  - LANE PASSES: 14/18 proved; dispositions recorded for the 4 undetermined (build parent carried by per-family proofs; check_sortedness 300s wall; pullback pair budget-killed).
+  - New proofs: check_key 3:51.86/4.23GB, soundness_key 3:21.35/5.01GB, check_coproduct 1:36.65/2.86GB, soundness_coproduct 59.44s/2.82GB, soundness_coproduct_collision 1:08.74/2.98GB.
+  - Landed levers: per-family partition entries + FindingSink walkers (engine), key flat concrete-index scan, coproduct mirror strip (membership-only images), per-kind soundness dispatch (merged dispatcher deleted), coproduct claim split per witness shape (18 declared), coproduct soundness unwind sized 8->4 (shape's concrete loop bound: 2 trips + exit; mirror-era 8 peaked 9.93GB uncapped), lane --exact (substring-matching defect fixed, per-harness timings re-measured).
+  - Ledger 0010-b2050647 sealed; docs/kani-lane.md arcs + dispositions rewritten; 633 parsed tests green; ah check clean; pretender gate 0; bd note mirrors this state (bd-primary).
+  Exact next action: the pullback rung - strip families/pullback.rs projection/fiber bucket machinery + two sorts (same flat-scan conversion the key family took; emission sets are order-free post-merged-sort, parsed fixtures pin identity), then size check/soundness_pullback unwinds to the pullback shape's concrete bounds. Also open: check_sortedness sort placement/sizing; provocation script anchors predate the engine split (src/checks/coproducts.rs gone) and need re-anchoring before extending RED evidence to the collision harness.
+  Constraints: standard is 300s wall + 8GB scoped run, one invocation per harness (--exact); claims never weakened, bounds non-vacuous; soundness_dangling margin ~15% (3:59-4:20 quiet, one 5:03 timeout under lane load) - rerun on idle machine before suspecting regressions.
+  Authorization limits: push authorized and DONE this round; next push needs fresh authorization.
+  Previous entry: 9df308cb9fa4ced1a5c24362dd72a88d75a5ddd8959e97d22035b4f3f0a3b4f6 (supersedes 9df308cb9fa4ced1a5c24362dd72a88d75a5ddd8959e97d22035b4f3f0a3b4f6)
+- 2026-11-24T19:09:45Z [id:2185bd192d32f634854ae12876dbdb4fb3703ee2167f887308feedae3040817b] (#release) version: 1
+  topic: release
+  date: 2026-11-24
+  repo: at/arltificial/catherine
+  branch: main
+  head: 7295ae7 (superseded by 388b7570d9ddcad26a5c81332ae712d23008d33a6138889bf282ef015913040e)
+  
+  done:
+  - v0.4.1 released after 5-day prep debt (c6b367d prepared Nov 19, never tagged).
+  - CHANGELOG 0.4.1 entry amended (commit 7295ae7): verify-lane advance to 14/18
+  harnesses proved (ledger seals 0006-0010; equation/key/coproduct families;
+  four held at propositional-reduction memory wall), lane sources moved onto
+  engine+harness crates, date corrected to 2026-11-24. ah check clean; 169
+  core tests confirmed current.
+  - Annotated tag v0.4.1 pushed on 7295ae7 (hooks diff-coverage-advisory,
+  vampiro-seam-gate passed); main advanced 28ffc25..7295ae7.
+  
+  state:
+  - Release workflow run 45466647981 queued at 2026-11-24T19:06Z on tag v0.4.1.
+  Gate: just ci + ah check + cargo audit + secret-scan; then cross-platform
+  binaries + crates.io publish (core, analysis, ledger, cli; wasm skipped;
+  per-crate idempotent). Last release run took ~14 min.
+  - No bd claim held this session (release execution, not ticket-scoped).
+  
+  next:
+  - Verify the release run completed: gh run watch 45466647981 (or
+  gh run list --workflow=release.yml). Expect GitHub Release + crates.io
+  0.4.1 for the four published crates.
+  - If publish failed partially, re-run the workflow (idempotent skips
+  already-published crates); do NOT re-tag.
+  
+  resume: /renew
+- 2026-11-24T19:54:10Z [id:388b7570d9ddcad26a5c81332ae712d23008d33a6138889bf282ef015913040e] (#release) version: 1
+  topic: release
+  date: 2026-11-24
+  repo: at/arltificial/catherine
+  branch: main
+  head: 1fd33fe
+  
+  status: done — superseding 2185bd19 (its next-step is complete).
+  v0.4.1 shipped: crates.io engine/core/analysis/ledger/cli 0.4.1 + GitHub
+  release (6 archives, checksums, provenance) via run 45470672401. First run
+  failed at publish (engine dep unpinned + missing from publish order); fixed
+  in 1fd33fe, tag moved per user call. Nothing to resume. (supersedes 2185bd192d32f634854ae12876dbdb4fb3703ee2167f887308feedae3040817b)
