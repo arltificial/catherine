@@ -80,6 +80,7 @@ DECLARED_HARNESSES=(
 	check_coproduct_panic_freedom
 	check_pullback_panic_freedom
 	soundness_equation
+	soundness_equation_rhs
 	soundness_key
 	soundness_coproduct
 	soundness_pullback

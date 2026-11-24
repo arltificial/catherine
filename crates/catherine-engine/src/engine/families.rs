@@ -173,9 +173,16 @@ pub fn engine_dangling_findings(
     out
 }
 
-/// The equation family alone, compact and sorted — the check side's
+/// The equation family's emissions in walk order — the check side's
 /// per-family partition entry (see [`engine_dangling_findings`]; the
-/// bounded-table output rationale is recorded there).
+/// bounded-table rationale is recorded there). Walk order is already
+/// the family's key order (one finding per (equation, row), ascending),
+/// so this entry does not sort: the merged cross-family sort lives in
+/// [`super::engine_families`], and the equation partition's sort
+/// obligation is the check harness's own `sort_pushed_by` call — the
+/// soundness harness's claims are order-free, and dropping the sort
+/// from its formula is what fits the independent re-derivation inside
+/// the 8 GB reduction (2026-11-24).
 pub fn engine_equation_findings(
     schema: &EngineSchema,
     typed: &EngineTyped,
@@ -185,6 +192,5 @@ pub fn engine_equation_findings(
     // the cap; the capacity asserts discharge.
     let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
     equation_findings(schema, typed, &mut out);
-    out.sort_pushed_by(|a, b| a.0.cmp(&b.0));
     out
 }

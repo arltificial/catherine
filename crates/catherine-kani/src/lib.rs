@@ -123,11 +123,29 @@ fn check_sortedness_panic_freedom() {
 /// `check_dangling_panic_freedom`'s, and the two together carry the
 /// whole-walk claim over the equation shape (the sort machinery and the
 /// per-family walkers are each exercised in exactly one partition).
+///
+/// The declared unwind is 8, not the lane default 16: every loop this
+/// harness executes is concretely bounded under the shape by 8 — the
+/// synthesis scans (≤ 7 arrows, ≤ 4 objects, ≤ 2 rows per arrow, the
+/// 8-byte `ident_key` pad), the build walk (7 arrows × 2 cells), the
+/// compose path (1 step), the equation rows (2), the sort (≤ 2
+/// emissions), and the harness loop — so 8 discharges every unwinding
+/// assertion and halves the unrolled formula mass against the 8 GB
+/// reduction (the equation partition's wall; check_dangling cleared the
+/// same wall at 7 M clauses and 16 unwind). A loop that outgrows 8
+/// fails loudly as an unwinding assertion, never silently.
 #[kani::proof]
+#[kani::unwind(8)]
 fn check_equation_panic_freedom() {
     let schema = shapes::schema_equation();
     let (instance, typed) = typed_for(&schema);
-    let findings = engine_equation_findings(&schema, &typed);
+    let mut findings = engine_equation_findings(&schema, &typed);
+    // The family's sort obligation lives here (the entry emits in walk
+    // order): the sort's panic-freedom over the equation partition's
+    // symbolic keys stays a proven claim of this harness, while the
+    // soundness harness — whose claims are order-free — consumes the
+    // emissions without it.
+    findings.sort_pushed_by(|a, b| a.0.cmp(&b.0));
     let mut i = 0;
     while i < findings.len() {
         assert!(matches!(
@@ -218,15 +236,18 @@ fn check_pullback_panic_freedom() {
     std::mem::forget((schema, instance, typed, findings));
 }
 
-/// Witness soundness, equation family: every emitted equation
-/// violation's witness re-evaluated independently (soundness submodule)
-/// disagrees exactly as claimed. The dispatch is partitioned per witness
-/// kind (Decision 4 at dispatch granularity, ledger `0007`'s recorded
-/// trigger): this harness carries only the equation arm over the
-/// equation family's own bounded partition — the other families'
-/// witnesses are their harnesses' obligations, and their obligation code
-/// stays out of this formula.
+/// Witness soundness, equation family, lhs half: every emitted equation
+/// violation's lhs side recomposed independently (soundness submodule)
+/// lands on the witness, with a genuinely disagreeing pair. The claim is
+/// split per composition side (Decision 4 at obligation granularity,
+/// 2026-11-24): the full both-sides formula exceeded the 8 GB reduction
+/// even at unwind 8 with the sort dropped, so the rhs half is
+/// `soundness_equation_rhs`'s and the two harnesses' union carries the
+/// family's claim; the dispatch is partitioned per witness kind, and the
+/// declared unwind is 8 (see `check_equation_panic_freedom` — every
+/// executed loop is concretely bounded by 8 under the shape).
 #[kani::proof]
+#[kani::unwind(8)]
 fn soundness_equation() {
     let schema = shapes::schema_equation();
     let instance = shapes::instance_for(&schema);
@@ -245,7 +266,36 @@ fn soundness_equation() {
             }),
         )) = &findings[i]
         {
-            soundness::assert_equation_sound(&schema, &typed, *index, *row, *lhs, *rhs);
+            soundness::assert_equation_lhs_sound(&schema, &typed, *index, *row, *lhs, *rhs);
+        }
+        i += 1;
+    }
+    std::mem::forget((schema, instance, typed, findings));
+}
+
+/// Witness soundness, equation family, rhs half (see
+/// `soundness_equation` for the split rationale and the unwind bound).
+#[kani::proof]
+#[kani::unwind(8)]
+fn soundness_equation_rhs() {
+    let schema = shapes::schema_equation();
+    let instance = shapes::instance_for(&schema);
+    let typed = engine_build(&schema, &instance);
+    let findings = engine_equation_findings(&schema, &typed);
+    let mut i = 0;
+    while i < findings.len() {
+        if let Some((
+            _,
+            _,
+            CompactFinding::Violation(CompactViolation::Equation {
+                index,
+                row,
+                lhs,
+                rhs,
+            }),
+        )) = &findings[i]
+        {
+            soundness::assert_equation_rhs_sound(&schema, &typed, *index, *row, *lhs, *rhs);
         }
         i += 1;
     }

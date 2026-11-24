@@ -75,6 +75,44 @@ pub(super) fn assert_equation_sound(
     let _ = schema;
 }
 
+/// The equation claim's left half: the lhs side recomposed
+/// independently lands on the witness, and the pair genuinely
+/// disagrees. The full both-sides obligation's formula exceeded the 8 GB
+/// reduction (2026-11-24), so the claim is split per composition side —
+/// each half carries its compose plus the cheap disagreement assert,
+/// and the two harnesses' union carries the family's claim.
+pub(super) fn assert_equation_lhs_sound(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+    index: usize,
+    row: usize,
+    lhs: usize,
+    rhs: usize,
+) {
+    let equation = &schema.equations[index];
+    let left = compose(typed, &equation.lhs, row);
+    assert_eq!(left, Some(lhs));
+    assert_ne!(lhs, rhs);
+    let _ = schema;
+}
+
+/// The equation claim's right half (see
+/// [`assert_equation_lhs_sound`]).
+pub(super) fn assert_equation_rhs_sound(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+    index: usize,
+    row: usize,
+    lhs: usize,
+    rhs: usize,
+) {
+    let equation = &schema.equations[index];
+    let right = compose(typed, &equation.rhs, row);
+    assert_eq!(right, Some(rhs));
+    assert_ne!(lhs, rhs);
+    let _ = schema;
+}
+
 /// The key claim: both colliding rows' key tuples fully resolve and
 /// are equal, ascending as carried.
 fn assert_key_sound(
