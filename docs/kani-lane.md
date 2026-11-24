@@ -351,6 +351,60 @@ under `cfg(kani)` (a lost `as u64` cast — the 2026-11-23 recorded runs
 were made on uncommitted tree state the commit did not capture), so
 the committed lane is compilable again.
 
+## 2026-11-24: the equation shape partitioned per family — the dangling family proves both halves, the findings arena (beads catherine-6g2)
+
+The recorded trigger (ledger `0007` hole 2), executed in two measured
+steps under the lane standard:
+
+1. **Per-family partitioning** (Decision 4 at walker and dispatch
+   granularity): the equation shape's obligations split per family —
+   `check_dangling_panic_freedom` declared (the dangling walk is its own
+   harness), `check_equation_panic_freedom` narrowed to the equation
+   walk (`engine_dangling_findings`/`engine_equation_findings`, the
+   lane-only partition entries), and the soundness dispatch split per
+   witness kind (`soundness_equation`/`soundness_dangling` carry only
+   their own arm; the sibling families' obligation code leaves their
+   formulas). The lane's declared count is 16.
+2. **The findings arena** (the recorded trigger's second arm — formula
+   mass on the family walk): the partition entries emit into
+   `Bounded<…, REPORT_CAP>` through the `FindingSink` sink (slot writes
+   + `sort_pushed_by`, the stable insertion order), replacing the
+   findings heap-`Vec`, the slice insertion sort, and the symbolic
+   slice iteration — the last heap/slice machinery on the lane's walk
+   surface, and the toxin the walk-partition alone did not remove
+   (the `Vec`-partition round budget-killed all four harnesses, with
+   `check_dangling` dying in the SOLVE phase at 3 156 post-slicing
+   VCCs — formula size was no longer the axis).
+
+Proved (the lane's 5th and 6th proofs — the first walker-family and
+the first witness-soundness results):
+
+- check_dangling_panic_freedom: proved — 3:30 wall, 4.96 GB peak
+  (symex 83.7 s, 4 837 VCCs after slicing, solver 0.58 s).
+- soundness_dangling: proved — 3:59 wall, 5.92 GB peak (symex 85.7 s,
+  5 029 VCCs after slicing, solver 1.29 s).
+
+The proved pairs run at ~5-6 GB peak inside the 8 GB scope: the
+solve loop's memory genuinely grows per property toward the cap, and
+the dangling family clears it with room to spare only after the arena.
+The equation partitions remain solve-phase-walled — check_equation
+(symex 85.7 s, 8 545 VCCs after slicing) and soundness_equation
+(symex 99.8 s, 18 097 VCCs) budget-killed in the solver — and the
+`--slice-formula` probe on check_equation was negative (identical
+post-slicing VCCs, no verdict, killed at the cap), so the 0004
+solver-tuning retirement extends to this wall class as measured. The
+mechanism the round pins: harness death tracks the per-property solve
+loop's growth (property count and per-property instance mass), not raw
+VCC count — `check_dangling` proved with MORE VCCs (4 837) than it
+died with before the arena (3 156). Revisit trigger (recorded, not
+funded): a Kani/CBMC release whose per-property solve loop stops
+growing memory per property — re-probe `check_equation_panic_freedom`
+first — or a further property-count reduction on the equation walk's
+formula. The six other undetermined harnesses (key, coproduct,
+pullback families, the all-families walk and build) were not re-run
+this round; the same partition-plus-arena pattern is their recorded
+path.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
@@ -386,16 +440,22 @@ modeling, not harness-side input modeling.
 
 ## Undetermined dispositions
 
-Outcomes as of 2026-11-23 (Kani 0.68.0 / CBMC 6.11.0, unwind 16, 300 s
-wall, 8 GB scope; post-arena engine, `engine/store.rs`):
+Outcomes as of 2026-11-24 (Kani 0.68.0 / CBMC 6.11.0, unwind 16, 300 s
+wall, 8 GB scope; post-partition, post-findings-arena engine):
 
-Proved (the lane's first — the build walk's panic/overflow freedom over
-each family's declared space, partitioned per design Decision 4):
+Proved (the build walk's panic/overflow freedom over each family's
+declared space, partitioned per design Decision 4, plus the dangling
+family's walk and witness obligations — the lane's 5th and 6th proofs,
+2026-11-24, see the arc above):
 
 - build_panic_freedom_equation: proved — 18.7 s, 1.24 GB peak.
 - build_panic_freedom_key: proved — 17.6 s, 1.20 GB peak.
 - build_panic_freedom_coproduct: proved — 18.7 s, 1.29 GB peak.
 - build_panic_freedom_pullback: proved — 36.5 s, 1.89 GB peak.
+- check_dangling_panic_freedom: proved — 3:30 wall, 4.96 GB peak
+  (2026-11-24, post-partition and post-arena).
+- soundness_dangling: proved — 3:59 wall, 5.92 GB peak (2026-11-24,
+  post-partition and post-arena).
 
 Undetermined:
 
@@ -406,38 +466,36 @@ Undetermined:
   exceeds 8 GB partway through. The claim is carried by the four
   per-family proofs above.
 - check_sortedness_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall, post-walker-arena engine); the all-families
-  walk was not re-run after the compose resolution walk, which narrows
-  only its equation portion.
-- check_equation_panic_freedom: undetermined — post-resolution-walk
-  measurement (2026-11-23, see the arc above): symex clean 48.1 s,
-  46 245 VCCs → 9 692 after slicing, budget-killed at the 8 GB scope
-  in the propositional reduction (rc 143). The symex-side compose wall
-  is cleared; the remaining obligation is reduction memory (0004
-  class; next lever: per-property partitioning per Decision 4's build
-  precedent).
+  re-runs (300 s wall, post-walker-arena engine); not re-run since; its
+  recorded path is the same partition-plus-arena pattern (2026-11-24
+  arc above).
+- check_dangling_panic_freedom: proved (see above).
+- check_equation_panic_freedom: undetermined — post-partition,
+  post-arena measurement (2026-11-24, see the arc above): symex clean
+  85.7 s, 48 953 VCCs → 8 545 after slicing, budget-killed in the
+  solve phase; the `--slice-formula` probe was negative. The wall is
+  the per-property solve loop's growth, not formula size; trigger: a
+  release whose solve loop stops growing, or a property-count reduction
+  on the equation walk.
 - check_key_panic_freedom: undetermined — at the 2026-11-23 re-runs
-  (300 s wall); not re-run after the compose resolution walk.
+  (300 s wall); not re-run since; recorded path: partition plus arena.
 - check_coproduct_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall); not re-run after the compose resolution walk.
+  re-runs (300 s wall); not re-run since; recorded path: partition
+  plus arena.
 - check_pullback_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall); not re-run after the compose resolution walk.
-- soundness_equation: undetermined — post-resolution-walk measurement
-  (2026-11-23, see the arc above): symex clean 59.0 s, 70 835 VCCs →
-  19 897 after slicing, budget-killed at the 8 GB scope in the
-  propositional reduction (rc 143). Same split obligation as its check
-  half; the bounded-path table removed the symbolic equation select's
-  heap-pointer walk from the soundness dispatch.
+  re-runs (300 s wall); not re-run since; recorded path: partition
+  plus arena.
+- soundness_dangling: proved (see above).
+- soundness_equation: undetermined — post-partition, post-arena
+  measurement (2026-11-24, see the arc above): symex clean 99.8 s,
+  69 849 VCCs → 18 097 after slicing, budget-killed in the solve
+  phase. Same split obligation as its check half.
 - soundness_key: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run after the compose resolution walk.
+  wall); not re-run since; recorded path: partition plus arena.
 - soundness_coproduct: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run after the compose resolution walk.
+  wall); not re-run since; recorded path: partition plus arena.
 - soundness_pullback: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run after the compose resolution walk.
-- soundness_dangling: undetermined — at the 2026-11-23 re-runs; the
-  family's own wall is FIXED (per-slot flags; the family verifies in
-  47.7 s as an isolated probe) and the harness itself was not re-run
-  after the compose resolution walk.
+  wall); not re-run since; recorded path: partition plus arena.
 
 Counterexample (Decision 5 protocol: attribution recorded, obligation
 never weakened):
