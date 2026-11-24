@@ -303,7 +303,7 @@ jobs:
           VERSION: ${{ steps.pkg.outputs.version }}
         run: |
           set -euo pipefail
-          for crate in catherine-core catherine-analysis catherine-ledger catherine-cli; do
+          for crate in catherine-engine catherine-core catherine-analysis catherine-ledger catherine-cli; do
             status=$(curl -s -o /dev/null -w '%{http_code}' \
               -A 'catherine-release-workflow' \
               "https://crates.io/api/v1/crates/${crate}/${VERSION}")
