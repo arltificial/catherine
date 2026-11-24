@@ -1,0 +1,37 @@
+{
+  "format_version": "1.1",
+  "schema": {
+    "objects": ["A"],
+    "arrows": [
+      {"name": "f", "src": "A", "tgt": "A"},
+      {"name": "g", "src": "A", "tgt": "A"}
+    ],
+    "equations": [
+      {
+        "lhs": ["f"],
+        "rhs": ["g"],
+        "rationale": "the pair agrees on every A row",
+        "status": "accepted"
+      }
+    ],
+    "keys": [
+      {"object": "A", "arrows": ["g"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"A": []},
+    "tables": {}
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["A"],
+      "arrows": [
+        {"name": "f", "src": "A", "tgt": "A"},
+        {"name": "g", "src": "A", "tgt": "A"}
+      ],
+      "equations": []
+    },
+    "objects": {"A": "A"},
+    "arrows": {"f": ["f"], "g": ["g"]}
+  }
+}

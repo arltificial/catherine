@@ -53,6 +53,13 @@ const DROPPED_EQUATION: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/gap_suite/dropped_equation_migration.ct.json"
 );
+/// Two accepted constraints — an equation over `P` and a key over `Q` —
+/// dropped by one identity-vocabulary target: the both-dropped case the
+/// witness-attribution regression pins.
+const DROPPED_TWO_CONSTRAINTS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/gap_suite/dropped_two_constraints_migration.ct.json"
+);
 /// A pre-map document: parses, carries no `schema_map`.
 const NO_MAP: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -276,6 +283,71 @@ fn migrate_target_dropping_an_accepted_constraint_emits_the_weakened_finding() {
     assert!(
         constraint.contains("f") && constraint.contains("g") && constraint.contains("k"),
         "the finding names the dropped triangle `{constraint}`"
+    );
+}
+
+/// Two accepted constraints — the equation `f = g` and the key `g` —
+/// dropped by one identity-vocabulary target: the suite's only
+/// both-dropped migration. The classifier scans each dropped
+/// constraint in isolation, so every `weakened` finding carries its
+/// own separating witness: the equation separates at row 1, the key
+/// collides at the opening candidate's row 0. The zero-row instance
+/// keeps both scans (four cells) inside the 256-candidate budget.
+#[test]
+fn migrate_dropping_two_constraints_gives_each_its_own_witness_row() {
+    let out = run(&["migrate", DROPPED_TWO_CONSTRAINTS, "--json"]);
+    assert_eq!(
+        code(&out),
+        8,
+        "a weakened migration is a finding-bearing run"
+    );
+    let v = parse_json(&stdout(&out));
+    let lost = v["data"]["lost"].as_array().expect("data.lost array");
+    assert!(
+        !lost
+            .iter()
+            .any(|f| f["kind"] == "lost_row" || f["kind"] == "lost_cell"),
+        "the data migration itself is lossless: {lost:?}"
+    );
+    let weakened: Vec<_> = lost
+        .iter()
+        .filter(|f| f["kind"] == "weakened")
+        .collect();
+    assert_eq!(
+        weakened.len(),
+        2,
+        "both dropped constraints are named: {lost:?}"
+    );
+    let by_constraint = |needle: &str| {
+        weakened
+            .iter()
+            .find(|f| {
+                f["witness"]["constraint"]
+                    .as_str()
+                    .is_some_and(|c| c.contains(needle))
+            })
+            .expect("the constraint is named")
+    };
+    // `f = g`: the scan's first resolved candidate (every cell at row
+    // 0) keeps the equation equal — vacuous there — so its scan
+    // continues to the next candidate, which first parts f from g at
+    // row 1. A shared first-violation shortcut would report row 0.
+    let equation = by_constraint("f = g");
+    assert_eq!(
+        equation["witness"]["object"], "A",
+        "the witness row sits on the equation's domain object"
+    );
+    assert_eq!(
+        equation["witness"]["row"], 1,
+        "the equation's separating row is its own"
+    );
+    // `key A(g)`: the first resolved candidate already maps both rows
+    // to row 0 — the key's own colliding pair starts at row 0.
+    let key = by_constraint("key A(g)");
+    assert_eq!(key["witness"]["object"], "A");
+    assert_eq!(
+        key["witness"]["row"], 0,
+        "the key's colliding pair starts at row 0"
     );
 }
 
