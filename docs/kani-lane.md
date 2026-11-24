@@ -364,7 +364,9 @@ steps under the lane standard:
    lane-only partition entries), and the soundness dispatch split per
    witness kind (`soundness_equation`/`soundness_dangling` carry only
    their own arm; the sibling families' obligation code leaves their
-   formulas). The lane's declared count is 16.
+   formulas). The lane's declared count was 16 and is 17 after the
+   continuation arc below (the equation claim split per composition
+   side adds `soundness_equation_rhs`).
 2. **The findings arena** (the recorded trigger's second arm — formula
    mass on the family walk): the partition entries emit into
    `Bounded<…, REPORT_CAP>` through the `FindingSink` sink (slot writes
@@ -405,6 +407,57 @@ pullback families, the all-families walk and build) were not re-run
 this round; the same partition-plus-arena pattern is their recorded
 path.
 
+## 2026-11-24 continuation: the equation family proves — unwind 8, the sort relocated, the claim split per side (beads catherine-6g2)
+
+Three further cuts, each measured, took the equation family from
+solve-phase-walled to fully verified at the standard:
+
+1. **The declared unwind is 8** (the `check_sortedness` per-harness
+   precedent): every loop the equation partitions execute is
+   concretely bounded under the shape by 8 — synthesis scans (≤ 7
+   arrows, ≤ 4 objects, ≤ 2 rows, the 8-byte `ident_key` pad), the
+   build walk, the compose path (1 step), the equation rows (2), the
+   sort, the harness loop — so 8 discharges every unwinding assertion
+   and halves the unrolled formula mass. `check_equation_panic_freedom`
+   **proved** immediately: 2:00.79 wall, 4.94 GB peak (symex 26.2 s,
+   48 953 VCCs → 4 061 after slicing, 16 solver instances).
+   `soundness_equation` at unwind 8 alone was not enough (27 433 VCCs →
+   8 757 after slicing, killed at the solver handoff).
+2. **The sort relocated to the check harness**: inside a partition
+   entry the family's sort is a semantic no-op — each family emits in
+   its own key order (one finding per (equation, row), ascending), and
+   the merged cross-family sort lives in `engine_families` — so
+   `engine_equation_findings` now emits in walk order and
+   `check_equation_panic_freedom` sorts in-harness (`sort_pushed_by`),
+   keeping the sort's panic-freedom over the partition's symbolic keys
+   a proven claim of the check partition while the soundness harness —
+   whose claims are order-free — consumes the emissions without it.
+   `soundness_equation` dropped to 6 057 VCCs and reached the solver,
+   but still lost the growth race at the cap.
+3. **The claim split per composition side** (Decision 4 at obligation
+   granularity): the obligation's mass is its two independent
+   composes, so `soundness_equation` carries the lhs half and the new
+   declared `soundness_equation_rhs` the rhs half — each its compose
+   plus the cheap disagreement assert, the union carrying the family's
+   claim exactly. Both **proved**:
+   soundness_equation — 5:11.59 wall, 5.84 GB peak (symex 18.2 s,
+   4 745 VCCs, 29 solver instances); soundness_equation_rhs — 2:25.79
+   wall, 5.84 GB peak (symex 16.0 s, 4 745 VCCs, 14 solver instances).
+   The lane's declared count is 17.
+
+The equation family is fully verified at the standard: the walk's
+panic/overflow freedom and both halves of every emitted violation's
+independent re-derivation. The lane's proof count stands at 9. The
+mechanism ledger `0008` pinned stands unchanged — the solve loop's
+memory grows per property toward the cap, and these partitions fit
+under it only in the smallest claim units (the full both-sides
+soundness obligation at 6 057 post-slicing VCCs did not). Revisit
+trigger for the remaining six undetermined harnesses (key, coproduct,
+pullback families, the all-families walk and build): the same ladder —
+per-family partition, findings arena, declared unwind sized to the
+shape's concrete loop bounds, sort relocated to the order-needing
+claims, claim split per composition side — recorded, not funded.
+
 ## Per-harness results and provenance
 
 Killed by the spec: every recorded proof result names the Kani release
@@ -444,9 +497,10 @@ Outcomes as of 2026-11-24 (Kani 0.68.0 / CBMC 6.11.0, unwind 16, 300 s
 wall, 8 GB scope; post-partition, post-findings-arena engine):
 
 Proved (the build walk's panic/overflow freedom over each family's
-declared space, partitioned per design Decision 4, plus the dangling
-family's walk and witness obligations — the lane's 5th and 6th proofs,
-2026-11-24, see the arc above):
+declared space, partitioned per design Decision 4, the dangling
+family's walk and witness obligations, and the equation family's walk
+and both witness halves — nine proofs as of 2026-11-24; provenance per
+the arcs above):
 
 - build_panic_freedom_equation: proved — 18.7 s, 1.24 GB peak.
 - build_panic_freedom_key: proved — 17.6 s, 1.20 GB peak.
@@ -456,6 +510,14 @@ family's walk and witness obligations — the lane's 5th and 6th proofs,
   (2026-11-24, post-partition and post-arena).
 - soundness_dangling: proved — 3:59 wall, 5.92 GB peak (2026-11-24,
   post-partition and post-arena).
+- check_equation_panic_freedom: proved — 2:00.79 wall, 4.94 GB peak
+  (2026-11-24 continuation, declared unwind 8, in-harness sort).
+- soundness_equation: proved — 5:11.59 wall, 5.84 GB peak
+  (2026-11-24 continuation, lhs half, declared unwind 8, unsorted
+  partition input).
+- soundness_equation_rhs: proved — 2:25.79 wall, 5.84 GB peak
+  (2026-11-24 continuation, rhs half, declared unwind 8, unsorted
+  partition input).
 
 Undetermined:
 
@@ -470,32 +532,32 @@ Undetermined:
   recorded path is the same partition-plus-arena pattern (2026-11-24
   arc above).
 - check_dangling_panic_freedom: proved (see above).
-- check_equation_panic_freedom: undetermined — post-partition,
-  post-arena measurement (2026-11-24, see the arc above): symex clean
-  85.7 s, 48 953 VCCs → 8 545 after slicing, budget-killed in the
-  solve phase; the `--slice-formula` probe was negative. The wall is
-  the per-property solve loop's growth, not formula size; trigger: a
-  release whose solve loop stops growing, or a property-count reduction
-  on the equation walk.
+- check_equation_panic_freedom: proved (see above) — 2026-11-24
+  continuation: declared unwind 8 (the shape's loops are concretely
+  bounded by 8) and the family's sort relocated into the harness
+  (walk order is already key order; the merged sort lives in
+  engine_families).
 - check_key_panic_freedom: undetermined — at the 2026-11-23 re-runs
-  (300 s wall); not re-run since; recorded path: partition plus arena.
+  (300 s wall); not re-run since; recorded path: the partition ladder
+  (partition, arena, sized unwind, sort placement, claim split).
 - check_coproduct_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall); not re-run since; recorded path: partition
-  plus arena.
+  re-runs (300 s wall); not re-run since; recorded path: the partition
+  ladder.
 - check_pullback_panic_freedom: undetermined — at the 2026-11-23
-  re-runs (300 s wall); not re-run since; recorded path: partition
-  plus arena.
+  re-runs (300 s wall); not re-run since; recorded path: the partition
+  ladder.
 - soundness_dangling: proved (see above).
-- soundness_equation: undetermined — post-partition, post-arena
-  measurement (2026-11-24, see the arc above): symex clean 99.8 s,
-  69 849 VCCs → 18 097 after slicing, budget-killed in the solve
-  phase. Same split obligation as its check half.
+- soundness_equation: proved (see above) — 2026-11-24 continuation:
+  lhs half of the split claim, declared unwind 8, unsorted partition
+  input; soundness_equation_rhs carries the rhs half.
+- soundness_equation_rhs: proved (see above) — 2026-11-24
+  continuation, rhs half of the split claim.
 - soundness_key: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run since; recorded path: partition plus arena.
+  wall); not re-run since; recorded path: the partition ladder.
 - soundness_coproduct: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run since; recorded path: partition plus arena.
+  wall); not re-run since; recorded path: the partition ladder.
 - soundness_pullback: undetermined — at the 2026-11-23 re-runs (300 s
-  wall); not re-run since; recorded path: partition plus arena.
+  wall); not re-run since; recorded path: the partition ladder.
 
 Counterexample (Decision 5 protocol: attribution recorded, obligation
 never weakened):
