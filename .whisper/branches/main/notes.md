@@ -1785,3 +1785,64 @@
 - 2026-11-24T23:12:04Z [id:f292f388a6c8598233aedf755b451d61cef049f6b8145c86fc0cac3a9ed62c32] (#resume) Three-axis gate epic catherine-kpn COMPLETE (2026-11-24, session after 01a20f23). All 15 children landed and closed across three waves; epic closed. Commits 18a54e4..a51ee55 on main: wave 1 (docs honesty + registry cells + openspec change + policy artifact), wave 2 (scope field kernel/CLI/wasm/web end to end, mapped-arrow endpoint typing, architecture policy gate, docs restatement), wave 3 (migrate weakened-finding signal via shared classifier, registry rows closed with evidence). Gate remediation this session: pretender.toml exclude globs widened (plain dir/** forms never matched; the gate was nondeterministically flagging gitignored build artifacts book/ web/node_modules web/pkg lean/ target/), 11 espectacular contract TOMLs added (ah check no-toml -> 271/271 --run-tests green), schema_maps + schema_diff + arch-policy script split to satisfy strict file metrics. Final state: workspace 133 suites green, ah check 0 issues, pretender exit 0, check-gap-claims green, npm 7/7, arch self-test green. Uncommitted by owner decision: .wai/ session artifacts, notes/, .whisper/branches/main/notes.md, one pre-existing unrecorded line in crates/catherine-analysis/tests/pattern_builder.rs. Nothing pending.
 - 2026-11-24T23:40:14Z [id:91e008f5ccad9a0b8dcda79e340c0e0f3bc5a38ae65bfd715c38eade324dd76f] (#catherine-307) catherine-307 closed as withdrawn 2026-11-24: the review finding (classifier v1 carries sibling dropped constraints) was wrong — Translation::new builds the translated schema with objects and arrows only, so separating_row's v1 always held exactly the scanned constraint. Falsified empirically: a scan-resolvable two-drop fixture (zero-row instance, equation+key over one object) yields row 1 for the equation under BOTH old and new binaries; a diff-surface probe confirmed scan semantics. No source change; the fixture + both-dropped coverage test landed in cli_migrate (suite's first two-drop case, equation row 1 / key row 0) in commit 7595819b88. Registry vacuous-clean-instances row moved planned->landed in the same commit.
 - 2026-11-25T00:27:35Z [id:61caf7aa009ca3b0a195f47cdbda9539d7d359d8429aa709397010c450e52f7b] (#release) v0.5.0 released 2026-11-25: the three-axis gate (waves 1-3) shipped — data.scope payload field, named bounds on unknown payloads, architecture policy gate, non-functorial schema-map refusal, migrate weakened findings with per-constraint witness rows, docs honesty. All five crates on crates.io; GitHub release with 5 binaries + checksums + provenance. Two release-gate lessons recorded: (1) wave 3 committed MigrationFindingKind::Weakened without the pattern-suite match arms - the committed tree did not compile until 6495393; (2) the eval commit namespace captures only hand-written lines, so rustfmt's rewrites stayed uncommitted and the first tag run failed cargo fmt --check remotely while the worktree passed - fixed in 0b62839 and the tag re-pointed. Toolchain drift fixes: [lints.cargo] unused_dependencies allow on catherine-kani (#![cfg(kani)] body), lifetime elisions in schema_diff/dropped.rs, too_many_arguments allow on emit_findings.
+- 2026-11-25T00:43:29Z [id:68b7dc5b591719c31e2ce088aded2ef0d9b06c97371049e7f2aadba9dac1fd3b] (#resume-catherine-kpn) Format: 1
+  Timestamp: 2026-11-25T00:42:33Z
+  Repo: /var/home/sasha/para/areas/dev/gh/at/catherine (at/catherine)
+  Branch: main
+  HEAD: 7b94b0f
+  Session: continuation of 01a20f23-d1f2-7596-b9d9-f1a0e03fa90a
+  Task: v0.5.0 release of the three-axis gate (epic catherine-kpn, closed) + post-release hygiene
+  
+  Objective
+  Release the landed three-axis gate work as v0.5.0 and resolve every
+  outstanding piece of repo state left by the planning session and the
+  release itself.
+  
+  Phase
+  Complete. Release published and verified; hygiene commits pushed; tree
+  clean. Nothing open on this thread.
+  
+  Current state
+  - v0.5.0 released 2026-11-25T00:26Z: all five crates on crates.io
+  (engine, core, analysis, ledger, cli), GitHub release with five
+  binaries + checksums.txt + provenance.json. Release run 45515777009
+  fully green. The first tag run failed remotely on `cargo fmt
+  --check`: rustfmt's edits never made it into a commit (see
+  watch-outs), landed in 0b62839 and the tag re-pointed.
+  - 6495393 holds the release prep: version bumps 0.4.1 -> 0.5.0 with
+  sibling version reqs, CHANGELOG 0.5.0 section, the pattern-suite
+  Weakened arms that wave commit e022812 left uncommitted (the
+  committed tree did not compile without them), and toolchain drift
+  fixes ([lints.cargo] unused_dependencies allow on catherine-kani —
+  the #![cfg(kani)] body hides its engine dep; lifetime elisions in
+  schema_diff/dropped.rs; too_many_arguments allow on emit_findings).
+  - Hygiene commits: 89c7cf5 syncs Cargo.lock to 0.5.0 (also dropped by
+  the commit namespace); 74c7697 wai init refresh; 7b94b0f commits the
+  planning-session artifacts (.wai design/plan/research/reviews,
+  notes/, whisper branch notes) — resolving the previous entry's
+  unknowns about whether to commit them.
+  - Working tree clean; beads zero open; CI green through 0b62839; the
+  run for 7b94b0f was in flight at save time on a docs/config-only
+  diff whose gate chain passed locally.
+  - catherine-307 closed as withdrawn (falsified: Translation::new is
+  vocabulary-only, so the classifier's v1 never carried sibling
+  constraints); the two-drop migrate coverage test + fixture landed in
+  7595819.
+  
+  Key references
+  - Release record: CHANGELOG.md 0.5.0 section; whisper release log
+  (61caf7aa); gh release v0.5.0.
+  - Registry: docs/ref/expressibility-dispositions.md (vacuity row now
+  landed wording).
+  
+  Unknowns
+  - CI verdict for 7b94b0f (in flight at save; identical gate chain
+  passed locally).
+  - Owner call left alone: wai doctor suggests a wai badge on README —
+  it brands the public front page.
+  - Process watch-out for future releases: the omp commit namespace
+  captures only hand-written lines; machine-made edits (rustfmt,
+  Cargo.lock) need explicit `git add`, and the committed tree — not
+  the worktree — is what the tag gates run against.
+  
+  Previous entry: 1bcde7b1b2457a072526dbabe267fca0178ba19e4b11a1f300a0de740a119c03
