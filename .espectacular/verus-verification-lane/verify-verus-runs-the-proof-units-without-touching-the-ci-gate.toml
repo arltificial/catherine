@@ -1,0 +1,11 @@
+id = "verify-verus-runs-the-proof-units-without-touching-the-ci-gate"
+description = "The lane executes every declared proof unit over the kernel proof model and exits nonzero on an error or an un-dispositioned exhaustion, while the CI gate stays Verus-free."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

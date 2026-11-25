@@ -1,0 +1,11 @@
+id = "resource-exhaustion-is-loud-never-green"
+description = "A proof unit that cannot complete within its solver budget is reported as resource-exhausted with its budget; the lane never presents an exhausted family as proven."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

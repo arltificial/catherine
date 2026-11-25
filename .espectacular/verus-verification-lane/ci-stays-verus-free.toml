@@ -1,0 +1,11 @@
+id = "ci-stays-verus-free"
+description = "The standard CI gate succeeds or fails exactly as before the lane — no recipe in its transitive closure requires the Verus release or runs a proof unit."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just ci" },
+]

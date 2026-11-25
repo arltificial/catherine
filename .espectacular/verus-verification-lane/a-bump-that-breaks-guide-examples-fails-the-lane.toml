@@ -1,0 +1,11 @@
+id = "a-bump-that-breaks-guide-examples-fails-the-lane"
+description = "The pinned guide corpus re-verifies under the recorded expectations; a file whose outcome differs fails the lane and exits nonzero until expectations are deliberately re-recorded."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

@@ -1,0 +1,11 @@
+id = "the-quantifier-contract-holds-within-the-model"
+description = "The walk-correctness family runs under the pinned release and each proof unit reports verified against its stated contract, or the lane surfaces an error or resource-exhaustion under the outcome protocol."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

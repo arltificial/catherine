@@ -1,0 +1,11 @@
+id = "fresh-machine-provisioning-reproduces-the-lane"
+description = "Provisioning reproduces the lane from the pin: checksum-verified download, side toolchain under the shim's exact name, workspace toolchain and Cargo build untouched."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

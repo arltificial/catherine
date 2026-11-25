@@ -1,0 +1,11 @@
+id = "the-verdict-gates-the-remaining-proof-spend"
+description = "The sealed stop-gate verdict is recorded in the ledger and gates further proof spend: extend funds the phase-2 families, hold maintains phase-1 scope — no proof work runs unfunded."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "jq -e --arg v extend '.decision.outcome == $v' ledger/verus/0001-291cc8de.json > /dev/null" },
+]

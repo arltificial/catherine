@@ -1,0 +1,11 @@
+id = "recorded-proofs-name-the-verus-release-that-produced-them"
+description = "Every recorded proof result in the lane README names the Verus release that produced it, keeping recorded proofs reproducible across pin bumps."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

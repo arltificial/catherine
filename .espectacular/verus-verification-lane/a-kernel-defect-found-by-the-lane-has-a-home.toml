@@ -1,0 +1,11 @@
+id = "a-kernel-defect-found-by-the-lane-has-a-home"
+description = "A parity divergence describing kernel behavior the model faithfully states is filed as a kernel-defect beads ticket with the fixture attached; neither model nor obligation is weakened to green the lane."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

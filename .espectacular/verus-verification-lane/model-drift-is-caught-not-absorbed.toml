@@ -1,0 +1,11 @@
+id = "model-drift-is-caught-not-absorbed"
+description = "A kernel walk semantics change without a model update makes the parity diff fail the lane, naming the fixture and the diverging finding — never silently reconciled."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

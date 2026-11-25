@@ -1,0 +1,11 @@
+id = "the-decision-is-sealed-either-way"
+description = "A terminal decision ledger entry exists for the Verus lane and ledger-check accepts the ledger tree — extend, hold, and retire are all valid outcomes; unrecorded drift into unmaintained proofs is not."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "cargo run -q -p catherine-ledger --bin ledger-check -- ledger" },
+]

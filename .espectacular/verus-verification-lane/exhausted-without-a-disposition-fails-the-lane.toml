@@ -1,0 +1,11 @@
+id = "exhausted-without-a-disposition-fails-the-lane"
+description = "A proof unit ending resource-exhausted without a recorded disposition (raised budget or split obligation in the lane README) exits the recipe nonzero, naming the unit and its budget."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "just verify-verus" },
+]

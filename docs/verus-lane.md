@@ -66,6 +66,12 @@ covers every shipped workspace crate untouched.
 
 ## Proof families
 
+The stop-gate verdicts: **extend** funds further proof families (the
+landed verdict — compose contracts), **hold** maintains the lane at its
+current families, **retire** archives the model, corpus, recipe, and
+workflow job with conventions and lessons kept here and in the ledger
+entry. The verdict is sealed either way in `ledger/verus/`.
+
 **Compose family** (promoted from the probe seed under the stop-gate
 extend verdict, ledger `ledger/verus/0001`): `engine_compose` — the
 walk's path-composition primitive, copied verbatim from the kernel's

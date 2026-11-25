@@ -1,0 +1,11 @@
+id = "retire-archives-the-lane-with-lessons-kept"
+description = "The sealed verdict is extend, so the retire branch is dormant; the archive protocol it prescribes (model, corpus, recipe, workflow job archived; conventions and lessons kept in the lane README and ledger entry) is documented in the lane README."
+archetype = "PF"
+status = "active"
+superseded_by = ""
+authored_with = "0.12.3"
+
+[tests]
+shell = [
+    { command = "grep -qF '**retire** archives the model' docs/verus-lane.md && jq -e --arg v extend '.decision.outcome == $v' ledger/verus/0001-291cc8de.json > /dev/null" },
+]
