@@ -28,7 +28,8 @@ same composite selector reference; the serving slice stores
 | Census semantics generator | `prototype/bogart_storage_granularity.py` | committed before the run |
 | Frozen census | `fixtures/probes/selector-state/census.json` | `154913904e7544930b28dda7e8bca3ae903a0bfb06342e937fd67b8967e4be3d` |
 | Frozen slice rows | `fixtures/probes/selector-state/slice.json` | `840e81c843ce371fbdb73c071dda4a9080f94bbb14da016d2f72dc065a5280c5` |
-| Frozen model + instance | `fixtures/probes/selector-state/selector-state.ct.json` | `3cc5314d614d57e4eb8fa33420a2b1ee582c4e548e2268ce97bb23b72143163a` |
+| Frozen model + instance | `fixtures/probes/selector-state/selector-state.ct.json` | `3cc5314d614d57e4eb8fa33420a2b1ee582c4e548e2268ce97bb23b72143163a` (RED commit `c1b7cb34ab`; see Result — the GREEN run's loader exposed a load-time defect, fixed on disk, executed hash `c4bf0bbf15c2015b769e45adfad656bf48e7e70d3031441b52755f5664c9f958`) |
+| Floor-control fixture (collision-free sub-slice, derived at GREEN from `census.json` zero-match selectors) | `fixtures/probes/selector-state/selector-state-floor.ct.json` | `04517b828eb42948418cafa22dacb35a60131d9eeac2f38cc832d2038908750b` |
 
 ### Snapshot rule and census reconciliation
 
@@ -129,3 +130,74 @@ Input construction only happened in RED (this fixture is frozen data, not
 a check run). Exit class 8 = the granularity lint questioned the model's
 shape; kernel findings carry their usual classes. Findings are scored with
 the rubric above and recorded in the ledger with this catalog hash.
+
+## Result (observed 2026-11-25, after the pre-registration commit `c1b7cb34ab`)
+
+Provenance at run time: serving projection sha256
+`30ec194777efc912c4848e06faca1e7451d3fb192690856e51ef98e07a413c34`
+(matches the 2026-11-13 record); batch corpus (live, read-only)
+sha256 `1ac681dbe8874643c4c40d4a5bce2a4f0cefbe9bbf22deaa33c6448774f000b5`
+at extraction. Census reconciliation: the snapshot cutoff
+`captured_at ≤ 1794586142000` reproduces the recorded snapshot exactly on
+what the timestamps can pin — 1,377 captures and the recorded **3**
+≥2-match selectors, each with exactly 2 matches. Selector/zero-match
+counts drifted +60 (1,501 / 127 vs recorded 1,441 / 67): fully explained
+by `backfill_partitions` growth since the recording (60 new distinct
+partition selectors, all 0-match; the table carries no timestamp, so the
+recorded set is not reconstructable). Disclosed in `census.json`, not
+papered over.
+
+Fixture correction: the RED-committed `selector-state.ct.json`
+(`3cc5314d…`) carried a load-time defect — the three artifact row names
+were double-prefixed (`art_art_…`) — first exposed by the GREEN run's
+loader (syntax error, exit 1). Fixed on disk before any successful check
+(executed hash `c4bf0bbf…`, content otherwise identical); the
+pre-registered predictions were not edited. Recorded in the ledger entry's
+`discrepancies`.
+
+Floor control (`ledger/probes/selector-state/0001-17755ad4.json`,
+control:true, verdict killed — self-negating): the same model over the
+collision-free sub-slice (127 zero-match selectors only, no
+captures/partitions/artifacts/pages) — exit 0, zero findings.
+
+| Run | Instance | Findings | Real | Noise | Exit |
+|---|---|---|---|---|---|
+| floor control | 127 selectors, 0 other rows | 0 | 0 | 0 | 0 |
+| probe slice | 602 rows (130 selectors / 6 captures / 3 partitions / 3 artifacts / 454 pages / 5 documents / 1 edition) | 0 | 0 | 0 | 0 |
+
+`target/debug/catherine check fixtures/probes/selector-state/selector-state.ct.json`
+— exit 0, `data.findings []`, `rows_evaluated 602`, `constraints_checked 0`.
+
+### Prediction outcomes and scoring
+
+| Prediction | Outcome |
+|---|---|
+| P1 — exactly 3 real findings, one per collision | **FALSIFIED**: zero findings; the duplication defect (two capture rows sharing one `sha256` per collision) produces no finding |
+| P2 — zero findings on the 127 zero-match selectors | confirmed (vacuously: zero findings anywhere) |
+| P3 — silent on rule-based derived relations (`equations: []`) | confirmed (vacuously) |
+| P4 — precision = 3/N | **undefined** (0 real / 0 noise) |
+
+U1-U2: **no**. The decision rule required precision ≥ 50%; the run fired
+nothing, so there is no precision measurement — the answer is not "yes".
+Verdict per the pre-registered mapping (zero findings on the slice):
+**killed** — recorded as
+`ledger/probes/selector-state/0002-5c22c00e.json`.
+
+### Triage
+
+There is nothing to triage: 0 findings, 0 real, 0 noise. What the run
+establishes: the stored-column model (one arrow per stored reference, from
+actual DDL columns only) is *faithful* — the floor control confirms it is
+silent where it should be — but the check surface (path equations +
+totality over stored arrows) has no cardinality claim, so a selector
+matched by two stored capture rows sharing one artifact is not a
+violation of anything declarable without crossing the P3 boundary
+(a declared collision equation would be a derived relation, not stored
+state). The defect class the pilot found (`bogart-4wt`) is detected by the
+rule-based census, not by the model check: derivation/selection claims
+belong to the rule-lens/policy machinery, the same conclusion the
+granularity re-model reached on the storage domain. Reproduce with
+`catherine check fixtures/probes/selector-state/selector-state.ct.json`;
+re-derive the census with
+`python3 prototype/bogart_storage_granularity.py --census` (live counts
+differ; the frozen snapshot is `census.json`).
