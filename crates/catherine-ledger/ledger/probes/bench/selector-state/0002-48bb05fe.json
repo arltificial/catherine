@@ -1,0 +1,131 @@
+{
+  "seq": 2,
+  "kind": "kata",
+  "recorded": "2026-11-25",
+  "kata": {
+    "kata_id": "probe-bench-selector-state",
+    "name": "probe bench selector-state: three-arm defect accounting on the frozen 6-capture/3-collision slice — A detects all three collisions, B and C silent; parity, killed",
+    "control": false,
+    "series_report": "fixtures/probes/bench/README.md + fixtures/probes/bench/arms.md (pre-registered kw9.6; executed kw9.11, ticket catherine-kw9.11, result recorded 2026-11-25)",
+    "series_verdict": "pre-registered decision rule (README, fixed before the run): the bench verdict is the uniqueness arithmetic against the executed conventional control — survived only on a real, custody-clean detection absent from arm A's executed detections; parity is killed and the null result is the deliverable; cited-not-executed baseline caps at inconclusive",
+    "fixture": "fixtures/probes/selector-state/selector-state.ct.json",
+    "fixture_hash": "sha256:c4bf0bbf15c2015b769e45adfad656bf48e7e70d3031441b52755f5664c9f958",
+    "expected": [
+      {
+        "fault": "collision-nacional-primera",
+        "series_class": "behavioral",
+        "catherine_class": "none",
+        "detail": "E1 — A: finding; B: silent; C: silent; unique_B = TP_B ∖ TP_A = ∅, unique_C = TP_C ∖ TP_A = ∅; falsified by any other class in any arm"
+      },
+      {
+        "fault": "collision-pba-judicial",
+        "series_class": "behavioral",
+        "catherine_class": "none",
+        "detail": "E2 — same classes and arithmetic as E1"
+      },
+      {
+        "fault": "collision-nacional-segunda",
+        "series_class": "behavioral",
+        "catherine_class": "none",
+        "detail": "E3 — same classes and arithmetic as E1 (corpus-side only; no serving rows)"
+      },
+      {
+        "fault": "zero-match-negatives",
+        "series_class": "negative",
+        "catherine_class": "none",
+        "detail": "E4 — all arms silent on the zero-match negatives (127 frozen; 67 recorded GT named, drift disclosed); falsified by any finding naming a zero-match selector (FP, any arm)"
+      },
+      {
+        "fault": "derived-relations-silence",
+        "series_class": "negative",
+        "catherine_class": "none",
+        "detail": "E5 — B and C silent on derived relations (equations: []); A is N/A (the census is the rule-based machinery); any model-check finding attributable to a derived relation is D3-invalid FP, removed from TP before uniqueness arithmetic"
+      },
+      {
+        "fault": "fizzbuzz-negative-control",
+        "series_class": "negative",
+        "catherine_class": "none",
+        "detail": "E6 — all arms silent on a FizzBuzz-class computed predicate (prose intent only); any finding attributable to one is a scoring alarm (invalid-run)"
+      },
+      {
+        "fault": "seed-s1-fourth-collision",
+        "series_class": "sanity",
+        "catherine_class": "none",
+        "detail": "S1 — A must report 4 collision selectors (3 real + bench-seed/s1); B expected-silent (same inexpressible class); C silent per its E1–E3 registration; sanity pass/fail only, never in TP/FP"
+      },
+      {
+        "fault": "seed-s2-dangling-reference",
+        "series_class": "sanity",
+        "catherine_class": "finding",
+        "detail": "S2 — A is N/A (no referential claim in census scope; scope-gap); B must fire (dangling, non-zero exit); C must fire (the recipe's mandatory overconstraint control); silence from B or C is battery-vacuity, invalid-run"
+      }
+    ],
+    "run": {
+      "commands": [
+        "python3 prototype/bogart_selector_bench.py --instance fixtures/probes/selector-state/slice.json # exit 0; captures 6, selectors 3, >=2-match 3, detections [nacional/primera 2026-11-03 (2), nacional/segunda 2026-11-13 (2), pba/JUDICIAL 2026-11-03 (2)] — E1,E2,E3",
+        "python3 prototype/bogart_selector_bench.py --seed s1 --instance fixtures/probes/selector-state/slice.json # exit 0; 4 collision selectors incl bench-seed/s1 2026-11-03 (2) — S1 pass",
+        "python3 prototype/bogart_selector_bench.py --seed s2 --instance fixtures/probes/selector-state/slice.json # exit 0; output identical to the unseeded run (3 detections) — S2 N/A (scope-gap), recorded",
+        "target/debug/catherine check fixtures/probes/selector-state/selector-state.ct.json # exit 0, silent (E1–E3, E4, E5, E6: B silent)",
+        "target/debug/catherine underconstraint fixtures/probes/selector-state/selector-state.ct.json --max-path-length 3 # exit 0, no hypotheses (recorded, never scored)",
+        "target/debug/catherine check fixtures/probes/bench/seeds/selector-state-seed-s1.ct.json # exit 0, findings [], rows_evaluated 605 — S1: B expected-silent, pass",
+        "target/debug/catherine check fixtures/probes/bench/seeds/selector-state-seed-s2.ct.json # exit 1, error[syntax]: table capture_artifact maps cap_f16110174… to art_bench_seed_s2_dangling, which is not a row of artifact — S2: B fires (non-zero), pass",
+        "target/debug/catherine check fixtures/attack-demo/bench-selector-state/draft-v1.ct.json --human # arm C battery verb 1: exit 0, silent (E1–E3, E4, E5, E6: C silent)",
+        "target/debug/catherine underconstraint fixtures/attack-demo/bench-selector-state/draft-v1.ct.json --max-path-length 3 --human # arm C battery verb 2: exit 0, no hypotheses",
+        "target/debug/catherine search fixtures/attack-demo/bench-selector-state/draft-v1.ct.json --rows capture=1 --rows selector=1 --rows partition=1 --rows artifact=1 --rows read_page=1 --rows read_document=1 --rows edition_date=1 --human # arm C battery verb 3: exit 0, 'witness within bounds' (payload, non-finding)",
+        "target/debug/catherine check fixtures/attack-demo/bench-selector-state/control-overconstraint.ct.json --human # arm C overconstraint control: exit 1, error[syntax] naming the injected dangling page_document cell — the battery catches the fault (see discrepancy D2)",
+        "target/debug/catherine check fixtures/attack-demo/bench-selector-state/draft-final-floor.ct.json --json # exit 0, findings [], rows_evaluated 127",
+        "target/debug/catherine check fixtures/attack-demo/bench-selector-state/draft-final-seed-s1.ct.json --json # exit 0, findings [], rows_evaluated 478 — S1: C silent per registration",
+        "target/debug/catherine check fixtures/attack-demo/bench-selector-state/draft-final-seed-s2.ct.json --human # exit 1, error[syntax]: dangling art_bench_seed_s2_dangling — S2: C fires, pass"
+      ],
+      "findings": []
+    },
+    "comparison": {
+      "conventional_baseline": "arm A — prototype/bogart_selector_bench.py, sha256 df8106581e2ff3eec83861372f0862decebca8b3e9874e951161f50d7553c762, committed with kw9.11 (git pin recorded at commit time), census match semantics verbatim over fixtures/probes/selector-state/slice.json; detections on the same fault set: E1 nacional/primera 2026-11-03, E2 pba/JUDICIAL 2026-11-03, E3 nacional/segunda 2026-11-13 (3/3, executed at the kw9.11 pin); precedent: prototype/bogart_storage_granularity.py --census (committed, executed 2026-11-13 / 2026-11-25)",
+      "fired": [],
+      "unique_detections": [],
+      "baseline": {
+        "artifact": "prototype/bogart_selector_bench.py (sha256 df8106581e2ff3eec83861372f0862decebca8b3e9874e951161f50d7553c762)",
+        "mode": "executed",
+        "detections": [
+          "collision-nacional-primera",
+          "collision-pba-judicial",
+          "collision-nacional-segunda"
+        ]
+      }
+    },
+    "expressibility_gap": [
+      {
+        "invariant": "selector→capture duplication (the 3 known-real collisions)",
+        "why": "kw9.5 ledger 0002: the check surface has no cardinality claim over stored arrows; declaring the collision would be a derived relation (the P3 boundary). The bench measures whether ANY arm detects it — the gap is the object under test, restated here because it licenses the B expectation; kw9.11 confirms it empirically for both categorical arms (B and C silent on all three collisions)"
+      }
+    ],
+    "discrepancies": [
+      "D1 (arms.md S1 seeding wording vs its own registered result): arms.md says 'Append one capture row', but the registered result in both protocol files is a 4th collision with '2 stored capture rows, one shared sha256' (README review note 7: 'a duplicated pair'); one appended row yields a 1-match selector and cannot satisfy the pinned A-must-report-4 expectation. kw9.11 implemented the pair (two copies of the slice's first capture under bench-seed/s1, ids bfc:bench-seed-s1 / bfc:bench-seed-s1-2, revisions bench-seed-s1 / bench-seed-s1-2), applied identically to arms A, B and C. Recorded, not silent.",
+      "D2 (dangling faults fire at load, not on the check surface): S2 (arms B and C) and the recipe's overconstraint control are caught by the .ct.json v1 loader as labeled errors (exit 1, `error[syntax]` naming the dangling table cell) rather than as check-surface violations (exit 3). The registrations require a non-zero exit / that the battery catches the fault — satisfied verbatim; the exit-3 wording in the recipe/README is not reachable for dangling stored references on this loader. The firings are recorded verbatim and scored as sanity outcomes, never as check detections (rubric: only check violations are detections).",
+      "D3 (arm-C search bounds): the natural-bounds search (--rows naming the declared objects' real row counts) returned UNKNOWN within the 256-candidate default; per the recipe an UNKNOWN payload means shrink the bounds, never declare success — bounds were shrunk (all seven objects at 1), and the recorded outcome is `witness within bounds`, a bounded-run success, not a clean bill (rubric non-finding).",
+      "D4 (drafter disclosure, honesty rule): the arm-C drafting agent is this session's model (GLM, Z.ai — the kw9.11 worker agent), not an independent session. The drafter had earlier in the same session read slice.json while building arm A and the seeding harness, so the draft step was not prose-blind in the strict sense; the draft's schema was written from the prose block only, and its instance rows were taken verbatim from instance-slice.json (the prose's designated input), which the recorded instance-custody diff confirms byte-for-byte derivable from the frozen slice rows.",
+      "D5 (pre-registration commit hash): the arms.md ledger template pins `commit <hash>` of the kw9.6 pre-registration; the ticket forbids git commands in kw9.11, so the hash is left un-recorded here and the protocol is cited by path (fixtures/probes/bench/README.md + arms.md).",
+      "D6 (arm-A selector-set provenance): slice.json carries no selector table, so arm A's selector set is DISTINCT (source, edition_date) over the slice's capture and partition rows (3 selectors — exactly the collision selectors); the 127 zero-match negatives of E4 are scored via the floor run (census criterion over all 127: zero detections), matching census.json's frozen denominators."
+    ],
+    "procedure": [
+      "1. Arm A (executed control): the pinned census criterion over the frozen slice — 3 detections, exactly the pre-registered E1–E3; floor silent (entry 0001); S1 reports 4 collision selectors; S2 output identical to unseeded (N/A).",
+      "2. Arm B (committed model, kw9.11 pin): check exit 0 with zero findings on the probe slice (E1–E3, E4, E5, E6 silent); underconstraint exit 0 (no hypotheses — recorded, never scored); S1 seeded model silent (expected); S2 seeded model fires non-zero (dangling at load, D2).",
+      "3. Arm C (kw9.9 recipe): prose.md copied byte-for-byte from arms.md (sha256 a40e6c14934cd6446ebeff66266e3fff0f9e9988b6d6c1b1d8a283e3cc1a0569) with instance-slice.json = the frozen slice (sha256 840e81c843ce371fbdb73c071dda4a9080f94bbb14da016d2f72dc065a5280c5); the drafter (this session's model — disclosed, D4) wrote draft-v1.ct.json from the prose plus the designated instance file; the battery on v1 produced zero findings (check exit 0, underconstraint exit 0, search witness at shrunk bounds), so there were no findings to feed back and the loop converged at v1 per the recipe's stopping rule once both negative controls were demonstrated: clean control = the full battery silent on the unmodified draft; overconstraint control = injected dangling page_document cell caught non-zero (D2). naturality was not run (no instance_map declared — the verb is conditional per arms.md). Final draft = draft-v1.ct.json (sha256 9c984a65af40f71c96901bac979a4e263c0514b409fdd25c5c314d337d035ff9).",
+      "4. Instance-custody diff (laundering control): every instance row and table cell of the final draft is byte-derivable from slice.json rows (mechanical diff recorded clean — no computed/derived rows, so D3-invalid count is zero for C and the arm is independent on the instance).",
+      "5. Scoring: TP_A = {E1,E2,E3}, FP_A = 0, D3inv_A = 0; TP_B = ∅, FP_B = 0, D3inv_B = 0; TP_C = ∅, FP_C = 0, D3inv_C = 0; unique_B = TP_B ∖ TP_A = ∅; unique_C = TP_C ∖ TP_A = ∅. Sanity: S1 pass (A reports 4; B and C silent as registered); S2 pass (B and C fire non-zero; A N/A). Floor: all arms silent (entry 0001). No E6 FizzBuzz alarm: no arm implements or declares any computed divisibility-class predicate (the census script contains none; both models carry equations: []).",
+      "6. Decision rule (README, fixed before the run), row 1: A detects all of E1–E3; B and C produce zero real detections; no D3-invalid; no FP on E4; S1/S2 pass; floor silent → verdict killed — parity; the null result is the deliverable; the categorical claim stays UNKNOWN-labeled beyond this slice."
+    ],
+    "verdict": "killed"
+  },
+  "rollup": null,
+  "model_hashes": [
+    "sha256:c4bf0bbf15c2015b769e45adfad656bf48e7e70d3031441b52755f5664c9f958",
+    "sha256:840e81c843ce371fbdb73c071dda4a9080f94bbb14da016d2f72dc065a5280c5",
+    "sha256:9c984a65af40f71c96901bac979a4e263c0514b409fdd25c5c314d337d035ff9",
+    "sha256:a40e6c14934cd6446ebeff66266e3fff0f9e9988b6d6c1b1d8a283e3cc1a0569",
+    "sha256:5f3f0b3dee2d41484d2c5bd8cd38d8b5c5bfa36a7ab606bd91be169d2f90e1a0",
+    "sha256:8ec7f0963b6a93fd2d1e721106fbcd7c915286eeb373a4f09ae34ccd7946ec50",
+    "sha256:df8106581e2ff3eec83861372f0862decebca8b3e9874e951161f50d7553c762"
+  ],
+  "id": "sha256:48bb05fee0d96f4d96da30dcdca8879a77f554968b5bbdac433ffa061adb71fe"
+}

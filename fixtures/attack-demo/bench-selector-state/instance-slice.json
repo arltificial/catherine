@@ -1,0 +1,4674 @@
+{
+ "format_version": "1.0",
+ "captures": [
+  {
+   "capture_id": "bfc:f16110174dae3f4b92760fb1fdb22eadb4f7a6b821895f3c83e04290e5126647",
+   "source": "pba/JUDICIAL",
+   "edition_date": "2026-11-03",
+   "revision": "3",
+   "captured_at": 1793728086361,
+   "sha256": "d9ff31c33140697d7f07a98f5914ef6576e8310286137f821019741d01cf6907",
+   "edition_dates_alias": [
+    "2026-11-03"
+   ]
+  },
+  {
+   "capture_id": "bfc:706a255eabc54aab79710e768e4061f2f9650553057eae4e9873169b4b6ed108",
+   "source": "pba/JUDICIAL",
+   "edition_date": "2026-11-03",
+   "revision": "pickup-unknown-observation",
+   "captured_at": 1793728404116,
+   "sha256": "d9ff31c33140697d7f07a98f5914ef6576e8310286137f821019741d01cf6907",
+   "edition_dates_alias": [
+    "2026-11-03"
+   ]
+  },
+  {
+   "capture_id": "bfc:774af6871fa53fcffa71d536b7aed80be5f99419ce67fb3aa8f7d3c0dfbb7a80",
+   "source": "nacional/primera",
+   "edition_date": "2026-11-03",
+   "revision": "ff5266149715c2d17a4137b9d61cf52148ef8c493e76cf8079c608b6d3e25a2e",
+   "captured_at": 1793908195264,
+   "sha256": "2e3b54c0fadbbba0ea7e06c8e47699d43cc84898a48f299e2a80fcbf7a820211",
+   "edition_dates_alias": [
+    "2026-11-03"
+   ]
+  },
+  {
+   "capture_id": "bfc:7ba1dab5df947ee0023ee42c74e6f861d90d25e27ce609b8e68810094d7ad85f",
+   "source": "nacional/primera",
+   "edition_date": "2026-11-03",
+   "revision": "pickup-unknown-observation",
+   "captured_at": 1793908214061,
+   "sha256": "2e3b54c0fadbbba0ea7e06c8e47699d43cc84898a48f299e2a80fcbf7a820211",
+   "edition_dates_alias": [
+    "2026-11-03"
+   ]
+  },
+  {
+   "capture_id": "bfc:041911d130d28c976619aa32bb54e7916b714e7b2e4fe33aa798d9899a5d03f3",
+   "source": "nacional/segunda",
+   "edition_date": "2026-11-13",
+   "revision": "arsat-v1:eee6cde1b500d0c594a9a175232cb6558576959f462c6e6a3da4fc555140e047",
+   "captured_at": 1794578962350,
+   "sha256": "7c9cdb7419ff058381f627e3504476993aa55dc2aceb0edfdcfb2953024085ed",
+   "edition_dates_alias": [
+    "2026-11-13"
+   ]
+  },
+  {
+   "capture_id": "bfc:905e730784a03a7b83f52201b1d39cb8dde152bb64593cde334e0b7b2b9ceed9",
+   "source": "nacional/segunda",
+   "edition_date": "2026-11-13",
+   "revision": "pickup-v1:be99be77fb12533dca3a794cd7c015b584b64cd9095b16d8a2b601dd1a1e2119",
+   "captured_at": 1794579915266,
+   "sha256": "7c9cdb7419ff058381f627e3504476993aa55dc2aceb0edfdcfb2953024085ed",
+   "edition_dates_alias": [
+    "2026-11-13"
+   ]
+  }
+ ],
+ "partitions": [
+  {
+   "partition_id": "bfp:59a43a6350f7968cdad3b86960e6580159d1ea2d318d2e66f4fe098289c5c8b0",
+   "source": "nacional/primera",
+   "edition_date": "2026-11-03",
+   "policy_version": "local-v1",
+   "state": "planned"
+  },
+  {
+   "partition_id": "bfp:746c4cfe5a53ced401a7af210ae077743ecd854b4fc6f27932d62973300aa967",
+   "source": "pba/JUDICIAL",
+   "edition_date": "2026-11-03",
+   "policy_version": "local-v1",
+   "state": "planned"
+  },
+  {
+   "partition_id": "bfp:9a9fde35c2381e56fca0b20abf3fc30b054607647e598605e3d3d2b4ae5ce547",
+   "source": "nacional/segunda",
+   "edition_date": "2026-11-13",
+   "policy_version": "local-v1",
+   "state": "planned"
+  }
+ ],
+ "read_documents": [
+  {
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "edition_date": "2026-11-03",
+   "total": 40,
+   "selected": 1
+  },
+  {
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "edition_date": "2026-11-03",
+   "total": 80,
+   "selected": 1
+  },
+  {
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "edition_date": "2026-11-03",
+   "total": 60,
+   "selected": 1
+  },
+  {
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "edition_date": "2026-11-03",
+   "total": 150,
+   "selected": 1
+  },
+  {
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "edition_date": "2026-11-03",
+   "total": 124,
+   "selected": 1
+  }
+ ],
+ "read_pages": [
+  {
+   "id": 3256,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 1,
+   "status": "text_present",
+   "text_hash": "0d69ebc43d0045dfae6ef97aa3399d92be557b344ea03098fdb45c77b8efa72c",
+   "result_id": "bpr:60f618ce-4312-439c-ba60-203034aed909",
+   "error_code": null
+  },
+  {
+   "id": 3257,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 2,
+   "status": "text_present",
+   "text_hash": "ba2139a6112cb3cbe4506d17a7f4a0560f00206cc9f56e9b52d3e955534a7a68",
+   "result_id": "bpr:764a3991-5ef7-49c1-b981-57c3c385a583",
+   "error_code": null
+  },
+  {
+   "id": 3258,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 3,
+   "status": "text_present",
+   "text_hash": "aead53b98b1276b8208b247b17dcc74a737c8baeb63ada03f41710c96b5fec68",
+   "result_id": "bpr:bc85e621-612b-4620-8f5c-171c20503960",
+   "error_code": null
+  },
+  {
+   "id": 3259,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 4,
+   "status": "text_present",
+   "text_hash": "944e2ca85499ab53c20e5ffd1d25438be4e4c66b7531ccf95fa879af5635a7c4",
+   "result_id": "bpr:36c50ae6-2aba-4a2d-8ff4-1c91bae77fc2",
+   "error_code": null
+  },
+  {
+   "id": 3260,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 5,
+   "status": "text_present",
+   "text_hash": "be3cc562a6fc7fd6d114aee0acd36ad3797f09c78babafa90353e9090deab7d3",
+   "result_id": "bpr:488093cc-2783-44df-a6be-d2998ff7a954",
+   "error_code": null
+  },
+  {
+   "id": 3261,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 6,
+   "status": "text_present",
+   "text_hash": "df8348c26eca299cb1e825a04b913f79f37536b0c32ba97b1c74452ea23dfc84",
+   "result_id": "bpr:0afefa9f-d0ee-409c-988b-c45070046b11",
+   "error_code": null
+  },
+  {
+   "id": 3262,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 7,
+   "status": "text_present",
+   "text_hash": "33b0ded60efdabcc44c1eab2199daab264cc3540f40d43c4e6fcab42a3c560e7",
+   "result_id": "bpr:608facbb-a3f3-446c-8c5d-cd7405997d08",
+   "error_code": null
+  },
+  {
+   "id": 3263,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 8,
+   "status": "text_present",
+   "text_hash": "4d0cc16578b2a743646371a66c75b664ea399068760f922803f0bd7a2e85ed61",
+   "result_id": "bpr:2cec2943-e2e2-4800-8f90-792285002b69",
+   "error_code": null
+  },
+  {
+   "id": 3264,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 9,
+   "status": "text_present",
+   "text_hash": "26d4098dd4e70a29f358e802fea31ed43587eb7d1327f56e1e7c38552881f27a",
+   "result_id": "bpr:a5279e44-a966-48c9-8b9a-15b0ec547323",
+   "error_code": null
+  },
+  {
+   "id": 3265,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 10,
+   "status": "text_present",
+   "text_hash": "8b0ebc958ae0484bc39ebabd59d309d1ef8fe013db4419c2ee835fd5577889b4",
+   "result_id": "bpr:897cf7cf-d9eb-4877-b12a-b6d579afaf1b",
+   "error_code": null
+  },
+  {
+   "id": 3266,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 11,
+   "status": "text_present",
+   "text_hash": "b08c974cc4f467ec898cc814462a0254870df2824f9c42d33adb31a7c308da6b",
+   "result_id": "bpr:a2f3b163-1d4c-4d23-b875-38b43f8d1d37",
+   "error_code": null
+  },
+  {
+   "id": 3267,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 12,
+   "status": "text_present",
+   "text_hash": "83d9586f2245c87ece6dad7d44b5df9b95143eb2e4002d5c6c01fe11a7211ef6",
+   "result_id": "bpr:9952b4c5-814e-454b-8600-29853989ce34",
+   "error_code": null
+  },
+  {
+   "id": 3268,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 13,
+   "status": "text_present",
+   "text_hash": "2500b215ed58dc7f74d470882efed3a7bdd58848d9925465204539d17e7e8353",
+   "result_id": "bpr:da78d4d5-497e-4180-ac23-e4d3cfc5e98a",
+   "error_code": null
+  },
+  {
+   "id": 3269,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 14,
+   "status": "text_present",
+   "text_hash": "4ee5b103c6d37b1ffecd7ff5f437db0e24973662b5c2d767bf829bbbd3302d06",
+   "result_id": "bpr:8f09c2fa-d063-478e-951a-b90db5fc409f",
+   "error_code": null
+  },
+  {
+   "id": 3270,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 15,
+   "status": "text_present",
+   "text_hash": "d60968ebcc0f608917ba4a475782559e0f0687b65468ba5f0ed720539166c763",
+   "result_id": "bpr:dc8b8b73-653e-409d-9d70-0fe16896c3cb",
+   "error_code": null
+  },
+  {
+   "id": 3271,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 16,
+   "status": "text_present",
+   "text_hash": "75de3478e8d97c56dac2c1adbebb148a08074bf195eec8e9b873fed7c697f0cb",
+   "result_id": "bpr:8446919d-544f-419f-b30f-02c780a2985d",
+   "error_code": null
+  },
+  {
+   "id": 3272,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 17,
+   "status": "text_present",
+   "text_hash": "9e793614965ff5771e6bc3f46f94f80842087abda5f9741c3121ce02f4ae1d2c",
+   "result_id": "bpr:e50e1cb5-8fa2-40fb-b80a-c5e89a086566",
+   "error_code": null
+  },
+  {
+   "id": 3273,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 18,
+   "status": "text_present",
+   "text_hash": "f44e6fa9b2a0789940ebc47a37301689ac13b4cacff9b4e081a5d88bd1fc9e9a",
+   "result_id": "bpr:1ebf2502-b5db-490c-a224-951f5f9bebf6",
+   "error_code": null
+  },
+  {
+   "id": 3274,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 19,
+   "status": "text_present",
+   "text_hash": "80f5f2145ac0be3d1dabfb2d4b56fbb01676f3fe220c0296daa83eee0bd34ec6",
+   "result_id": "bpr:a7b7d903-4b94-4131-bf7d-bfe59e4052f1",
+   "error_code": null
+  },
+  {
+   "id": 3275,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 20,
+   "status": "text_present",
+   "text_hash": "4eb8ddba3bdb85da379b2a02e49ae6d300b5e8e020d421953dbc3bca223b2ed8",
+   "result_id": "bpr:c331e47f-2984-463f-9e05-b83c64993544",
+   "error_code": null
+  },
+  {
+   "id": 3276,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 21,
+   "status": "text_present",
+   "text_hash": "41b7d0fc8522c99a6811d4a0bcd196ba090f3ffd2eb79374732d9577cba7fa4b",
+   "result_id": "bpr:5d13eb2e-6c0b-4259-aadc-d1c01852d009",
+   "error_code": null
+  },
+  {
+   "id": 3277,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 22,
+   "status": "text_present",
+   "text_hash": "c9d9077b7cb5f467691cbdfcfb52cb4fd70b70261b47020fd6fc03cdc2db1fbd",
+   "result_id": "bpr:73f430e0-fbb3-4385-860d-28c286e90474",
+   "error_code": null
+  },
+  {
+   "id": 3278,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 23,
+   "status": "text_present",
+   "text_hash": "003f6e64cc0b49394847c4611917db67276e42452db7faa54e6323cf2a2d00ec",
+   "result_id": "bpr:48712c36-c640-4454-a7d8-6244c17140c7",
+   "error_code": null
+  },
+  {
+   "id": 3279,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 24,
+   "status": "text_present",
+   "text_hash": "69c5c7af80efe57bc3e53ff2e8dc61b40c8b21fb6cb0c971e1d596ce75c5171f",
+   "result_id": "bpr:986e4d11-4d46-46ad-a8a8-391563c30fa0",
+   "error_code": null
+  },
+  {
+   "id": 3280,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 25,
+   "status": "text_present",
+   "text_hash": "fc2a8eba3359ef59bf24284e9a3c49e39f41c17bdda41a477e0bb91b8a3a5c94",
+   "result_id": "bpr:cf5099bf-4b67-4f8d-8a65-11755d6372a7",
+   "error_code": null
+  },
+  {
+   "id": 3281,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 26,
+   "status": "text_present",
+   "text_hash": "579ff8624976a3a4a13a9f3ef04476b78b3a8808027af8d11f171e7328eeefd3",
+   "result_id": "bpr:f2f307ba-876e-4bd3-9ee2-6d651209b6a1",
+   "error_code": null
+  },
+  {
+   "id": 3282,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 27,
+   "status": "text_present",
+   "text_hash": "e8f39cc2eda10ff07f8100ff329e6b4517cd0e942c12bf649aed2fdd52980f36",
+   "result_id": "bpr:3ef5e084-bd0a-47db-8bec-fa66dd92add2",
+   "error_code": null
+  },
+  {
+   "id": 3283,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 28,
+   "status": "text_present",
+   "text_hash": "a4ed0e2c60c38e7b4fcd12bf4220c88d79a9b809d82cc645ab9efdd5e54fa320",
+   "result_id": "bpr:f782ab47-ee93-4754-864d-84d6db0dab55",
+   "error_code": null
+  },
+  {
+   "id": 3284,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 29,
+   "status": "text_present",
+   "text_hash": "1cf06d314b5ae04cc6173f9384fc991400d765fd3ce971e91d3962f5dbc6a9a5",
+   "result_id": "bpr:8787b6ed-edb1-4a01-b379-7b52b4ee43fb",
+   "error_code": null
+  },
+  {
+   "id": 3285,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 30,
+   "status": "text_present",
+   "text_hash": "a80a63f04c22b0f9247480ac79b986e29e6ae2b4a68e7d7885c720d89a57ecf1",
+   "result_id": "bpr:6a436ffc-24dc-4982-9e4a-a440d9020719",
+   "error_code": null
+  },
+  {
+   "id": 3286,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 31,
+   "status": "text_present",
+   "text_hash": "654b1c04dfd0c32d47fa8432b9a0493b773e99548eea76669fbbcb1993e72a9e",
+   "result_id": "bpr:67b14977-3193-4942-b2ac-e1b66948c82d",
+   "error_code": null
+  },
+  {
+   "id": 3287,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 32,
+   "status": "text_present",
+   "text_hash": "6eecbb230335eb26beb96704e6e791abd7d7242aecd73f10ae4d63fee7da1381",
+   "result_id": "bpr:f23f3668-1a1e-485a-9e09-986c07f6824a",
+   "error_code": null
+  },
+  {
+   "id": 3288,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 33,
+   "status": "text_present",
+   "text_hash": "e9a96e2209f8d2c80a85ab9ab805279314161a9b414202ea4d4ee3da15268564",
+   "result_id": "bpr:569182e1-acaa-426e-b6bc-ad4e7e388f8e",
+   "error_code": null
+  },
+  {
+   "id": 3289,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 34,
+   "status": "text_present",
+   "text_hash": "94720d26dd998574aa163d1f0bc667dfe48e58bee318364a34e066b71f222411",
+   "result_id": "bpr:f5a84abf-3768-4c83-8703-56840965f183",
+   "error_code": null
+  },
+  {
+   "id": 3290,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 35,
+   "status": "text_present",
+   "text_hash": "caf6c4eab9af44dd170736ca6cd800f97d1376a5fe33b2a7114d78249eea6e1c",
+   "result_id": "bpr:6d87458e-9d42-4665-9ae4-b0f36d31542b",
+   "error_code": null
+  },
+  {
+   "id": 3291,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 36,
+   "status": "text_present",
+   "text_hash": "76fb6f0fa468cb765eca40e70b312d2cd1479ea6047ba81b4c435a5d15da54e5",
+   "result_id": "bpr:faaad401-c898-48c4-a7f3-7dae7e816021",
+   "error_code": null
+  },
+  {
+   "id": 3292,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 37,
+   "status": "text_present",
+   "text_hash": "c926e71a797d284a026b778bbbc10f1aee4ebc9fed38072abb156f6a90f0cd33",
+   "result_id": "bpr:748ff147-abc5-4a96-b927-e26c8e2fdd6c",
+   "error_code": null
+  },
+  {
+   "id": 3293,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 38,
+   "status": "text_present",
+   "text_hash": "0346374c77cafc0f365a89837e40f9386b09cd82bb555b42cbee977b14e07aff",
+   "result_id": "bpr:a48c8435-60e5-44ac-b44b-5a5e488f0db6",
+   "error_code": null
+  },
+  {
+   "id": 3294,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 39,
+   "status": "text_present",
+   "text_hash": "8a19849b5eb433b8dea8f9de200f1a38fd3d3b43a01d9a25ff6feaa5da2fb9a2",
+   "result_id": "bpr:99d7cb0c-3cfe-4760-ba67-12882767d443",
+   "error_code": null
+  },
+  {
+   "id": 3295,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 40,
+   "status": "text_present",
+   "text_hash": "1ef9ddfcf0f6f5e076617882498647d2bf2e2ee8c980c0e790416f11f02976f9",
+   "result_id": "bpr:eaddc482-25b9-45a4-9d4d-d54c5596ffba",
+   "error_code": null
+  },
+  {
+   "id": 3296,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 41,
+   "status": "text_present",
+   "text_hash": "7e16b2543e6a04cc0397f0afbac535e3a5936a5df7feb83ccab3a07219ecc24c",
+   "result_id": "bpr:49eb4da0-79d5-49ff-815a-a91fb6c71f62",
+   "error_code": null
+  },
+  {
+   "id": 3297,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 42,
+   "status": "text_present",
+   "text_hash": "b0bb72e2cbf67e44cb606dfedc1e952aef684d6bdd6a794e9ec012f377a050c2",
+   "result_id": "bpr:d9a9e966-b3c3-4a16-96cb-2a002a1e03d5",
+   "error_code": null
+  },
+  {
+   "id": 3298,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 43,
+   "status": "text_present",
+   "text_hash": "dac23e2b5aa7b7fa3a21d41bbef162607ee46ad3b5bab8c84786559f3838651d",
+   "result_id": "bpr:08322a8c-cd83-4408-92d6-57d04576a982",
+   "error_code": null
+  },
+  {
+   "id": 3299,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 44,
+   "status": "text_present",
+   "text_hash": "947d5c67eb9f1595c1a0ea93d75491142645dfa1d02a633b5bfc437144e061b5",
+   "result_id": "bpr:a0bc0a26-0d4a-435f-a2c9-2802ea0ed3ef",
+   "error_code": null
+  },
+  {
+   "id": 3300,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 45,
+   "status": "text_present",
+   "text_hash": "92a27027a5e1a3d3bf01b43fdc2a637aae620a54b54d3e9b429640297946fa32",
+   "result_id": "bpr:a79bb0c4-b75d-4c99-a772-1feb7b2f3bde",
+   "error_code": null
+  },
+  {
+   "id": 3301,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 46,
+   "status": "text_present",
+   "text_hash": "75026b326b48971ccd080f24187b3622acd6e3876e50374eb107252bcc382f02",
+   "result_id": "bpr:643a3c88-4041-4714-88fe-9cc10c016894",
+   "error_code": null
+  },
+  {
+   "id": 3302,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 47,
+   "status": "text_present",
+   "text_hash": "efd8766611a9cb462322c2f80033645f9012a6d3ace6a12f5868d9e711b9ce80",
+   "result_id": "bpr:5e643b81-4ef2-4e87-8f8f-a1a902752fbf",
+   "error_code": null
+  },
+  {
+   "id": 3303,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 48,
+   "status": "text_present",
+   "text_hash": "45e5bb53ef74425be0a43bddd00f43ebb0ae3efbb4504d2e44aa147f593deff3",
+   "result_id": "bpr:1321c084-1201-456b-8190-914dccb0e6a0",
+   "error_code": null
+  },
+  {
+   "id": 3304,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 49,
+   "status": "text_present",
+   "text_hash": "dc01c7a44ba111d67fc8fa91b534f0fcdf95f8aecf61ed42bef4e5315ac77157",
+   "result_id": "bpr:0cbb6790-e7c8-4d00-893f-288e2c9ea8e2",
+   "error_code": null
+  },
+  {
+   "id": 3305,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 50,
+   "status": "text_present",
+   "text_hash": "975525f2f17e2d943363781e49285cbfd01e5ae7d5992bc079db00c69ec8af20",
+   "result_id": "bpr:ad2774d9-6b19-4b63-9028-5240384b118e",
+   "error_code": null
+  },
+  {
+   "id": 3306,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 51,
+   "status": "text_present",
+   "text_hash": "346e0e15e555456c01c401261de9923016fc187b9c60a14537b043e6260b0a26",
+   "result_id": "bpr:6260246d-7e71-4feb-b057-eea08ea93b1b",
+   "error_code": null
+  },
+  {
+   "id": 3307,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 52,
+   "status": "text_present",
+   "text_hash": "30ae21e31d3f6d7dca2eb41076e2bb757e5c652a1a7ce27ac2dbe0d7165503c5",
+   "result_id": "bpr:d956a7ec-e585-45ec-beaa-d095f8be18dd",
+   "error_code": null
+  },
+  {
+   "id": 3308,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 53,
+   "status": "text_present",
+   "text_hash": "51fbd0f8f0d30cbb20ea123d5035d096c591c9f21d0a72e5974bf33476fbac3f",
+   "result_id": "bpr:edea374f-3aee-4ff6-81dd-6720bc10aa9a",
+   "error_code": null
+  },
+  {
+   "id": 3309,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 54,
+   "status": "text_present",
+   "text_hash": "6e843d170566b5b38336b81c96b4212af038ddd5b220f3cfc1858c234df9ebd7",
+   "result_id": "bpr:1c35b60e-890a-4ec0-b6bd-705c3cf3c642",
+   "error_code": null
+  },
+  {
+   "id": 3310,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 55,
+   "status": "text_present",
+   "text_hash": "e8039952c550a28de224d63a322f04c91f675ced2d50eb53e97820a89d20aa50",
+   "result_id": "bpr:2b576bbe-36d1-45a5-8e95-02dfd5b0d9cd",
+   "error_code": null
+  },
+  {
+   "id": 3311,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 56,
+   "status": "text_present",
+   "text_hash": "c2565ec316aa98778df2b1fd0533982202b289125ff1ff761f87dcaa6c3b45ba",
+   "result_id": "bpr:9d264e36-ae89-47b6-87f0-c78005556e03",
+   "error_code": null
+  },
+  {
+   "id": 3312,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 57,
+   "status": "text_present",
+   "text_hash": "ec08e0a21984cf43be956676ff5de1b2c1d7758f34735448bb4b973ed9578c78",
+   "result_id": "bpr:c2cf7500-3ee9-463e-8b95-7ae137258e9f",
+   "error_code": null
+  },
+  {
+   "id": 3313,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 58,
+   "status": "text_present",
+   "text_hash": "4109e63e9a407489806bde762c278b1a70fa0f5891e6c0f1762a6dce88811d59",
+   "result_id": "bpr:3f417355-8839-4008-89e3-1600a2e41371",
+   "error_code": null
+  },
+  {
+   "id": 3314,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 59,
+   "status": "text_present",
+   "text_hash": "d38cb7033a76ebc12ca5123bdcc55b608e179d677de5d0af49937102d40346fa",
+   "result_id": "bpr:046e7ede-ee57-4b51-b603-81cb6da0d243",
+   "error_code": null
+  },
+  {
+   "id": 3315,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 60,
+   "status": "text_present",
+   "text_hash": "1e4ec17ba3134a71a778a28781dc80188f29a6c7db2774f1e20126858ace049e",
+   "result_id": "bpr:586bdfae-2a0e-473e-b737-2d87acb18e38",
+   "error_code": null
+  },
+  {
+   "id": 3316,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 61,
+   "status": "text_present",
+   "text_hash": "549b6bcbc16755b405b440b02e26aa3bf851675181c512249c7fd9392f1c46e0",
+   "result_id": "bpr:821836fe-cb3f-4262-83a9-285e7514625f",
+   "error_code": null
+  },
+  {
+   "id": 3317,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 62,
+   "status": "text_present",
+   "text_hash": "721b189987f06683eaaf2146ea033a2b9eadd0854a70c2b5dc5d2f55a4a4cb62",
+   "result_id": "bpr:318c7eef-85df-4999-ac44-426acde8a750",
+   "error_code": null
+  },
+  {
+   "id": 3318,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 63,
+   "status": "text_present",
+   "text_hash": "57f335dffb039ac34de10a11e96dbc3f012eba0e88c0cd1e7b4863fda901aeaf",
+   "result_id": "bpr:297dd329-03d5-4685-9a9e-108e60550bf4",
+   "error_code": null
+  },
+  {
+   "id": 3319,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 64,
+   "status": "text_present",
+   "text_hash": "6a51f62ca4a1928a0679f8d40534699a0e61d9c5fec4247420021e3111c36181",
+   "result_id": "bpr:6b98f030-d01c-4b3d-abd0-6483c09a2bd0",
+   "error_code": null
+  },
+  {
+   "id": 3320,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 65,
+   "status": "text_present",
+   "text_hash": "fab62f518c2ec8a43b21dd7e21d2be11c4a3c768c164e22d6738e8c86fe03981",
+   "result_id": "bpr:09f27a82-af36-48f5-bbcc-63c220d956c4",
+   "error_code": null
+  },
+  {
+   "id": 3321,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 66,
+   "status": "text_present",
+   "text_hash": "f94977dc9107ea6d20b6a1cb309ad91d1cd337ba9bf08c65e9ebe986bdba0616",
+   "result_id": "bpr:478ca21a-a5b0-4bc5-9c90-1af9ace53114",
+   "error_code": null
+  },
+  {
+   "id": 3322,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 67,
+   "status": "text_present",
+   "text_hash": "73a04fc3b1968ab3e5a792a090b9261ef47de50aab97ab6ef107ef25a09da3c1",
+   "result_id": "bpr:5a87b5d0-b8e1-48ba-9956-3be3be6e8237",
+   "error_code": null
+  },
+  {
+   "id": 3323,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 68,
+   "status": "text_present",
+   "text_hash": "4b860ecf84b344c3021d904f9f8ef507e4c3721368f1c108710473d9c49a4597",
+   "result_id": "bpr:b70158e7-08ee-4037-ae45-5d811252f0ed",
+   "error_code": null
+  },
+  {
+   "id": 3324,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 69,
+   "status": "text_present",
+   "text_hash": "072ee680e1bda119c6d7d3ee3e453d70fd7338e46478aa4f968e47c8af19c91f",
+   "result_id": "bpr:b77a293c-e78a-4812-849c-c3564ecaa4ae",
+   "error_code": null
+  },
+  {
+   "id": 3325,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 70,
+   "status": "text_present",
+   "text_hash": "3a27675d524f44283ea9ce696ef5877a60933d99ea0403b318a802299e275d26",
+   "result_id": "bpr:7fbc9ffe-03da-4902-bac8-29a97c6ce1d9",
+   "error_code": null
+  },
+  {
+   "id": 3326,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 71,
+   "status": "text_present",
+   "text_hash": "a1256d6853481e882a29c21c9f71844d537a5eaaa4b8bb4d5383639ccdc8e7e5",
+   "result_id": "bpr:0955792d-4028-43b1-86e5-804af492c1a5",
+   "error_code": null
+  },
+  {
+   "id": 3327,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 72,
+   "status": "text_present",
+   "text_hash": "bbc426ab434cd3c1eeba364b6f8959437d16f7abe887dd10034fb4d08b84c04d",
+   "result_id": "bpr:5c847a2f-3af0-4d76-835d-63bc5dcf7f6c",
+   "error_code": null
+  },
+  {
+   "id": 3328,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 73,
+   "status": "text_present",
+   "text_hash": "786c2997b8a6ef0e9faff6990c79040054eda7508a9db3942ff63c512a072475",
+   "result_id": "bpr:f7cc0cc7-612f-44f0-9b94-a27b5121cad8",
+   "error_code": null
+  },
+  {
+   "id": 3329,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 74,
+   "status": "text_present",
+   "text_hash": "8eb8212704eafb0e06f7c612f9fb912bf50af254c75473b7294fa41eb45bb1d5",
+   "result_id": "bpr:b807d03c-1dd3-4a6c-9f7b-ffe2425cb89a",
+   "error_code": null
+  },
+  {
+   "id": 3330,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 75,
+   "status": "text_present",
+   "text_hash": "7299f5c7d67dfea5923aba6b9e4c7a0acc1c08d0c6ec259818a7e3f033b2fcc5",
+   "result_id": "bpr:ab2919ac-fbd6-437a-bc96-4a6ef54cab70",
+   "error_code": null
+  },
+  {
+   "id": 3331,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 76,
+   "status": "text_present",
+   "text_hash": "6ec4b16a315427a287ebb8fdf71a0f82b9bb67bb544e6e62a3dde724215d8f1b",
+   "result_id": "bpr:a774ef75-c3c0-4c04-8660-a4cc715f1b91",
+   "error_code": null
+  },
+  {
+   "id": 3332,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 77,
+   "status": "text_present",
+   "text_hash": "2281a0003f2a64b0d702515ddbc5e189030aeefe25f4bb7ae3c189851839596f",
+   "result_id": "bpr:97f17c33-518f-414e-82c0-189dca4d67a9",
+   "error_code": null
+  },
+  {
+   "id": 3333,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 78,
+   "status": "text_present",
+   "text_hash": "1c094fa6add77b0d0991f3abf4457e77dbf4035ba1e20e2914b378526d6b9063",
+   "result_id": "bpr:2d3904f5-5c9c-48d1-8ef7-402d178d121a",
+   "error_code": null
+  },
+  {
+   "id": 3334,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 79,
+   "status": "text_present",
+   "text_hash": "7a42a873eee5a503b64a2ee664fba55dbff2d8834ce09c43bf75c3c30a712272",
+   "result_id": "bpr:98381c12-a237-4034-8279-07daa28e9122",
+   "error_code": null
+  },
+  {
+   "id": 3335,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 80,
+   "status": "text_present",
+   "text_hash": "84b4f8956b4cf0d1f38c7c21a38f0fc35dfed4264fbcdef67beb59f69f11555a",
+   "result_id": "bpr:f070721a-e70c-49f0-801a-255161ed57b1",
+   "error_code": null
+  },
+  {
+   "id": 3336,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 81,
+   "status": "text_present",
+   "text_hash": "25cae0f6c4f80dc1d6e15873f9590ca933804a0621f8936d32ac39d26ee5cf2c",
+   "result_id": "bpr:dab6411f-63b4-401d-b5ab-676ac7c02258",
+   "error_code": null
+  },
+  {
+   "id": 3337,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 82,
+   "status": "text_present",
+   "text_hash": "4148fe2e7bb7398dd6441d9babb3caba369e6f92e2a0781ee5a93df05fe57b27",
+   "result_id": "bpr:0ec64d0d-5ea4-4b7b-9d88-12cb80e3a31d",
+   "error_code": null
+  },
+  {
+   "id": 3338,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 83,
+   "status": "text_present",
+   "text_hash": "1b04d29b8bbd2f34d622b8ad3d136ca1f19fb11e27b1619abe74301417cb408c",
+   "result_id": "bpr:b1340d10-daf8-494f-b95c-c277fd5232bd",
+   "error_code": null
+  },
+  {
+   "id": 3339,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 84,
+   "status": "text_present",
+   "text_hash": "2f0f22ea018300f48d0ed5a6e5518255ee9e64376c526c0286d19f80da0d400d",
+   "result_id": "bpr:78c9cd8f-cdb8-407e-9703-f66cc305097c",
+   "error_code": null
+  },
+  {
+   "id": 3340,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 85,
+   "status": "text_present",
+   "text_hash": "44c27a2697d70d779ce4bd742bf715799ae45b70ff5ea63ed193ff4077c9352c",
+   "result_id": "bpr:8bf4f822-5d64-4e47-87b3-a35f5485352d",
+   "error_code": null
+  },
+  {
+   "id": 3341,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 86,
+   "status": "text_present",
+   "text_hash": "04355db016a15087fa233f43ca194637e6d81c6cf858cac212ad298f73eb6d11",
+   "result_id": "bpr:cba22065-c66b-4285-8504-257e7545ea12",
+   "error_code": null
+  },
+  {
+   "id": 3342,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 87,
+   "status": "text_present",
+   "text_hash": "0577b9a8fb59afc7709845b89b9335fbaea4702d599f57da2559cb156be40c87",
+   "result_id": "bpr:26a708f9-2186-4dee-adb9-830eacf8a7fd",
+   "error_code": null
+  },
+  {
+   "id": 3343,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 88,
+   "status": "text_present",
+   "text_hash": "b6adb10755c57e942651251a443ba1674d8c7400570c6ffba51edf8954cbf66d",
+   "result_id": "bpr:e2f49753-1952-4441-a719-d266211b9988",
+   "error_code": null
+  },
+  {
+   "id": 3344,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 89,
+   "status": "text_present",
+   "text_hash": "f45e9a1a3f18498083e19b4364e3e57a662115e03b2a0e0acb08733f680c79b7",
+   "result_id": "bpr:1a639e97-7390-4d3b-88fe-a713b772d9a3",
+   "error_code": null
+  },
+  {
+   "id": 3345,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 90,
+   "status": "text_present",
+   "text_hash": "b7792bf2fb015924f283f66fb3e7643d1c4b63743cf423f6ca88482b0fa86309",
+   "result_id": "bpr:14024f2d-145e-45e3-8466-adc3fc369269",
+   "error_code": null
+  },
+  {
+   "id": 3346,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 91,
+   "status": "text_present",
+   "text_hash": "358bd23a96e43f43e3768e917cfa78b0184460ef279b7d933fca54e502f3bda0",
+   "result_id": "bpr:74138239-a268-4a81-a73a-db04802bd91f",
+   "error_code": null
+  },
+  {
+   "id": 3347,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 92,
+   "status": "text_present",
+   "text_hash": "92b2962eb523a94a98a4ebbfc5f89bd7491d4cd15364df12cbd99dacde5096e2",
+   "result_id": "bpr:ef5acfe8-63a5-4145-81d4-6db20cf6ffba",
+   "error_code": null
+  },
+  {
+   "id": 3348,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 93,
+   "status": "text_present",
+   "text_hash": "e22c56f08524d6d39d6a22cf13ba1874d28cd6aca16f40daaecde44442b650fa",
+   "result_id": "bpr:77c1b00a-0232-471d-8736-783aaf693d57",
+   "error_code": null
+  },
+  {
+   "id": 3349,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 94,
+   "status": "text_present",
+   "text_hash": "0eb7748b897353de96a0e54c55e6261d1a938d4b095f774e265f2cc410e064fd",
+   "result_id": "bpr:d01090f9-311b-4a4d-b6f6-4d76da863526",
+   "error_code": null
+  },
+  {
+   "id": 3350,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 95,
+   "status": "text_present",
+   "text_hash": "ef77cb10572ae523421a6d64788c4758ce480bf2e333b8d6967e72616d5d3020",
+   "result_id": "bpr:6f9bbe06-8c15-43ae-ab04-a37ef86ac867",
+   "error_code": null
+  },
+  {
+   "id": 3351,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 96,
+   "status": "text_present",
+   "text_hash": "c78cd5076099ad5b37ee56fc7600d8f169fbfaffbfedae8e3b903a5a70c245b2",
+   "result_id": "bpr:d472b4a3-5541-48e5-a262-3e9e8b159b55",
+   "error_code": null
+  },
+  {
+   "id": 3352,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 97,
+   "status": "text_present",
+   "text_hash": "8ec9855d38e1635038179b39ad2b08b9dd610217f863740e928d72382a3b0099",
+   "result_id": "bpr:c801ee84-1656-430f-ad4a-c21f971e5e00",
+   "error_code": null
+  },
+  {
+   "id": 3353,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 98,
+   "status": "text_present",
+   "text_hash": "b58a4d3aaee8e69b613ce20b305d624a579275408093657f21460ef3d9dc248b",
+   "result_id": "bpr:5d9874c2-4acc-46c4-8109-489ad11e3dd0",
+   "error_code": null
+  },
+  {
+   "id": 3354,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 99,
+   "status": "text_present",
+   "text_hash": "d2017b2f3d4047e79ae15e653ab0e31aef7813d2929afe3164f83c294c0de90b",
+   "result_id": "bpr:b4e11072-829e-4e82-8887-7605c49e3377",
+   "error_code": null
+  },
+  {
+   "id": 3355,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 100,
+   "status": "text_present",
+   "text_hash": "93e0b273c1e7907a59c4235a2affd73ee92c6c7dc7ba6a30639a1a8f3da0dd2b",
+   "result_id": "bpr:080b5802-dc2c-4832-898b-494e5d6aa0a2",
+   "error_code": null
+  },
+  {
+   "id": 3356,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 101,
+   "status": "text_present",
+   "text_hash": "8808e26fe1966735434f803eea7a4b84307a12733833275bf6d82ea09cd8abd2",
+   "result_id": "bpr:d9fbf4bc-7f97-4868-914c-d4dc31441fa1",
+   "error_code": null
+  },
+  {
+   "id": 3357,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 102,
+   "status": "text_present",
+   "text_hash": "7407174bc013643e42053f91a7eb777feb4f040365fbcc84a705d754bb53c3bc",
+   "result_id": "bpr:41704a36-25a9-4e70-b80b-67745cf041dd",
+   "error_code": null
+  },
+  {
+   "id": 3358,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 103,
+   "status": "text_present",
+   "text_hash": "d3e9db6fdae257f5b18daed0fe633ece79190434199594a182af11dbd0db89e0",
+   "result_id": "bpr:bcb3daeb-542d-43bc-9b29-d73e49d3efaa",
+   "error_code": null
+  },
+  {
+   "id": 3359,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 104,
+   "status": "text_present",
+   "text_hash": "01d7cbac19b22142eedd4a2d5058718360685d896496471ee021f1a18a95050f",
+   "result_id": "bpr:20fc10b7-7df2-4248-ba4b-2460c3c9115d",
+   "error_code": null
+  },
+  {
+   "id": 3360,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 105,
+   "status": "text_present",
+   "text_hash": "ccf41ace0d7b269ae682c98c5ebb35f2737f42a0e5f2b9198dbc21a72b471e49",
+   "result_id": "bpr:2d3f3231-93b4-4faa-8b3c-6dc9ccb47605",
+   "error_code": null
+  },
+  {
+   "id": 3361,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 106,
+   "status": "text_present",
+   "text_hash": "39d1088b793b2783e238175cef940b16202fb974fe43b1262bafd7719287a4e0",
+   "result_id": "bpr:322868b2-0740-4f03-ac9d-a5604780e28d",
+   "error_code": null
+  },
+  {
+   "id": 3362,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 107,
+   "status": "text_present",
+   "text_hash": "0566e0a23638be93e8ddb20ed6a0d18d341facde8d0d3876edccaf99fa6d5650",
+   "result_id": "bpr:51cd04c3-79c5-4321-8af7-3fcdbdf84fe1",
+   "error_code": null
+  },
+  {
+   "id": 3363,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 108,
+   "status": "text_present",
+   "text_hash": "dacf6d06455954af4c97aa5122f046dc8c7266616b80dd7269fa08a95510137e",
+   "result_id": "bpr:0254e48f-f8f1-41f4-ada8-66bab2488663",
+   "error_code": null
+  },
+  {
+   "id": 3364,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 109,
+   "status": "text_present",
+   "text_hash": "50756af2fe212e4fa2a87804fc57b3ec706dd2aa26620039c190e8e565949182",
+   "result_id": "bpr:7b576e95-c9e2-471e-889e-722137da6acf",
+   "error_code": null
+  },
+  {
+   "id": 3365,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 110,
+   "status": "text_present",
+   "text_hash": "5a49e4fdc8dde4fb16ae75389760c54637af94071beea88ebe33111eacb4f6b6",
+   "result_id": "bpr:8b4462b4-c301-4c82-b6ad-01eb85a6888b",
+   "error_code": null
+  },
+  {
+   "id": 3366,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 111,
+   "status": "text_present",
+   "text_hash": "a4bb945ae8dff7808452512aad799b3c4c51d2b4ec4efe50af72eb19cbbcd052",
+   "result_id": "bpr:6e879581-35e4-4624-85cb-654e16fb28e0",
+   "error_code": null
+  },
+  {
+   "id": 3367,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 112,
+   "status": "text_present",
+   "text_hash": "1c652e346c73ab6a3ead877fce11029c9d2a190aaf3b0a49ceda185dfc91471b",
+   "result_id": "bpr:264a966a-6a8a-4e30-9190-e8edb2e919df",
+   "error_code": null
+  },
+  {
+   "id": 3368,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 113,
+   "status": "text_present",
+   "text_hash": "17084e192252788b055f0af6e73227929a13fc7b03ae6e49d569da9af11056a3",
+   "result_id": "bpr:2549e0e5-0e2e-45f7-a7bf-97a0eae22937",
+   "error_code": null
+  },
+  {
+   "id": 3369,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 114,
+   "status": "text_present",
+   "text_hash": "3c42ab4afb934e8dd2bfa0e7de065f915edb92bb70f1e02080e3d37efc4c2459",
+   "result_id": "bpr:27b96a55-13de-49fe-b416-693b22007e52",
+   "error_code": null
+  },
+  {
+   "id": 3370,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 115,
+   "status": "text_present",
+   "text_hash": "de61f7e9e02225ec41c19a8f360612cc0025aca26b3282dc08204d8187c8c687",
+   "result_id": "bpr:f82e792e-c744-42fe-b7f8-53f3358948d6",
+   "error_code": null
+  },
+  {
+   "id": 3371,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 116,
+   "status": "text_present",
+   "text_hash": "9255ffb0fa50307ebdcb3016927581996ffcca407d1e5abf270665040cf7dbc3",
+   "result_id": "bpr:e03b85a8-8db1-4faf-9476-18660591bff4",
+   "error_code": null
+  },
+  {
+   "id": 3372,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 117,
+   "status": "text_present",
+   "text_hash": "c7bbbee31b3c792e8b2e5f5ef4b66bd15a7cec944cd368009851f968a6573854",
+   "result_id": "bpr:ed32c5c5-0d32-4bb6-86fe-b603f106cf33",
+   "error_code": null
+  },
+  {
+   "id": 3373,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 118,
+   "status": "text_present",
+   "text_hash": "0be84f256b8de17432a0aa0e06e31539e66d0117fb23a483441104024c51f679",
+   "result_id": "bpr:d0910f34-d099-4192-a9f9-e777471e1b7c",
+   "error_code": null
+  },
+  {
+   "id": 3374,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 119,
+   "status": "text_present",
+   "text_hash": "a69a38179cd88e1d4ea47f345f2b488de8061dd4ddbbbce751b780d97f70354f",
+   "result_id": "bpr:535ba16b-bdfc-438a-b97d-1bdef6cc9816",
+   "error_code": null
+  },
+  {
+   "id": 3375,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 120,
+   "status": "text_present",
+   "text_hash": "167d2dad0628cfbefe4d498af7f6e1c3a72621fca4c31d09fe425dd93bf54480",
+   "result_id": "bpr:85c4515b-61d7-48f8-852a-f6b3d84307f7",
+   "error_code": null
+  },
+  {
+   "id": 3376,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 121,
+   "status": "text_present",
+   "text_hash": "6ca70892743c497161d62a19883c8a461c4e709241f6e8b426a59298a7e08259",
+   "result_id": "bpr:d0127086-4cfc-48a0-8346-ce114c971f1c",
+   "error_code": null
+  },
+  {
+   "id": 3377,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 122,
+   "status": "text_present",
+   "text_hash": "df94620ab1c8a933bbe208eb8e677f7bc75ab05c92a8b86dff833602e96d5864",
+   "result_id": "bpr:b9292303-ff45-47ce-be68-afda86b7184f",
+   "error_code": null
+  },
+  {
+   "id": 3378,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 123,
+   "status": "text_present",
+   "text_hash": "3456f476897902f2ccf35d2d2f6c6b46e847b52460fc0eed9346ce2af3dd3b40",
+   "result_id": "bpr:445f1e39-c807-453f-8fea-e0800508d921",
+   "error_code": null
+  },
+  {
+   "id": 3379,
+   "document_id": "bfc:f2e539ce5384d713f336bd2f5ce893c8eaeb898e14b5cdbf59164597e3d29c36",
+   "version": "v:7ca85479d9e7410eb77649b8dba1912d",
+   "page": 124,
+   "status": "no_text",
+   "text_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "result_id": "bpr:3487c2d0-548a-4c8e-afc3-5449288547a8",
+   "error_code": null
+  },
+  {
+   "id": 51577,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 1,
+   "status": "text_present",
+   "text_hash": "710c56d9dcdba612a73b66c724e43e90d6119b7021cd3ae32a612d0472440d20",
+   "result_id": "bpr:cdfc3c46-bf51-4b7e-968b-e989a99b9b21",
+   "error_code": null
+  },
+  {
+   "id": 51578,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 2,
+   "status": "text_present",
+   "text_hash": "16d0892e7ac34564a8c2c766d116b8641a2a948a491cf4ef2129267f135b57d9",
+   "result_id": "bpr:2f9dcec6-4ffd-4055-9f33-283dd90c2ce5",
+   "error_code": null
+  },
+  {
+   "id": 51579,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 3,
+   "status": "text_present",
+   "text_hash": "af8e0bf3d1ec12c863d86f7871fe584493d10d02b1cf8109a9af48f6e425184a",
+   "result_id": "bpr:e3fb4ab8-6956-44d7-8561-0027f0da80af",
+   "error_code": null
+  },
+  {
+   "id": 51580,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 4,
+   "status": "text_present",
+   "text_hash": "4d141629286678597299dc737236f5af445880394247f3141fe29e90f260d19e",
+   "result_id": "bpr:922d8e41-3c7d-485f-9275-d2bac9591f8b",
+   "error_code": null
+  },
+  {
+   "id": 51581,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 5,
+   "status": "text_present",
+   "text_hash": "052e80a7608153ccc14100ec58ae709abff6be67de4e4d766c0351beb7ce9982",
+   "result_id": "bpr:d3569583-7101-4835-beae-a0a8acc3c5b5",
+   "error_code": null
+  },
+  {
+   "id": 51582,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 6,
+   "status": "text_present",
+   "text_hash": "3503bf8e59fb38809a805841478f488e6268a23de28376633fd613fc396c2fe7",
+   "result_id": "bpr:86fdd108-8e84-4daf-9fb4-e11e23e23dc8",
+   "error_code": null
+  },
+  {
+   "id": 51583,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 7,
+   "status": "text_present",
+   "text_hash": "49514799b05ccb9be6ff3ea72dcdf15e18ee29c9586d80ca52c2747fd5b83fc0",
+   "result_id": "bpr:d9f66022-a9e9-4830-806f-0ad786053fae",
+   "error_code": null
+  },
+  {
+   "id": 51584,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 8,
+   "status": "text_present",
+   "text_hash": "5b3f2ab211efa76ce7969bd526d078ceda5545233a8f7c5927551de4b86dfb0b",
+   "result_id": "bpr:0d246612-cd77-4243-9ca3-e721b8417d3f",
+   "error_code": null
+  },
+  {
+   "id": 51585,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 9,
+   "status": "text_present",
+   "text_hash": "ff5aac392b017d7d5529d06d9ae1e712dd40bae39438cded9b7433f6c818a254",
+   "result_id": "bpr:bbd245f4-f2dc-4a76-aa5e-a7f176148357",
+   "error_code": null
+  },
+  {
+   "id": 51586,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 10,
+   "status": "text_present",
+   "text_hash": "69129bce60dda276f0c41b45d58aeb45d637a0e852de2e8f5b1d43c5e98146e8",
+   "result_id": "bpr:5237970a-22e1-431f-8fab-79a4d9afd5c3",
+   "error_code": null
+  },
+  {
+   "id": 51587,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 11,
+   "status": "text_present",
+   "text_hash": "cd4fa99fd761e3f70e625aa5adccb1f78f0251f68077b6034900f4996a3a6df5",
+   "result_id": "bpr:d716596f-fdd5-4e47-a791-fa77d529c659",
+   "error_code": null
+  },
+  {
+   "id": 51588,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 12,
+   "status": "text_present",
+   "text_hash": "5c6d1be6f7ec42a4160f53ed2f8255581a435a1f458398400ef28a76566771a5",
+   "result_id": "bpr:750ae8c4-50ec-43c4-ac24-508a1685334c",
+   "error_code": null
+  },
+  {
+   "id": 51589,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 13,
+   "status": "text_present",
+   "text_hash": "c79ecf3fcc7ab713b4cd3977ea6110c698efaaa76f9fe0148bf04e3ebdb77a4c",
+   "result_id": "bpr:ad4b20e7-91d1-46dc-bc2e-ab354ed8067f",
+   "error_code": null
+  },
+  {
+   "id": 51590,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 14,
+   "status": "text_present",
+   "text_hash": "14b4f7ab279f0f48b19c39c4874ed3e202013d9529b13a4a9187bd201c5d538d",
+   "result_id": "bpr:00590f16-cdce-4a92-8af2-5a743f093dde",
+   "error_code": null
+  },
+  {
+   "id": 51591,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 15,
+   "status": "text_present",
+   "text_hash": "cf6f4f762c6d0452d7dafc2fb9c794b02eda3f5ed40973635f5c17a4cc2f2d60",
+   "result_id": "bpr:9cf2de0b-5d1b-41ae-bd71-6dc377ae00fb",
+   "error_code": null
+  },
+  {
+   "id": 51592,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 16,
+   "status": "text_present",
+   "text_hash": "b51d57014916591baad661ca41efe88fcfc553b2c26e39af719cf323ec0a2b9c",
+   "result_id": "bpr:4ee9891a-c3b3-4fb4-aae8-f7d4990c57e7",
+   "error_code": null
+  },
+  {
+   "id": 51593,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 17,
+   "status": "text_present",
+   "text_hash": "07da7928a00a905bc4f0215a71a815ff76b3b720a9600cb938fe2b27542c5d83",
+   "result_id": "bpr:692abf21-9a82-47ce-9af7-385898b04921",
+   "error_code": null
+  },
+  {
+   "id": 51594,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 18,
+   "status": "text_present",
+   "text_hash": "214470bbb1b8e3620be4061a7c4e40474045446fcebc0ce35506f141d5973b76",
+   "result_id": "bpr:d54805b5-c8b0-4dba-9d76-c111d74dc3cc",
+   "error_code": null
+  },
+  {
+   "id": 51595,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 19,
+   "status": "text_present",
+   "text_hash": "02012d5478f75b36481368f63ff05e9ae87d3d449e9a40d0ae28cc814d571a41",
+   "result_id": "bpr:6d523239-923e-444f-b426-3ab121398aa2",
+   "error_code": null
+  },
+  {
+   "id": 51596,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 20,
+   "status": "text_present",
+   "text_hash": "b6f30928e177d0330a623cc99fd650bdc88f89bbd04d1d516e4552708e6a6cab",
+   "result_id": "bpr:fe70af3f-9250-4cdb-9e4b-17baef2ee17a",
+   "error_code": null
+  },
+  {
+   "id": 51597,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 21,
+   "status": "text_present",
+   "text_hash": "f55ef8e25615943795e5052a6307f639fac693b96cd73a81d9c77e2353a58290",
+   "result_id": "bpr:5936fa17-281f-40e5-b9ae-6a51c0c55a71",
+   "error_code": null
+  },
+  {
+   "id": 51598,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 22,
+   "status": "text_present",
+   "text_hash": "e8dda92642d7e5797faef26ca9de0011a3261170a8e605cb503a57fd224ea8f9",
+   "result_id": "bpr:b0f90c77-62df-4210-bbe3-b35ede9ec219",
+   "error_code": null
+  },
+  {
+   "id": 51599,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 23,
+   "status": "text_present",
+   "text_hash": "b418ccccbfbf975f352573a0b6c114c15b765397b4f7c37d98d03ac9ff0cdc3c",
+   "result_id": "bpr:e72dd4ad-25e0-45d7-a5cd-813accace49f",
+   "error_code": null
+  },
+  {
+   "id": 51600,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 24,
+   "status": "text_present",
+   "text_hash": "3f0d5bbf838efa82f8997061128458984cc93d7b276ec1518b9ada64d70dfaa3",
+   "result_id": "bpr:1c5df8da-fa54-47ae-8d00-4174cdeafad7",
+   "error_code": null
+  },
+  {
+   "id": 51601,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 25,
+   "status": "text_present",
+   "text_hash": "f1b26c017ecf9abe7fb6a92a4ef9c873febb3db0f7de0d4359e72e326dc904ae",
+   "result_id": "bpr:2756c6a3-a6cd-46ff-8eeb-075586fd4213",
+   "error_code": null
+  },
+  {
+   "id": 51602,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 26,
+   "status": "text_present",
+   "text_hash": "2a0caeb2ccb598cb48760b943bb79aab9bf7e1580c71ca3bcfe3cf3844e54200",
+   "result_id": "bpr:1a779577-1bac-44f0-9682-fc4d69ccc018",
+   "error_code": null
+  },
+  {
+   "id": 51603,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 27,
+   "status": "text_present",
+   "text_hash": "d8bf50634bb0f1a5e8fd67156dfdadd229e63751c68d8c9dcd47795856a0b13e",
+   "result_id": "bpr:4079ee9a-071e-4947-8d33-0cf835b08fd4",
+   "error_code": null
+  },
+  {
+   "id": 51604,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 28,
+   "status": "text_present",
+   "text_hash": "b23578bc100b0816292b09fccb5500b46c66b98a1ccffa9ac35b12e6a5f4d5f6",
+   "result_id": "bpr:91612e0a-5f65-41ef-b7aa-f6dfb86ca12a",
+   "error_code": null
+  },
+  {
+   "id": 51605,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 29,
+   "status": "text_present",
+   "text_hash": "97f090794cdb869d1dc0e2b8122287211d67a41389a96d48bd0df66ff30e92bf",
+   "result_id": "bpr:38b052e6-5cc4-4437-a1b7-9aa87814e099",
+   "error_code": null
+  },
+  {
+   "id": 51606,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 30,
+   "status": "text_present",
+   "text_hash": "74f9bfa852297d6290e6ce2bdf7bc89367cff16ff75a361efcf68c87dddca8b1",
+   "result_id": "bpr:27b1e237-45b7-4e23-b3c6-7fd00979b5a0",
+   "error_code": null
+  },
+  {
+   "id": 51607,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 31,
+   "status": "text_present",
+   "text_hash": "7a01c2b83800131d696341c7f64b0cbcb1d4e39d8299973a6c3275efd6bd3866",
+   "result_id": "bpr:f9d28725-6637-4d51-be5f-93a76aade792",
+   "error_code": null
+  },
+  {
+   "id": 51608,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 32,
+   "status": "text_present",
+   "text_hash": "d4c0cfc6b73793f64a6a9f6682c52c1cfc5aa1910f472db9cbda69e7ac88fd02",
+   "result_id": "bpr:e7fda5c2-d62a-422b-becd-2c93e2933d26",
+   "error_code": null
+  },
+  {
+   "id": 51609,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 33,
+   "status": "text_present",
+   "text_hash": "8567e3d44cf9b2350269b9bf1dac75228642483c2e7a345b9c6e88b0dd0305c5",
+   "result_id": "bpr:16ae025c-fe0b-4d58-9f76-2b761fe66575",
+   "error_code": null
+  },
+  {
+   "id": 51610,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 34,
+   "status": "text_present",
+   "text_hash": "f57a0f3b9fa6326920532d9b797f1666944fb20489af1bab43282c77014ebc64",
+   "result_id": "bpr:401df079-74d2-462e-a29c-a96603b1e06c",
+   "error_code": null
+  },
+  {
+   "id": 51611,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 35,
+   "status": "text_present",
+   "text_hash": "17560ab7579ff89e58b699a609d83bf421af0a01077ffff51b1d41ba0b1c892d",
+   "result_id": "bpr:5cae71b6-a8df-4092-97f1-3cef2cf2fabd",
+   "error_code": null
+  },
+  {
+   "id": 51612,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 36,
+   "status": "text_present",
+   "text_hash": "237349d484d673462ad0887adfe541819ad938df75bba3f058b9a979f97eaf5d",
+   "result_id": "bpr:ac418bce-68bb-4271-8767-14112f43e7d5",
+   "error_code": null
+  },
+  {
+   "id": 51613,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 37,
+   "status": "text_present",
+   "text_hash": "44e13aa61d9b2ba8943d05cba95b370d494a2e428980fe2f37a7c8b8c3c78432",
+   "result_id": "bpr:10619eb5-55a6-4fc9-bc46-6e890ac06a04",
+   "error_code": null
+  },
+  {
+   "id": 51614,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 38,
+   "status": "text_present",
+   "text_hash": "76b6646ca1e730ed43a6cb83d7f765c4245ad5e2c818a38d2cc3cc9746773e26",
+   "result_id": "bpr:42e94943-3099-4dff-826d-6693a4f29017",
+   "error_code": null
+  },
+  {
+   "id": 51615,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 39,
+   "status": "text_present",
+   "text_hash": "bc212739699383cd71309e8c49fcb5c147a30bf3db42538bb913ab3dfdeff0f9",
+   "result_id": "bpr:53ed3ccf-bb1b-4805-91ee-39aeeaed8986",
+   "error_code": null
+  },
+  {
+   "id": 51616,
+   "document_id": "bfc:48c02dbaf1ad94380b96849f8820e17fb2565ad168a35cf4241cbb94605324db",
+   "version": "v:68ec4204e1274eb5a644d3f9356a0b05",
+   "page": 40,
+   "status": "no_text",
+   "text_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "result_id": "bpr:e993a73f-2b79-4abd-976d-d0af6ac90024",
+   "error_code": null
+  },
+  {
+   "id": 52093,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 1,
+   "status": "text_present",
+   "text_hash": "c93c1980972f7ea547af67b6ce5120c9d4257c00e449b4de1704040f9fdd8a14",
+   "result_id": "bpr:bbe7e568-e75e-40f2-a265-65591c64a93a",
+   "error_code": null
+  },
+  {
+   "id": 52094,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 2,
+   "status": "text_present",
+   "text_hash": "9c651dd897e5085db55d59c6a5b9c0bf4e8fb70388a80fd8e9ec9848eddc36ae",
+   "result_id": "bpr:d588bcdb-f80e-40b0-bc09-bedf411900ac",
+   "error_code": null
+  },
+  {
+   "id": 52095,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 3,
+   "status": "text_present",
+   "text_hash": "d1fee8fea08b39fe30393866fa7aa7f3067d75986f7a2264060a0e8650acae27",
+   "result_id": "bpr:d5789907-b372-4b6b-813c-d5be78e35289",
+   "error_code": null
+  },
+  {
+   "id": 52096,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 4,
+   "status": "text_present",
+   "text_hash": "cbacd327c65c28f259ed15df4de5ee2e9867a8b58cf7bd49a6ce3d03c9c539ea",
+   "result_id": "bpr:af927a46-e47b-4d29-b29e-e1c27915d206",
+   "error_code": null
+  },
+  {
+   "id": 52097,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 5,
+   "status": "text_present",
+   "text_hash": "510518df0ebb9af31a20da64fa82578a5cf00dbc4e73f404bfd912758fbc5541",
+   "result_id": "bpr:449b08f3-91f3-45e2-933d-895e2944ca04",
+   "error_code": null
+  },
+  {
+   "id": 52098,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 6,
+   "status": "text_present",
+   "text_hash": "3cd4ce0d90689d5f6434cdebe4cc1af6aa40c50a0bb8200c21aabd5d72deac85",
+   "result_id": "bpr:5508eae7-d681-45b6-8607-7a304997d9e9",
+   "error_code": null
+  },
+  {
+   "id": 52099,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 7,
+   "status": "text_present",
+   "text_hash": "5eaea6e52a20b8a6db954a12a1c155f3f2a36457fa145e7c6414a33e58f0a0c2",
+   "result_id": "bpr:c3c8656f-2914-437b-80b1-366eca0cd239",
+   "error_code": null
+  },
+  {
+   "id": 52100,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 8,
+   "status": "text_present",
+   "text_hash": "7c1b187b0c152076586f44fdaa8da72550c5578a12baebff43979c32650dbe0b",
+   "result_id": "bpr:f1e062ba-d558-4202-ae13-63c167dea8b9",
+   "error_code": null
+  },
+  {
+   "id": 52101,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 9,
+   "status": "text_present",
+   "text_hash": "478c8c19624fabce85903138411eb21a394a6a0a6a90482cfb7c33ad33c7b0d8",
+   "result_id": "bpr:c66b243d-1768-46a3-85be-509aaf57d819",
+   "error_code": null
+  },
+  {
+   "id": 52102,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 10,
+   "status": "text_present",
+   "text_hash": "e51667e7ad7ab1315571793158ec72feced379e70f96aa86588d274026cdebf0",
+   "result_id": "bpr:3e2f40fd-0bba-4fb1-abc4-afbdc7247704",
+   "error_code": null
+  },
+  {
+   "id": 52103,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 11,
+   "status": "text_present",
+   "text_hash": "bc872cdca834b21824dfad5688343028b2a687d8b681403457fa0f3c46dfb1f5",
+   "result_id": "bpr:04abb916-7157-4840-9daa-bad7a87e1abd",
+   "error_code": null
+  },
+  {
+   "id": 52104,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 12,
+   "status": "text_present",
+   "text_hash": "1ce8be190185774ffc0bf462836adbf3d65a8dbfe55af54070271a0b8c4e3246",
+   "result_id": "bpr:6e573342-6aaa-4746-a3b7-042c270673be",
+   "error_code": null
+  },
+  {
+   "id": 52105,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 13,
+   "status": "text_present",
+   "text_hash": "7b7201589f1784d7a0e33f3b4ac46be2d3e73a20d4d680b7048e9ae4cab94036",
+   "result_id": "bpr:15f68cd6-b221-4def-9a4d-0c6fa94fdfa7",
+   "error_code": null
+  },
+  {
+   "id": 52106,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 14,
+   "status": "text_present",
+   "text_hash": "8bc2068c9b9c87d5515d00a7b226bea1a51a22ecbb01cf20b9e77c9154de5874",
+   "result_id": "bpr:f08d1e51-655d-498a-8e7c-585e55932a89",
+   "error_code": null
+  },
+  {
+   "id": 52107,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 15,
+   "status": "text_present",
+   "text_hash": "4b8028d0e75c6b1008eedc5fc807d336fa9df4087dc4ac4c00a03ae200baacee",
+   "result_id": "bpr:42b22488-6892-4673-86c1-49f093fa3c96",
+   "error_code": null
+  },
+  {
+   "id": 52108,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 16,
+   "status": "text_present",
+   "text_hash": "7d384b6db49115f2a217c2a8660a800692b2b48399e942f650013dfa01257e89",
+   "result_id": "bpr:50345303-16f5-464b-950c-373c7f097d7d",
+   "error_code": null
+  },
+  {
+   "id": 52109,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 17,
+   "status": "text_present",
+   "text_hash": "434eb072d7d7c6225f983c4e52ab4848001a88a8852d7f4bf6eda2302f53863e",
+   "result_id": "bpr:725a446f-c2e9-4101-b6f7-20e9287f1a77",
+   "error_code": null
+  },
+  {
+   "id": 52110,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 18,
+   "status": "text_present",
+   "text_hash": "3f8ec87d27ff7f6115a0027af8c41797b4950a73438bf0429da02faaf276b5ae",
+   "result_id": "bpr:7be1b0f1-a42c-4493-b9c4-2260c9eb4b3a",
+   "error_code": null
+  },
+  {
+   "id": 52111,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 19,
+   "status": "text_present",
+   "text_hash": "7b60bdd74c333835d14ba3ec9cd1bc2f4d54f556b3e7c1ddc9ff2b55062c0d7d",
+   "result_id": "bpr:d41e45cf-0d87-4e34-8c8b-48eddfa9dfe6",
+   "error_code": null
+  },
+  {
+   "id": 52112,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 20,
+   "status": "text_present",
+   "text_hash": "c1e0c2c4ee3db3609226e3912d40cdd3cca6cfde3441774ab700c2691b2a06b9",
+   "result_id": "bpr:61a7ee5c-daff-4323-8bb1-c641f75e52af",
+   "error_code": null
+  },
+  {
+   "id": 52113,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 21,
+   "status": "text_present",
+   "text_hash": "ea36d1ec32ec65598f924bdc1a77a0d95d07a11b38204af3c8dcae6b3ce83b96",
+   "result_id": "bpr:436e4fe5-b4e9-48ed-89ae-b8b62a6ead38",
+   "error_code": null
+  },
+  {
+   "id": 52114,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 22,
+   "status": "text_present",
+   "text_hash": "16de59b97cea774f5b103db1417a75807479f4d39184a6057952972f65f853b6",
+   "result_id": "bpr:fc8110b1-3a99-4ad1-b42d-f8b43609da25",
+   "error_code": null
+  },
+  {
+   "id": 52115,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 23,
+   "status": "text_present",
+   "text_hash": "09627ef50dbebd1de5fc3d1721223e366dbe45fa828183cee191aac12f9fca8d",
+   "result_id": "bpr:6c29cb2f-8dbb-45bc-91ff-4c7d90bf4160",
+   "error_code": null
+  },
+  {
+   "id": 52116,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 24,
+   "status": "text_present",
+   "text_hash": "9be273e5791a025233de8e4cfa04c8260e9c18629fb251e9914520d6c1eb35b9",
+   "result_id": "bpr:85b4a76d-1128-421b-8b9e-6166e4195e73",
+   "error_code": null
+  },
+  {
+   "id": 52117,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 25,
+   "status": "text_present",
+   "text_hash": "849d4f094be33b85aa1bbc74f68f440641bc53f9970ee32071e07414fbda58c8",
+   "result_id": "bpr:873eaeca-09c9-4934-a8b2-3a4c12f69f76",
+   "error_code": null
+  },
+  {
+   "id": 52118,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 26,
+   "status": "text_present",
+   "text_hash": "08b2b0a6a4d98f0bc285403660f79b61934af33afe913a331034e8f5adc9c40a",
+   "result_id": "bpr:d6b8afb6-a648-4c71-adee-ab788c2d6f8e",
+   "error_code": null
+  },
+  {
+   "id": 52119,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 27,
+   "status": "text_present",
+   "text_hash": "410afc022ea86bd0e0c4c0b8f0b2591e1649c44ed0d57f5338796ee9d076a1fc",
+   "result_id": "bpr:6d5b3696-bf49-483f-bcda-483a83ae8abc",
+   "error_code": null
+  },
+  {
+   "id": 52120,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 28,
+   "status": "text_present",
+   "text_hash": "e4c77a617721b99b8854ee585ee0f227504927b8820ef19e27910886333fbc4c",
+   "result_id": "bpr:656cac22-4795-44b8-9146-4b7291a28e1d",
+   "error_code": null
+  },
+  {
+   "id": 52121,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 29,
+   "status": "text_present",
+   "text_hash": "6adfc59126872762dbbae212f30e48ef281533ed016c98573ffc4354cc8de3fe",
+   "result_id": "bpr:60ff3ab5-a3b0-4f81-a69a-c4117c79e088",
+   "error_code": null
+  },
+  {
+   "id": 52122,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 30,
+   "status": "text_present",
+   "text_hash": "ee65ac4b896d4f36d90ec6069be3a799571afc5e83db9e0fedce7d1df2b2a624",
+   "result_id": "bpr:f7849710-77c1-4bc1-bea9-f4a3605a1815",
+   "error_code": null
+  },
+  {
+   "id": 52123,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 31,
+   "status": "text_present",
+   "text_hash": "13ddb9d19cee0f4d6ab050e6f91c11774da26f7da456d6a712f144540c487b78",
+   "result_id": "bpr:ea152fef-83ff-4948-9c92-9a6389415bfd",
+   "error_code": null
+  },
+  {
+   "id": 52124,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 32,
+   "status": "text_present",
+   "text_hash": "a386eb90aabb1acaea6ecbc6454073f4a38dd76e2cf3ae05316c213c6d7df6ac",
+   "result_id": "bpr:5e07e434-76e0-4dab-bf69-1d09eed97b42",
+   "error_code": null
+  },
+  {
+   "id": 52125,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 33,
+   "status": "text_present",
+   "text_hash": "67b3133ad05e19e49e29838e2afaa61007a3bf4900afd5c21ce0395978db3557",
+   "result_id": "bpr:b5533279-65fb-49ba-8686-67543c161eaf",
+   "error_code": null
+  },
+  {
+   "id": 52126,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 34,
+   "status": "text_present",
+   "text_hash": "12dca32cabc47d030ba816dce306ffc078de82cac3b6110a63743c908d7032b5",
+   "result_id": "bpr:ced1bfeb-5697-488c-bdb4-21cf7973889a",
+   "error_code": null
+  },
+  {
+   "id": 52127,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 35,
+   "status": "text_present",
+   "text_hash": "2a101a718800660be766021c7a6f3dcc53ec6592f34dd63259749b695b0bf899",
+   "result_id": "bpr:b3653eb7-72e1-4b2e-a90a-a20dc65b2929",
+   "error_code": null
+  },
+  {
+   "id": 52128,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 36,
+   "status": "text_present",
+   "text_hash": "0be62545c0330b0c2891af4290f7937d7a267ed0a6f5934eca3456ffbd941833",
+   "result_id": "bpr:b1b9d077-b200-4715-9880-154c6115c798",
+   "error_code": null
+  },
+  {
+   "id": 52129,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 37,
+   "status": "text_present",
+   "text_hash": "24672711b9f5a58695ad6d200640dd5d4b2072e1424447e12f918b57549e91f6",
+   "result_id": "bpr:1fe8a5fc-b8af-437d-8392-fc88310ccd3b",
+   "error_code": null
+  },
+  {
+   "id": 52130,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 38,
+   "status": "text_present",
+   "text_hash": "5513d5aa4b19c58b8eb347693879b8322132b0e8afdc11a1cac8804599f4d2cd",
+   "result_id": "bpr:5f0a39b2-595f-42fe-88e7-8f570d2fe7ce",
+   "error_code": null
+  },
+  {
+   "id": 52131,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 39,
+   "status": "text_present",
+   "text_hash": "bc8c86bb56f2563be3a2cbc658136a531451936fd1e12b598b219e1513b25cfa",
+   "result_id": "bpr:0a8d4429-fd0e-4d37-9de3-5741d55e810e",
+   "error_code": null
+  },
+  {
+   "id": 52132,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 40,
+   "status": "text_present",
+   "text_hash": "f08be671027c1e3aa0134881c0fccd37b3cc1f29f2ca0244c2c1982997ade0cb",
+   "result_id": "bpr:152ca31e-67a4-4d88-ad1f-291b2f6695a7",
+   "error_code": null
+  },
+  {
+   "id": 52133,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 41,
+   "status": "text_present",
+   "text_hash": "a15a242d126f4322a08c845ce0679ae621024c39bd221f4304109e7784cb8f4c",
+   "result_id": "bpr:aff8f4f5-372c-4af2-a130-ad330e32a8a2",
+   "error_code": null
+  },
+  {
+   "id": 52134,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 42,
+   "status": "text_present",
+   "text_hash": "2ec234f1d8296bff5f270abefda58bf9918a047c6d25193c576aab9d635acfbd",
+   "result_id": "bpr:2c4a2eb2-e60e-45c9-9c3a-0220e0aef0b7",
+   "error_code": null
+  },
+  {
+   "id": 52135,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 43,
+   "status": "text_present",
+   "text_hash": "2e142b81a471e3a65cc7a3fab500e38c654181a57f1da019df773e5d611c9a84",
+   "result_id": "bpr:2a68d105-88e3-4f08-b8d3-e19999b0f6e7",
+   "error_code": null
+  },
+  {
+   "id": 52136,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 44,
+   "status": "text_present",
+   "text_hash": "13ee31c5556e9729c1f54a22a056ba5f1d27996a49d12d032b2afd0c63dd6723",
+   "result_id": "bpr:8e15febb-5705-4a6c-86c1-e37b5311049d",
+   "error_code": null
+  },
+  {
+   "id": 52137,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 45,
+   "status": "text_present",
+   "text_hash": "46229e912764e2e2579bb5d639b0fee1b7b84047d2e79200308763fa446c56ae",
+   "result_id": "bpr:a8571240-9aec-468f-8fb6-6aeff6b1bc91",
+   "error_code": null
+  },
+  {
+   "id": 52138,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 46,
+   "status": "text_present",
+   "text_hash": "8e85f6dacf40b4f12edfaca54b6b369f19ff56fedede801fcd4dbc839fc5cb0e",
+   "result_id": "bpr:3ef58213-7ca6-44c4-ae22-2fbf0a72c7d0",
+   "error_code": null
+  },
+  {
+   "id": 52139,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 47,
+   "status": "text_present",
+   "text_hash": "9f41842f21d55eaa33c59cf58e1405f2d4e5f6c42e609e210052bd5b45fc441b",
+   "result_id": "bpr:a4950e05-ff81-43fa-a617-cda96b2d338a",
+   "error_code": null
+  },
+  {
+   "id": 52140,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 48,
+   "status": "text_present",
+   "text_hash": "ae20d38e45e843f3abb6b82c3831f2a0743fcf722e92a7f3e9d2b68277b4d104",
+   "result_id": "bpr:3cfd49e6-0b63-45aa-9991-f1fa4c6fcfc6",
+   "error_code": null
+  },
+  {
+   "id": 52141,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 49,
+   "status": "text_present",
+   "text_hash": "442e54e541da386a69f28d05230d5a34b7888ac44dbd28ed49a1d1b7d50edb60",
+   "result_id": "bpr:bc1b57b0-39fb-480c-b7ba-672dd6683e0a",
+   "error_code": null
+  },
+  {
+   "id": 52142,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 50,
+   "status": "text_present",
+   "text_hash": "a60e5e1d5f82a0c113117fda94ac76bd50277ee3219e9a04f4ad6c07cf23bfb7",
+   "result_id": "bpr:c6e4e68a-7090-490e-bf2a-10fdbfa7349f",
+   "error_code": null
+  },
+  {
+   "id": 52143,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 51,
+   "status": "text_present",
+   "text_hash": "3886360da9eaecd871dec868c02a50325506e1914e8b0f247928e62e6f3b2592",
+   "result_id": "bpr:427174b1-540f-4339-b985-d67b001f78d7",
+   "error_code": null
+  },
+  {
+   "id": 52144,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 52,
+   "status": "text_present",
+   "text_hash": "dcf42abf82d863ae74bd696e3274a39bf2e956e828ef9f952f10d4a7d8f256cf",
+   "result_id": "bpr:8cb6769b-1982-4560-813d-4e619cd40510",
+   "error_code": null
+  },
+  {
+   "id": 52145,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 53,
+   "status": "text_present",
+   "text_hash": "030c78b759b4dfc8c44f29637ed9c827967134d5873f845e4a589706c3c1a17a",
+   "result_id": "bpr:06b007f6-8b18-40cb-9410-d478844790ca",
+   "error_code": null
+  },
+  {
+   "id": 52146,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 54,
+   "status": "text_present",
+   "text_hash": "053acda4bf173322be162aa62b19af3befafefddad87b3cfc76a6e7782ecb395",
+   "result_id": "bpr:34d22f7c-5843-42f1-b9db-91b5800c27c6",
+   "error_code": null
+  },
+  {
+   "id": 52147,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 55,
+   "status": "text_present",
+   "text_hash": "e8556bbe2a5e4599bc1f0960ce9fb67efc52df53000e8b8b1963020d297f6ee3",
+   "result_id": "bpr:a8decbbf-8301-4da9-907a-351c503fde28",
+   "error_code": null
+  },
+  {
+   "id": 52148,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 56,
+   "status": "text_present",
+   "text_hash": "b81f31b880af9cb28f8dc08da26d05efd563c29b10760c68d90cad5d2a43900e",
+   "result_id": "bpr:47609a5f-f1ca-4f93-b0cc-e2859568d821",
+   "error_code": null
+  },
+  {
+   "id": 52149,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 57,
+   "status": "text_present",
+   "text_hash": "90d70192e31a14513e1d3edd795e67ee708a6762b85d17b60facbb7d29c6965c",
+   "result_id": "bpr:6154c995-3787-442b-9b10-11d338975e2c",
+   "error_code": null
+  },
+  {
+   "id": 52150,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 58,
+   "status": "text_present",
+   "text_hash": "5b47f65867e83a8f0205a6a0e35e4994692ad9f7da65b49fd52bea18a2734bc5",
+   "result_id": "bpr:e10132c7-eee8-4d4e-a564-6492fb9b281b",
+   "error_code": null
+  },
+  {
+   "id": 52151,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 59,
+   "status": "text_present",
+   "text_hash": "c5637d1a0240ad524db5775a93cc712462b288563b798d79fd4930cfd37311a1",
+   "result_id": "bpr:1297d0d6-67ba-4b86-a82b-0cfa1810b9ef",
+   "error_code": null
+  },
+  {
+   "id": 52152,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 60,
+   "status": "text_present",
+   "text_hash": "4b8b5b9ac6e4cf7c6c454f27f5c401dc679fb03fef2f375c983ca491c27c58d0",
+   "result_id": "bpr:10428ee5-a257-4ede-a19c-b2d8b615b30b",
+   "error_code": null
+  },
+  {
+   "id": 52153,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 61,
+   "status": "text_present",
+   "text_hash": "3794810846327fb524a2e23a08f2b76b47990c89cf86e27e7ddda4cf874a739d",
+   "result_id": "bpr:1a2e6270-e841-4788-85bd-3987cd42d931",
+   "error_code": null
+  },
+  {
+   "id": 52154,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 62,
+   "status": "text_present",
+   "text_hash": "8c8e6caf02ccc4af87182d944d6e3c4aab157148b19035ce0d89316b9bbec047",
+   "result_id": "bpr:8f96b638-ada2-43c9-bd88-8491952fe264",
+   "error_code": null
+  },
+  {
+   "id": 52155,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 63,
+   "status": "text_present",
+   "text_hash": "0c8179ea35a17096d5487d32429e2d58606f822febba61216fdb88c50c130493",
+   "result_id": "bpr:c22219b0-50d9-406e-8c2b-4763b1945220",
+   "error_code": null
+  },
+  {
+   "id": 52156,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 64,
+   "status": "text_present",
+   "text_hash": "8b62dea692d720d7cc0b23a223198f683ee112dea98962b1ba26c1cc7a3169f7",
+   "result_id": "bpr:6fd7f90a-565f-467f-856a-f6365c4f02bd",
+   "error_code": null
+  },
+  {
+   "id": 52157,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 65,
+   "status": "text_present",
+   "text_hash": "c8848d6ffae9483dcf703ba6ed0474cbfe74c4e932b7276f660687a973dd9f03",
+   "result_id": "bpr:0ceaffce-a1e2-4f22-83c5-1ef9ab11be27",
+   "error_code": null
+  },
+  {
+   "id": 52158,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 66,
+   "status": "text_present",
+   "text_hash": "bc2d1fc2eaf73e3e0ad3bf0c9ccfb9cf2b14903e3259c3e0536ef878d8f0e9da",
+   "result_id": "bpr:8e820665-efb8-4b35-b1d7-af53d88836ff",
+   "error_code": null
+  },
+  {
+   "id": 52159,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 67,
+   "status": "text_present",
+   "text_hash": "e7e6730397b2e94fa3e55ca6e4f73725a1a1210f3d9130838c1291926ade105c",
+   "result_id": "bpr:e72d64fa-9929-4813-9c31-1642d0df333b",
+   "error_code": null
+  },
+  {
+   "id": 52160,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 68,
+   "status": "text_present",
+   "text_hash": "f99d91429430e45c799b16282556c823c85895111f966ad3a1c9e98c5b50066c",
+   "result_id": "bpr:95ed7df9-7fe3-446c-99b6-2a3a088a5be5",
+   "error_code": null
+  },
+  {
+   "id": 52161,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 69,
+   "status": "text_present",
+   "text_hash": "c8310e9187bad12f48f90ec860b40dca5dc8206867305ba3e2ee42d1d189f59e",
+   "result_id": "bpr:4a64b260-c528-47de-a369-6bd341704418",
+   "error_code": null
+  },
+  {
+   "id": 52162,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 70,
+   "status": "text_present",
+   "text_hash": "3b305bce0198d02f752a2a1085083ea37fe0692416c43067625671bcd8b60521",
+   "result_id": "bpr:4241f492-3b2a-4491-adf4-ce208aaa0eb1",
+   "error_code": null
+  },
+  {
+   "id": 52163,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 71,
+   "status": "text_present",
+   "text_hash": "1dbf0e3fa00713f9fa5cccccb9874e97f756abda06f3b7899597c8ef73a35a94",
+   "result_id": "bpr:7e0a30b0-75f3-44db-a7a7-947103f3f1f6",
+   "error_code": null
+  },
+  {
+   "id": 52164,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 72,
+   "status": "text_present",
+   "text_hash": "70632b549871e3d2b136692792d2d42d16fc545d6e84d5bebed2d08171c67055",
+   "result_id": "bpr:a1ae6be0-97b0-4e6b-a184-f4a885a6e665",
+   "error_code": null
+  },
+  {
+   "id": 52165,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 73,
+   "status": "text_present",
+   "text_hash": "68d77b477efc930c2172c65e19d8f092a613f5fb5cc92c9ff922f5cac6d4d137",
+   "result_id": "bpr:f007ca4e-aeb7-4a9e-b763-0d774f50867f",
+   "error_code": null
+  },
+  {
+   "id": 52166,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 74,
+   "status": "text_present",
+   "text_hash": "80696198673655eb469090d0e835a7c96b0a94906c137a1f54b43c1462033b8b",
+   "result_id": "bpr:04e9d6f3-5c5d-4d7d-9838-ed05e6917f2e",
+   "error_code": null
+  },
+  {
+   "id": 52167,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 75,
+   "status": "text_present",
+   "text_hash": "8b1dab7cf563ab009bc41a89cbf39fd31a7c9665fc542595c5043aaed891e72c",
+   "result_id": "bpr:360d1024-c11a-412f-8b69-7ca7780a7d98",
+   "error_code": null
+  },
+  {
+   "id": 52168,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 76,
+   "status": "text_present",
+   "text_hash": "3e49f88983ba8b200d130c473b2a79a1d852a5c1b4b4ebfe5473fe1fc1217f81",
+   "result_id": "bpr:d583480d-ad1a-433a-be18-b01bfcee82fb",
+   "error_code": null
+  },
+  {
+   "id": 52169,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 77,
+   "status": "text_present",
+   "text_hash": "31f1c864f102ec88bfe7ca606ed9c0ce39bc291d7ac090b3fe6bd5f824afaaf2",
+   "result_id": "bpr:b339001c-7b7d-4244-9473-f9ad952de55e",
+   "error_code": null
+  },
+  {
+   "id": 52170,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 78,
+   "status": "text_present",
+   "text_hash": "60d437c1418909d52f3742c6f111e7bd7b21510e080a124e12ee7b1ed93ea4dc",
+   "result_id": "bpr:ca6d75ba-31e0-454c-a3d8-048b5c80ad3d",
+   "error_code": null
+  },
+  {
+   "id": 52171,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 79,
+   "status": "text_present",
+   "text_hash": "c958053c9f32c35312f54698d8a93e73bcf7bdb876def448e3c910f09ab04c9e",
+   "result_id": "bpr:d28f93fd-ba98-4ecb-bba3-19f381b6429b",
+   "error_code": null
+  },
+  {
+   "id": 52172,
+   "document_id": "bfc:7c072034a0e8b575d060b106f054ccbdeb5dbd83295fa95095c537f797cff1a8",
+   "version": "v:c857f4376bbe4ae0a26074dfd11179ff",
+   "page": 80,
+   "status": "text_present",
+   "text_hash": "e5e20a0b94db8cfd4a748b36cb0409d51b49a39cb3340c8e9a8554816d12ffe8",
+   "result_id": "bpr:12ec4953-751d-403e-818a-1e2c6470f3ac",
+   "error_code": null
+  },
+  {
+   "id": 53225,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 1,
+   "status": "text_present",
+   "text_hash": "6dd189df0e10502cf81168b7f7073b5a823479eea5baf23e8b7671f239f9f727",
+   "result_id": "bpr:27a0e8f9-95f7-4c70-8aeb-3c4efd6d77e5",
+   "error_code": null
+  },
+  {
+   "id": 53226,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 2,
+   "status": "text_present",
+   "text_hash": "02fdce981c26245864b13b02519d5720c218455e63dc0c31bcda8fec76f37853",
+   "result_id": "bpr:3bd08583-e031-40a9-863a-fa8face34d5e",
+   "error_code": null
+  },
+  {
+   "id": 53227,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 3,
+   "status": "text_present",
+   "text_hash": "dd1733f619ef83f928c972382434343b2abb1b9f940a397d222131e7870281c7",
+   "result_id": "bpr:5cd5b3a2-0a14-46e6-917d-27d2a7db143d",
+   "error_code": null
+  },
+  {
+   "id": 53228,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 4,
+   "status": "text_present",
+   "text_hash": "8fe2f2a7033db16596fb162dd07ed1df12d9e07fec5fd74dda53bf457b233479",
+   "result_id": "bpr:2ba4cf0a-443d-4d1a-943a-93d4ba211478",
+   "error_code": null
+  },
+  {
+   "id": 53229,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 5,
+   "status": "text_present",
+   "text_hash": "4a6e4d4d8b568cc4155358d9e0587a4ffb11db6feee53d04a8a96126e148bd7c",
+   "result_id": "bpr:4c1890c2-1bd7-4bb0-a04c-1202de062fc5",
+   "error_code": null
+  },
+  {
+   "id": 53230,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 6,
+   "status": "text_present",
+   "text_hash": "1fd9b93581fd90c65e68a8a843995ab3616c861678e36916d6920a4dfeb59d0b",
+   "result_id": "bpr:962b7a88-0f7f-4d01-94e0-158639828701",
+   "error_code": null
+  },
+  {
+   "id": 53231,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 7,
+   "status": "text_present",
+   "text_hash": "b650f1bf205ee3372fe9f3cbe6c615793fdc96ba76a786f0120dd0fd515944d1",
+   "result_id": "bpr:6256cba5-1d90-46a9-8d46-2eaa7a8f04b6",
+   "error_code": null
+  },
+  {
+   "id": 53232,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 8,
+   "status": "text_present",
+   "text_hash": "87a3338b915e7b90b45f8e3ea735e71c1484c01aba269f4c55b9ac4f8ce1beee",
+   "result_id": "bpr:26b23aaf-802d-407b-ae5d-f48ca180b649",
+   "error_code": null
+  },
+  {
+   "id": 53233,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 9,
+   "status": "text_present",
+   "text_hash": "94da70e4eb546944855dcfc5b6b5bc453a3cf4105be31f79cb5b3fd7e834ee97",
+   "result_id": "bpr:819aa42c-e86e-46f9-9ccf-0b9fe8811653",
+   "error_code": null
+  },
+  {
+   "id": 53234,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 10,
+   "status": "text_present",
+   "text_hash": "cd472e1bca7ce2694fec1e8e527cf9cd081c8c1eb9cbe685344dc589c64b8e49",
+   "result_id": "bpr:9dd512f0-d9c6-4ab4-8527-a4d864f56478",
+   "error_code": null
+  },
+  {
+   "id": 53235,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 11,
+   "status": "text_present",
+   "text_hash": "bf5cf76888944efa4b68e0a9766e1dd22a0b99bc6c77b956312beda75a8c5787",
+   "result_id": "bpr:8e35cb81-6542-4e1f-941a-7687b5af373a",
+   "error_code": null
+  },
+  {
+   "id": 53236,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 12,
+   "status": "text_present",
+   "text_hash": "0351c764ce07ef16eaedd7a893c4a7be3afe9870945dc12223f7628b6dc93bd5",
+   "result_id": "bpr:5388112f-2aea-4d75-ba44-263370d58e82",
+   "error_code": null
+  },
+  {
+   "id": 53237,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 13,
+   "status": "text_present",
+   "text_hash": "f2b25aff6fe2732b6ec24450541fef99662f333e1b428537d71e6226a283ed13",
+   "result_id": "bpr:ac69e268-9b2f-4f71-a692-7e18cd14db88",
+   "error_code": null
+  },
+  {
+   "id": 53238,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 14,
+   "status": "text_present",
+   "text_hash": "491654bab82950740def31ae74bb0e5c27659b0aa6a6b768e53e90da3e8ade49",
+   "result_id": "bpr:2fdba7d7-1e3e-42c2-aaa0-5f22e185d417",
+   "error_code": null
+  },
+  {
+   "id": 53239,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 15,
+   "status": "text_present",
+   "text_hash": "b76a9b08ff59012111af7fdaf6319bac518da184d9bdc57ca2de7c8be56c1b10",
+   "result_id": "bpr:6f4c9a0b-310f-4825-8b86-fb6c555407e4",
+   "error_code": null
+  },
+  {
+   "id": 53240,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 16,
+   "status": "text_present",
+   "text_hash": "e237bb8ee4584f397ef48cb220d2eb30151eaffa32140f045624f6b03a555a4b",
+   "result_id": "bpr:3dc644c9-9176-4f67-8698-802ba3f0d1a0",
+   "error_code": null
+  },
+  {
+   "id": 53241,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 17,
+   "status": "text_present",
+   "text_hash": "86571470b9b0917a80c8308080c88ea6338d876e062c89db93b14e17f955d95a",
+   "result_id": "bpr:c6fba692-e2b5-48ee-b121-01a56dc7cbf2",
+   "error_code": null
+  },
+  {
+   "id": 53242,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 18,
+   "status": "text_present",
+   "text_hash": "398b1efa745b621a34898c9777fc5dbcaaad8f28c2648155037cdb04a742df67",
+   "result_id": "bpr:34e32b88-bae1-4346-a2fb-a3777756a6bf",
+   "error_code": null
+  },
+  {
+   "id": 53243,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 19,
+   "status": "text_present",
+   "text_hash": "4fbcf3350a26af9dd63c307de3b1e9142f8e0ecc41d0d585aa2cfb6ddab0f0d4",
+   "result_id": "bpr:5d685ee0-0911-4c48-b817-6376fc10ce02",
+   "error_code": null
+  },
+  {
+   "id": 53244,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 20,
+   "status": "text_present",
+   "text_hash": "7830abe34058189f8e4d1460630fcf24a8f9561d02dbaeecc204fc281afec7c4",
+   "result_id": "bpr:7cb15271-3958-4ce9-841c-7d84a8833e13",
+   "error_code": null
+  },
+  {
+   "id": 53245,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 21,
+   "status": "text_present",
+   "text_hash": "e8b2e2645c9faec78faa5a5b6ff4ded7f9446e96586a4a766afd63c29ce81e99",
+   "result_id": "bpr:a412ac21-3e0c-47c5-8f04-1ec22b9b272e",
+   "error_code": null
+  },
+  {
+   "id": 53246,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 22,
+   "status": "text_present",
+   "text_hash": "863a6f122df7d90b3cea8803963b7598d3120126d8c1ef6a5ea752a7494cedc5",
+   "result_id": "bpr:a782a630-f53b-4888-94cc-3cf404c13da9",
+   "error_code": null
+  },
+  {
+   "id": 53247,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 23,
+   "status": "text_present",
+   "text_hash": "5508f0f5c545b6c6509df75d4935021651499f6d75f75471c557da00b67662f4",
+   "result_id": "bpr:1ab4a688-417b-40b0-9c70-e00ce8a7db37",
+   "error_code": null
+  },
+  {
+   "id": 53248,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 24,
+   "status": "text_present",
+   "text_hash": "453d88013e3cc2f63c368f950c6e6dae54a752fcba1f71deb1fa15999105d595",
+   "result_id": "bpr:1c9f6302-f9bd-42d5-8314-e3598bf52336",
+   "error_code": null
+  },
+  {
+   "id": 53249,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 25,
+   "status": "text_present",
+   "text_hash": "93c30bd6661637554270198bec9d1bbc0cfe0103706437739cd880a4c7dfb30f",
+   "result_id": "bpr:fb429408-a574-456c-95e3-6ae79efb3f1c",
+   "error_code": null
+  },
+  {
+   "id": 53250,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 26,
+   "status": "text_present",
+   "text_hash": "3d080cc3a4bae9e05f67db046b9fc24eabe624bfd19d47aafa5863966752c073",
+   "result_id": "bpr:75b6a695-1898-48bd-be4b-e28fc4142dd9",
+   "error_code": null
+  },
+  {
+   "id": 53251,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 27,
+   "status": "text_present",
+   "text_hash": "ca3405ca4f8c7535d7aa55eae4f931d2749818d45ea6ca4021abf522d1b9bab2",
+   "result_id": "bpr:b19aebdd-cf0d-48dc-ba41-66f545cf5e30",
+   "error_code": null
+  },
+  {
+   "id": 53252,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 28,
+   "status": "text_present",
+   "text_hash": "304a16cc5e7743d3c5844fffa6de1ae91fddfb148107cc4fe62eff4b33fff02e",
+   "result_id": "bpr:99cf2ed6-5643-4b50-b744-07749fca4e89",
+   "error_code": null
+  },
+  {
+   "id": 53253,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 29,
+   "status": "text_present",
+   "text_hash": "5b429946213d7f0cb4b48c5f73e716e0ea8a2f27f74f872adff7e858b19dda92",
+   "result_id": "bpr:db77d072-8370-4b21-a698-ab2d2e72da38",
+   "error_code": null
+  },
+  {
+   "id": 53254,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 30,
+   "status": "text_present",
+   "text_hash": "10b5b20a698b71d695f9a1f4f1bbe8272d5092d8f227cda77b069d95f0506a4f",
+   "result_id": "bpr:e8419ac1-e345-4198-82e6-78d62b316be8",
+   "error_code": null
+  },
+  {
+   "id": 53255,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 31,
+   "status": "text_present",
+   "text_hash": "43fd3d37d0658d98df270c06db7b66a8a50ce005c53087e70c0f93a339ec7520",
+   "result_id": "bpr:447d94ee-6c31-42a8-b5f3-80b9edaaa00f",
+   "error_code": null
+  },
+  {
+   "id": 53256,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 32,
+   "status": "text_present",
+   "text_hash": "519d6b1e96e7a1ddd011e0e0896af95dc28a38340199af867d87820cf1d109d3",
+   "result_id": "bpr:8c2af71d-976b-4b8a-ad3f-c9f592f1b509",
+   "error_code": null
+  },
+  {
+   "id": 53257,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 33,
+   "status": "text_present",
+   "text_hash": "f3c31dca7be0909c8b319948fe9314dd2780f6b58322109cbbf5aea6b442a3f4",
+   "result_id": "bpr:ff307ad0-0dd2-4d79-8e46-4b5e5d6da24a",
+   "error_code": null
+  },
+  {
+   "id": 53258,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 34,
+   "status": "text_present",
+   "text_hash": "e18e5cfb578a9c81c55455378f71c8e1b47410c5284468fa88299bdd1fbde0f2",
+   "result_id": "bpr:8acaa996-cb00-42cb-bc0c-60a19b02d106",
+   "error_code": null
+  },
+  {
+   "id": 53259,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 35,
+   "status": "text_present",
+   "text_hash": "e1473b540d141cb38358154f8f70b6d1439e4c59f0640336039c50b08b8e7605",
+   "result_id": "bpr:2e427473-c37c-464e-b8f8-483c7a951f98",
+   "error_code": null
+  },
+  {
+   "id": 53260,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 36,
+   "status": "text_present",
+   "text_hash": "8626e1277df1a51967a35e6454bc3a36add7d84e7f67d1b7afcfb626cfbbd179",
+   "result_id": "bpr:5b92e7fb-0c62-40ea-8396-757b7e8812bd",
+   "error_code": null
+  },
+  {
+   "id": 53261,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 37,
+   "status": "text_present",
+   "text_hash": "8119d1177c9a1e0434d3bf7053b3dec93abeb603229cde7d29db68b1693ff53f",
+   "result_id": "bpr:12658d0c-8998-4972-af72-e3167c3b5250",
+   "error_code": null
+  },
+  {
+   "id": 53262,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 38,
+   "status": "text_present",
+   "text_hash": "e23b908e80efbe824c17402768790ffb5fc2f0a08045b80d662a913790cbc866",
+   "result_id": "bpr:a88dac32-8078-4f19-a91d-8e87e62b7d9b",
+   "error_code": null
+  },
+  {
+   "id": 53263,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 39,
+   "status": "text_present",
+   "text_hash": "cda8518574bcb908ad21b3df2d7c1a23fc12f5647c8013b0eaf9602145eb6515",
+   "result_id": "bpr:6b086e09-4ca0-4818-9cdb-74957ae09fca",
+   "error_code": null
+  },
+  {
+   "id": 53264,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 40,
+   "status": "text_present",
+   "text_hash": "8a2fe2bece3ee14180aab07a9208aa72c150addb71d8eba0071d4da515d0eb63",
+   "result_id": "bpr:8400e617-58e4-457c-89ff-bec0c46c0603",
+   "error_code": null
+  },
+  {
+   "id": 53265,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 41,
+   "status": "text_present",
+   "text_hash": "a0137649d42dfa7a44751906982eb6dc955c0cc26776405f5c757f83e769e19d",
+   "result_id": "bpr:7b2d3c98-7d7c-46b9-9864-97855f87f142",
+   "error_code": null
+  },
+  {
+   "id": 53266,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 42,
+   "status": "text_present",
+   "text_hash": "77e9cd0fe84f59616c2ca4d10fff09731f2db58d75b526b32dec14d169e14e8c",
+   "result_id": "bpr:8204584c-3936-423e-a558-495e05a44a16",
+   "error_code": null
+  },
+  {
+   "id": 53267,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 43,
+   "status": "text_present",
+   "text_hash": "1fe9850c08d52ec47d5199ce54521a8d70fdcb963bf5dff4c76ef8b3264c6d8e",
+   "result_id": "bpr:4020121b-a685-484c-970d-1488b530514d",
+   "error_code": null
+  },
+  {
+   "id": 53268,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 44,
+   "status": "text_present",
+   "text_hash": "f61265fdf39c12a8c785ca5648de89057c9f1ae9fb3f4accaaf0b3227d0322e1",
+   "result_id": "bpr:3ebcbb2d-2d1e-4709-ab25-e4b6068c8088",
+   "error_code": null
+  },
+  {
+   "id": 53269,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 45,
+   "status": "text_present",
+   "text_hash": "aefbb2d63627ff00aaa22cd899fa82dc826036c0c8dd39c8b31e66e015ad4c1e",
+   "result_id": "bpr:71656ce4-ea5a-4f64-99b6-6b344bfbdd33",
+   "error_code": null
+  },
+  {
+   "id": 53270,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 46,
+   "status": "text_present",
+   "text_hash": "e3151a7735b037137562c0787878f15445a1f983fd343976b10805515a9d7b40",
+   "result_id": "bpr:65ded50f-5bd6-446b-a6fe-932a3c6dc1b8",
+   "error_code": null
+  },
+  {
+   "id": 53271,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 47,
+   "status": "text_present",
+   "text_hash": "968e7b6c127d703de1f1db03153212d4aff424ab370bc89366764c698eac17b4",
+   "result_id": "bpr:7474a680-1967-4f17-b575-e6684a663349",
+   "error_code": null
+  },
+  {
+   "id": 53272,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 48,
+   "status": "text_present",
+   "text_hash": "d77c9b700c4c48b8cd5f9456737ed71833468624f4b66c8dddb7e5962f5fc814",
+   "result_id": "bpr:f394b859-c77d-4be1-88c0-fb76a9698743",
+   "error_code": null
+  },
+  {
+   "id": 53273,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 49,
+   "status": "text_present",
+   "text_hash": "56ea2bcef2c8b24831461a1f565ff0ed3fc98cd7ec5a6746d612826525f11cbd",
+   "result_id": "bpr:47638aca-3cce-493d-9315-67ea5c164d45",
+   "error_code": null
+  },
+  {
+   "id": 53274,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 50,
+   "status": "text_present",
+   "text_hash": "3c1a3034f33de22fb6e43651f4198ac6a034eb5ed5d602ba75275c1965ceaa1c",
+   "result_id": "bpr:9f2e6904-3eac-49bb-9f11-7ecb9850b356",
+   "error_code": null
+  },
+  {
+   "id": 53275,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 51,
+   "status": "text_present",
+   "text_hash": "856a7c43d65bea7983f7916c1c0768aeaf5fe0b95d5369c45ce49cdb82fe4bdf",
+   "result_id": "bpr:d4c64fa7-be0d-4f4b-94df-9609688e49c8",
+   "error_code": null
+  },
+  {
+   "id": 53276,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 52,
+   "status": "text_present",
+   "text_hash": "5c4f27b0573c11f51bdb626c1da267a1c85a49a069345db0c7a6dc852290ad63",
+   "result_id": "bpr:a91a572e-2515-4703-9b63-4916fb45a72f",
+   "error_code": null
+  },
+  {
+   "id": 53277,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 53,
+   "status": "text_present",
+   "text_hash": "2e15ef52cc737b28508a1ced98e22bf7d819f8ebbba88ec8d1551a82db925b7d",
+   "result_id": "bpr:b5c212b0-9ba5-4d2e-b70c-8579cef987e2",
+   "error_code": null
+  },
+  {
+   "id": 53278,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 54,
+   "status": "text_present",
+   "text_hash": "144341cfbe0b7aa6ddabc8336ba20607a82d07bfe41f1c6c8552925cea84159f",
+   "result_id": "bpr:3c308498-ee93-4c3f-8122-f114ae7eeb35",
+   "error_code": null
+  },
+  {
+   "id": 53279,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 55,
+   "status": "text_present",
+   "text_hash": "0e59fb507dbdd2384076eba9054b24932723eb1b308e4a59f60578407e0621fd",
+   "result_id": "bpr:94072b31-255e-48ca-9899-c25a3ca3c9a0",
+   "error_code": null
+  },
+  {
+   "id": 53280,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 56,
+   "status": "text_present",
+   "text_hash": "47e1e1fdce47b06cc39e629372908ea15678e5ccd07a623800aca1191f42a5ac",
+   "result_id": "bpr:ec494c9f-65d4-4888-a508-e0df3a0cd369",
+   "error_code": null
+  },
+  {
+   "id": 53281,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 57,
+   "status": "text_present",
+   "text_hash": "1b9ee8f86ff0bf431cc883cc52f47162766dafa5653c404ee81fae9a5caec06d",
+   "result_id": "bpr:49288e44-7c80-4eab-b070-81ee3fb3df7f",
+   "error_code": null
+  },
+  {
+   "id": 53282,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 58,
+   "status": "text_present",
+   "text_hash": "beb6d71d51e4b1ff4ff50fbb1cb301112ec69874f3f073e51c0d2ea2a8a0d96d",
+   "result_id": "bpr:2511e327-c7f5-4125-bd4d-4d4557d24c8e",
+   "error_code": null
+  },
+  {
+   "id": 53283,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 59,
+   "status": "text_present",
+   "text_hash": "f4c87bcfd38708f1baf039b90f22361a3bbe28df1dd7aab5aedf7238bf0da487",
+   "result_id": "bpr:1188bcb3-86dc-4d87-a5c4-54114a6ae418",
+   "error_code": null
+  },
+  {
+   "id": 53284,
+   "document_id": "bfc:bfeb4f3252a5647ef5c88cef516024f48727d00ec1b70d1d340752a0f9735f8c",
+   "version": "v:366f51bde80143eba7e46be963224cea",
+   "page": 60,
+   "status": "no_text",
+   "text_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "result_id": "bpr:dd44fd71-365b-4bdd-b049-f265e794405f",
+   "error_code": null
+  },
+  {
+   "id": 53893,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 1,
+   "status": "text_present",
+   "text_hash": "1a3efa572369b201366cd90124aa45f8a0d02446f11407ae9cedae10cdf0da63",
+   "result_id": "bpr:f583488f-5de2-4eb0-a3c6-40f5a493a32d",
+   "error_code": null
+  },
+  {
+   "id": 53894,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 2,
+   "status": "text_present",
+   "text_hash": "39945bd111f11d15ad0727768acda1398b0d9bd80f2bf2fe9d1d30f7728645be",
+   "result_id": "bpr:e17e97c6-8a08-44ba-ae93-79c3371ef394",
+   "error_code": null
+  },
+  {
+   "id": 53895,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 3,
+   "status": "text_present",
+   "text_hash": "c7c7c34316d858b8f1c1ae4daaf79d0b25e14b5b1dd90e0e5b65cc084e8d36c9",
+   "result_id": "bpr:cd212270-d95d-4466-b179-91a5687fa843",
+   "error_code": null
+  },
+  {
+   "id": 53896,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 4,
+   "status": "text_present",
+   "text_hash": "f3e7067265c8d0ffad64559e7720ede3d6823d30ef1b15b8595452ad547eddb9",
+   "result_id": "bpr:c159b2cf-6e4f-4eb4-9387-24141e43c65f",
+   "error_code": null
+  },
+  {
+   "id": 53897,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 5,
+   "status": "text_present",
+   "text_hash": "7d304a89c32d7d56430710bb4f190cf2bc35458b1e31de5b9bbe4da6da6e63de",
+   "result_id": "bpr:2ccea0ff-6bb0-486e-92cd-d79223aee0c3",
+   "error_code": null
+  },
+  {
+   "id": 53898,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 6,
+   "status": "text_present",
+   "text_hash": "834cf97a5486bbc965ce364835fedc5a5c030335fd2a28a3e08613a55b0c61bc",
+   "result_id": "bpr:ab322d43-48aa-4f37-8a9f-c85c6a64b006",
+   "error_code": null
+  },
+  {
+   "id": 53899,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 7,
+   "status": "text_present",
+   "text_hash": "38cd03578ddd60e8d24462aaa89665336da3a2811bdb51ea0837af0e8cc23af0",
+   "result_id": "bpr:8c3e5942-982a-46c0-82d1-43ecb229e282",
+   "error_code": null
+  },
+  {
+   "id": 53900,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 8,
+   "status": "text_present",
+   "text_hash": "18e64237185c618de9918a80729df5094b28dd1aad50013036ffd46c8a4e60b0",
+   "result_id": "bpr:2fa64aff-cd3b-47c1-b9dc-826f22e14e32",
+   "error_code": null
+  },
+  {
+   "id": 53901,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 9,
+   "status": "text_present",
+   "text_hash": "a2839d93cbc4307775daa1d493216104fe50c260b1e6dbae5fe39a976bc3176e",
+   "result_id": "bpr:b9d8ba12-9c50-474e-a88a-693b00ca2541",
+   "error_code": null
+  },
+  {
+   "id": 53902,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 10,
+   "status": "text_present",
+   "text_hash": "2e20bff0476bd422a0fbdb7ee6a6214c3c723aca13c6e390611e6c6bcd5c6683",
+   "result_id": "bpr:7e077475-a807-4551-b681-46fdcb4f36a8",
+   "error_code": null
+  },
+  {
+   "id": 53903,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 11,
+   "status": "text_present",
+   "text_hash": "5f870a70318ed3eaee85162ed0764e2f81fc3ae2467ea15a67f7571c59bf3654",
+   "result_id": "bpr:53d15fa3-893d-47ad-830a-c0b4ce140308",
+   "error_code": null
+  },
+  {
+   "id": 53904,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 12,
+   "status": "text_present",
+   "text_hash": "76034419bf48c55074d49865c9be132764e7c0c8d1a2185ac207d533180f17df",
+   "result_id": "bpr:67f49eca-6c82-417b-aaf5-00e1cb3d4b61",
+   "error_code": null
+  },
+  {
+   "id": 53905,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 13,
+   "status": "text_present",
+   "text_hash": "67129cb3dd222ced7baecdd8f5c560608eea7009ed00784f28fc9e44ac4fc47a",
+   "result_id": "bpr:31dd68ff-27df-4248-b732-89012752e075",
+   "error_code": null
+  },
+  {
+   "id": 53906,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 14,
+   "status": "text_present",
+   "text_hash": "26fdc838db05234732167c02d4ae7edba2516e765fe9ab20f67e5648131f0712",
+   "result_id": "bpr:4995fee4-26fa-4be0-843c-97de28e35234",
+   "error_code": null
+  },
+  {
+   "id": 53907,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 15,
+   "status": "text_present",
+   "text_hash": "ff160cae4ab247bcf94c6441e3b945b73845769472e1995076fd52ac83854ed4",
+   "result_id": "bpr:b4b717c4-7762-48ed-a4e3-329477454639",
+   "error_code": null
+  },
+  {
+   "id": 53908,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 16,
+   "status": "text_present",
+   "text_hash": "4e899df314c4363e1833ada71b12ef27d9fe1cd604b5d402e0d40dcc4b6f88d6",
+   "result_id": "bpr:50c8446f-7671-4b01-863c-30a89ba4ac89",
+   "error_code": null
+  },
+  {
+   "id": 53909,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 17,
+   "status": "text_present",
+   "text_hash": "efbc1ae387bf736e49a4a0c80b56bdaddbaf70a12243b0d49d3437e9247b5ffd",
+   "result_id": "bpr:64f76838-47ff-49dd-9def-7fcef8aa71ea",
+   "error_code": null
+  },
+  {
+   "id": 53910,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 18,
+   "status": "text_present",
+   "text_hash": "df8bdcaf0cea08c1f7fbe94fef05962b4e53924873f89429ea3d7f0654f72349",
+   "result_id": "bpr:fbc2c0f7-1e00-41a2-928a-6df8cdc2ae98",
+   "error_code": null
+  },
+  {
+   "id": 53911,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 19,
+   "status": "text_present",
+   "text_hash": "fde12c0f51c8690995119677b5c3d6ae9159e65168cff196010d5194bdb2059f",
+   "result_id": "bpr:0ce5e985-e6ef-426d-85cd-dffd0215d19d",
+   "error_code": null
+  },
+  {
+   "id": 53912,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 20,
+   "status": "text_present",
+   "text_hash": "3baffb42d6f84c5fc567f55c43f6bc34274a729a78e03120a1ffb0304ebf86cc",
+   "result_id": "bpr:a5e84787-fa40-4658-b811-e04f76eb1368",
+   "error_code": null
+  },
+  {
+   "id": 53913,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 21,
+   "status": "text_present",
+   "text_hash": "503935e3402f5452e0536c1c5341db25b517db2d63478f7a9752754eb7039b2e",
+   "result_id": "bpr:ff0a9051-0f8b-49c8-adf7-5873877f4f33",
+   "error_code": null
+  },
+  {
+   "id": 53914,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 22,
+   "status": "text_present",
+   "text_hash": "84bf3adc9cda8a0ebad7bac02d09a887c2dfb921cdcadfe4b97d672ddaecf856",
+   "result_id": "bpr:0f8de61b-cde8-455d-ab3d-017ad4dd85e0",
+   "error_code": null
+  },
+  {
+   "id": 53915,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 23,
+   "status": "text_present",
+   "text_hash": "04892bd6d28c59603c47b2be9488a6dd31e2056352d3260f3e49c77b9a60e695",
+   "result_id": "bpr:098e0748-4d6f-490d-b810-6b104127a8c0",
+   "error_code": null
+  },
+  {
+   "id": 53916,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 24,
+   "status": "text_present",
+   "text_hash": "172a592bf444b5cfde8105234ca25f52e2601b261c0ae6c389cc21ac9f1cf97e",
+   "result_id": "bpr:addf9dc2-cb7c-4e9e-a63a-658a234cc89f",
+   "error_code": null
+  },
+  {
+   "id": 53917,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 25,
+   "status": "text_present",
+   "text_hash": "660dd62236d9360973306ee5bd76cba0517933f790868ce73c1ef0ca7b9fd71d",
+   "result_id": "bpr:a0f61e1c-2557-4a88-9814-cf7ad4211749",
+   "error_code": null
+  },
+  {
+   "id": 53918,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 26,
+   "status": "text_present",
+   "text_hash": "24a3a6445f580e27da1e8030d04bc28c219811cb33b7d0701166a9d4bb7e076c",
+   "result_id": "bpr:8c0020e3-9aa5-4a88-9289-f8a8e104ac8a",
+   "error_code": null
+  },
+  {
+   "id": 53919,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 27,
+   "status": "text_present",
+   "text_hash": "05b7b1b94c6ccf4af679b2062e97b6aa09c45f26fe874856602fd6bbbdf4b8b4",
+   "result_id": "bpr:3110848b-38c6-4c36-a2fc-dd952f53ff6b",
+   "error_code": null
+  },
+  {
+   "id": 53920,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 28,
+   "status": "text_present",
+   "text_hash": "30dc516e49870f42f2f345c26001673d122a3372f61549d0f7b3e854f030a523",
+   "result_id": "bpr:99b90520-1afa-4830-b966-30efe43f322a",
+   "error_code": null
+  },
+  {
+   "id": 53921,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 29,
+   "status": "text_present",
+   "text_hash": "c016e1f6a3de940439b2073abe8ba3abace3d495aaa08f261a970b8a08c648b2",
+   "result_id": "bpr:1a55c75d-1132-4f2b-8154-d4c4900a44a1",
+   "error_code": null
+  },
+  {
+   "id": 53922,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 30,
+   "status": "text_present",
+   "text_hash": "46a8798558c39cb6240ce571a2a8f32a15751cf5b573c8893ea3fee844c7ebd1",
+   "result_id": "bpr:49a6ad00-0236-4c2d-bf12-652f43266ce6",
+   "error_code": null
+  },
+  {
+   "id": 53923,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 31,
+   "status": "text_present",
+   "text_hash": "5548e38818244800ac35c8699838a5c0d127d9365d8b8fd5810565c526cb416a",
+   "result_id": "bpr:3d993731-cbed-4122-a420-db8db0274f17",
+   "error_code": null
+  },
+  {
+   "id": 53924,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 32,
+   "status": "text_present",
+   "text_hash": "c5f6b40cd059d1dbc31ca7d79804bc60615d4db87cae164c77b2dabb830f0dbd",
+   "result_id": "bpr:35719dd1-871e-40d0-949b-a27b5d55a3bb",
+   "error_code": null
+  },
+  {
+   "id": 53925,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 33,
+   "status": "text_present",
+   "text_hash": "52fcdc491505d2a1cd9dde4d269caaa67585afa21e19cf06cdac4d703f449232",
+   "result_id": "bpr:4dd46cd8-81de-4595-a00f-630f480ad5a0",
+   "error_code": null
+  },
+  {
+   "id": 53926,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 34,
+   "status": "text_present",
+   "text_hash": "01fd3fb1c9ec31e3700bacf68106ab3f40019ec51b4601fcd9f15d5de076cddc",
+   "result_id": "bpr:aecce0a2-de52-4869-b1a8-8450458d305f",
+   "error_code": null
+  },
+  {
+   "id": 53927,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 35,
+   "status": "text_present",
+   "text_hash": "ec9a88a00bd29e173b23a3fa1fdeabcfcd6fa1b4466d8797345c4792145fa95d",
+   "result_id": "bpr:24441b67-70dd-4698-af48-00d1d473cee1",
+   "error_code": null
+  },
+  {
+   "id": 53928,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 36,
+   "status": "text_present",
+   "text_hash": "a90c47d501ba3038565cd00ae2b36492bfaf7caebe6e344bf1d886d5f61a5910",
+   "result_id": "bpr:17aef7a9-b7a8-4ff4-bfbe-5ba982ede3ab",
+   "error_code": null
+  },
+  {
+   "id": 53929,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 37,
+   "status": "text_present",
+   "text_hash": "647edb6d95a15a7e82f4020d3369d8cd10eb40cc36ea14010d5937dc9e55409f",
+   "result_id": "bpr:f06a42c1-87cc-42ae-b706-e34c5960e05d",
+   "error_code": null
+  },
+  {
+   "id": 53930,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 38,
+   "status": "text_present",
+   "text_hash": "15226fadffb57d13a272258807bf3c9d55803ed69ee20b641f0634fe414abe7e",
+   "result_id": "bpr:394a7357-a522-4568-ac8f-e3a978bc2a34",
+   "error_code": null
+  },
+  {
+   "id": 53931,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 39,
+   "status": "text_present",
+   "text_hash": "73722be79edab9c5a68f2d91883161e0882a972c774dedc06fe2397d01a7132b",
+   "result_id": "bpr:d6b163e6-dc88-4e2a-80e4-4f4138a78c49",
+   "error_code": null
+  },
+  {
+   "id": 53932,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 40,
+   "status": "text_present",
+   "text_hash": "e07a6144818c2a6d50ada6f456455a8f1c25119d22fd7c06873bbdba80ace84a",
+   "result_id": "bpr:4f94ad15-453a-48cc-b325-7bd95a091286",
+   "error_code": null
+  },
+  {
+   "id": 53933,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 41,
+   "status": "text_present",
+   "text_hash": "11264b83e213864df44531dec97854fc6c5d4f10c0ed59905c1a6136fd8a96be",
+   "result_id": "bpr:62ff0049-e939-4e6b-82cc-293c688afa46",
+   "error_code": null
+  },
+  {
+   "id": 53934,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 42,
+   "status": "text_present",
+   "text_hash": "9ad811b2498c3c6ad7d63b454f73236b81239319f07f976b5cd9f54b58b90221",
+   "result_id": "bpr:da67e75d-66b1-4700-8ec8-7a915ac9eb1f",
+   "error_code": null
+  },
+  {
+   "id": 53935,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 43,
+   "status": "text_present",
+   "text_hash": "733fe73841f90f295e50435f07379660f7c7d997a3729d5066430f93f4c3bf91",
+   "result_id": "bpr:ccdd6bfe-dd25-4252-ba0b-e7a330b57bc6",
+   "error_code": null
+  },
+  {
+   "id": 53936,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 44,
+   "status": "text_present",
+   "text_hash": "e0e2ab581291945b34cad6b432f4daee08807e73132929e4111d8a64afd46f19",
+   "result_id": "bpr:0a4dd3a8-f219-414f-92b4-a67718c05626",
+   "error_code": null
+  },
+  {
+   "id": 53937,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 45,
+   "status": "text_present",
+   "text_hash": "653d8bfda8fc7fdc8f160b0d7d360398f0c8c349b61de9198b82efa4c07a1b36",
+   "result_id": "bpr:77248696-a4fc-445a-a3a5-935d59da0a18",
+   "error_code": null
+  },
+  {
+   "id": 53938,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 46,
+   "status": "text_present",
+   "text_hash": "a03c13f0a6e91fb055c8f35b30d5a67d03b4e6b5d3dc80c16d7f84a792682184",
+   "result_id": "bpr:a7cbceb1-991b-49eb-ba43-95002ca3ba21",
+   "error_code": null
+  },
+  {
+   "id": 53939,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 47,
+   "status": "text_present",
+   "text_hash": "987aaa89ef811d980ad9ed96230b25b09830578a8f4bba65f6cfe3a0a660eb02",
+   "result_id": "bpr:9c2c1d44-bc15-41e3-98ab-7ab65addbd68",
+   "error_code": null
+  },
+  {
+   "id": 53940,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 48,
+   "status": "text_present",
+   "text_hash": "b67e9a8025b5e81c2bfa831775f07f418ea8940c63902541fc237d1ce07f8ea5",
+   "result_id": "bpr:7d6a0358-d6f3-4970-86c3-b8e7bbdb2e5c",
+   "error_code": null
+  },
+  {
+   "id": 53941,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 49,
+   "status": "text_present",
+   "text_hash": "3c6a156399cf709a3a449eda2807d58c1f5d5d0ced6d4732d4a33319e6ed97f2",
+   "result_id": "bpr:02c28905-ab1f-417a-9e2f-7c5d7ea39f1d",
+   "error_code": null
+  },
+  {
+   "id": 53942,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 50,
+   "status": "text_present",
+   "text_hash": "0a1c78102a92ba69da77d6ee8cca3621846ca864dbda2808c71b46886dc341c0",
+   "result_id": "bpr:b203696a-3d1f-4bb6-92b0-0cbfc3ce2488",
+   "error_code": null
+  },
+  {
+   "id": 53943,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 51,
+   "status": "text_present",
+   "text_hash": "745a0fe590ad7310fc2c389f37689b5173bba8439b473ed08bfef888490d22f6",
+   "result_id": "bpr:48c9e9b0-86f5-4945-951e-05626c654b70",
+   "error_code": null
+  },
+  {
+   "id": 53944,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 52,
+   "status": "text_present",
+   "text_hash": "df2a93efac954788259129c39910ba8d4bc80c6b3a31d08850c5916a3ef976f9",
+   "result_id": "bpr:a0e788cd-0639-47b2-b498-ec5734737c13",
+   "error_code": null
+  },
+  {
+   "id": 53945,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 53,
+   "status": "text_present",
+   "text_hash": "372eb86c89a8ce07bce2df945ecc1a820980df1f68d268dd7739830ac9e2fbee",
+   "result_id": "bpr:97cc8c6a-10d2-44f7-af75-aebd85e45ce4",
+   "error_code": null
+  },
+  {
+   "id": 53946,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 54,
+   "status": "text_present",
+   "text_hash": "25981219e0ed3f39d19f161331fd1c8f13adee60eb9fd345c068493b7202529c",
+   "result_id": "bpr:9d5604ce-40fc-4d69-bcbf-96e8353b0cc5",
+   "error_code": null
+  },
+  {
+   "id": 53947,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 55,
+   "status": "text_present",
+   "text_hash": "2535ac6539dc480ca47baeaee2be6ecb48e5f38dbbaf634ce229e43871d4e294",
+   "result_id": "bpr:3493acd0-221c-4aa0-bbb0-e5a91420d36f",
+   "error_code": null
+  },
+  {
+   "id": 53948,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 56,
+   "status": "text_present",
+   "text_hash": "89bed76f9975001059c090b78b6e018c0d4c2121181297f00d175b23a4113703",
+   "result_id": "bpr:b8c454ba-a2a3-4e0a-8789-badb5bad0a37",
+   "error_code": null
+  },
+  {
+   "id": 53949,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 57,
+   "status": "text_present",
+   "text_hash": "d3a030394cf3d91cb40397bbaeb5e25c70d5fabb12de61c41ffa114bb9474f49",
+   "result_id": "bpr:d12b2e46-2364-4f28-8d08-8227545d9fa5",
+   "error_code": null
+  },
+  {
+   "id": 53950,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 58,
+   "status": "text_present",
+   "text_hash": "40698431825f2101a02e60d5da22a1e790893a88631046f463423b026ea97638",
+   "result_id": "bpr:b7694bd3-2168-4c1c-bb41-588f52f72ede",
+   "error_code": null
+  },
+  {
+   "id": 53951,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 59,
+   "status": "text_present",
+   "text_hash": "8e9cf3d4d6a979368b94ce93a513990d4e05d88e388938e7ce141c5eb6f295f1",
+   "result_id": "bpr:a0ed226d-d764-4157-9d45-5c5f47a18fe3",
+   "error_code": null
+  },
+  {
+   "id": 53952,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 60,
+   "status": "text_present",
+   "text_hash": "a08404ea1c1825b476f17bf85b9b4e2bd131a73e5ad205704f10fd2240bf6bd0",
+   "result_id": "bpr:863e2fba-85d0-4bea-b10d-56b9166d8f1d",
+   "error_code": null
+  },
+  {
+   "id": 53953,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 61,
+   "status": "text_present",
+   "text_hash": "2e53dae2b9ea32f98b50e86139a9a26fb6fb33088ec68fd3687403d1f6539821",
+   "result_id": "bpr:4ab6a834-657f-4cf3-abce-823ab202b021",
+   "error_code": null
+  },
+  {
+   "id": 53954,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 62,
+   "status": "text_present",
+   "text_hash": "64b63a31d41839bf657a5de23e5d2b917260d027ccc230c5a065771eea34212e",
+   "result_id": "bpr:ea7a1e2e-0b0d-4c75-b050-d0986b85fed9",
+   "error_code": null
+  },
+  {
+   "id": 53955,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 63,
+   "status": "text_present",
+   "text_hash": "a6b9f023af3043c40d9580d8c885c9560cf12ed320be41668b8d19cc05c7d94e",
+   "result_id": "bpr:89e734f1-3692-4455-8631-f41b76a73efc",
+   "error_code": null
+  },
+  {
+   "id": 53956,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 64,
+   "status": "text_present",
+   "text_hash": "318c9552a5648f2c524f6dbfdc4629d6f8e5fd2840442a5918fb02a67b617b82",
+   "result_id": "bpr:1fe1fe1e-f336-4335-a9c2-4da5fbf0d52a",
+   "error_code": null
+  },
+  {
+   "id": 53957,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 65,
+   "status": "text_present",
+   "text_hash": "2bec44969a65b38050ff08e1e4e8cfebf97e28b171040ea60b22f35905f6147e",
+   "result_id": "bpr:a6ce83b8-b602-4e8a-a21f-cda55a1e3611",
+   "error_code": null
+  },
+  {
+   "id": 53958,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 66,
+   "status": "text_present",
+   "text_hash": "b85f449079cddb5dabd0115ff717df45bd80a36a560ec3c7b5c0c6e920d04bde",
+   "result_id": "bpr:cc9d46b8-6c8c-45dc-9233-635e93b56dcc",
+   "error_code": null
+  },
+  {
+   "id": 53959,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 67,
+   "status": "text_present",
+   "text_hash": "8daa76f2c6831e9527bdbd3415bda39e0663919150f65f7a780dabcca5b3e37b",
+   "result_id": "bpr:2010c7e2-2a38-41bc-96b2-d7c32c8f2848",
+   "error_code": null
+  },
+  {
+   "id": 53960,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 68,
+   "status": "text_present",
+   "text_hash": "b2e871eea0cb25f93ff3a4c8c570a19a68ed82276d4a02374d39c33c1000ee72",
+   "result_id": "bpr:204ca1e9-981c-4cdb-bf81-53f99af940f7",
+   "error_code": null
+  },
+  {
+   "id": 53961,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 69,
+   "status": "text_present",
+   "text_hash": "c6ead264edc5e09f214c9acc13edbf37e760832a6f5bb5807c49a41c2ac6b9d0",
+   "result_id": "bpr:e94a2ea2-1896-4a23-8f05-9eb3e7e385c9",
+   "error_code": null
+  },
+  {
+   "id": 53962,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 70,
+   "status": "text_present",
+   "text_hash": "fb1f6ab5cb59baab96cc026f2236246f1f96d4e8626bf7347397d31fe8b7e50e",
+   "result_id": "bpr:125ff70c-8487-4623-a4e8-e0c68325ea7e",
+   "error_code": null
+  },
+  {
+   "id": 53963,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 71,
+   "status": "text_present",
+   "text_hash": "53d0418e29610ae12f8d68fdd8097e4a4b13d27bf0c9bd339d0beafd47c91241",
+   "result_id": "bpr:ce82deb3-7ba9-4ff8-b821-58d4f5183ccd",
+   "error_code": null
+  },
+  {
+   "id": 53964,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 72,
+   "status": "text_present",
+   "text_hash": "480bde20eaa412f6f232cf7cb1d323de19c17c3e50066dd95cc94b0e588ca257",
+   "result_id": "bpr:1e0cdce3-f21b-4830-a3d0-64736710ab17",
+   "error_code": null
+  },
+  {
+   "id": 53965,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 73,
+   "status": "text_present",
+   "text_hash": "ab7111c62b5564efcdb0b6affbe676497dbd1faff7d297b6181640f919b76305",
+   "result_id": "bpr:e7171306-4d3e-40c3-b419-477e36e32be1",
+   "error_code": null
+  },
+  {
+   "id": 53966,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 74,
+   "status": "text_present",
+   "text_hash": "5331fe60d885924033b979120d427d7a7471ac2c77592200ef37685448e6b195",
+   "result_id": "bpr:ccf99452-4e6b-4962-a19f-f57fda063a27",
+   "error_code": null
+  },
+  {
+   "id": 53967,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 75,
+   "status": "text_present",
+   "text_hash": "ce7f8402f18a9b7ec8ea5bc94b5635cf8a900711d993fdbd6e6a8eaec50e21c4",
+   "result_id": "bpr:3d1ab8d7-53c2-4bdd-be87-a9858dab1fbf",
+   "error_code": null
+  },
+  {
+   "id": 53968,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 76,
+   "status": "text_present",
+   "text_hash": "22f75c7e07883514ac50a25888ecb05ff3e2a5416762558f23d03453b9e298e9",
+   "result_id": "bpr:8d30f7db-f221-4535-8f1d-cfa72fcf67c9",
+   "error_code": null
+  },
+  {
+   "id": 53969,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 77,
+   "status": "text_present",
+   "text_hash": "f641ac89a86681d3b729db8f215b79b7283bf3e4ab9eb7dccc4a2c4492b98796",
+   "result_id": "bpr:5b41fd85-5875-4ae7-9408-f2dc3c362704",
+   "error_code": null
+  },
+  {
+   "id": 53970,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 78,
+   "status": "text_present",
+   "text_hash": "05a2a6cd3f8756fdc431476e32156948a0dc46a8df08d348606aaa41205077b6",
+   "result_id": "bpr:cc971bd5-2569-49cb-b285-6caa80a59bb1",
+   "error_code": null
+  },
+  {
+   "id": 53971,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 79,
+   "status": "text_present",
+   "text_hash": "ebae9f2bef347b59100f3fff5873215e0287b022c00701b69a27e9f4803b4d85",
+   "result_id": "bpr:3a6496d2-619a-4889-880a-2c3e6dba110e",
+   "error_code": null
+  },
+  {
+   "id": 53972,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 80,
+   "status": "text_present",
+   "text_hash": "2d33044542ad75332f9a626d38d45a0991e901a89d8461d5efb0c70b2da70808",
+   "result_id": "bpr:670b0f0c-4747-4c64-9f45-eac3ebd8a545",
+   "error_code": null
+  },
+  {
+   "id": 53973,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 81,
+   "status": "text_present",
+   "text_hash": "72ee942e4e55c650f625b93262070d651b56c9278a6f5d322806f5cf5e50b46e",
+   "result_id": "bpr:84aa3875-9e1a-406c-851a-2e708fb3b0be",
+   "error_code": null
+  },
+  {
+   "id": 53974,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 82,
+   "status": "text_present",
+   "text_hash": "91ed3c08a34bd92eb02e29025f0013466911c397dce5679b8c5705a1bbe72ed3",
+   "result_id": "bpr:2bc10bc3-b360-4713-94aa-af27273ebe1b",
+   "error_code": null
+  },
+  {
+   "id": 53975,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 83,
+   "status": "text_present",
+   "text_hash": "a2b536796060c4669460e0e8be6e2825e71804ac71b38696cf396a9770a673bf",
+   "result_id": "bpr:7f30e9eb-b6c2-4c1b-bb8f-2a2571a65ed1",
+   "error_code": null
+  },
+  {
+   "id": 53976,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 84,
+   "status": "text_present",
+   "text_hash": "ee09ff94d078d5b928735c9084d5d1e62f06e98a4828e2717361d112c0bc4329",
+   "result_id": "bpr:00d5b09b-6f31-47ab-82f9-a69bbc3ab33b",
+   "error_code": null
+  },
+  {
+   "id": 53977,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 85,
+   "status": "text_present",
+   "text_hash": "92c7ae8e9b9cb259c732384b0d14e53ac48d670cb3af29d8f9bc8e79e8cf8aea",
+   "result_id": "bpr:79c1a056-94d0-4d97-9621-ac998a4ca3fe",
+   "error_code": null
+  },
+  {
+   "id": 53978,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 86,
+   "status": "text_present",
+   "text_hash": "817c145cc1e47cf02b7a0edb1a0d7b9f2d57bbab2adb570c282249a031a1b7b6",
+   "result_id": "bpr:2d3c5470-01f8-4fb6-bb7a-f0319bb94d51",
+   "error_code": null
+  },
+  {
+   "id": 53979,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 87,
+   "status": "text_present",
+   "text_hash": "683876f4a5c4be04f0136b114e061fcefc2bd475d590418d845808d595edfc84",
+   "result_id": "bpr:491080e0-6e7e-45de-9c1c-2f35ee8b36b5",
+   "error_code": null
+  },
+  {
+   "id": 53980,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 88,
+   "status": "text_present",
+   "text_hash": "8dfaafa2c7090da117ad6535c42c3feac8ca160018d5da6927985f9744573cab",
+   "result_id": "bpr:5f56e96a-7681-4895-807c-e5b40b586b04",
+   "error_code": null
+  },
+  {
+   "id": 53981,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 89,
+   "status": "text_present",
+   "text_hash": "479e235aeba35f2b25fec0a0cc17222be2da08a9779218304abb63fcec7b5069",
+   "result_id": "bpr:0139819e-a46d-4e45-a8b2-4ef89ea2818a",
+   "error_code": null
+  },
+  {
+   "id": 53982,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 90,
+   "status": "text_present",
+   "text_hash": "4230486f7323b98164822b09439782a1a7529e263bda8a57a4d5ab0e1d63fbab",
+   "result_id": "bpr:ecd7d5df-2971-4e85-bf53-3fd6173a772d",
+   "error_code": null
+  },
+  {
+   "id": 53983,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 91,
+   "status": "text_present",
+   "text_hash": "4be2cf99b5e74eb81392bd7d4f8434f4477eb7385392bc3a6ab47b5ce6681272",
+   "result_id": "bpr:95b1fad6-691e-4e3d-b408-ec6e879ba698",
+   "error_code": null
+  },
+  {
+   "id": 53984,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 92,
+   "status": "text_present",
+   "text_hash": "162205d37d9daf10cb26007381833688769420ae27e6a10efa106c19209867bb",
+   "result_id": "bpr:8896c580-9f81-4a37-a9fb-9b391778b0d1",
+   "error_code": null
+  },
+  {
+   "id": 53985,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 93,
+   "status": "text_present",
+   "text_hash": "8432d12c2e6182e606a7cadf8e36cf3109ee08c5b3206c0663089f94d2c017e1",
+   "result_id": "bpr:583c7a40-66c7-4bcb-bd1c-26572d76be1b",
+   "error_code": null
+  },
+  {
+   "id": 53986,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 94,
+   "status": "text_present",
+   "text_hash": "177a65a9b015e7ec74a34164807a15ab114c71667e78920c41fb8e3819bb6529",
+   "result_id": "bpr:8c534224-4866-48e9-917f-9e414840c2c7",
+   "error_code": null
+  },
+  {
+   "id": 53987,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 95,
+   "status": "text_present",
+   "text_hash": "744414bb7363820e8cbd347bd6b5282ada8461c772d46e01e8f4e99a5c66145a",
+   "result_id": "bpr:b8fa701b-cb2f-44f2-8497-7d67c8108366",
+   "error_code": null
+  },
+  {
+   "id": 53988,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 96,
+   "status": "text_present",
+   "text_hash": "c4279968b74305a7e2e836638277ffa21607ac69ce44b51984db13287d1418b1",
+   "result_id": "bpr:f05165fa-cfb7-49db-9997-91546623085d",
+   "error_code": null
+  },
+  {
+   "id": 53989,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 97,
+   "status": "text_present",
+   "text_hash": "3b9361c2e24658d32dc79eb5549c3962dbf13f374b7a3a5713e62002f69be857",
+   "result_id": "bpr:ec405dba-e77e-4182-a164-2bf5a15c7083",
+   "error_code": null
+  },
+  {
+   "id": 53990,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 98,
+   "status": "text_present",
+   "text_hash": "543a95971191ff0c8b8408bdd8b754fb5ca57e87f3b0cc507ff32b9bda7c0b8b",
+   "result_id": "bpr:e8c51ba1-43ce-431f-b6a8-dd531454d630",
+   "error_code": null
+  },
+  {
+   "id": 53991,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 99,
+   "status": "text_present",
+   "text_hash": "653bbda600aeb947deb097d7ba4b22b3a3b22643d6a60e23cfdc85b0c06c6a9d",
+   "result_id": "bpr:9ad2c107-3192-44de-b3cb-12aae598852a",
+   "error_code": null
+  },
+  {
+   "id": 53992,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 100,
+   "status": "text_present",
+   "text_hash": "14a95bfbe719cb53909db9e931273720a603e3f88ebf5f7cacadd2887ce87061",
+   "result_id": "bpr:16aab9d3-c059-4782-a1ce-62ec3d4bdef2",
+   "error_code": null
+  },
+  {
+   "id": 53993,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 101,
+   "status": "text_present",
+   "text_hash": "c13668172f9c6822555763d3c8f5a07ecbfe46208d66862038dbf31dce608def",
+   "result_id": "bpr:732c5044-812a-4ca6-b2eb-c1b656a0ae96",
+   "error_code": null
+  },
+  {
+   "id": 53994,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 102,
+   "status": "text_present",
+   "text_hash": "5cbd801634b550133443bbefb711de1e0fc0cb3ec7e1069d212f001b8454efbb",
+   "result_id": "bpr:e28b9770-63fd-4283-96ce-46817c3e2ccd",
+   "error_code": null
+  },
+  {
+   "id": 53995,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 103,
+   "status": "text_present",
+   "text_hash": "7f035308a29aa2ad63fec5d458902d07626069d4f099ad3bfc397fa2e4035767",
+   "result_id": "bpr:f7ff8714-8edf-440e-b266-61c93fd4b410",
+   "error_code": null
+  },
+  {
+   "id": 53996,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 104,
+   "status": "text_present",
+   "text_hash": "70a8f8509be8ec7374bdf25c71f003a4b26fba842cffd24d857d01e30bde371d",
+   "result_id": "bpr:bb6cdd9a-483f-4596-b77b-59b7fe35222b",
+   "error_code": null
+  },
+  {
+   "id": 53997,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 105,
+   "status": "text_present",
+   "text_hash": "4899f57db76a3b95cb79bcb1723f02c5180302a9c5cce7270d2b9676d29db85d",
+   "result_id": "bpr:3fc398fa-1148-4106-943c-fa9ce87268ed",
+   "error_code": null
+  },
+  {
+   "id": 53998,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 106,
+   "status": "text_present",
+   "text_hash": "01c0da0fbb1622e781d4a4173d293cb5646cc98892238a0e73d8764640b56577",
+   "result_id": "bpr:7ff6a248-3c11-421a-886c-13c94122d1e1",
+   "error_code": null
+  },
+  {
+   "id": 53999,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 107,
+   "status": "text_present",
+   "text_hash": "586e5eeb8cbe4a9b72143e8b62aeba246f91f3f3a7138f2ac0d122f44d44051b",
+   "result_id": "bpr:185536dd-799a-4fd0-988a-8a31f77b41c4",
+   "error_code": null
+  },
+  {
+   "id": 54000,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 108,
+   "status": "text_present",
+   "text_hash": "658d2893f20d2e3ee497287a02e33708fb02acaa3773b4957bccd414b8a957ad",
+   "result_id": "bpr:5af573f7-3344-4d2a-9125-2b91620ec023",
+   "error_code": null
+  },
+  {
+   "id": 54001,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 109,
+   "status": "text_present",
+   "text_hash": "4625230c579117196183c5de177f3d8c0d2dfc67deec0af5d9f93539ee6dc209",
+   "result_id": "bpr:f19248b8-80c9-40a9-86e3-2f314bd49804",
+   "error_code": null
+  },
+  {
+   "id": 54002,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 110,
+   "status": "text_present",
+   "text_hash": "c038309502ca9e2e6f93c89fbfed2f5532e50ec55e54db9a54fd0720f04357e8",
+   "result_id": "bpr:cb72c79b-3884-4084-836f-a3d1d0f8fea1",
+   "error_code": null
+  },
+  {
+   "id": 54003,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 111,
+   "status": "text_present",
+   "text_hash": "021124f6637536dd7d3456f99a1c97d8c0414a8572bcf2c5f44cad12e3dcf139",
+   "result_id": "bpr:6217587c-b874-40ae-87ce-890557e41d7e",
+   "error_code": null
+  },
+  {
+   "id": 54004,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 112,
+   "status": "text_present",
+   "text_hash": "a031b2fdbc0d80003daaf9b7bdf5fd25b78445f800c01d0577604a8b0a39002d",
+   "result_id": "bpr:b0bbbae4-25c1-4ca1-a7dc-133b897457bc",
+   "error_code": null
+  },
+  {
+   "id": 54005,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 113,
+   "status": "text_present",
+   "text_hash": "c69cd37c8e75624b491c37564adbb01d455a36aac107c426048347b9faec9407",
+   "result_id": "bpr:3deeb2d1-0e84-43bb-853b-f40aae90a514",
+   "error_code": null
+  },
+  {
+   "id": 54006,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 114,
+   "status": "text_present",
+   "text_hash": "5fe82203bb6507542de89d4bd40809a9bc3664625e5f5b60200b5a6f5f3a22a8",
+   "result_id": "bpr:3df5b357-d6f9-4fa4-b461-a7377ea3bb8b",
+   "error_code": null
+  },
+  {
+   "id": 54007,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 115,
+   "status": "text_present",
+   "text_hash": "22e6463e969da39bb4d36eae6b93cbf07f851b6e3b0bb832141c8de782895319",
+   "result_id": "bpr:20368c41-1ac9-41c7-b095-e0bbb930c1b9",
+   "error_code": null
+  },
+  {
+   "id": 54008,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 116,
+   "status": "text_present",
+   "text_hash": "b5ad14618f3533296a9c0bf5ba03bb766ec2c13ff30c39a28fc2e179c15a3bff",
+   "result_id": "bpr:6296847f-6ddf-4e17-8c8b-a6380e1a9280",
+   "error_code": null
+  },
+  {
+   "id": 54009,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 117,
+   "status": "text_present",
+   "text_hash": "5367d7f6ce2495d767068350107a7c7b9ec386bc38da6e8de9c882d37cdaf79f",
+   "result_id": "bpr:f5ca2937-0174-4dc8-a6d8-994cd6eac6d2",
+   "error_code": null
+  },
+  {
+   "id": 54010,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 118,
+   "status": "text_present",
+   "text_hash": "49e66b6793bc122bcbe1e0492c3f8fd316d14f88e604670f994e0ce7dfb2cffa",
+   "result_id": "bpr:d459bb6d-8664-4727-95b1-dd3de7a33bac",
+   "error_code": null
+  },
+  {
+   "id": 54011,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 119,
+   "status": "text_present",
+   "text_hash": "d2af0aadbe1ad65d313703751394942936c4c0560ca49c90db5c8ff5d8be1c83",
+   "result_id": "bpr:fff06d18-0685-4892-82ea-447f4e3c3e3a",
+   "error_code": null
+  },
+  {
+   "id": 54012,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 120,
+   "status": "text_present",
+   "text_hash": "74a68b5d0882347cab10e18735c86af4733c3349b828560d2b51d84269e946bf",
+   "result_id": "bpr:9a241db1-8b67-4549-a240-8e5eae7e853f",
+   "error_code": null
+  },
+  {
+   "id": 54013,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 121,
+   "status": "text_present",
+   "text_hash": "d7d045ead34dd1e88da25f573fe358c25161e2e56c6afc6ef09fba4849f0dfe6",
+   "result_id": "bpr:b92ccdcd-2a3e-4656-baa4-5d36b24b3c18",
+   "error_code": null
+  },
+  {
+   "id": 54014,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 122,
+   "status": "text_present",
+   "text_hash": "e755d180cdae627f133a41c0535deff0509a763b4527ee1164865672ecdeb8b9",
+   "result_id": "bpr:99239b6f-c6fb-48a1-b4f5-6202b60a977f",
+   "error_code": null
+  },
+  {
+   "id": 54015,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 123,
+   "status": "text_present",
+   "text_hash": "dd8cb74d2949cbcbc53fbe965125d61ec537169d91d1d0bacdbc4534e236bd12",
+   "result_id": "bpr:150732d3-70dc-4dd7-83a7-0a82811bd1e8",
+   "error_code": null
+  },
+  {
+   "id": 54016,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 124,
+   "status": "text_present",
+   "text_hash": "79e5ecd899ac2867e399da34b774d52396165b7b5b9f248ec64fd790ff05468e",
+   "result_id": "bpr:a1903e53-43ff-4eaa-a5a5-23d138cd6174",
+   "error_code": null
+  },
+  {
+   "id": 54017,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 125,
+   "status": "text_present",
+   "text_hash": "b7d0a8c3b9b03660ecbccb8adb4c4c548822296cb6edd3a8b2ac4666178b1fc6",
+   "result_id": "bpr:dc11ba6f-a722-4d88-a839-acedf38f30e6",
+   "error_code": null
+  },
+  {
+   "id": 54018,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 126,
+   "status": "text_present",
+   "text_hash": "9de62f9b3bcf0f6ef50ce11c7b62d478f0e832752d5035084d84de2e7d513dce",
+   "result_id": "bpr:d858cabf-8067-4ba5-8209-150f03ee4355",
+   "error_code": null
+  },
+  {
+   "id": 54019,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 127,
+   "status": "text_present",
+   "text_hash": "3592369737ce8f183d5d24bf9f1e66b29cc9aade4bbc2acb80ab1a93f57d0798",
+   "result_id": "bpr:ee06a6b9-9fc9-43c6-8a96-4e66ff5b02ff",
+   "error_code": null
+  },
+  {
+   "id": 54020,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 128,
+   "status": "text_present",
+   "text_hash": "6fba991dc69dade02248b5f56cf44e6b9488a93c0627977bdd099f7d23aa6476",
+   "result_id": "bpr:6fc05535-8e75-4646-b8a3-556d6e4111b9",
+   "error_code": null
+  },
+  {
+   "id": 54021,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 129,
+   "status": "text_present",
+   "text_hash": "4fe6beb5440c448d3b3c83855de351f59fcad4e536a77a7b3b947d45c50f7197",
+   "result_id": "bpr:7026766c-1d4e-47a6-970e-21c4e387a7e2",
+   "error_code": null
+  },
+  {
+   "id": 54022,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 130,
+   "status": "text_present",
+   "text_hash": "47b5daf33281d959ead88102cd343758c10e2672d5b8eae1ca461b5aeea5b82f",
+   "result_id": "bpr:5a09ac14-f25b-4a33-a12a-7ba9dcc4134e",
+   "error_code": null
+  },
+  {
+   "id": 54023,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 131,
+   "status": "text_present",
+   "text_hash": "27f9da26f0bcafaa34821750f226c211a1a6d2b4494b53a3d7bc2aa463548cf4",
+   "result_id": "bpr:52f05a00-d9df-4b84-8832-4ae0f670ba6d",
+   "error_code": null
+  },
+  {
+   "id": 54024,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 132,
+   "status": "text_present",
+   "text_hash": "8a8b5eafb6ec3347d961ffc2bf63d48dfa1ec23985990a5711207397b10c6ccc",
+   "result_id": "bpr:84c0ba17-65c6-4caf-949d-4f98cdfe8802",
+   "error_code": null
+  },
+  {
+   "id": 54025,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 133,
+   "status": "text_present",
+   "text_hash": "36c5856bd3ba75471d9585d0ed3030d4bcedc225262fc0e7f702bc5da1a9bc88",
+   "result_id": "bpr:793861a1-6dd1-4b78-b324-6e66f9721a5c",
+   "error_code": null
+  },
+  {
+   "id": 54026,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 134,
+   "status": "text_present",
+   "text_hash": "fddfdffd6fc479ec0c8d3889bce3dabe05fb66efba754a730610dc17a60f15a3",
+   "result_id": "bpr:15c107bf-2e8b-4537-8d37-390201ea2994",
+   "error_code": null
+  },
+  {
+   "id": 54027,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 135,
+   "status": "text_present",
+   "text_hash": "31b3a0c26e97fd7e163219740e88d3a44af864d5de7f1c6d4ac98a247e3f030f",
+   "result_id": "bpr:fd671db1-2f84-4013-9c35-0c927ee2e75f",
+   "error_code": null
+  },
+  {
+   "id": 54028,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 136,
+   "status": "text_present",
+   "text_hash": "a2f41d67586775f95bb6a248a11b69cb015b7cde504014a2af29b12f0981791b",
+   "result_id": "bpr:e45cc745-6ef4-4add-9829-69a9b9cf6da7",
+   "error_code": null
+  },
+  {
+   "id": 54029,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 137,
+   "status": "text_present",
+   "text_hash": "d4efebf6dcbe5481c59ff6119eef61b37d0297be499e4d1d5a347a2f08cc8d4a",
+   "result_id": "bpr:3fa403c4-705d-4ee2-8837-db72db5fd1c2",
+   "error_code": null
+  },
+  {
+   "id": 54030,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 138,
+   "status": "text_present",
+   "text_hash": "606777d1ca59927ba2bac19f34a7f6b600c65a479199c1fe2eca5168dc65f65b",
+   "result_id": "bpr:4f3b3968-e1af-4015-9421-75999cbbc46b",
+   "error_code": null
+  },
+  {
+   "id": 54031,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 139,
+   "status": "text_present",
+   "text_hash": "736a51568a0cc4b6e104e150195be5ea35002c04fc3a6cad81f69ff4579d1299",
+   "result_id": "bpr:7bbe8e12-0c71-49ee-a55c-dbc8ac8c0697",
+   "error_code": null
+  },
+  {
+   "id": 54032,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 140,
+   "status": "text_present",
+   "text_hash": "9de68600892b20764cbfa2433d9a1e14b1a5cd8920ef55acaedd9d78ea371176",
+   "result_id": "bpr:c35f13f9-99d7-4b42-97e7-303cb05afba1",
+   "error_code": null
+  },
+  {
+   "id": 54033,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 141,
+   "status": "text_present",
+   "text_hash": "d0eddb5dc45d4fecf7b9d8bb053475c0fe994474a3de1309a202bd1c5494d5bc",
+   "result_id": "bpr:731c2d0b-28cd-4658-92ad-6c639a6a696a",
+   "error_code": null
+  },
+  {
+   "id": 54034,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 142,
+   "status": "text_present",
+   "text_hash": "b4872e9bd84349962a7711e43951875e1f7e8c8f693821b096d68d4f91ada754",
+   "result_id": "bpr:80fa1331-ce8d-41aa-aba3-5a6e284da307",
+   "error_code": null
+  },
+  {
+   "id": 54035,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 143,
+   "status": "text_present",
+   "text_hash": "29714d7cc03f0e03438a1ceb5aafeb77b8e7cbff53f4d0925ca08326172e372a",
+   "result_id": "bpr:ea80f256-be83-49ef-8536-df37e611409f",
+   "error_code": null
+  },
+  {
+   "id": 54036,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 144,
+   "status": "text_present",
+   "text_hash": "383194fb3dd41910725a448a7b2f41084e2b5f1175097d3ec084eb80b37e7239",
+   "result_id": "bpr:c0239a0e-fc89-4a0f-aa83-710604612432",
+   "error_code": null
+  },
+  {
+   "id": 54037,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 145,
+   "status": "text_present",
+   "text_hash": "b23552a7823ca3d9d052641dce56b99627094c771f77786be4d15a608e9af330",
+   "result_id": "bpr:28ce37ed-3993-48c4-b390-4fcc0fe1f95a",
+   "error_code": null
+  },
+  {
+   "id": 54038,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 146,
+   "status": "text_present",
+   "text_hash": "6decb95e01c758c5de65ae0a04b62c71e919afb56cf40ef855ef22ba9ad888eb",
+   "result_id": "bpr:435a1ac3-34f8-430d-841f-cc225277c57e",
+   "error_code": null
+  },
+  {
+   "id": 54039,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 147,
+   "status": "text_present",
+   "text_hash": "d6df19b87b8f7aec508727591897f756de1d62e7561fa2fbba351dd014c7e074",
+   "result_id": "bpr:8ef662bc-8c2c-41b0-8544-350508371652",
+   "error_code": null
+  },
+  {
+   "id": 54040,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 148,
+   "status": "text_present",
+   "text_hash": "611e5fa19fb9af3130d5fbb7d3a0362b98bfa653f00ad32c24980f513a0e6f1d",
+   "result_id": "bpr:4197de83-d652-4a3b-9fb1-cec628e8e739",
+   "error_code": null
+  },
+  {
+   "id": 54041,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 149,
+   "status": "text_present",
+   "text_hash": "be9f10389e8381d3d0ccbbf92a7100ea227153852b4c436ed9a0e18c3382557e",
+   "result_id": "bpr:7f107462-7dc9-4d09-9ef9-649eb10a8d3b",
+   "error_code": null
+  },
+  {
+   "id": 54042,
+   "document_id": "bfc:e429cec47f4c1e69278f3bc56c5a773e749b3600365dac83f9283cd770714d51",
+   "version": "v:bfdfc35d746a4d55ac2a39f0b4976597",
+   "page": 150,
+   "status": "text_present",
+   "text_hash": "849bfbcbe5e197113c78ab3c103fc9f711e353a258bfb769cabd8b3f5acf125c",
+   "result_id": "bpr:205c4375-9a3f-4a80-9d8b-471f85ce920f",
+   "error_code": null
+  }
+ ],
+ "serving_gap": "delivery-2026-11-11-november holds no 2026-11-13 edition rows; the nacional/segunda 2026-11-13 collision lives corpus-side only (its 2 captures are frozen above)."
+}

@@ -1,0 +1,57 @@
+{
+  "seq": 1,
+  "kind": "kata",
+  "recorded": "2026-11-25",
+  "kata": {
+    "kata_id": "probe-bench-selector-state",
+    "name": "probe bench floor control: all three arms score zero real detections over the collision-free sub-slice — the bench has nothing to detect there",
+    "control": true,
+    "series_report": "fixtures/probes/bench/README.md + fixtures/probes/bench/arms.md (pre-registered kw9.6; executed kw9.11, ticket catherine-kw9.11)",
+    "series_verdict": "pre-registered: the floor control must self-negate — on defect-free state each arm scores zero real detections, so the bench series has no unique detection to claim on the floor; any floor finding is a scoring-alarm invalid-run",
+    "fixture": "fixtures/probes/selector-state/selector-state-floor.ct.json",
+    "fixture_hash": "sha256:04517b828eb42948418cafa22dacb35a60131d9eeac2f38cc832d2038908750b",
+    "expected": [
+      {
+        "fault": "floor-all-arms-silent",
+        "series_class": "behavioral",
+        "catherine_class": "none",
+        "detail": "every arm scores zero real detections on the collision-free sub-slice (127 zero-match selectors, no captures/partitions/artifacts/pages): A — census criterion over an empty capture set; B — committed floor model; C — final-draft battery over the floor instance; falsified by any finding or detection on the floor (scoring alarm, invalid-run)"
+      }
+    ],
+    "run": {
+      "commands": [
+        "python3 prototype/bogart_selector_bench.py --floor --instance fixtures/probes/selector-state/floor-selectors.json # exit 0; captures 0, selectors 127, histogram 0-match 127, detections [], detection_count 0",
+        "target/debug/catherine check fixtures/probes/selector-state/selector-state-floor.ct.json --json # exit 0; findings [], rows_evaluated 127, constraints_checked 0",
+        "target/debug/catherine check fixtures/attack-demo/bench-selector-state/draft-final-floor.ct.json --json # exit 0; findings [], rows_evaluated 127, constraints_checked 0"
+      ],
+      "findings": []
+    },
+    "comparison": {
+      "conventional_baseline": "arm A floor run — prototype/bogart_selector_bench.py --floor --instance fixtures/probes/selector-state/floor-selectors.json (sha256 df8106581e2ff3eec83861372f0862decebca8b3e9874e951161f50d7553c762, committed with kw9.11; git pin recorded at commit time): exit 0, captures 0, selectors 127, histogram {0-match: 127, 1-match: 0, >=2-match: 0}, detections [], detection_count 0. floor-selectors.json derived in kw9.11 verbatim from fixtures/probes/selector-state/census.json zero_match_selectors (sha256 b26c5ea178ddb381226874adbc428c00e2c357c6f11bf2e01276dc28fe6dd32b); derivation: the 127 [source, edition_date] pairs written unchanged into a selectors-only slice-shaped instance. Precedent: prototype/bogart_storage_granularity.py --census (committed, executed 2026-11-13 / 2026-11-25).",
+      "fired": [],
+      "unique_detections": [],
+      "baseline": {
+        "artifact": "prototype/bogart_selector_bench.py --floor (sha256 df8106581e2ff3eec83861372f0862decebca8b3e9874e951161f50d7553c762)",
+        "mode": "executed",
+        "detections": []
+      }
+    },
+    "expressibility_gap": [],
+    "procedure": [
+      "1. floor-selectors.json derived deterministically from the frozen census.json zero_match_selectors (127 pairs; recorded verbatim above); the frozen artifacts themselves were not modified.",
+      "2. Arm A ran the pinned census criterion over the selectors-only instance: zero detections (the criterion has no captures to match).",
+      "3. Arm B ran the committed floor fixture at the kw9.11 pin: exit 0, zero findings (kw9.5 result replicated).",
+      "4. Arm C ran the final draft's schema over the floor instance: exit 0, zero findings.",
+      "5. Nothing is detected on the clean control in any arm, so unique_detections is empty and the control self-negates (verdict killed)."
+    ],
+    "verdict": "killed"
+  },
+  "rollup": null,
+  "model_hashes": [
+    "sha256:04517b828eb42948418cafa22dacb35a60131d9eeac2f38cc832d2038908750b",
+    "sha256:b26c5ea178ddb381226874adbc428c00e2c357c6f11bf2e01276dc28fe6dd32b",
+    "sha256:9c984a65af40f71c96901bac979a4e263c0514b409fdd25c5c314d337d035ff9",
+    "sha256:df8106581e2ff3eec83861372f0862decebca8b3e9874e951161f50d7553c762"
+  ],
+  "id": "sha256:fcfd0068e94c7a760fde52b520b71da5f344bd27e1d551084f0856bc7665f17a"
+}

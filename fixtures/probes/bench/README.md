@@ -221,3 +221,118 @@ review found and fixed, in this document, before any run:
    A-must-find-4 expectation well-formed.
 
 No prediction was edited after any run: there has been no run.
+
+---
+
+## Result (kw9.11 — executed 2026-11-25)
+
+Executed per arms.md at the kw9.11 pin. Binary pinned to `target/debug/catherine` (cargo build; the granularity lint rides `check`
+unconditionally). Frozen artifacts untouched; seeded/floor/attack variants
+written to new files.
+
+### Findings table (executed, per row)
+
+| # | Row | Arm A (conventional, executed) | Arm B (committed model) | Arm C (LLM draft, attacked) |
+|---|---|---|---|---|
+| E1 | collision `nacional/primera 2026-11-03` | **finding** (detection, match_count 2) | **silent** (check exit 0, findings []) | **silent** (check exit 0) |
+| E2 | collision `pba/JUDICIAL 2026-11-03` | **finding** (detection, match_count 2) | **silent** | **silent** |
+| E3 | collision `nacional/segunda 2026-11-13` | **finding** (detection, match_count 2) | **silent** | **silent** |
+| E4 | zero-match negatives (127 frozen) | **silent** (floor run: 0 detections over the 127) | **silent** | **silent** |
+| E5 | derived-relations silence | **N/A** (census computes derived stats; no stored-state claim) | **silent** (`equations: []`) | **silent** (`equations: []`) |
+| E6 | FizzBuzz-class negative control | **silent** — the script implements no such predicate | **silent** | **silent** |
+| S1 | seeded 4th collision | **finding** — 4 collision selectors (3 real + `bench-seed/s1`) — sanity pass | **silent** (expected; rows_evaluated 605) — pass | **silent** (rows_evaluated 478) — pass |
+| S2 | seeded dangling reference | **N/A** (scope-gap; unseeded output, exit 0) | **fires** — exit 1, `error[syntax]`: `capture_artifact` maps `cap_f16110174…` to `art_bench_seed_s2_dangling`, not a row of `artifact` — pass | **fires** — exit 1, same class on `draft-final-seed-s2.ct.json` — pass |
+| — | floor (entry 0001) | silent (0 detections over 127 selectors) | silent (rows_evaluated 127) | silent (rows_evaluated 127) |
+
+### Scoring (the pre-registered rubric, verbatim arithmetic)
+
+- Only `check`-surface violations are detections; `underconstraint` (exit 6)
+  and `search` payloads are non-findings; the S2/control firings are
+  load-time labeled errors (exit 1) — recorded verbatim, scored as sanity
+  outcomes, never as detections (see Discrepancy 2).
+- `TP_A = {E1, E2, E3}`, `FP_A = 0`, `D3inv_A = 0`
+- `TP_B = ∅`, `FP_B = 0`, `D3inv_B = 0`
+- `TP_C = ∅`, `FP_C = 0`, `D3inv_C = 0`
+- `unique_B = TP_B ∖ TP_A = ∅`; `unique_C = TP_C ∖ TP_A = ∅`
+- real/total findings ratios: A 3/3; B 0/0 (undefined); C 0/0 (undefined) —
+  reported for comparability only; the decision rule runs on the arithmetic.
+- E6 alarm check: no FizzBuzz-class predicate exists in any arm (the census
+  script implements none; both ct models declare `equations: []`) — no alarm.
+
+### Arm C loop transcript (kw9.9 recipe, v1, followed verbatim)
+
+- `prose.md` = the pre-registered block byte-for-byte (sha256
+  `a40e6c14934cd6446ebeff66266e3fff0f9e9988b6d6c1b1d8a283e3cc1a0569`);
+  `instance-slice.json` = the frozen slice (sha256 `840e81c8…`, verified).
+- **Drafter disclosure (honesty rule):** the drafting agent was this
+  session's own model (GLM, Z.ai — the kw9.11 worker agent), not an
+  independent session. It had earlier in the same session read
+  `slice.json` while building arm A and the seeding harness, so the draft
+  step was not prose-blind in the strict sense. The schema was written from
+  the prose block only; the instance rows were taken verbatim from
+  `instance-slice.json` (the prose's designated input).
+- draft-v1 battery: `check` exit 0 (silent), `underconstraint --max-path-length 3`
+  exit 0 (no hypotheses), `search` witness at shrunk bounds (natural bounds
+  returned UNKNOWN within the 256-candidate default — bounds shrunk per the
+  recipe, never declared success). No findings came back, so no revision was
+  needed; the loop converged at `draft-v1.ct.json` once both negative
+  controls were demonstrated: clean control = full battery silent on the
+  unmodified draft; overconstraint control = injected dangling
+  `page_document` cell caught non-zero (exit 1; Discrepancy 2).
+  `naturality` not run — no `instance_map` declared (the verb is conditional).
+- Instance-custody diff (laundering control): every final-draft instance row
+  and table cell is byte-derivable from frozen `slice.json` rows — diff
+  clean; no computed/derived rows; D3-invalid count 0; arm C recorded as
+  independent on the instance.
+- Final draft: `fixtures/attack-demo/bench-selector-state/draft-v1.ct.json`
+  (sha256 `9c984a65af40f71c96901bac979a4e263c0514b409fdd25c5c314d337d035ff9`).
+
+### Verdict
+
+**killed** — the first decision-rule row applies exactly: A detects all of
+E1–E3; B and C produce zero real detections; no D3-invalid; no FP on E4;
+S1/S2 pass; floor silent. Parity; the null result is the deliverable — the
+kw9.5 killed model-check result extends to the full three-arm comparison on
+this slice. The categorical claim stays UNKNOWN-labeled beyond this slice
+(power boundary unchanged). The unique-detection route to `survived` was
+tested, not presumed: both categorical arms were exercised on the
+defect-bearing slice and on the seeded dangling fault, and their silence on
+the collision class is confirmed as by-construction (no cardinality claim
+over stored arrows), not accidental.
+
+### Discrepancies (recorded, never silent)
+
+1. **S1 seeding wording vs its own registered result.** arms.md says
+   "Append one capture row"; both protocol files register the result as a
+   4th collision with "2 stored capture rows, one shared sha256" (README
+   review note 7: "a duplicated pair"). One row yields a 1-match selector
+   and cannot satisfy the pinned A-must-report-4 expectation. kw9.11
+   implemented the pair (copies of the slice's first capture under
+   `bench-seed/s1`, ids `bfc:bench-seed-s1` / `bfc:bench-seed-s1-2`),
+   applied identically to all three arms.
+2. **Dangling faults fire at load, not on the check surface.** S2 (arms B
+   and C) and the recipe's overconstraint control are caught by the
+   .ct.json v1 loader as labeled errors (exit 1) naming the dangling cell,
+   not as check violations (exit 3). The registrations require a non-zero
+   exit / that the battery catches the fault — satisfied verbatim; exit 3
+   is not reachable for dangling stored references on this loader.
+3. **Pre-registration commit hash.** The arms.md ledger template pins the
+   kw9.6 commit hash; the ticket forbids git commands in kw9.11, so entries
+   cite the protocol by path and pin the executed artifacts by sha256.
+4. **Arm-A selector-set provenance.** `slice.json` carries no selector
+   table, so arm A's selector set is DISTINCT (source, edition_date) over
+   the slice's capture/partition rows (exactly the 3 collision selectors);
+   the 127 zero-match negatives are scored via the floor run (census
+   criterion over all 127: zero detections), matching census.json.
+
+### Ledger
+
+- `ledger/probes/bench/selector-state/0001-fcfd0068.json` — floor control
+  (control: true, self-negating, verdict killed).
+- `ledger/probes/bench/selector-state/0002-48bb05fe.json` — probe entry,
+  verdict killed; embeds the expectations table, executed commands, the
+  uniqueness arithmetic, the expressibility gap, and the discrepancies
+  above. Both entries sealed (content-addressed) and `validate_dir` green
+  over the new sequence and every neighbor sequence
+  (`ledger/probes/{bench/selector-state,naturality,selector-state,…}`) via a
+  throwaway validator test, deleted after the run.
