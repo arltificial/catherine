@@ -1,0 +1,53 @@
+{
+  "format_version": "1.6",
+  "schema": {
+    "objects": [
+      "backfill_read_pages",
+      "backfill_read_documents",
+      "edition_date"
+    ],
+    "arrows": [
+      { "name": "document_id", "src": "backfill_read_pages", "tgt": "backfill_read_documents" },
+      { "name": "edition_date", "src": "backfill_read_documents", "tgt": "edition_date" },
+      { "name": "hit_edition_date", "src": "backfill_read_pages", "tgt": "edition_date" }
+    ],
+    "equations": [
+      {
+        "lhs": ["document_id", "edition_date"],
+        "rhs": ["hit_edition_date"],
+        "rationale": "pilot model 1 (catherine-hc6, model1_fts_anchor.ct.json) drop audit: the edition anchor surfaced with an FTS hit (read_service carries edition_date per hit row) must equal the edition reached through the hit's document. Both sides collapse onto the same stored column (backfill_read_documents.edition_date) — a tautology, per the kw9.4 re-score.",
+        "status": "accepted"
+      }
+    ]
+  },
+  "instance": {
+    "rows": {
+      "backfill_read_pages": ["pg_1", "pg_2", "pg_3", "pg_4"],
+      "backfill_read_documents": [
+        "doc_a__v_v1",
+        "doc_b__v_v1",
+        "doc_c__v_v1"
+      ],
+      "edition_date": ["ed_2026_11_11"]
+    },
+    "tables": {
+      "document_id": {
+        "pg_1": "doc_a__v_v1",
+        "pg_2": "doc_a__v_v1",
+        "pg_3": "doc_b__v_v1",
+        "pg_4": "doc_c__v_v1"
+      },
+      "edition_date": {
+        "doc_a__v_v1": "ed_2026_11_11",
+        "doc_b__v_v1": "ed_2026_11_11",
+        "doc_c__v_v1": "ed_2026_11_11"
+      },
+      "hit_edition_date": {
+        "pg_1": "ed_2026_11_11",
+        "pg_2": "ed_2026_11_11",
+        "pg_3": "ed_2026_11_11",
+        "pg_4": "ed_2026_11_11"
+      }
+    }
+  }
+}

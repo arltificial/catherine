@@ -103,3 +103,32 @@ defensible scope is narrower than "all arrows": it governs *structural*
 found `bogart-4wt` — must be declared as such and checked by the rule-lens /
 policy machinery, not suppressed by the granularity rule. Reproduce with
 `python3 prototype/bogart_storage_granularity.py --slice|--full|--census`.
+
+### Lint re-score (kw9.4, 2026-11-25)
+
+Precision before/after: the pilot's **2/69 (2.9% real)** becomes **0
+findings** (slice + full runs, 2026-11-13; re-verified on the committed
+slice this date) — the real/noise ratio is **undefined** per the
+pre-registered decision rule, not better.
+
+Sampled drop audit: `pilot-model.ct.json` re-models pilot model 1
+(`catherine-hc6`) exactly as the dropped section above describes — single-column
+`document_id`, derived `hit_edition_date` (no storing column), and the
+tautological `document_id ; edition_date = hit_edition_date` equation — over a
+tiny consistent instance (3 documents / 4 pages / 1 edition). The kw9.3 lint
+**fires nothing** on it: `catherine check fixtures/probes/granularity-bogart/pilot-model.ct.json`
+exits **0** with zero findings (there is no separate `--granularity` flag; the
+lint rides the shared check path). The pre-registered kw9.4 expectation — that
+the lint would flag `hit_edition_date` as an over-constraint — is **falsified**:
+with 3 arrows over 8 rows the cap gate (`ceil(4.5·√8) = 13`) never trips, so
+neither the OverCap nor the cap-gated stored-column test can fire at this shape.
+No true positive is suppressed: the 2 real `bogart-4wt` selector defects were
+never model findings — both the 2 real and the 67 noise pilot findings are
+structurally excluded (no storing column), already recorded 2026-11-13; the
+exclusion of the real pair is the recall cost, recorded as a named gap in the
+ledger entry.
+
+Verdict: the rule remains **PROPOSED / not validated** on this domain (the
+pre-registered decision rule, unchanged). The probe ledger for the series is
+now `ledger/probes/granularity/` (0001 floor control, killed; 0002 re-score,
+killed — the null result is the deliverable).
