@@ -36,11 +36,22 @@ phase: plan
 
 ```
  M .whisper/branches/main/notes.md
+MM crates/catherine-core/src/findings/mod.rs
+MM crates/catherine-core/src/parse/schema_map/mod.rs
 ```
 
 ### open_issues
 
 ```
-No issues found.
+○ catherine-kw9 P2 [epic] Explore ct-math-foundations wave findings on catherine's three axes
+├── ○ catherine-kw9.6 P2 Three-arm bench protocol design: pre-registered comparison on one bounded domain
+├── ○ catherine-kw9.11 P2 Three-arm bench run: execute the pre-registered protocol and register defect accounting
+└── ○ catherine-kw9.1 P3 Capture claude ct-math-foundations artifact into the corpus
+
+--------------------------------------------------------------------------------
+Total: 4 issues (4 open, 0 in progress)
+
+Status: ○ open  ◐ in_progress  ● blocked  ✓ closed  ❄ deferred
+Priority: P0–P4 (label only; not a status icon)
 ```
 
