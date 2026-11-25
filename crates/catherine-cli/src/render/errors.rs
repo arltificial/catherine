@@ -86,42 +86,57 @@ impl LabeledError {
 
 /// The remediation hints, keyed by the closed error-code enum.
 fn hint_for_code(code: ErrorCode) -> &'static str {
+    hint_for_schema_code(code)
+        .or_else(|| hint_for_rule_and_map_code(code))
+        .expect("every ErrorCode has a remediation hint")
+}
+
+/// The parse/schema-side hints: idents, arrows, equations, versions.
+fn hint_for_schema_code(code: ErrorCode) -> Option<&'static str> {
     match code {
-        ErrorCode::DuplicateIdent => "idents must be unique within their collection — rename a duplicate",
-        ErrorCode::UnknownArrow => "declare the arrow in schema.arrows, or fix the path spelling",
+        ErrorCode::DuplicateIdent => Some("idents must be unique within their collection — rename a duplicate"),
+        ErrorCode::UnknownArrow => Some("declare the arrow in schema.arrows, or fix the path spelling"),
         ErrorCode::IllTypedEquation => {
-            "both paths must start at the same object and end at the same object"
+            Some("both paths must start at the same object and end at the same object")
         }
-        ErrorCode::InvalidIdent => "idents match [A-Za-z_][A-Za-z0-9_]*",
-        ErrorCode::InvalidStatus => "status is one of: accepted, proposed",
+        ErrorCode::InvalidIdent => Some("idents match [A-Za-z_][A-Za-z0-9_]*"),
+        ErrorCode::InvalidStatus => Some("status is one of: accepted, proposed"),
         ErrorCode::UnsupportedVersion => {
-            "set format_version to \"1.6\" — the known version is 1.6; raise KNOWN_MINOR when new additive semantics land"
+            Some("set format_version to \"1.6\" — the known version is 1.6; raise KNOWN_MINOR when new additive semantics land")
         }
+        ErrorCode::InvalidColumnType => Some("column types are one of: int, bool, string"),
+        ErrorCode::UnknownField => {
+            Some("remove the field or fix its spelling; the accepted format version defines no such field, and unknown fields are never silently dropped")
+        }
+        _ => None,
+    }
+}
+
+/// The rule-presentation and schema/instance-map hints.
+fn hint_for_rule_and_map_code(code: ErrorCode) -> Option<&'static str> {
+    match code {
         ErrorCode::PartialSchemaMap => {
-            "a schema map must be total: assign every declared source object and arrow — map it to the target, or to null to drop it explicitly"
+            Some("a schema map must be total: assign every declared source object and arrow — map it to the target, or to null to drop it explicitly")
         }
         ErrorCode::UndeclaredRuleDomain => {
-            "declare the rule presentation's domain in schema.objects, or fix the domain spelling"
+            Some("declare the rule presentation's domain in schema.objects, or fix the domain spelling")
         }
-        ErrorCode::InvalidColumnType => "column types are one of: int, bool, string",
         ErrorCode::UnknownColumn => {
-            "declare the column in rule_presentation.columns, or fix the predicate spelling"
+            Some("declare the column in rule_presentation.columns, or fix the predicate spelling")
         }
         ErrorCode::InvalidPredicate => {
-            "predicates are comparisons, mod, and/or/not over declared columns; a comparison literal must match its column's type"
+            Some("predicates are comparisons, mod, and/or/not over declared columns; a comparison literal must match its column's type")
         }
         ErrorCode::InvalidPolicy => {
-            "policy is one of: PriorityOrder, FirstMatch, DeclaredDisjoint (omit it to declare no precedence)"
+            Some("policy is one of: PriorityOrder, FirstMatch, DeclaredDisjoint (omit it to declare no precedence)")
         }
-        ErrorCode::MissingAction => "every rule must assign a non-empty action",
+        ErrorCode::MissingAction => Some("every rule must assign a non-empty action"),
         ErrorCode::InvalidKey => {
-            "a key names a declared object and a non-empty, duplicate-free list of arrows sourced at that object"
+            Some("a key names a declared object and a non-empty, duplicate-free list of arrows sourced at that object")
         }
-        ErrorCode::IncompleteInstanceMap => "an instance map must be total: map every row of every schema object (no implicit identity on the rest)",
-        ErrorCode::InvalidCoproduct => "a coproduct names a declared object and a non-empty, duplicate-free list of injections V_k → C",
-        ErrorCode::InvalidPullback => "a pullback names a declared apex and exactly two legs sourced at it, each targeting its paired cospan arrow's source, plus two cospan arrows sharing a target; arrow names are not repeated",
-        ErrorCode::UnknownField => {
-            "remove the field or fix its spelling; the accepted format version defines no such field, and unknown fields are never silently dropped"
-        }
+        ErrorCode::IncompleteInstanceMap => Some("an instance map must be total: map every row of every schema object (no implicit identity on the rest)"),
+        ErrorCode::InvalidCoproduct => Some("a coproduct names a declared object and a non-empty, duplicate-free list of injections V_k → C"),
+        ErrorCode::InvalidPullback => Some("a pullback names a declared apex and exactly two legs sourced at it, each targeting its paired cospan arrow's source, plus two cospan arrows sharing a target; arrow names are not repeated"),
+        _ => None,
     }
 }

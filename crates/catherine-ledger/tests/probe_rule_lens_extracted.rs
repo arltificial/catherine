@@ -16,7 +16,11 @@ use std::path::Path;
 use catherine_core::hash::model_hash;
 use catherine_core::parse::parse;
 use catherine_ledger::catalog::{probe_catalog_hash, probe_expectations};
+use catherine_ledger::entry::BaselineMode;
 use catherine_ledger::validate::validate_dir;
+
+/// The error type every fallible step in this test propagates.
+type TestError = Box<dyn std::error::Error>;
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 
@@ -60,41 +64,55 @@ const FIXTURES: [(&str, &str); 9] = [
 ];
 
 /// One fixture's model hash, recomputed from its canonical bytes.
-fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(format!("{ROOT}/{path}")).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+fn fixture_hash(path: &str) -> Result<String, TestError> {
+    let text = std::fs::read_to_string(format!("{ROOT}/{path}"))?;
+    Ok(model_hash(&parse(&text)?))
 }
 
 /// Every extracted-table probe fixture is pinned: an edit must become a
 /// superseding ledger entry.
 #[test]
-fn rule_probe_fixture_hashes_are_pinned() {
+fn rule_probe_fixture_hashes_are_pinned() -> Result<(), TestError> {
     let mut mismatches = Vec::new();
     for (path, pin) in FIXTURES {
-        let got = fixture_hash(path);
+        let got = fixture_hash(path)?;
         println!("HASH {path} {got}");
         if got != pin {
             mismatches.push(format!("{path}: {got} != {pin}"));
         }
     }
     assert!(mismatches.is_empty(), "fixture hash drift: {mismatches:?}");
+    Ok(())
 }
 
 /// The probe ledger validates with the control first, and the positive
 /// entry carries a pre-registered catalog, an executed baseline arm, and
 /// the derivable gap recorded rather than fabricated.
 #[test]
-fn rule_probe_ledger_records_the_preregistered_evidence() {
+fn rule_probe_ledger_records_the_preregistered_evidence() -> Result<(), TestError> {
     let dir = Path::new(ROOT).join("ledger/probes/rule-lens-extracted");
-    let valid = validate_dir(&dir).expect("the extracted-table probe ledger validates");
+    let valid = validate_dir(&dir).map_err(|violations| format!("{violations:?}"))?;
     assert_eq!(valid.entries.len(), 2, "control + above-floor probe");
-    let control = valid.kata_entries()[0].content.kata.clone().expect("kata");
-    assert!(control.control, "the near-floor control is first");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
-    assert!(control.comparison.unique_detections.is_empty());
+    let katas = valid.kata_entries();
 
-    let above = valid.kata_entries()[1].content.kata.clone().expect("kata");
-    assert_eq!(above.kata_id, "probe-rule-lens-extracted");
+    let control = katas[0]
+        .content
+        .kata
+        .clone()
+        .ok_or_else(|| "the near-floor control's kata record".to_string())?;
+    assert!(control.identity.control, "the near-floor control is first");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(control.derivation.comparison.unique_detections.is_empty());
+
+    let above = katas[1]
+        .content
+        .kata
+        .clone()
+        .ok_or_else(|| "the above-floor probe's kata record".to_string())?;
+    assert_eq!(above.identity.kata_id, "probe-rule-lens-extracted");
     assert_eq!(
         above.expected,
         probe_expectations("probe-rule-lens-extracted"),
@@ -106,19 +124,17 @@ fn rule_probe_ledger_records_the_preregistered_evidence() {
         "the entry cites the committed catalog"
     );
     assert_eq!(
-        above.comparison.unique_detections.len(),
+        above.derivation.comparison.unique_detections.len(),
         4,
         "one unsampled gap and three dead/widened shadow detections"
     );
     let baseline = above
+        .derivation
         .comparison
         .baseline
         .as_ref()
-        .expect("an executed baseline arm carries the unique set");
-    assert_eq!(
-        baseline.mode,
-        catherine_ledger::entry::BaselineMode::Executed
-    );
+        .ok_or_else(|| "an executed baseline arm carries the unique set".to_string())?;
+    assert_eq!(baseline.mode, BaselineMode::Executed);
     assert!(
         above
             .expressibility_gap
@@ -127,8 +143,9 @@ fn rule_probe_ledger_records_the_preregistered_evidence() {
         "the unreached derivable expectation is recorded as a gap"
     );
     assert_eq!(
-        above.fixture_hash,
-        fixture_hash(&above.fixture),
+        above.provenance.fixture_hash,
+        fixture_hash(&above.provenance.fixture)?,
         "the recorded fixture hash is the canonical model hash"
     );
+    Ok(())
 }

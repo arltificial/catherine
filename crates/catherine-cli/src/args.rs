@@ -70,12 +70,9 @@ pub fn parse_observations(
     Ok(observations)
 }
 
-/// Parse and validate one `path@object#row` observation spec.
-fn parse_observation(
-    spec: &str,
-    schema: &Schema,
-    instance: &catherine_core::model::Instance,
-) -> Result<Observation, LabeledError> {
+/// Split one `path@object#row` spec into its three spellings; either
+/// separator missing is an input error.
+fn split_observation_spec(spec: &str) -> Result<(&str, &str, &str), LabeledError> {
     let Some((path_part, rest)) = spec.split_once('@') else {
         return Err(bad_arg(
             format!("--observe expects path@object#row, got `{spec}`"),
@@ -88,6 +85,16 @@ fn parse_observation(
             "the row is the dense id, spelled object#row",
         ));
     };
+    Ok((path_part, object, row))
+}
+
+/// Parse and validate one `path@object#row` observation spec.
+fn parse_observation(
+    spec: &str,
+    schema: &Schema,
+    instance: &catherine_core::model::Instance,
+) -> Result<Observation, LabeledError> {
+    let (path_part, object, row) = split_observation_spec(spec)?;
     let arrows = resolve_observation_path(path_part, object, spec, schema)?;
     let row = validated_row(object, row, instance)?;
     Ok(Observation {
@@ -129,6 +136,16 @@ fn validated_row(
     Ok(row)
 }
 
+/// An observation path's arrow steps: the `∘`-separated segments, empty
+/// for an observation on the object itself.
+fn split_path(path_part: &str) -> Vec<&str> {
+    if path_part.is_empty() {
+        Vec::new()
+    } else {
+        path_part.split('∘').collect()
+    }
+}
+
 /// Resolve the path side of an observation: the `∘`-joined arrow names
 /// must all exist in the schema and compose from the observation object.
 fn resolve_observation_path<'a>(
@@ -137,23 +154,18 @@ fn resolve_observation_path<'a>(
     spec: &str,
     schema: &Schema,
 ) -> Result<Vec<&'a str>, LabeledError> {
-    let arrows: Vec<&str> = if path_part.is_empty() {
-        vec![]
-    } else {
-        path_part.split('∘').collect()
-    };
+    let arrows = split_path(path_part);
     let mut current = object.to_string();
     for name in &arrows {
         match schema.arrows.get(&Ident(name.to_string())) {
             Some(arrow) if arrow.src.0 == current => current = arrow.tgt.0.clone(),
             Some(arrow) => {
-                return Err(bad_arg(
-                    format!(
-                        "path `{path_part}` does not compose: arrow `{}` starts at `{}`, not `{current}`",
-                        arrow.src.0, name
-                    ),
-                    "both sides of an observation must start at the observation object",
-                ));
+                return Err(non_composing_arrow_error(
+                    path_part,
+                    name,
+                    &arrow.src.0,
+                    &current,
+                ))
             }
             None => {
                 return Err(bad_arg(
@@ -164,6 +176,24 @@ fn resolve_observation_path<'a>(
         }
     }
     Ok(arrows)
+}
+
+/// A path that does not compose: the step's arrow starts somewhere other
+/// than the object the previous step (or the observation) landed on —
+/// the CLI never guesses across a vocabulary gap.
+fn non_composing_arrow_error(
+    path_part: &str,
+    name: &str,
+    starts_at: &str,
+    current: &str,
+) -> LabeledError {
+    bad_arg(
+        format!(
+            "path `{path_part}` does not compose: arrow `{}` starts at `{}`, not `{current}`",
+            starts_at, name
+        ),
+        "both sides of an observation must start at the observation object",
+    )
 }
 
 /// Parse the `--seed` list: `object#row`, the row as its dense id (the
@@ -216,32 +246,42 @@ pub fn parse_domain_values(
 ) -> Result<BTreeMap<Ident, Vec<Literal>>, LabeledError> {
     let mut supplied = BTreeMap::new();
     for spec in specs {
-        let Some((name, list)) = spec.split_once('=') else {
-            return Err(bad_arg(
-                format!("--values expects column=value[,value...], got `{spec}`"),
-                "spell the values as column=v1,v2,..., e.g. --values age=10,20,30",
-            ));
-        };
-        let column = Ident(name.to_string());
-        let Some(column_type) = columns.get(&column) else {
-            return Err(bad_arg(
-                format!("--values names `{name}`, which the rule presentation does not declare"),
-                "use a column declared in rule_presentation.columns",
-            ));
-        };
-        if list.is_empty() {
-            return Err(bad_arg(
-                format!("--values gives no values for column `{name}`"),
-                "an empty value list would make the analysis vacuous; supply at least one value",
-            ));
-        }
-        let values = list
-            .split(',')
-            .map(|token| parse_literal(token, *column_type, name, spec))
-            .collect::<Result<Vec<_>, _>>()?;
+        let (column, values) = parse_value_spec(spec, columns)?;
         supplied.insert(column, values);
     }
     Ok(supplied)
+}
+
+/// Parse one `column=v1,v2,...` spec against the declared columns; the
+/// CLI never invents a value list, so every failure is a labeled error.
+fn parse_value_spec(
+    spec: &str,
+    columns: &BTreeMap<Ident, ColumnType>,
+) -> Result<(Ident, Vec<Literal>), LabeledError> {
+    let Some((name, list)) = spec.split_once('=') else {
+        return Err(bad_arg(
+            format!("--values expects column=value[,value...], got `{spec}`"),
+            "spell the values as column=v1,v2,..., e.g. --values age=10,20,30",
+        ));
+    };
+    let column = Ident(name.to_string());
+    let Some(column_type) = columns.get(&column) else {
+        return Err(bad_arg(
+            format!("--values names `{name}`, which the rule presentation does not declare"),
+            "use a column declared in rule_presentation.columns",
+        ));
+    };
+    if list.is_empty() {
+        return Err(bad_arg(
+            format!("--values gives no values for column `{name}`"),
+            "an empty value list would make the analysis vacuous; supply at least one value",
+        ));
+    }
+    let values = list
+        .split(',')
+        .map(|token| parse_literal(token, *column_type, name, spec))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok((column, values))
 }
 
 /// One typed value of a `--values` spec; strings stay verbatim (commas

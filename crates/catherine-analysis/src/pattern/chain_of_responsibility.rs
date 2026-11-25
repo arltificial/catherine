@@ -19,9 +19,8 @@
 //! (faults the scripted dispatch sample already caught) stay at their
 //! recorded multiset, including the recorded empty ones.
 
-use crate::bounds::ScopeCaps;
 use crate::pattern::{
-    bind_domain, describe_rule_scope, LawKind, LensFindings, LensInput, LensOutcome, PatternLens,
+    bind_domain, describe_rule_scope, LawKind, LensCall, LensFindings, LensOutcome, PatternLens,
     PatternMeta,
 };
 use crate::rule_lens::{rule_lens, RuleLensOutcome};
@@ -45,7 +44,8 @@ impl PatternLens for Lens {
         &COR_META
     }
 
-    fn run(&self, input: &LensInput<'_>, caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps } = call;
         let Some(presentation) = input.model.rule_presentation.as_ref() else {
             return LensOutcome::Unknown {
                 scope: "no rule_presentation section; nothing evaluated".to_string(),

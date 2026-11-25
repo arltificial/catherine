@@ -77,28 +77,21 @@ impl InstanceView {
             rows: instance
                 .rows
                 .iter()
-                .map(|(object, rows)| {
-                    (
-                        object.0.clone(),
-                        rows.iter().map(|row| row.0).collect::<Vec<_>>(),
-                    )
-                })
+                .map(|(object, rows)| (object.0.clone(), rows.iter().map(|row| row.0).collect()))
                 .collect(),
             values: instance
                 .values
                 .iter()
-                .map(|(name, cells)| {
-                    (
-                        name.0.clone(),
-                        cells
-                            .iter()
-                            .map(|cell| cell.map(|row| row.0))
-                            .collect::<Vec<_>>(),
-                    )
-                })
+                .map(|(name, cells)| (name.0.clone(), optional_rows(cells)))
                 .collect(),
         }
     }
+}
+
+/// The envelope spells a cell as its bare row number, or `null` when the
+/// cell holds no value.
+fn optional_rows(cells: &[Option<RowId>]) -> Vec<Option<usize>> {
+    cells.iter().map(|cell| cell.map(|row| row.0)).collect()
 }
 
 /// The one UNKNOWN hint, shared by the search and diff payloads: the
@@ -138,7 +131,36 @@ pub struct SearchData<'a> {
 
 /// The one search-envelope path.
 pub fn search_envelope(report: &SearchReport, warnings: Vec<Warning>) -> Envelope<SearchData<'_>> {
-    let (outcome, scope, hint, witness, findings) = match &report.outcome {
+    let (outcome, scope, hint, witness, findings) = search_outcome_fields(&report.outcome);
+    Envelope::success(
+        CLI_VERSION,
+        EnvelopeKind::Check,
+        SearchData {
+            outcome,
+            bound: BoundView::of(&report.bound),
+            scope,
+            hint,
+            witness,
+            findings,
+        },
+        warnings,
+        Vec::new(),
+    )
+}
+
+/// One search outcome as the payload's five fields: the outcome name,
+/// the scope view and hint (unknown only), the witness instance, and
+/// the findings (the contradiction's finding, otherwise empty).
+fn search_outcome_fields(
+    outcome: &SearchOutcome,
+) -> (
+    &'static str,
+    Option<ScopeView>,
+    Option<String>,
+    Option<InstanceView>,
+    &[Finding],
+) {
+    match outcome {
         SearchOutcome::Witness { instance } => (
             "witness",
             None,
@@ -154,25 +176,18 @@ pub fn search_envelope(report: &SearchReport, warnings: Vec<Warning>) -> Envelop
             std::slice::from_ref(finding),
         ),
         SearchOutcome::Unknown { scope } => {
-            let view = ScopeView::of(scope);
-            let hint = unknown_hint(&view);
-            ("unknown", Some(view), Some(hint), None, &[][..])
+            let (outcome, scope, hint) = unknown_fields(scope);
+            (outcome, scope, hint, None, &[][..])
         }
-    };
-    Envelope::success(
-        CLI_VERSION,
-        EnvelopeKind::Check,
-        SearchData {
-            outcome,
-            bound: BoundView::of(&report.bound),
-            scope,
-            hint,
-            witness,
-            findings,
-        },
-        warnings,
-        Vec::new(),
-    )
+    }
+}
+
+/// The bounded non-answer's fields: the outcome name, the exact scope
+/// view, and its answerability hint.
+fn unknown_fields(scope: &SearchScope) -> (&'static str, Option<ScopeView>, Option<String>) {
+    let view = ScopeView::of(scope);
+    let hint = unknown_hint(&view);
+    ("unknown", Some(view), Some(hint))
 }
 
 /// The search human lines: reuse the §5 finding renderer for the
@@ -231,21 +246,7 @@ pub fn distinguish_envelope(
     report: &DistinguishReport,
     warnings: Vec<Warning>,
 ) -> Envelope<DistinguishData> {
-    let (outcome, difference) = match &report.outcome {
-        DistinguishOutcome::Distinguishable {
-            observation,
-            left,
-            right,
-        } => (
-            "distinguishable",
-            Some(DifferenceView {
-                observation: ObservationView::of(observation),
-                left: left.map(|row| row.0),
-                right: right.map(|row| row.0),
-            }),
-        ),
-        DistinguishOutcome::EquivalentInScope => ("equivalent-in-scope", None),
-    };
+    let (outcome, difference) = distinguish_outcome_view(report);
     Envelope::success(
         CLI_VERSION,
         EnvelopeKind::Check,
@@ -263,6 +264,26 @@ pub fn distinguish_envelope(
     )
 }
 
+/// The payload's outcome spelling plus the differing observation when
+/// the two instances came apart: both sides' row values, or `null`.
+fn distinguish_outcome_view(report: &DistinguishReport) -> (&'static str, Option<DifferenceView>) {
+    match &report.outcome {
+        DistinguishOutcome::Distinguishable {
+            observation,
+            left,
+            right,
+        } => (
+            "distinguishable",
+            Some(DifferenceView {
+                observation: ObservationView::of(observation),
+                left: left.map(|row| row.0),
+                right: right.map(|row| row.0),
+            }),
+        ),
+        DistinguishOutcome::EquivalentInScope => ("equivalent-in-scope", None),
+    }
+}
+
 /// The distinguish human lines: the differing observation with both
 /// values (`Object#n`, or `unresolved`), or the in-scope equivalence.
 pub fn render_distinguish(report: &DistinguishReport, schema: &Schema) -> Vec<String> {
@@ -271,30 +292,40 @@ pub fn render_distinguish(report: &DistinguishReport, schema: &Schema) -> Vec<St
             observation,
             left,
             right,
-        } => {
-            let codomain = schema
-                .arrows
-                .get(observation.path.0.last().unwrap_or(&observation.object))
-                .map(|arrow| arrow.tgt.0.as_str());
-            vec![
-                format!(
-                    "distinguishable: {} @ {}#{}",
-                    super::path_string(&observation.path),
-                    observation.object.0,
-                    observation.row.0
-                ),
-                format!(
-                    "  left={} right={}",
-                    value_at(codomain, *left),
-                    value_at(codomain, *right)
-                ),
-            ]
-        }
+        } => distinguishable_lines(observation, *left, *right, schema),
         DistinguishOutcome::EquivalentInScope => vec![format!(
             "equivalent-in-scope: {} observation(s) agree",
             report.observations.len()
         )],
     }
+}
+
+/// The differing observation with both values (`Object#n`, or
+/// `unresolved`): the observation head, then the two sides' values at
+/// the path's codomain.
+fn distinguishable_lines(
+    observation: &Observation,
+    left: Option<RowId>,
+    right: Option<RowId>,
+    schema: &Schema,
+) -> Vec<String> {
+    let codomain = schema
+        .arrows
+        .get(observation.path.0.last().unwrap_or(&observation.object))
+        .map(|arrow| arrow.tgt.0.as_str());
+    vec![
+        format!(
+            "distinguishable: {} @ {}#{}",
+            super::path_string(&observation.path),
+            observation.object.0,
+            observation.row.0
+        ),
+        format!(
+            "  left={} right={}",
+            value_at(codomain, left),
+            value_at(codomain, right)
+        ),
+    ]
 }
 
 /// A composed value as the transcript spells it: `Object#n` when the

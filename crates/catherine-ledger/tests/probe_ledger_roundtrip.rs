@@ -21,24 +21,35 @@ use catherine_ledger::entry::{entry_id, Verdict};
 use catherine_ledger::harness::derive_probe_verdict;
 use catherine_ledger::validate::{ledger_files, read_entry_file, validate_dir, Violation};
 
-use support::{green_contents, TempLedger};
+use support::{green_contents, present, TempLedger, TestError};
+
+/// A mutated ledger must come back refused; a clean pass is the failure.
+fn refused(dir: &std::path::Path, what: &str) -> Result<Vec<Violation>, TestError> {
+    match validate_dir(dir) {
+        Err(violations) => Ok(violations),
+        Ok(_) => Err(format!("{what}: the mutated ledger validated").into()),
+    }
+}
 
 #[test]
-fn fixture_probe_ledger_validates_green_and_round_trips_its_ids() {
-    let ledger = TempLedger::new("green");
-    ledger.write(&green_contents());
+fn fixture_probe_ledger_validates_green_and_round_trips_its_ids() -> Result<(), TestError> {
+    let ledger = TempLedger::new("green")?;
+    ledger.write(&green_contents())?;
 
-    let valid = validate_dir(&ledger.dir).expect("the green probe ledger validates");
+    let valid = validate_dir(&ledger.dir).map_err(|violations| format!("{violations:?}"))?;
     let katas = valid.kata_entries();
     assert_eq!(katas.len(), 2, "the floor control and the probe entry");
 
-    let control = katas[0].content.kata.as_ref().expect("control kata");
-    assert!(control.control, "seq 1 is the negative control");
-    assert_eq!(control.verdict, "killed", "the floor control self-negates");
+    let control = present(katas[0].content.kata.as_ref(), "control kata")?;
+    assert!(control.identity.control, "seq 1 is the negative control");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the floor control self-negates"
+    );
 
-    let probe = katas[1].content.kata.as_ref().expect("probe kata");
-    assert!(!probe.control);
-    assert_eq!(probe.kata_id, "probe-migration");
+    let probe = present(katas[1].content.kata.as_ref(), "probe kata")?;
+    assert!(!probe.identity.control);
+    assert_eq!(probe.identity.kata_id, "probe-migration");
     assert_eq!(
         probe.catalog_hash,
         catalog::probe_catalog_hash("probe-migration"),
@@ -46,12 +57,12 @@ fn fixture_probe_ledger_validates_green_and_round_trips_its_ids() {
     );
 
     // The content address recomputes from the bytes on disk.
-    let files = ledger_files(&ledger.dir).expect("ledger files listed");
+    let files = ledger_files(&ledger.dir).map_err(|violation| format!("{violation:?}"))?;
     assert_eq!(files.len(), 2, "one file per written entry");
     for path in &files {
-        let entry = read_entry_file(path).expect("the sealed entry re-reads");
+        let entry = read_entry_file(path).map_err(|violation| format!("{violation:?}"))?;
         assert_eq!(
-            entry_id(&entry.content).expect("content hashes"),
+            entry_id(&entry.content)?,
             entry.id,
             "{} content-addresses to its sealed id",
             path.display()
@@ -62,25 +73,26 @@ fn fixture_probe_ledger_validates_green_and_round_trips_its_ids() {
     assert_eq!(
         derive_probe_verdict(
             "probe-migration",
-            &probe.comparison.unique_detections,
-            probe.comparison.baseline.as_ref()
-        ),
-        Some(Verdict::Survived),
+            &probe.derivation.comparison.unique_detections,
+            probe.derivation.comparison.baseline.as_ref(),
+        )?,
+        Verdict::Survived,
         "an executed arm over a non-empty unique set derives survived"
     );
-    assert_eq!(probe.verdict, "survived");
+    assert_eq!(probe.derivation.verdict, "survived");
+    Ok(())
 }
 
 #[test]
-fn stale_catalog_hash_after_the_catalog_edit_is_refused() {
+fn stale_catalog_hash_after_the_catalog_edit_is_refused() -> Result<(), TestError> {
     // The entry pinned a catalog that is not the committed one (the
     // catalog changed after the entry was sealed, or the entry was edited).
-    let stale = TempLedger::new("stale-catalog-hash");
+    let stale = TempLedger::new("stale-catalog-hash")?;
     let mut contents = green_contents();
-    contents[1].kata.as_mut().expect("probe kata").catalog_hash =
-        Some(format!("sha256:{}", "0".repeat(64)));
-    stale.write(&contents);
-    let violations = validate_dir(&stale.dir).expect_err("a stale catalog pin is refused");
+    let probe = present(contents[1].kata.as_mut(), "probe kata")?;
+    probe.catalog_hash = Some(format!("sha256:{}", "0".repeat(64)));
+    stale.write(&contents)?;
+    let violations = refused(&stale.dir, "a stale catalog pin is refused")?;
     assert!(
         violations.contains(&Violation::CatalogHashMismatch { seq: 2 }),
         "expected CatalogHashMismatch at seq 2, got {violations:?}"
@@ -88,14 +100,15 @@ fn stale_catalog_hash_after_the_catalog_edit_is_refused() {
 
     // A registered probe with expectations but no pin: the entry was sealed
     // before the catalog, so it cannot be retrofitted to it.
-    let unpinned = TempLedger::new("unpinned-catalog");
+    let unpinned = TempLedger::new("unpinned-catalog")?;
     let mut contents = green_contents();
-    contents[1].kata.as_mut().expect("probe kata").catalog_hash = None;
-    unpinned.write(&contents);
-    let violations =
-        validate_dir(&unpinned.dir).expect_err("an unpinned expectation set is refused");
+    let probe = present(contents[1].kata.as_mut(), "probe kata")?;
+    probe.catalog_hash = None;
+    unpinned.write(&contents)?;
+    let violations = refused(&unpinned.dir, "an unpinned expectation set is refused")?;
     assert!(
         violations.contains(&Violation::CatalogHashMismatch { seq: 2 }),
         "expected CatalogHashMismatch at seq 2, got {violations:?}"
     );
+    Ok(())
 }

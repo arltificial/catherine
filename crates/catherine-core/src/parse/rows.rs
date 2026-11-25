@@ -69,10 +69,11 @@ pub(super) fn check_rows(
             ));
         }
     }
-    let mut row_index: BTreeMap<String, BTreeMap<String, RowId>> = BTreeMap::new();
-    for (obj_name, rows) in &instance.rows {
-        row_index.insert(obj_name.clone(), row_ids(obj_name, rows, spans)?);
-    }
+    let row_index: BTreeMap<String, BTreeMap<String, RowId>> = instance
+        .rows
+        .iter()
+        .map(|(obj_name, rows)| Ok((obj_name.clone(), row_ids(obj_name, rows, spans)?)))
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
     Ok(row_index)
 }
 

@@ -18,8 +18,10 @@
 //! multisets — no unique-detection or detection-rate claim is made here,
 //! and the expectation table is read, never edited.
 
-use catherine_analysis::bounds::{self, ScopeCaps};
-use catherine_analysis::pattern::{self, LensFindings, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::bounds::ScopeCaps;
+use catherine_analysis::pattern::{
+    self, LensCall, LensFindings, LensInput, LensOutcome, PatternLens,
+};
 use catherine_core::findings::Finding;
 use catherine_core::findings::{
     DanglingWitness, EpistemicLabel, EquationWitness, FindingKind, ViolationWitness,
@@ -100,7 +102,10 @@ fn run_on(relative: &str) -> LensFindings {
         model: &model,
         values: &[],
     };
-    match composite::Lens.run(&input, &ScopeCaps::default()) {
+    match composite::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => findings,
         LensOutcome::Unknown { scope } => {
             panic!("composite on {relative} reported unknown: {scope}")
@@ -129,7 +134,10 @@ fn every_composite_row_matches_the_recorded_multiset() {
             model: &model,
             values: &values,
         };
-        let findings = match composite::Lens.run(&input, &caps) {
+        let findings = match composite::Lens.run(LensCall {
+            input: &input,
+            caps: &caps,
+        }) {
             LensOutcome::Findings(findings) => findings,
             LensOutcome::Unknown { scope } => {
                 panic!("composite on {} reported unknown: {scope}", row.fixture)
@@ -234,7 +242,10 @@ fn values_on_a_lens_without_a_rule_table_are_unknown() {
         model: &model,
         values: &values,
     };
-    match composite::Lens.run(&input, &ScopeCaps::default()) {
+    match composite::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => {
             assert!(scope.contains("--values"), "names the flag: {scope}");
         }

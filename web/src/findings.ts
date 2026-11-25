@@ -183,6 +183,17 @@ export function witnessText(finding: FindingEnc): string {
   }
 }
 
+/** The execution-scope summary line, when the kernel checked one. */
+function scopeNote(scope: ExecutionScope): Element {
+  return el("p", { class: "scope" }, [
+    text(
+      `constraints checked: ${scope.constraints_checked}` +
+        ` · rows evaluated: ${scope.rows_evaluated}` +
+        ` · equations over zero rows: ${scope.equations_over_zero_rows}`,
+    ),
+  ]);
+}
+
 /**
  * Render the findings into `container` (which the panel owns: it is
  * cleared first). One `li.finding` per finding — kind label, epistemic
@@ -199,15 +210,7 @@ export function renderFindings(
 ): void {
   clear(container);
   if (scope !== undefined) {
-    container.append(
-      el("p", { class: "scope" }, [
-        text(
-          `constraints checked: ${scope.constraints_checked}` +
-            ` · rows evaluated: ${scope.rows_evaluated}` +
-            ` · equations over zero rows: ${scope.equations_over_zero_rows}`,
-        ),
-      ]),
-    );
+    container.append(scopeNote(scope));
   }
   const list = el("ul", { class: "findings" });
   for (const finding of findings) {

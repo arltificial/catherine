@@ -12,13 +12,13 @@ use catherine_core::instance::TypedInstance;
 use catherine_core::model::{ConstraintStatus, Schema};
 
 /// to the small assertion helpers below, in the same order as before.
-pub(crate) fn assert_witness_in_scope(schema: &Schema, built: &TypedInstance, finding: &Finding) {
+pub(crate) fn assert_witness_in_scope(inputs: (&Schema, &TypedInstance), finding: &Finding) {
     match &finding.kind {
         FindingKind::Dangling(w) => {
-            assert_dangling_witness_in_scope(schema, built, finding.label, w)
+            assert_dangling_witness_in_scope(inputs, (finding.label, w))
         }
         FindingKind::Violation(ViolationWitness::Equation(w)) => {
-            assert_equation_witness_in_scope(schema, built, finding.label, w)
+            assert_equation_witness_in_scope(inputs, (finding.label, w))
         }
 
         FindingKind::Violation(ViolationWitness::Naturality(_)) => {
@@ -30,11 +30,11 @@ pub(crate) fn assert_witness_in_scope(schema: &Schema, built: &TypedInstance, fi
         }
 
         FindingKind::Violation(ViolationWitness::Coproduct(w)) => {
-            assert_coproduct_witness_in_scope(schema, built, finding.label, w)
+            assert_coproduct_witness_in_scope(inputs, (finding.label, w))
         }
 
         FindingKind::Violation(ViolationWitness::Key(w)) => {
-            assert_key_witness_in_scope(schema, built, finding.label, w)
+            assert_key_witness_in_scope(inputs, (finding.label, w))
         }
         // The generated fixture declares no pullbacks
         // (`fixture::assemble` always fills `pullbacks` with
@@ -63,11 +63,11 @@ pub(crate) fn assert_witness_in_scope(schema: &Schema, built: &TypedInstance, fi
 /// A dangling witness names a declared arrow and a row of that arrow's
 /// source object.
 pub(crate) fn assert_dangling_witness_in_scope(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &DanglingWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &DanglingWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert_eq!(label, EpistemicLabel::Executed, "dangling is executed");
     let cells = built.tables().get(&w.arrow);
     assert!(cells.is_some(), "dangling arrow `{w:?}` declared");
@@ -83,11 +83,11 @@ pub(crate) fn assert_dangling_witness_in_scope(
 /// domain and composed values of its path's target; the label mirrors the
 /// equation's status.
 pub(crate) fn assert_equation_witness_in_scope(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &EquationWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &EquationWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert!(w.equation < schema.equations.len(), "equation index valid");
     let eq = &schema.equations[w.equation];
     assert_eq!(
@@ -112,11 +112,11 @@ pub(crate) fn assert_equation_witness_in_scope(
 /// A coproduct violation names a valid coproduct and a row of its object;
 /// the label mirrors the coproduct's status.
 pub(crate) fn assert_coproduct_witness_in_scope(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &CoproductWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &CoproductWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert!(
         w.coproduct < schema.coproducts.len(),
         "coproduct index valid"
@@ -141,11 +141,11 @@ pub(crate) fn assert_coproduct_witness_in_scope(
 /// A key violation names a valid key, ascending rows of the key's object;
 /// the label mirrors the key's status.
 pub(crate) fn assert_key_witness_in_scope(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &KeyWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &KeyWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert!(w.key < schema.keys.len(), "key index valid");
     let key = &schema.keys[w.key];
     let n = built.rows().get(&key.object).map(Vec::len).unwrap_or(0);

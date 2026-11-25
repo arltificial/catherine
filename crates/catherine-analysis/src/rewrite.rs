@@ -72,9 +72,12 @@ fn rewrite_step(path: &[Ident], rules: &[Rule]) -> Option<Vec<Ident>> {
     for position in 0..path.len() {
         for rule in rules {
             if path[position..].starts_with(&rule.lhs) {
-                let mut next = path[..position].to_vec();
-                next.extend_from_slice(&rule.rhs);
-                next.extend_from_slice(&path[position + rule.lhs.len()..]);
+                let next: Vec<Ident> = path[..position]
+                    .iter()
+                    .cloned()
+                    .chain(rule.rhs.iter().cloned())
+                    .chain(path[position + rule.lhs.len()..].iter().cloned())
+                    .collect();
                 return Some(next);
             }
         }
@@ -85,8 +88,7 @@ fn rewrite_step(path: &[Ident], rules: &[Rule]) -> Option<Vec<Ident>> {
 /// Rewrite `path` to its normal form under `rules`. `None` = the step
 /// cap was hit: no normal form was established, so nothing is proven.
 fn normal_form(path: &Path, rules: &[Rule], max_steps: usize) -> Option<Vec<Ident>> {
-    let mut current = path.0.clone();
-    let mut steps = 0;
+    let (mut current, mut steps) = (path.0.clone(), 0usize);
     loop {
         match rewrite_step(&current, rules) {
             None => return Some(current),
@@ -110,28 +112,41 @@ fn normal_form(path: &Path, rules: &[Rule], max_steps: usize) -> Option<Vec<Iden
 /// bullet: declared equations derivable from the others — each accepted
 /// equation is itself a candidate.
 pub fn redundant(schema: &Schema, caps: &ScopeCaps) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    for (index, equation) in schema.equations.iter().enumerate() {
-        if equation.status != ConstraintStatus::Accepted {
-            continue;
-        }
-        let theory = oriented_theory(&schema.equations, index);
-        if theory.is_empty() {
-            // No other accepted rules: a derivation from nothing proves
-            // only literal identity, which is not a redundancy claim.
-            continue;
-        }
-        let (Some(lhs_nf), Some(rhs_nf)) = (
-            normal_form(&equation.lhs, &theory, caps.max_rewrite_steps),
-            normal_form(&equation.rhs, &theory, caps.max_rewrite_steps),
-        ) else {
-            // A cap hit anywhere in the derivation: not a proof, no claim.
-            continue;
-        };
-        if lhs_nf == rhs_nf {
-            findings.push(redundant_finding(equation.lhs.clone(), Path(lhs_nf)));
-        }
-    }
+    let mut findings: Vec<Finding> = schema
+        .equations
+        .iter()
+        .enumerate()
+        .filter_map(|(index, equation)| {
+            derivable_redundancy(&schema.equations, index, equation, caps)
+        })
+        .collect();
     findings.sort();
     findings
+}
+
+/// One accepted equation's redundancy proof, if any: its derivation
+/// theory, both sides' normal forms, and whether they coincide. `None`
+/// when the equation is not accepted, stands alone (a derivation from
+/// nothing proves only literal identity, which is not a redundancy
+/// claim), or hits the rewrite cap anywhere (a cap hit is not a proof).
+fn derivable_redundancy(
+    equations: &[Equation],
+    index: usize,
+    equation: &Equation,
+    caps: &ScopeCaps,
+) -> Option<Finding> {
+    if equation.status != ConstraintStatus::Accepted {
+        return None;
+    }
+    let theory = oriented_theory(equations, index);
+    if theory.is_empty() {
+        return None;
+    }
+    let (Some(lhs_nf), Some(rhs_nf)) = (
+        normal_form(&equation.lhs, &theory, caps.max_rewrite_steps),
+        normal_form(&equation.rhs, &theory, caps.max_rewrite_steps),
+    ) else {
+        return None;
+    };
+    (lhs_nf == rhs_nf).then(|| redundant_finding(equation.lhs.clone(), Path(lhs_nf)))
 }

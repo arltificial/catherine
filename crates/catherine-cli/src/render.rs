@@ -64,8 +64,8 @@ pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, Rule
 
 use catherine_core::findings::{
     CoproductWitness, DanglingWitness, DomainQuestion, EquationWitness, Finding, FindingKind,
-    GranularityCase, GranularityWitness, KeyWitness, NaturalityWitness, PullbackWitness,
-    UnderconstraintWitness, ViolationWitness,
+    GranularityCase, GranularityWitness, KeyWitness, MigrationNaturalityWitness, NaturalityWitness,
+    PullbackWitness, UnderconstraintWitness, ViolationWitness,
 };
 use catherine_core::model::{Ident, Pullback, RowId, Schema};
 
@@ -177,30 +177,40 @@ fn render_violation(w: &ViolationWitness, schema: &Schema, label: &str) -> Vec<S
         // the `add-migration-naturality` render polish lands: the head
         // names the broken square, the witness row carries the values.
         ViolationWitness::MigrationNaturality(witness) => {
-            let row = |v: &Option<RowId>| {
-                v.map(|r| r.0.to_string())
-                    .unwrap_or_else(|| "none".to_string())
-            };
-            let path = witness
-                .path
-                .iter()
-                .map(|a| a.0.as_str())
-                .collect::<Vec<_>>()
-                .join(" ; ");
-            vec![
-                format!(
-                    "violation: migration naturality {} ; {} ≠ {} ; migrate{label}",
-                    witness.operation.0, path, path
-                ),
-                format!(
-                    "  at row #{}: lhs={} rhs={}",
-                    witness.source_row.0,
-                    row(&witness.lhs),
-                    row(&witness.rhs)
-                ),
-            ]
+            render_migration_naturality_violation(witness, label)
         }
     }
+}
+
+/// The interim migration-naturality block: the head names the broken
+/// square; the witness row carries both sides' values (`none` when a
+/// side is undefined).
+fn render_migration_naturality_violation(
+    witness: &MigrationNaturalityWitness,
+    label: &str,
+) -> Vec<String> {
+    let row = |v: &Option<RowId>| {
+        v.map(|r| r.0.to_string())
+            .unwrap_or_else(|| "none".to_string())
+    };
+    let path = witness
+        .path
+        .iter()
+        .map(|a| a.0.as_str())
+        .collect::<Vec<_>>()
+        .join(" ; ");
+    vec![
+        format!(
+            "violation: migration naturality {} ; {} ≠ {} ; migrate{label}",
+            witness.operation.0, path, path
+        ),
+        format!(
+            "  at row #{}: lhs={} rhs={}",
+            witness.source_row.0,
+            row(&witness.lhs),
+            row(&witness.rhs)
+        ),
+    ]
 }
 
 /// The coproduct violation block: the declaration's canonical index, its

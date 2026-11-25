@@ -24,7 +24,9 @@ use catherine_core::instance::TypedInstance;
 use catherine_core::parse;
 use catherine_wasm::boundary;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+mod common;
 
 /// The workspace root (the corpus lives outside this crate's dir; tests
 /// run with the crate dir as cwd — the repo convention anchors at
@@ -34,15 +36,26 @@ const WORKSPACE_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 /// Every fixture document the parity gate covers.
 fn fixture_documents() -> Vec<PathBuf> {
     let mut docs = Vec::new();
-    let parity = Path::new(WORKSPACE_ROOT).join("fixtures/parity");
-    for dir in fs::read_dir(&parity).expect("parity corpus present") {
-        let path = dir.expect("corpus entry").path().join("model.ct.json");
+    let parity = std::path::Path::new(WORKSPACE_ROOT).join("fixtures/parity");
+    for dir in
+        fs::read_dir(&parity).unwrap_or_else(|error| panic!("parity corpus present: {error}"))
+    {
+        let path = dir
+            .unwrap_or_else(|error| panic!("corpus entry: {error}"))
+            .path()
+            .join("model.ct.json");
         docs.push(path);
     }
-    let cli = fs::read_dir(Path::new(WORKSPACE_ROOT).join("crates/catherine-cli/tests/fixtures"))
-        .expect("cli fixtures present");
+    let cli = fs::read_dir(
+        std::path::Path::new(WORKSPACE_ROOT).join("crates/catherine-cli/tests/fixtures"),
+    )
+    .unwrap_or_else(|error| panic!("cli fixtures present: {error}"));
     for file in cli {
-        push_fixture(file.expect("fixture entry").path(), &mut docs);
+        push_fixture(
+            file.unwrap_or_else(|error| panic!("fixture entry: {error}"))
+                .path(),
+            &mut docs,
+        );
     }
     docs.sort();
     docs
@@ -55,8 +68,12 @@ fn push_fixture(path: PathBuf, docs: &mut Vec<PathBuf>) {
     if path.is_dir() {
         docs.extend(
             fs::read_dir(&path)
-                .expect("fixture subdirectory present")
-                .map(|nested| nested.expect("nested fixture entry").path()),
+                .unwrap_or_else(|error| panic!("fixture subdirectory present: {error}"))
+                .map(|nested| {
+                    nested
+                        .unwrap_or_else(|error| panic!("nested fixture entry: {error}"))
+                        .path()
+                }),
         );
     } else {
         docs.push(path);
@@ -82,8 +99,7 @@ fn wasm_and_kernel_paths_agree_on_every_fixture() {
                 let report = boundary::check(&document).unwrap_or_else(|error| {
                     panic!("boundary check failed on {}: {error:?}", path.display())
                 });
-                let value: serde_json::Value =
-                    serde_json::from_str(&report).expect("boundary report is JSON");
+                let value = common::from_json(&report);
                 assert_eq!(
                     value["findings"],
                     expected,

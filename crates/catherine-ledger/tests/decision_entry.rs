@@ -11,7 +11,6 @@
 //! canonical bytes — or the ids — of the committed kata and rollup
 //! ledgers.
 
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use catherine_ledger::entry::{
@@ -22,39 +21,7 @@ use catherine_ledger::validate::{validate_dir, Violation};
 
 mod support;
 
-/// A throwaway ledger directory per test (unique suffix, cleaned up).
-struct TempLedger(PathBuf);
-
-impl TempLedger {
-    fn new(tag: &str) -> Self {
-        let dir = std::env::temp_dir().join(format!(
-            "catherine-ledger-decision-{tag}-{}",
-            std::process::id()
-        ));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).expect("temp ledger dir created");
-        Self(dir)
-    }
-
-    /// Seal contents and write them as the ledger's files, in order.
-    fn write(&self, contents: &[EntryContent]) {
-        for content in contents {
-            let entry = seal(content.clone()).expect("entry seals");
-            let hex = entry.id.trim_start_matches("sha256:");
-            let path = self
-                .0
-                .join(format!("{:04}-{}.json", entry.content.seq, &hex[..8]));
-            fs::write(path, serde_json::to_string(&entry).expect("entry json"))
-                .expect("ledger file written");
-        }
-    }
-}
-
-impl Drop for TempLedger {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
-    }
-}
+use support::{green_contents, present, TempLedger, TestError};
 
 /// The workspace root, from this test crate's manifest directory.
 fn workspace_root() -> PathBuf {
@@ -104,8 +71,8 @@ fn decision(seq: u32, outcome: &str) -> EntryContent {
 }
 
 /// A minimal rollup over the given sealed kata entries (control first).
-fn rollup(seq: u32, katas: &[&catherine_ledger::entry::Entry]) -> EntryContent {
-    EntryContent {
+fn rollup(seq: u32, katas: &[&catherine_ledger::entry::Entry]) -> Result<EntryContent, TestError> {
+    Ok(EntryContent {
         seq,
         kind: "rollup".into(),
         recorded: "2026-11-17".into(),
@@ -116,14 +83,14 @@ fn rollup(seq: u32, katas: &[&catherine_ledger::entry::Entry]) -> EntryContent {
             per_kata: katas
                 .iter()
                 .map(|entry| {
-                    let kata = entry.content.kata.as_ref().expect("kata record");
-                    KataVerdict {
-                        kata_id: kata.kata_id.clone(),
+                    let kata = present(entry.content.kata.as_ref(), "kata record")?;
+                    Ok(KataVerdict {
+                        kata_id: kata.identity.kata_id.clone(),
                         entry_id: entry.id.clone(),
-                        verdict: kata.verdict.clone(),
-                    }
+                        verdict: kata.derivation.verdict.clone(),
+                    })
                 })
-                .collect(),
+                .collect::<Result<Vec<_>, TestError>>()?,
             control_gate: "passed".into(),
             gates: Gates {
                 p7_catherine_alr: "blocked".into(),
@@ -135,17 +102,30 @@ fn rollup(seq: u32, katas: &[&catherine_ledger::entry::Entry]) -> EntryContent {
         model_hashes: vec!["sha256:rollup".into()],
         supersedes: None,
         decision: None,
+    })
+}
+
+/// The `Err` arm of a validation expected to fail: the named refusal, or
+/// a test failure naming the case that validated instead.
+fn refusals(
+    case: &str,
+    validated: Result<catherine_ledger::validate::ValidLedger, Vec<Violation>>,
+) -> Result<Vec<Violation>, TestError> {
+    match validated {
+        Ok(_) => Err(case.to_string().into()),
+        Err(violations) => Ok(violations),
     }
 }
 
 /// A decision entry round-trips through the canonical bytes and validates
 /// under the same content-address rules as the kata and rollup entries.
 #[test]
-fn decision_entry_round_trips_and_validates() {
-    let ledger = TempLedger::new("round-trip");
-    ledger.write(&[decision(1, "extend")]);
+fn decision_entry_round_trips_and_validates() -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("round-trip")?;
+    ledger.write(&[decision(1, "extend")])?;
 
-    let valid = validate_dir(&ledger.0).expect("a stop-gate decision is a valid ledger");
+    let valid = validate_dir(&ledger.dir)
+        .map_err(|v| format!("a stop-gate decision is a valid ledger: {v:?}"))?;
     assert_eq!(valid.entries.len(), 1);
     let entry = &valid.entries[0];
     assert_eq!(entry.content.kind, "decision");
@@ -156,11 +136,7 @@ fn decision_entry_round_trips_and_validates() {
     );
     assert!(entry.content.rollup.is_none(), "decision carries no rollup");
 
-    let record = entry
-        .content
-        .decision
-        .as_ref()
-        .expect("the decision record is present");
+    let record = present(entry.content.decision.as_ref(), "the decision record")?;
     assert_eq!(record.outcome, "extend");
     assert_eq!(record.proofs.len(), 2, "the theorem names are recorded");
     assert_eq!(
@@ -175,20 +151,23 @@ fn decision_entry_round_trips_and_validates() {
 
     // Round trip: the file's sealed content deserializes to the same
     // content and re-seals to the same id.
-    let files = catherine_ledger::validate::ledger_files(&ledger.0).expect("ledger files listed");
-    let read = catherine_ledger::validate::read_entry_file(&files[0]).expect("entry read back");
+    let files = catherine_ledger::validate::ledger_files(&ledger.dir)
+        .map_err(|v| format!("ledger files listed: {v:?}"))?;
+    let read = catherine_ledger::validate::read_entry_file(&files[0])
+        .map_err(|v| format!("entry read back: {v:?}"))?;
     assert_eq!(read.content, entry.content);
     assert_eq!(read.id, entry.id);
+    Ok(())
 }
 
 /// The outcome vocabulary is closed: extend | hold | retire, and nothing
 /// else. An unknown outcome is a named rejection.
 #[test]
-fn outcome_outside_the_closed_vocabulary_is_named() {
-    let ledger = TempLedger::new("bad-outcome");
-    ledger.write(&[decision(1, "escalate")]);
+fn outcome_outside_the_closed_vocabulary_is_named() -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("bad-outcome")?;
+    ledger.write(&[decision(1, "escalate")])?;
 
-    let violations = validate_dir(&ledger.0).expect_err("an unknown outcome is refused");
+    let violations = refusals("an unknown outcome is refused", validate_dir(&ledger.dir))?;
     assert!(
         violations.contains(&Violation::InvalidDecisionOutcome {
             seq: 1,
@@ -196,81 +175,94 @@ fn outcome_outside_the_closed_vocabulary_is_named() {
         }),
         "the violation names the seq and the offending outcome: {violations:?}"
     );
+    Ok(())
 }
 
 /// The existing model-hash rule applies unchanged to decision entries.
 #[test]
-fn decision_without_model_hashes_is_refused() {
-    let ledger = TempLedger::new("no-model-hashes");
+fn decision_without_model_hashes_is_refused() -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("no-model-hashes")?;
     let mut content = decision(1, "hold");
     content.model_hashes.clear();
-    ledger.write(&[content]);
+    ledger.write(&[content])?;
 
-    let violations = validate_dir(&ledger.0).expect_err("a decision must cite model hashes");
+    let violations = refusals(
+        "a decision must cite model hashes",
+        validate_dir(&ledger.dir),
+    )?;
     assert!(
         violations.contains(&Violation::MissingModelHashes { seq: 1 }),
         "the existing model-hash rule still applies: {violations:?}"
     );
+    Ok(())
 }
 
 /// Kind and payload must agree: `decision` without a record is malformed,
 /// never a silently empty decision.
 #[test]
-fn decision_kind_without_record_is_malformed() {
-    let ledger = TempLedger::new("missing-record");
+fn decision_kind_without_record_is_malformed() -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("missing-record")?;
     let mut content = decision(1, "retire");
     content.decision = None;
-    ledger.write(&[content]);
+    ledger.write(&[content])?;
 
-    let violations = validate_dir(&ledger.0).expect_err("a decision kind needs its record");
+    let violations = refusals(
+        "a decision kind needs its record",
+        validate_dir(&ledger.dir),
+    )?;
     assert!(
         violations
             .iter()
             .any(|violation| matches!(violation, Violation::MalformedDecision { seq: 1, .. })),
         "the violation names the malformed decision: {violations:?}"
     );
+    Ok(())
 }
 
 /// Kind and payload must agree the other way too: a decision record on a
 /// non-decision kind is malformed.
 #[test]
-fn decision_record_on_a_non_decision_kind_is_malformed() {
-    let ledger = TempLedger::new("wrong-kind");
+fn decision_record_on_a_non_decision_kind_is_malformed() -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("wrong-kind")?;
     let mut content = decision(1, "hold");
     content.kind = "kata".into();
-    ledger.write(&[content]);
+    ledger.write(&[content])?;
 
-    let violations =
-        validate_dir(&ledger.0).expect_err("a decision record needs the decision kind");
+    let violations = refusals(
+        "a decision record needs the decision kind",
+        validate_dir(&ledger.dir),
+    )?;
     assert!(
         violations
             .iter()
             .any(|violation| matches!(violation, Violation::MalformedDecision { seq: 1, .. })),
         "the violation names the malformed decision: {violations:?}"
     );
+    Ok(())
 }
 
 /// Decisions are terminal records after the rollup: appending one must not
 /// displace the rollup or change its coverage over the kata entries.
 #[test]
-fn decision_after_the_rollup_keeps_the_rollup_in_place() {
-    let contents = support::green_contents();
+fn decision_after_the_rollup_keeps_the_rollup_in_place() -> Result<(), Box<dyn std::error::Error>> {
+    let contents = green_contents();
     let sealed: Vec<_> = contents
         .iter()
         .cloned()
-        .map(|content| seal(content).expect("kata entry seals"))
-        .collect();
+        .map(seal)
+        .collect::<Result<_, _>>()?;
     let katas: Vec<&catherine_ledger::entry::Entry> = sealed.iter().collect();
     let mut ledger_contents = contents;
-    ledger_contents.push(rollup(3, &katas));
+    ledger_contents.push(rollup(3, &katas)?);
 
-    let ledger = TempLedger::new("after-rollup");
-    ledger.write(&ledger_contents);
-    validate_dir(&ledger.0).expect("the kata ledger with its rollup validates");
+    let ledger = TempLedger::new("after-rollup")?;
+    ledger.write(&ledger_contents)?;
+    validate_dir(&ledger.dir)
+        .map_err(|v| format!("the kata ledger with its rollup validates: {v:?}"))?;
 
-    ledger.write(&[decision(4, "hold")]);
-    let valid =
-        validate_dir(&ledger.0).expect("a terminal decision after the rollup does not displace it");
+    ledger.write(&[decision(4, "hold")])?;
+    let valid = validate_dir(&ledger.dir)
+        .map_err(|v| format!("a terminal decision after the rollup does not displace it: {v:?}"))?;
     assert_eq!(valid.entries.len(), 4);
     assert_eq!(
         valid.rollup().map(|entry| entry.content.seq),
@@ -282,15 +274,16 @@ fn decision_after_the_rollup_keeps_the_rollup_in_place() {
         2,
         "the decision neither joins nor disturbs kata coverage"
     );
+    Ok(())
 }
 
 /// Regression: the committed ledger's canonical bytes and ids are
 /// untouched by the schema extension. These ids were captured from the
 /// files before the `decision` field existed.
 #[test]
-fn existing_coproduct_entry_ids_are_unchanged() {
+fn existing_coproduct_entry_ids_are_unchanged() -> Result<(), Box<dyn std::error::Error>> {
     let valid = validate_dir(&workspace_root().join("ledger/probes/coproduct"))
-        .expect("the committed coproduct ledger still validates");
+        .map_err(|v| format!("the committed coproduct ledger still validates: {v:?}"))?;
     let ids: Vec<&str> = valid
         .entries
         .iter()
@@ -310,10 +303,11 @@ fn existing_coproduct_entry_ids_are_unchanged() {
             entry.content.decision.is_none(),
             "existing entries carry no decision payload"
         );
-        let bytes = serde_json::to_string(&entry.content).expect("content serializes");
+        let bytes = serde_json::to_string(&entry.content)?;
         assert!(
             !bytes.contains("\"decision\""),
             "the absent field is skipped, not serialized as null: {bytes}"
         );
     }
+    Ok(())
 }

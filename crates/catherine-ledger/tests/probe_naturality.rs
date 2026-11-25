@@ -24,47 +24,66 @@ use std::path::Path;
 use catherine_ledger::validate::validate_dir;
 
 use probe_support::{
-    assert_entry_cites_the_registration, assert_fixture_hash_is_current, fixture_hash, ROOT,
+    assert_entry_cites_the_registration, assert_fixture_hash_is_current, fixture_hash, present,
+    TestError, ROOT,
 };
+
+/// Both probe fixtures, path and pinned canonical hash.
+const PINNED: [(&str, &str); 2] = [
+    (
+        "fixtures/probes/naturality/crm.ct.json",
+        "sha256:9bb77131b3a800a6cb0b6d082aad4cec571358f7b821c85252774671a90c4d5b",
+    ),
+    (
+        "fixtures/probes/naturality/warehouse_break.ct.json",
+        "sha256:ca16f21500712bc3ccdd178bdad3ccdba362540987eb70279548495e7023972c",
+    ),
+];
 
 /// Both probe fixtures are pinned: an edit to a committed probe fixture
 /// must be a new ledger entry, never a silent change.
 #[test]
-fn naturality_fixture_hashes_are_pinned() {
-    assert_eq!(
-        fixture_hash("fixtures/probes/naturality/crm.ct.json"),
-        "sha256:9bb77131b3a800a6cb0b6d082aad4cec571358f7b821c85252774671a90c4d5b"
-    );
-    assert_eq!(
-        fixture_hash("fixtures/probes/naturality/warehouse_break.ct.json"),
-        "sha256:ca16f21500712bc3ccdd178bdad3ccdba362540987eb70279548495e7023972c"
-    );
+fn naturality_fixture_hashes_are_pinned() -> Result<(), TestError> {
+    for (path, pin) in PINNED {
+        assert_eq!(fixture_hash(path)?, pin, "{path} drifted from its pin");
+    }
+    Ok(())
 }
 
 /// The probe ledger validates, the control went first and self-negated,
 /// the wrong-question arm records the null result, and every recorded
 /// verdict is the one the comparison arithmetic derives.
 #[test]
-fn naturality_probe_ledger_records_the_preregistered_evidence() {
+fn naturality_probe_ledger_records_the_preregistered_evidence() -> Result<(), TestError> {
     let dir = Path::new(ROOT).join("ledger/probes/naturality");
-    let valid = validate_dir(&dir).expect("the naturality probe ledger validates");
+    let valid = validate_dir(&dir).map_err(|violations| format!("{violations:?}"))?;
     assert_eq!(valid.entries.len(), 2, "control + wrong-question arm");
 
     let katas = valid.kata_entries();
-    let control = katas[0].content.kata.as_ref().expect("kata");
-    assert!(control.control, "the floor control is first");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
-    assert!(control.comparison.unique_detections.is_empty());
+    let control = present(katas[0].content.kata.as_ref(), "kata")?;
+    assert!(control.identity.control, "the floor control is first");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(control.derivation.comparison.unique_detections.is_empty());
 
-    let wrong_question = katas[1].content.kata.as_ref().expect("kata");
-    assert_eq!(wrong_question.kata_id, "probe-naturality");
-    assert!(!wrong_question.control, "the second entry is the probe arm");
+    let wrong_question = present(katas[1].content.kata.as_ref(), "kata")?;
+    assert_eq!(wrong_question.identity.kata_id, "probe-naturality");
     assert!(
-        wrong_question.comparison.unique_detections.is_empty(),
+        !wrong_question.identity.control,
+        "the second entry is the probe arm"
+    );
+    assert!(
+        wrong_question
+            .derivation
+            .comparison
+            .unique_detections
+            .is_empty(),
         "the baseline arm detects the fault too: parity, no unique detections"
     );
     assert_eq!(
-        wrong_question.verdict, "killed",
+        wrong_question.derivation.verdict, "killed",
         "parity derives killed — the wrong-question gap is recorded, not a uniqueness claim"
     );
     assert!(
@@ -72,16 +91,17 @@ fn naturality_probe_ledger_records_the_preregistered_evidence() {
         "the wrong-question gap is the recorded contribution"
     );
 
+    let named_pair = PINNED
+        .iter()
+        .map(|(path, _)| fixture_hash(path))
+        .collect::<Result<Vec<_>, TestError>>()?;
     for entry in &katas {
-        assert_entry_cites_the_registration(entry, "probe-naturality");
-        assert_fixture_hash_is_current(entry);
+        assert_entry_cites_the_registration(entry, "probe-naturality")?;
+        assert_fixture_hash_is_current(entry)?;
         assert_eq!(
-            entry.content.model_hashes,
-            vec![
-                fixture_hash("fixtures/probes/naturality/crm.ct.json"),
-                fixture_hash("fixtures/probes/naturality/warehouse_break.ct.json"),
-            ],
+            entry.content.model_hashes, named_pair,
             "the validated models are the fixture pair it names"
         );
     }
+    Ok(())
 }

@@ -26,14 +26,12 @@ pub fn command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, O,
         unreachable!("dispatch routes only Commands::Pattern here");
     };
     super::run_pattern(
-        model,
-        id.as_deref(),
-        values,
-        *list,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
+        super::PatternRun {
+            model_path: model,
+            id: id.as_deref(),
+            values,
+            list: *list,
+        },
+        ctx,
     )
 }

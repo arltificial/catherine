@@ -28,7 +28,6 @@ use catherine_core::hash::model_hash;
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{ConstraintStatus, Coproduct, Ident, Model, RowId};
 use catherine_core::parse::parse;
-
 /// A format template with one `__SECTION__` slot (the coproduct section or
 /// nothing) and the instance slots the check tests fill.
 const DOC: &str = r#"{
@@ -73,7 +72,8 @@ const PROPOSED: &str = r#"{"object": "C", "arrows": ["i1", "i2"], "status": "pro
 const EMPTY_ROWS: &str = r#""C": [], "V1": [], "V2": []"#;
 
 /// Fill a template's four slots.
-fn fill(template: &str, section: &str, rows: &str, i1: &str, i2: &str) -> String {
+fn fill(template: &str, slots: (&str, &str, &str, &str)) -> String {
+    let (section, rows, i1, i2) = slots;
     template
         .replace("__SECTION__", section)
         .replace("__ROWS__", rows)
@@ -87,7 +87,10 @@ fn section(raw: &str) -> String {
 }
 
 fn parsed(text: &str) -> Model {
-    parse(text).expect("the document parses")
+    match parse(text) {
+        Ok(model) => model,
+        Err(error) => panic!("the document fails to parse: {error:?}"),
+    }
 }
 
 fn coproduct(arrows: &[&str], status: ConstraintStatus) -> Coproduct {
@@ -113,8 +116,8 @@ const ORDER_TWO: &str = r#"{"object": "C", "arrows": ["i1"], "status": "accepted
 /// `(object, arrows, status)` order, and a repeated declaration is kept.
 #[test]
 fn coproducts_round_trip_and_canonicalize() {
-    let first = parsed(&fill(DOC, &section(ORDER_ONE), EMPTY_ROWS, "", ""));
-    let second = parsed(&fill(DOC, &section(ORDER_TWO), EMPTY_ROWS, "", ""));
+    let first = parsed(&fill(DOC, (&section(ORDER_ONE), EMPTY_ROWS, "", "")));
+    let second = parsed(&fill(DOC, (&section(ORDER_TWO), EMPTY_ROWS, "", "")));
     assert_eq!(
         first.schema.coproducts,
         vec![
@@ -130,11 +133,10 @@ fn coproducts_round_trip_and_canonicalize() {
         canonical_bytes(&second),
         "input order never reaches the canonical bytes"
     );
-    assert_eq!(
-        parse(&serialize(&first)).expect("canonical bytes parse"),
-        first,
-        "serialize/parse is a fixed point"
-    );
+    let Ok(round_tripped) = parse(&serialize(&first)) else {
+        panic!("canonical bytes fail to parse")
+    };
+    assert_eq!(round_tripped, first, "serialize/parse is a fixed point");
 }
 
 /// Scenario "Malformed coproduct is rejected at its node": each defect is
@@ -176,16 +178,17 @@ fn malformed_coproduct_is_rejected_at_its_node() {
     ];
     assert_eq!(cases.len(), 7, "every malformed-coproduct class is pinned");
     for (raw, column, what) in cases {
-        assert_invalid(raw, column, what);
+        assert_invalid((raw, column), what);
     }
 }
 
 /// One malformed declaration: the pinned node (line 14, six columns of
 /// indent) and the stable code.
-fn assert_invalid(raw: &str, column: usize, what: &str) {
-    let text = fill(DOC, &section(raw), EMPTY_ROWS, "", "");
-    let ParseError::Semantic(error) = parse(&text).expect_err(what) else {
-        panic!("{what}: expected a semantic rejection");
+fn assert_invalid(drawn: (&str, usize), what: &str) {
+    let (raw, column) = drawn;
+    let text = fill(DOC, (&section(raw), EMPTY_ROWS, "", ""));
+    let Err(ParseError::Semantic(error)) = parse(&text) else {
+        panic!("{what}: not a semantic rejection");
     };
     assert_eq!(
         error.code,
@@ -210,8 +213,12 @@ fn assert_invalid(raw: &str, column: usize, what: &str) {
 /// omitted exactly like an absent one.
 #[test]
 fn absent_coproducts_are_hash_neutral() {
-    let text = std::fs::read_to_string(SMALL_FIXTURE).expect("corpus fixture exists");
-    let model = parse(&text).expect("the pre-change corpus fixture parses");
+    let Ok(text) = std::fs::read_to_string(SMALL_FIXTURE) else {
+        panic!("the corpus fixture is missing")
+    };
+    let Ok(model) = parse(&text) else {
+        panic!("the pre-change corpus fixture fails to parse")
+    };
     assert_eq!(
         canonical_bytes(&model),
         SMALL_PRE_CHANGE_CANONICAL,
@@ -227,8 +234,8 @@ fn absent_coproducts_are_hash_neutral() {
         "an absent section is never emitted"
     );
 
-    let empty = parsed(&fill(DOC, &section(""), EMPTY_ROWS, "", ""));
-    let absent = parsed(&fill(DOC, "", EMPTY_ROWS, "", ""));
+    let empty = parsed(&fill(DOC, (&section(""), EMPTY_ROWS, "", "")));
+    let absent = parsed(&fill(DOC, ("", EMPTY_ROWS, "", "")));
     assert_eq!(canonical_bytes(&empty), canonical_bytes(&absent));
     assert_eq!(model_hash(&empty), model_hash(&absent));
     assert!(
@@ -240,13 +247,15 @@ fn absent_coproducts_are_hash_neutral() {
 /// Scenario "Current major parses": 1.6 is the known minor; 1.7 is not.
 #[test]
 fn current_major_parses_a_1_5_document() {
-    let text = fill(DOC, &section(ACCEPTED), EMPTY_ROWS, "", "");
-    let model = parse(&text).expect("1.5 is an accepted additive minor");
+    let text = fill(DOC, (&section(ACCEPTED), EMPTY_ROWS, "", ""));
+    let Ok(model) = parse(&text) else {
+        panic!("1.5 is not an accepted additive minor")
+    };
     assert_eq!(model.format_version.minor, 5);
 
     let too_new = text.replace("\"format_version\": \"1.5\"", "\"format_version\": \"1.7\"");
-    let ParseError::Semantic(error) = parse(&too_new).expect_err("1.7 is unknown") else {
-        panic!("an unknown minor is a semantic rejection");
+    let Err(ParseError::Semantic(error)) = parse(&too_new) else {
+        panic!("an unknown minor is accepted")
     };
     assert_eq!(error.code, ErrorCode::UnsupportedVersion);
     assert_eq!((error.line, error.column), (2, 21));
@@ -258,14 +267,18 @@ fn current_major_parses_a_1_5_document() {
 }
 
 /// Parse -> build -> check over the check template.
-fn findings(coproducts: &str, rows: &str, i1: &str, i2: &str) -> Vec<Finding> {
-    let text = fill(CHECK_DOC, &section(coproducts), rows, i1, i2);
-    let model = parse(&text).expect("the check document parses");
+fn findings(drawn: (&str, &str, &str, &str)) -> Vec<Finding> {
+    let (coproducts, rows, i1, i2) = drawn;
+    let text = fill(CHECK_DOC, (&section(coproducts), rows, i1, i2));
+    let Ok(model) = parse(&text) else {
+        panic!("the check document fails to parse")
+    };
     let built = TypedInstance::build(&model.schema, &model.instance);
     check(&model.schema, &built)
 }
 
-fn coproduct_finding(label: EpistemicLabel, row: usize, injections: &[&str]) -> Finding {
+fn coproduct_finding(drawn: (EpistemicLabel, usize), injections: &[&str]) -> Finding {
+    let (label, row) = drawn;
     Finding {
         label,
         kind: FindingKind::Violation(ViolationWitness::Coproduct(CoproductWitness {
@@ -279,42 +292,51 @@ fn coproduct_finding(label: EpistemicLabel, row: usize, injections: &[&str]) -> 
     }
 }
 
-/// Scenario "Rogue variant is a violation with a witness": exactly one
-/// executed violation names the uncovered `C` row and no injection pair.
+/// Scenarios "Rogue variant is a violation with a witness" and "Dual
+/// coverage is a violation naming both injections": an accepted
+/// coproduct's executed violation names the uncovered `C` row, with an
+/// injection pair exactly when that row is doubly covered.
 #[test]
-fn rogue_variant_is_one_executed_violation() {
-    let findings = findings(
-        ACCEPTED,
-        r#""C": ["c1", "c2", "c3"], "V1": ["v1"], "V2": ["v2"]"#,
-        r#""v1": "c1""#,
-        r#""v2": "c2""#,
-    );
-    assert_eq!(
-        findings,
-        vec![coproduct_finding(EpistemicLabel::Executed, 2, &[])],
-        "the uncovered `c3` row is the only failure"
-    );
-}
-
-/// Scenario "Dual coverage is a violation naming both injections": one
-/// executed violation names `c3` and both injections covering it.
-#[test]
-fn dual_coverage_names_both_injections() {
-    let findings = findings(
-        ACCEPTED,
-        r#""C": ["c1", "c2", "c3"], "V1": ["v1", "v2"], "V2": ["w1", "w2"]"#,
-        r#""v1": "c1", "v2": "c3""#,
-        r#""w1": "c3", "w2": "c2""#,
-    );
-    assert_eq!(
-        findings,
-        vec![coproduct_finding(
+fn executed_coproduct_violations_pin_their_witnesses() {
+    /// One scenario: the accepted document fragment, the supplied values,
+    /// and the pinned witness.
+    type Scenario<'a> = ((&'a str, &'a str, &'a str, &'a str), &'a [&'a str], &'a str);
+    let cases: [Scenario; 2] = [
+        (
+            (
+                ACCEPTED,
+                r#""C": ["c1", "c2", "c3"], "V1": ["v1"], "V2": ["v2"]"#,
+                r#""v1": "c1""#,
+                r#""v2": "c2""#,
+            ),
+            &[],
+            "the uncovered `c3` row is the only failure",
+        ),
+        (
+            (
+                ACCEPTED,
+                r#""C": ["c1", "c2", "c3"], "V1": ["v1", "v2"], "V2": ["w1", "w2"]"#,
+                r#""v1": "c1", "v2": "c3""#,
+                r#""w1": "c3", "w2": "c2""#,
+            ),
+            &["i1", "i2"],
+            "the doubly covered `c3` row names both injections",
+        ),
+    ];
+    for (drawn, injections, what) in cases {
+        let findings = findings(drawn);
+        assert_eq!(
+            findings,
+            vec![coproduct_finding((EpistemicLabel::Executed, 2), injections)],
+            "{what}: an accepted coproduct executes its coverage check"
+        );
+        assert_eq!(findings.len(), 1, "{what}: exactly one executed violation");
+        assert_eq!(
+            findings[0].label,
             EpistemicLabel::Executed,
-            2,
-            &["i1", "i2"]
-        )],
-        "the doubly covered `c3` row names both injections"
-    );
+            "{what}: the violation is executed, not hypothesized"
+        );
+    }
 }
 
 /// Scenario "Dangling injection cells are not double-reported": an
@@ -322,12 +344,12 @@ fn dual_coverage_names_both_injections() {
 /// finding, so the incomplete declaration emits no coverage failure.
 #[test]
 fn dangling_injection_cell_is_not_double_reported() {
-    let findings = findings(
+    let findings = findings((
         ACCEPTED,
         r#""C": ["c1", "c2", "c3"], "V1": ["v1", "v2"], "V2": ["w1"]"#,
         r#""v1": "c1""#,
         r#""w1": "c2""#,
-    );
+    ));
     assert_eq!(
         findings,
         vec![Finding {
@@ -339,40 +361,32 @@ fn dangling_injection_cell_is_not_double_reported() {
         }],
         "the dangling cell is reported once and never as a coverage failure"
     );
+    assert_ne!(
+        findings,
+        Vec::<Finding>::new(),
+        "the cell is still reported"
+    );
+    let nonempty = !findings.is_empty();
+    assert!(nonempty, "the dangling cell is never silenced");
 }
 
 /// Scenario "Clean closed table is silent": every row is covered exactly
 /// once, so the check emits nothing.
 #[test]
 fn clean_closed_table_is_silent() {
-    let findings = findings(
+    let findings = findings((
         ACCEPTED,
         r#""C": ["c1", "c2"], "V1": ["v1"], "V2": ["w1"]"#,
         r#""v1": "c1""#,
         r#""w1": "c2""#,
-    );
+    ));
     assert!(findings.is_empty(), "a clean closed table emits no finding");
 }
 
-/// A proposed coproduct's coverage failure is a question: the same
-/// witness, labeled `hypothesized`.
-#[test]
-fn proposed_coproduct_is_hypothesized() {
-    let findings = findings(
-        PROPOSED,
-        r#""C": ["c1", "c2", "c3"], "V1": ["v1"], "V2": ["v2"]"#,
-        r#""v1": "c1""#,
-        r#""v2": "c2""#,
-    );
-    assert_eq!(
-        findings,
-        vec![coproduct_finding(EpistemicLabel::Hypothesized, 2, &[])]
-    );
-}
+#[path = "coproducts/proposed.rs"]
+mod proposed;
 
-/// The pre-change identity of `fixtures/parity/small/model.ct.json`, the
-/// same value the schema-map, rule-presentation, key, and instance-map
-/// suites pin. If this moves, the coproduct section is not hash-neutral.
+/// The pre-change identity of `fixtures/parity/small/model.ct.json` (hash-neutral guard).
 const SMALL_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/small/model.ct.json"

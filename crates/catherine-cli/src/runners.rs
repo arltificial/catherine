@@ -4,20 +4,23 @@
 //! Responsibilities: the same stream discipline as [`crate::run::run`]
 //! (payloads to stdout, every error to stderr, exits from the finding
 //! classes or 0 for completed bounded runs); the shared findings-bearing
-//! runner; the query traversal's labeled `unknown_seed` error.
+//! runner; the per-run warning printer shared with `diff` and the
+//! composition paths.
 //!
 //! Rationale: no second pipeline — the same loader, the same envelope
 //! constructors, the same exit decision as the check path; a divergence
-//! between the surfaces would be a re-run-semantics bug.
+//! between the surfaces would be a re-run-semantics bug. The per-run
+//! settings and streams travel in one place, [`crate::dispatch::Ctx`],
+//! so the runners' flag inputs stay inside the parameter cap.
 
-use crate::args::{parse_direction, parse_observations, parse_rows, parse_seeds};
+use crate::args::{parse_observations, parse_rows};
+use crate::dispatch::Ctx;
 use crate::render::{self, LabeledError};
-use crate::run::{emit_error, exit_code, load_model, write_envelope};
+use crate::run::{exit_code, load_model, write_envelope};
 use catherine_analysis::bounds::{ScopeCaps, SearchBounds};
 use catherine_analysis::distinguish;
-use catherine_analysis::query::{self, Direction, NodeRef, QueryError};
 use catherine_analysis::rewrite;
-use catherine_analysis::search::{self, SearchOutcome};
+use catherine_analysis::search::{self, SearchOutcome, SearchReport};
 use catherine_core::findings::Finding;
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::{Ident, Schema};
@@ -28,9 +31,11 @@ use std::io::Write;
 mod agree;
 mod naturality;
 mod naturality_errors;
+mod query;
 mod underconstraint;
 pub use agree::run_agree;
 pub use naturality::run_naturality;
+pub use query::{run_query, QueryFlags};
 
 /// catherine-uh0: run-level warnings reach stderr in human mode too —
 /// the same `warning: <message>` line `main.rs` prints for config
@@ -50,39 +55,45 @@ pub(crate) fn print_run_warnings(json: bool, warnings: &[Warning], stderr: &mut 
 /// decision), a witness or UNKNOWN completes within its bounds (exit 0,
 /// outcome in the payload; the UNKNOWN payload names its epistemic
 /// state, which is not "clean").
-#[allow(clippy::too_many_arguments)]
 pub fn run_search(
     model_path: &str,
     rows: &[String],
     max_candidates: usize,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
     let model = match load_model(model_path) {
         Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
     let mut max_rows = match parse_rows(rows) {
         Ok(max_rows) => max_rows,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
-    let mut warnings = warnings;
-    prune_undeclared_rows(&model.schema, &mut max_rows, &mut warnings);
+    prune_undeclared_rows(&model.schema, &mut max_rows, &mut ctx.warnings);
     let bound = SearchBounds {
         max_rows,
         max_candidates,
     };
     let report = search::search(&model.schema, &bound);
-    print_run_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = render::search_envelope(&report, warnings);
-        write_envelope(&envelope, stdout, stderr, "search");
-    } else if !quiet {
-        for line in render::render_search(&report, &model.schema) {
-            let _ = writeln!(stdout, "{line}");
+    render_search_outcome(&report, &model.schema, ctx)
+}
+
+/// The render tail of [`run_search`]: run warnings, the `--json`
+/// envelope or the §5 human lines, then the outcome decides the exit —
+/// a contradiction is finding-bearing (5), anything else completes
+/// within its bounds (0).
+fn render_search_outcome(
+    report: &SearchReport,
+    schema: &Schema,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> i32 {
+    print_run_warnings(ctx.json, &ctx.warnings, ctx.stderr);
+    if ctx.json {
+        let envelope = render::search_envelope(report, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "search");
+    } else if !ctx.quiet {
+        for line in render::render_search(report, schema) {
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     match &report.outcome {
@@ -115,7 +126,11 @@ pub(crate) fn prune_undeclared_rows(
 /// contributes no edges downstream (the donor's subgraph-restriction
 /// semantics); name each ignored arrow on the warnings channel — once
 /// per distinct name. Traversal semantics and exit codes unchanged.
-fn prune_undeclared_follow(schema: &Schema, follow: &[String], warnings: &mut Vec<Warning>) {
+pub(super) fn prune_undeclared_follow(
+    schema: &Schema,
+    follow: &[String],
+    warnings: &mut Vec<Warning>,
+) {
     let mut named: Vec<&str> = Vec::new();
     for name in follow {
         let declared = schema.arrows.contains_key(&Ident(name.clone()));
@@ -129,24 +144,10 @@ fn prune_undeclared_follow(schema: &Schema, follow: &[String], warnings: &mut Ve
 /// `redundant`: findings-bearing op — exits through the existing
 /// min-over-class decision (7 when any redundancy is proven, 0 when
 /// none is).
-#[allow(clippy::too_many_arguments)]
-pub fn run_redundant(
-    model_path: &str,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    findings_runner(
-        model_path,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-        |schema| rewrite::redundant(schema, &ScopeCaps::default()),
-    )
+pub fn run_redundant(model_path: &str, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
+    findings_runner(model_path, ctx, |schema| {
+        rewrite::redundant(schema, &ScopeCaps::default())
+    })
 }
 
 /// `underconstraint`: findings-bearing op — exits 6 when a hypothesis is
@@ -154,68 +155,47 @@ pub fn run_redundant(
 /// the cap. One path is the unchanged single-document run; two or more
 /// are glued first, so a question that exists only at the seam carries
 /// source attribution.
-#[allow(clippy::too_many_arguments)]
 pub fn run_underconstraint(
     model_paths: &[String],
     max_path_length: usize,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
     if model_paths.len() > 1 {
-        return underconstraint::composition(
-            model_paths,
-            max_path_length,
-            json,
-            quiet,
-            warnings,
-            stdout,
-            stderr,
-        );
+        return underconstraint::composition(model_paths, max_path_length, ctx);
     }
     let model_path = model_paths.first().map(String::as_str).unwrap_or_default();
-    findings_runner(
-        model_path,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-        |schema| {
-            catherine_analysis::parallel::underconstraint(
-                schema,
-                &underconstraint::path_caps(max_path_length),
-            )
-        },
-    )
+    findings_runner(model_path, ctx, underconstraint_op(max_path_length))
+}
+
+/// The `--max-path-length` flag bound into the op `findings_runner` runs.
+fn underconstraint_op(max_path_length: usize) -> impl Fn(&Schema) -> Vec<Finding> {
+    move |schema| {
+        catherine_analysis::parallel::underconstraint(
+            schema,
+            &underconstraint::path_caps(max_path_length),
+        )
+    }
 }
 
 /// The shared findings-bearing analysis runner: load once, run the op
 /// over the schema, render findings with the §5 renderer (labels
 /// intact), exit through the pure decision.
-#[allow(clippy::too_many_arguments)]
 fn findings_runner(
     model_path: &str,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
     op: impl Fn(&Schema) -> Vec<Finding>,
 ) -> i32 {
     let model = match load_model(model_path) {
         Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
     let findings = op(&model.schema);
-    if json {
-        let envelope = render::findings_envelope(&findings, None, warnings);
-        write_envelope(&envelope, stdout, stderr, "findings");
-    } else if !quiet {
+    if ctx.json {
+        let envelope = render::findings_envelope(&findings, None, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "findings");
+    } else if !ctx.quiet {
         for line in render::render_findings(&findings, &model.schema) {
-            let _ = writeln!(stdout, "{line}");
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     exit_code(&findings)
@@ -224,44 +204,64 @@ fn findings_runner(
 /// `distinguish`: completes within its bounds → exit 0 with the outcome
 /// payload; input errors (malformed or non-composing observations,
 /// out-of-range rows) are labeled errors, exit 1.
-#[allow(clippy::too_many_arguments)]
 pub fn run_distinguish(
     model_path: &str,
     second_path: &str,
     observe: &[String],
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
-    let model = match load_model(model_path) {
-        Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
-    };
-    let second = match load_model(second_path) {
-        Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+    let (model, second) = match load_two(model_path, second_path, ctx) {
+        Ok(pair) => pair,
+        Err(exit) => return exit,
     };
     if let Some(labeled) = schema_mismatch(&second.schema, &model.schema, second_path) {
-        return emit_error(&labeled, json, warnings, stdout, stderr);
+        return ctx.emit_error(&labeled);
     }
     let observations = match parse_observations(observe, &model.schema, &model.instance) {
         Ok(observations) => observations,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
     let typed_a = TypedInstance::build(&model.schema, &model.instance);
     let typed_b = TypedInstance::build(&model.schema, &second.instance);
     let report = distinguish::distinguish(&typed_a, &typed_b, &observations);
-    if json {
-        let envelope = render::distinguish_envelope(&report, warnings);
-        write_envelope(&envelope, stdout, stderr, "distinguish");
-    } else if !quiet {
-        for line in render::render_distinguish(&report, &model.schema) {
-            let _ = writeln!(stdout, "{line}");
+    render_distinguish_outcome(&report, &model.schema, ctx)
+}
+
+/// The render tail of [`run_distinguish`]: the `--json` outcome payload
+/// or the §5 human lines; a completed bounded run exits 0.
+fn render_distinguish_outcome(
+    report: &distinguish::DistinguishReport,
+    schema: &Schema,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> i32 {
+    if ctx.json {
+        let envelope = render::distinguish_envelope(report, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "distinguish");
+    } else if !ctx.quiet {
+        for line in render::render_distinguish(report, schema) {
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     0
+}
+
+/// Both documents through the shared loader; the first failure emits its
+/// labeled error (which consumes the warnings) and returns its exit code.
+#[allow(clippy::type_complexity)]
+fn load_two(
+    model_path: &str,
+    second_path: &str,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> Result<(catherine_core::model::Model, catherine_core::model::Model), i32> {
+    let model = match load_model(model_path) {
+        Ok(model) => model,
+        Err(labeled) => return Err(ctx.emit_error(&labeled)),
+    };
+    let second = match load_model(second_path) {
+        Ok(model) => model,
+        Err(labeled) => return Err(ctx.emit_error(&labeled)),
+    };
+    Ok((model, second))
 }
 
 /// catherine-18t: the second document's schema was previously parsed and
@@ -280,108 +280,4 @@ fn schema_mismatch(
         message: format!("the second document's schema differs from the first (`{second_path}`)"),
         hint: "distinguish compares two instances of the same schema; give two documents with identical schemas",
     })
-}
-
-/// `query`: the ported traversal — exit 0 with the node list; an
-/// unknown seed is a labeled error (`unknown_seed`), exit 1; a
-/// `--follow` name matching no declared arrow is named on the warnings
-/// channel (catherine-348), exit semantics unchanged.
-#[allow(clippy::too_many_arguments)]
-pub fn run_query(
-    model_path: &str,
-    seeds: &[String],
-    follow: &[String],
-    direction: &str,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    let model = match load_model(model_path) {
-        Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
-    };
-    let mut warnings = warnings;
-    prune_undeclared_follow(&model.schema, follow, &mut warnings);
-    let (walk, seeds) = match parse_direction(direction)
-        .and_then(|walk| parse_seeds(seeds).map(|seeds| (walk, seeds)))
-    {
-        Ok(pair) => pair,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
-    };
-    let reached = query_nodes(&model, walk, seeds, follow);
-    let ordered: Vec<NodeRef> = match reached {
-        Ok(nodes) => nodes.to_vec(),
-        Err(errors) => {
-            return emit_error(&unknown_seed_error(errors), json, warnings, stdout, stderr)
-        }
-    };
-    render_query_outcome(
-        direction, follow, &ordered, json, quiet, warnings, stdout, stderr,
-    )
-}
-
-/// The ported traversal over the loaded model: seeds and follow morphisms
-/// into the query op; op-level errors (unknown seeds) come back labeled.
-fn query_nodes(
-    model: &catherine_core::model::Model,
-    walk: Direction,
-    seeds: Vec<NodeRef>,
-    follow: &[String],
-) -> Result<Vec<NodeRef>, Vec<QueryError>> {
-    let morphisms: Vec<Ident> = follow.iter().map(|name| Ident(name.clone())).collect();
-    let typed = TypedInstance::build(&model.schema, &model.instance);
-    let reached = query::run(
-        &query::Query {
-            direction: walk,
-            seeds: seeds.into_iter().collect(),
-            morphisms: morphisms.into_iter().collect(),
-        },
-        &model.schema,
-        &typed,
-    );
-    reached.map(|nodes| nodes.into_iter().collect())
-}
-
-/// The query op's error as a labeled CLI error: `unknown_seed`, the op's
-/// messages joined, and the seed-spelling hint.
-fn unknown_seed_error(errors: Vec<QueryError>) -> LabeledError {
-    LabeledError {
-        code: "unknown_seed".to_string(),
-        line: None,
-        column: None,
-        message: errors
-            .iter()
-            .map(|error| error.to_string())
-            .collect::<Vec<_>>()
-            .join("; "),
-        hint: "name seeds as object#row with rows that exist in the instance",
-    }
-}
-
-/// The query success path: the envelope under `--json`, the node lines
-/// in human mode; a completed traversal exits 0.
-#[allow(clippy::too_many_arguments)]
-fn render_query_outcome(
-    direction: &str,
-    follow: &[String],
-    ordered: &[NodeRef],
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    let morphism_names: Vec<String> = follow.to_vec();
-    print_run_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = render::query_envelope(direction, &morphism_names, ordered, warnings);
-        write_envelope(&envelope, stdout, stderr, "query");
-    } else if !quiet {
-        for line in render::render_query(direction, ordered) {
-            let _ = writeln!(stdout, "{line}");
-        }
-    }
-    0
 }

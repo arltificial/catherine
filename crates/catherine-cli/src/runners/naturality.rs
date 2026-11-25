@@ -15,8 +15,9 @@
 
 use super::naturality_errors::{migration_naturality_error, naturality_error};
 use super::{print_run_warnings, schema_mismatch};
+use crate::dispatch::Ctx;
 use crate::render;
-use crate::run::{emit_error, exit_code, load_model_with_rows, write_envelope};
+use crate::run::{exit_code, load_model_with_rows, write_envelope};
 use catherine_analysis::naturality::{self, NaturalityError};
 use catherine_core::findings::Finding;
 use catherine_core::model::{Model, Schema};
@@ -29,40 +30,27 @@ use std::io::Write;
 /// the sweep emits the existing `violation`/`executed` findings and exits
 /// through the pure decision. An absent map warns (exit 0), never a
 /// silent clean.
-#[allow(clippy::too_many_arguments)]
 pub fn run_naturality(
     model_path: &str,
     second_path: &str,
-    json: bool,
-    quiet: bool,
-    mut warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
-    crate::composition::warn_duplicate_inputs(
-        &[model_path, second_path],
-        json,
-        &mut warnings,
-        stderr,
-    );
-    let Ok((source, source_names, target, target_names, warnings)) =
-        load_both_documents(model_path, second_path, json, warnings, stdout, stderr)
+    crate::composition::warn_duplicate_inputs(&[model_path, second_path], ctx);
+    let Ok((source, source_names, target, target_names)) =
+        load_both_documents(model_path, second_path, ctx)
     else {
         return 1;
     };
     dispatch_mode(
-        &source,
-        &source_names,
-        &target,
-        &target_names,
+        (&source, &source_names, &target, &target_names),
         second_path,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
+        ctx,
     )
 }
+
+/// Both loaded documents, borrowed, for the mode dispatch and its
+/// outcome paths.
+type Docs<'a> = (&'a Model, &'a RowNames, &'a Model, &'a RowNames);
 
 /// The mode dispatch once both documents load, split out of
 /// `run_naturality` verbatim (mechanical lint refactor; no behavior
@@ -71,158 +59,79 @@ pub fn run_naturality(
 /// target schema, and the sweep commutes operations through the row
 /// migration. Without a `schema_map`, the classic same-schema
 /// instance-map naturality applies unchanged.
-#[allow(clippy::too_many_arguments)]
 fn dispatch_mode(
-    source: &Model,
-    source_names: &RowNames,
-    target: &Model,
-    target_names: &RowNames,
+    docs: Docs<'_>,
     second_path: &str,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
+    let (source, ..) = docs;
     if let Some(schema_map) = &source.schema_map {
-        return run_migration_naturality(
-            source,
-            source_names,
-            target,
-            target_names,
-            second_path,
-            schema_map,
-            json,
-            quiet,
-            warnings,
-            stdout,
-            stderr,
-        );
+        return run_migration_naturality(docs, second_path, schema_map, ctx);
     }
-    naturality_outcome(
-        source,
-        source_names,
-        target,
-        target_names,
-        second_path,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-    )
+    naturality_outcome(docs, second_path, ctx)
 }
 
 /// Loads both documents up front (the classic path's paired loads).
 /// A load failure emits its labeled error through the shared
 /// `emit_error` path — which consumes the warnings — and yields `Err`;
-/// success hands the warnings back untouched (exit code identical:
+/// success leaves the warnings untouched (exit code identical:
 /// `emit_error` always exits 1).
-#[allow(clippy::type_complexity)]
 fn load_both_documents(
     model_path: &str,
     second_path: &str,
-    json: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> Result<
-    (
-        catherine_core::model::Model,
-        catherine_core::parse::RowNames,
-        catherine_core::model::Model,
-        catherine_core::parse::RowNames,
-        Vec<Warning>,
-    ),
-    (),
-> {
-    let (source, source_names) = match load_model_with_rows(model_path) {
-        Ok(pair) => pair,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> Result<(Model, RowNames, Model, RowNames), ()> {
+    let (source, source_names) = load_or_emit(model_path, ctx)?;
+    let (target, target_names) = load_or_emit(second_path, ctx)?;
+    Ok((source, source_names, target, target_names))
+}
+
+/// One document through the shared loader with row names; a load failure
+/// emits its labeled error (which consumes the warnings) and fails.
+fn load_or_emit(
+    path: &str,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> Result<(Model, RowNames), ()> {
+    match load_model_with_rows(path) {
+        Ok(pair) => Ok(pair),
         Err(labeled) => {
-            emit_error(&labeled, json, warnings, stdout, stderr);
-            return Err(());
+            ctx.emit_error(&labeled);
+            Err(())
         }
-    };
-    let (target, target_names) = match load_model_with_rows(second_path) {
-        Ok(pair) => pair,
-        Err(labeled) => {
-            emit_error(&labeled, json, warnings, stdout, stderr);
-            return Err(());
-        }
-    };
-    Ok((source, source_names, target, target_names, warnings))
+    }
 }
 
 /// The migration dispatch branch (catherine-kw9.2): the second document
 /// must match the declared `schema_map`'s target schema, then the sweep
 /// commutes operations through the row migration.
-#[allow(clippy::too_many_arguments)]
 fn run_migration_naturality(
-    source: &Model,
-    source_names: &RowNames,
-    target: &Model,
-    target_names: &RowNames,
+    docs: Docs<'_>,
     second_path: &str,
     schema_map: &catherine_core::model::SchemaMap,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
+    let (_, _, target, _) = docs;
     if let Some(labeled) = schema_mismatch(&target.schema, &schema_map.target, second_path) {
-        return emit_error(&labeled, json, warnings, stdout, stderr);
+        return ctx.emit_error(&labeled);
     }
-    migration_naturality_outcome(
-        source,
-        source_names,
-        target,
-        target_names,
-        second_path,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-    )
+    migration_naturality_outcome(docs, second_path, ctx)
 }
 
 /// The migration-mode post-load outcome (catherine-kw9.2): absent
 /// instance map → warning, resolution failure → labeled error,
 /// otherwise migration findings through the shared render path.
-#[allow(clippy::too_many_arguments)]
 fn migration_naturality_outcome(
-    source: &Model,
-    source_names: &RowNames,
-    target: &Model,
-    target_names: &RowNames,
+    docs: Docs<'_>,
     second_path: &str,
-    json: bool,
-    quiet: bool,
-    mut warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
+    let (source, source_names, target, target_names) = docs;
     if source.instance_map.is_none() {
-        return missing_map(source, json, quiet, warnings, stdout, stderr);
+        return missing_map(source, ctx);
     }
     match naturality::migration_naturality(source, target, source_names, target_names) {
-        Ok(outcome) => {
-            warn_undefined_squares(&outcome.undefined, &mut warnings);
-            render_findings(
-                &outcome.findings,
-                &source.schema,
-                json,
-                quiet,
-                warnings,
-                stdout,
-                stderr,
-            )
-        }
-        Err(error) => {
-            let labeled = migration_naturality_error(&error, second_path);
-            emit_error(&labeled, json, warnings, stdout, stderr)
-        }
+        Ok(outcome) => emit_outcome(&outcome.findings, &outcome.undefined, &source.schema, ctx),
+        Err(error) => ctx.emit_error(&migration_naturality_error(&error, second_path)),
     }
 }
 
@@ -231,46 +140,36 @@ fn migration_naturality_outcome(
 /// preserved from the dispatch site), then absent map → warning,
 /// resolution failure → labeled error, otherwise findings through the
 /// shared render path.
-#[allow(clippy::too_many_arguments)]
 fn naturality_outcome(
-    source: &Model,
-    source_names: &RowNames,
-    target: &Model,
-    target_names: &RowNames,
+    docs: Docs<'_>,
     second_path: &str,
-    json: bool,
-    quiet: bool,
-    mut warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
+    let (source, source_names, target, target_names) = docs;
     if let Some(labeled) = schema_mismatch(&target.schema, &source.schema, second_path) {
-        return emit_error(&labeled, json, warnings, stdout, stderr);
+        return ctx.emit_error(&labeled);
     }
     if source.instance_map.is_none() {
-        return missing_map(source, json, quiet, warnings, stdout, stderr);
+        return missing_map(source, ctx);
     }
     match naturality::naturality(source, target, source_names, target_names) {
-        Ok(outcome) => {
-            warn_undefined_squares(&outcome.undefined, &mut warnings);
-            render_findings(
-                &outcome.findings,
-                &source.schema,
-                json,
-                quiet,
-                warnings,
-                stdout,
-                stderr,
-            )
-        }
-        Err(NaturalityError::MissingInstanceMap) => {
-            missing_map(source, json, quiet, warnings, stdout, stderr)
-        }
-        Err(error) => {
-            let labeled = naturality_error(&error, second_path);
-            emit_error(&labeled, json, warnings, stdout, stderr)
-        }
+        Ok(outcome) => emit_outcome(&outcome.findings, &outcome.undefined, &source.schema, ctx),
+        Err(NaturalityError::MissingInstanceMap) => missing_map(source, ctx),
+        Err(error) => ctx.emit_error(&naturality_error(&error, second_path)),
     }
+}
+
+/// The success path shared by both modes: name every square undefined on
+/// both sides on the warnings channel (the warning never changes the
+/// exit class), then findings through the shared render path.
+fn emit_outcome(
+    findings: &[Finding],
+    undefined: &[naturality::UndefinedSquare],
+    schema: &Schema,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> i32 {
+    warn_undefined_squares(undefined, &mut ctx.warnings);
+    render_findings(findings, schema, ctx)
 }
 
 /// Name every square undefined on both sides on the warnings channel; the
@@ -286,37 +185,25 @@ fn warn_undefined_squares(undefined: &[naturality::UndefinedSquare], warnings: &
 
 /// The absent-map path: name it on the warnings channel (exit 0), never
 /// return a silent clean.
-fn missing_map(
-    source: &Model,
-    json: bool,
-    quiet: bool,
-    mut warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    warnings.push(render::missing_instance_map_warning());
-    render_findings(&[], &source.schema, json, quiet, warnings, stdout, stderr)
+fn missing_map(source: &Model, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
+    ctx.warnings.push(render::missing_instance_map_warning());
+    render_findings(&[], &source.schema, ctx)
 }
 
 /// The success path: findings under the shared envelope (or the §5 human
 /// lines), exit through the existing class decision.
-#[allow(clippy::too_many_arguments)]
 fn render_findings(
     findings: &[Finding],
     schema: &Schema,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
-    print_run_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = render::findings_envelope(findings, None, warnings);
-        write_envelope(&envelope, stdout, stderr, "naturality");
-    } else if !quiet {
+    print_run_warnings(ctx.json, &ctx.warnings, ctx.stderr);
+    if ctx.json {
+        let envelope = render::findings_envelope(findings, None, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "naturality");
+    } else if !ctx.quiet {
         for line in render::render_findings(findings, schema) {
-            let _ = writeln!(stdout, "{line}");
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     exit_code(findings)

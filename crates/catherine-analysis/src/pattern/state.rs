@@ -30,7 +30,7 @@ use std::collections::BTreeSet;
 
 use crate::bounds::ScopeCaps;
 use crate::parallel;
-use crate::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta};
+use crate::pattern::{LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta};
 use catherine_core::checks;
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::Ident;
@@ -61,7 +61,8 @@ impl PatternLens for Lens {
         &STATE_META
     }
 
-    fn run(&self, input: &LensInput<'_>, caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps } = call;
         let schema = &input.model.schema;
         let typed = TypedInstance::build(schema, &input.model.instance);
         let mut checks = checks::check(schema, &typed);

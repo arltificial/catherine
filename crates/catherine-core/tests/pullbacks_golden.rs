@@ -21,8 +21,9 @@ use catherine_core::model::{Ident, Model, RowId};
 use catherine_core::parse::parse;
 
 /// The dense id of an object's `index`-th parsed row — never a guessed
-/// name → id map.
-fn row(model: &Model, object: &str, index: usize) -> RowId {
+/// name → id map. The lookup is drawn as one `(object, index)` group.
+fn row(model: &Model, at: (&str, usize)) -> RowId {
+    let (object, index) = at;
     model.instance.rows[&Ident(object.to_string())][index]
 }
 
@@ -58,7 +59,7 @@ fn pullback_witness_golden_fixture() {
     let built = TypedInstance::build(&model.schema, &model.instance);
     let findings = check(&model.schema, &built);
 
-    let pair = [row(&model, "A", 1), row(&model, "B", 0)];
+    let pair = [row(&model, ("A", 1)), row(&model, ("B", 0))];
     assert_eq!(
         findings,
         vec![covers(pair)],

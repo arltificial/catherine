@@ -19,7 +19,8 @@
 
 use super::print_run_warnings;
 use crate::composition::warn_duplicate_inputs;
-use crate::run::{emit_error, load_model_with_rows, write_envelope};
+use crate::dispatch::Ctx;
+use crate::run::{load_model_with_rows, write_envelope};
 use catherine_analysis::agree::{self, Disagreement};
 use genesis::envelope::{Envelope, EnvelopeKind, Warning};
 use std::io::Write;
@@ -27,68 +28,41 @@ use std::io::Write;
 /// Run the agreement check. Partial overlap is the point — one-sided
 /// rows are silence, mismatches are witnesses; any disagreement exits
 /// through the violation class (3).
-#[allow(clippy::too_many_arguments)]
 pub fn run_agree(
     model_path: &str,
     second_path: &str,
-    json: bool,
-    quiet: bool,
-    mut warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
-    warn_duplicate_inputs(&[model_path, second_path], json, &mut warnings, stderr);
+    warn_duplicate_inputs(&[model_path, second_path], ctx);
     let (a, names_a) = match load_model_with_rows(model_path) {
         Ok(pair) => pair,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
     let (b, names_b) = match load_model_with_rows(second_path) {
         Ok(pair) => pair,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
     let disagreements = agree::agree(&a, &b, &names_a, &names_b);
-    emit_agreement(
-        &disagreements,
-        model_path,
-        second_path,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-    )
+    emit_agreement(&disagreements, model_path, second_path, ctx)
 }
 
 /// The emit/envelope tail of [`run_agree`]: the warning channel, the
 /// `--json` envelope or the §5 human lines, and the exit decision —
 /// any disagreement exits through the violation class (3).
-#[allow(clippy::too_many_arguments)]
 fn emit_agreement(
     disagreements: &[Disagreement],
     model_path: &str,
     second_path: &str,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
     let clean = disagreements.is_empty();
-    print_run_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = Envelope::success(
-            crate::render::CLI_VERSION,
-            EnvelopeKind::Check,
-            AgreeData {
-                disagreements: disagreements.iter().map(Into::into).collect(),
-            },
-            warnings,
-            Vec::new(),
-        );
-        write_envelope(&envelope, stdout, stderr, "agree");
-    } else if !quiet {
+    print_run_warnings(ctx.json, &ctx.warnings, ctx.stderr);
+    if ctx.json {
+        let envelope = agree_envelope(disagreements, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "agree");
+    } else if !ctx.quiet {
         for line in render_disagreements(disagreements, model_path, second_path) {
-            let _ = writeln!(stdout, "{line}");
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     if clean {
@@ -96,6 +70,23 @@ fn emit_agreement(
     } else {
         3
     }
+}
+
+/// The `--json` branch's envelope: the check-kind success envelope over
+/// the CLI-owned DTO.
+fn agree_envelope(
+    disagreements: &[Disagreement],
+    warnings: Vec<Warning>,
+) -> Envelope<AgreeData<'_>> {
+    Envelope::success(
+        crate::render::CLI_VERSION,
+        EnvelopeKind::Check,
+        AgreeData {
+            disagreements: disagreements.iter().map(Into::into).collect(),
+        },
+        warnings,
+        Vec::new(),
+    )
 }
 
 /// The agree payload: `data.disagreements`, each disagreement encoded by

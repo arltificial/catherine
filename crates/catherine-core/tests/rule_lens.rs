@@ -27,6 +27,17 @@ use catherine_core::model::{
 };
 use catherine_core::parse::parse;
 
+mod common;
+use common::Insist;
+
+/// The error side of an expected rejection, message in the panic.
+fn insist_err<T: std::fmt::Debug, E>(result: Result<T, E>, what: &str) -> E {
+    match result {
+        Ok(_) => panic!("{what}"),
+        Err(error) => error,
+    }
+}
+
 const SMALL_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/small/model.ct.json"
@@ -64,14 +75,14 @@ fn fixture(name: &str) -> String {
         "{}/../../fixtures/rule_lens/{name}",
         env!("CARGO_MANIFEST_DIR")
     );
-    std::fs::read_to_string(path).expect("golden fixture exists")
+    std::fs::read_to_string(path).insist("golden fixture exists")
 }
 
 fn presentation(model: &catherine_core::model::Model) -> &RulePresentation {
     model
         .rule_presentation
         .as_ref()
-        .expect("the fixture declares a rule presentation")
+        .insist("the fixture declares a rule presentation")
 }
 
 /// The labeled semantic rejection of one malformed presentation.
@@ -84,8 +95,8 @@ fn rejection(section: &str) -> SemanticError {
 
 #[test]
 fn existing_documents_hash_as_before_the_rule_presentation_section() {
-    let text = std::fs::read_to_string(SMALL_FIXTURE).expect("corpus fixture exists");
-    let model = parse(&text).expect("corpus fixture parses");
+    let text = std::fs::read_to_string(SMALL_FIXTURE).insist("corpus fixture exists");
+    let model = parse(&text).insist("corpus fixture parses");
     assert!(
         model.rule_presentation.is_none(),
         "a pre-rule document carries no rule presentation"
@@ -124,7 +135,7 @@ fn the_four_golden_fixtures_parse_with_their_declared_shape() {
         ),
     ];
     for (file, policy, rules) in cases {
-        let model = parse(&fixture(file)).expect("golden fixture parses");
+        let model = parse(&fixture(file)).insist("golden fixture parses");
         assert_eq!(model.format_version, Version { major: 1, minor: 2 });
         let declared = presentation(&model);
         assert_eq!(declared.domain, Ident("Input".to_string()));
@@ -143,7 +154,7 @@ fn the_four_golden_fixtures_parse_with_their_declared_shape() {
             "{file}: every rule assigns an action"
         );
         let bytes = serialize(&model);
-        let reparsed = parse(&bytes).expect("canonical bytes parse");
+        let reparsed = parse(&bytes).insist("canonical bytes parse");
         assert_eq!(reparsed, model, "{file}: serialize/parse is a fixed point");
         assert_eq!(model_hash(&model), model_hash(&reparsed));
     }
@@ -151,7 +162,7 @@ fn the_four_golden_fixtures_parse_with_their_declared_shape() {
 
 #[test]
 fn the_golden_fixtures_use_the_documented_predicate_language() {
-    let gap = parse(&fixture("gap.ct.json")).expect("gap fixture parses");
+    let gap = parse(&fixture("gap.ct.json")).insist("gap fixture parses");
     let adult = presentation(&gap).rules[1].predicate.clone();
     assert_eq!(
         adult,
@@ -169,7 +180,7 @@ fn the_golden_fixtures_use_the_documented_predicate_language() {
         ]),
         "conjunction of typed comparisons"
     );
-    let derivable = parse(&fixture("derivable.ct.json")).expect("derivable fixture parses");
+    let derivable = parse(&fixture("derivable.ct.json")).insist("derivable fixture parses");
     assert_eq!(
         presentation(&derivable).rules[0].predicate,
         Predicate::Mod {
@@ -179,7 +190,7 @@ fn the_golden_fixtures_use_the_documented_predicate_language() {
         },
         "integer modulus test"
     );
-    let overlap = parse(&fixture("overlap-disjoint.ct.json")).expect("overlap fixture parses");
+    let overlap = parse(&fixture("overlap-disjoint.ct.json")).insist("overlap fixture parses");
     assert_eq!(
         presentation(&overlap).rules[0].predicate,
         Predicate::Cmp {
@@ -193,7 +204,7 @@ fn the_golden_fixtures_use_the_documented_predicate_language() {
 
 #[test]
 fn a_declared_presentation_parses_into_typed_columns_and_rules() {
-    let model = parse(&doc(VALID)).expect("valid presentation parses");
+    let model = parse(&doc(VALID)).insist("valid presentation parses");
     let declared = presentation(&model);
     assert_eq!(declared.domain, Ident("Input".to_string()));
     assert_eq!(
@@ -208,7 +219,7 @@ fn a_declared_presentation_parses_into_typed_columns_and_rules() {
 #[test]
 fn an_absent_policy_stays_absent_never_defaulted() {
     let no_policy = VALID.replace(",\n  \"policy\": \"PriorityOrder\"", "");
-    let model = parse(&doc(&no_policy)).expect("a policy-less table parses");
+    let model = parse(&doc(&no_policy)).insist("a policy-less table parses");
     assert_eq!(
         presentation(&model).policy,
         None,
@@ -219,10 +230,10 @@ fn an_absent_policy_stays_absent_never_defaulted() {
         !bytes.contains("\"policy\""),
         "an undeclared policy is not emitted: {bytes}"
     );
-    assert_eq!(parse(&bytes).expect("canonical bytes parse"), model);
+    assert_eq!(parse(&bytes).insist("canonical bytes parse"), model);
     // An explicit null is the same non-declaration, never a default policy.
     let null_policy = VALID.replace(r#""PriorityOrder""#, "null");
-    let model = parse(&doc(&null_policy)).expect("an explicit null policy parses");
+    let model = parse(&doc(&null_policy)).insist("an explicit null policy parses");
     assert_eq!(presentation(&model).policy, None);
 }
 
@@ -242,8 +253,8 @@ fn column_order_is_presentation_but_rule_order_is_identity() {
         r#"[{"name": "n", "type": "int"}, {"name": "flag", "type": "bool"}]"#,
         r#"[{"name": "flag", "type": "bool"}, {"name": "n", "type": "int"}]"#,
     );
-    let a = parse(&doc(first)).expect("first presentation parses");
-    let b = parse(&doc(&columns_swapped)).expect("column order is presentation");
+    let a = parse(&doc(first)).insist("first presentation parses");
+    let b = parse(&doc(&columns_swapped)).insist("column order is presentation");
     assert_eq!(
         canonical_bytes(&a),
         canonical_bytes(&b),
@@ -260,7 +271,7 @@ fn column_order_is_presentation_but_rule_order_is_identity() {
           {"kind": "cmp", "column": "n", "op": "eq", "value": 0},
           {"kind": "cmp", "column": "flag", "op": "eq", "value": true}]}, "action": "zero"}"#,
     );
-    let c = parse(&doc(&rules_swapped)).expect("rule order is semantic, not sorted away");
+    let c = parse(&doc(&rules_swapped)).insist("rule order is semantic, not sorted away");
     assert_ne!(
         model_hash(&a),
         model_hash(&c),
@@ -271,7 +282,7 @@ fn column_order_is_presentation_but_rule_order_is_identity() {
 #[test]
 fn the_additive_minor_gate_knows_1_6() {
     let too_new = doc(VALID).replace("\"format_version\": \"1.2\"", "\"format_version\": \"1.7\"");
-    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.7 is unknown") else {
+    let ParseError::Semantic(semantic) = insist_err(parse(&too_new), "1.7 is unknown") else {
         panic!("an unknown minor is a labeled rejection");
     };
     assert_eq!(semantic.code, ErrorCode::UnsupportedVersion);

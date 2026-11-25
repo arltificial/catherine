@@ -15,18 +15,17 @@ use crate::model::RowId;
 /// The resolution walk is concrete-bound and flat-guarded: slots are
 /// read by array index against the path's concrete `len` (bounded
 /// table — see [`super::CompiledEquation`]), and every read's failure
-/// arm returns `None` explicitly instead of `?`-chaining through slice
-/// machinery. Same partition as the old `get`-chain walk; the shape is
-/// the solver-shaped one (ledger `0006`: the compose-side wall's
-/// recorded trigger).
+/// arm yields `None` explicitly instead of `?`-chaining through slice
+/// machinery. Same partition as the old `get`-chain walk; the walk
+/// itself is one `try_fold` over the step indices — the accumulator is
+/// the composed row, and the first unresolved read ends the walk with
+/// `None` (the old early `return`s).
 pub(crate) fn engine_compose(
     typed: &EngineTyped,
     path: &Bounded<Step, ARROWS_CAP>,
     start: RowId,
 ) -> Option<RowId> {
-    let mut current = start;
-    let mut i = 0;
-    while i < path.len() {
+    (0..path.len()).try_fold(start, |current, i| {
         let step = match path[i] {
             Some(Some(step)) => step,
             _ => return None,
@@ -34,12 +33,9 @@ pub(crate) fn engine_compose(
         if step >= typed.tables.len() {
             return None;
         }
-        let cell = match typed.tables[step].get(current.0) {
-            Some(Some(value)) => *value,
-            _ => return None,
-        };
-        current = cell;
-        i += 1;
-    }
-    Some(current)
+        match typed.tables[step].get(current.0) {
+            Some(Some(value)) => Some(*value),
+            _ => None,
+        }
+    })
 }

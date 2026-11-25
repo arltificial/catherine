@@ -30,6 +30,16 @@ use std::collections::{BTreeMap, BTreeSet};
 mod common;
 use common::ident;
 
+/// The traversal ops reject with a plain `Vec<QueryError>`, which is not
+/// a `std::error::Error` — render it into the owned string `?` carries.
+fn reject_reason(errors: &[QueryError]) -> String {
+    errors
+        .iter()
+        .map(|e| e.to_string())
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
 // ── donor contract: seeds_exist — unknown seeds rejected, not ignored ─
 
 #[test]
@@ -41,7 +51,10 @@ fn seeds_exist() {
         seeds: seeds(&[node("r", 0), node("r", 7)]),
         morphisms: morphisms(&["f"]),
     };
-    let errors = check(&query, &schema, &typed).expect_err("unknown seed rejected, not ignored");
+    let errors = match check(&query, &schema, &typed) {
+        Err(errors) => errors,
+        Ok(()) => panic!("unknown seed rejected, not ignored"),
+    };
     assert_eq!(errors.len(), 1, "all violations reported");
     assert_eq!(
         errors[0],
@@ -62,7 +75,7 @@ fn seeds_exist() {
 // ── donor contract: closure_terminates — one visit per node, cyclic M ─
 
 #[test]
-fn closure_terminates() {
+fn closure_terminates() -> Result<(), String> {
     let typed = parity_typed();
     let schema = parity_schema();
     // `u` is a self-loop on p0: following it forever would not terminate
@@ -72,38 +85,41 @@ fn closure_terminates() {
         seeds: seeds(&[node("p", 0)]),
         morphisms: morphisms(&["u"]),
     };
-    let reached = run(&query, &schema, &typed).expect("cyclic M terminates");
+    let reached = run(&query, &schema, &typed).map_err(|e| reject_reason(&e))?;
     assert_eq!(
         reached,
         seeds(&[node("p", 0)]),
         "the self-loop adds nothing and the walk stops"
     );
+    Ok(())
 }
 
 // ── donor contract: dangling_not_followed — None is no edge ──────────
 
 #[test]
-fn dangling_not_followed() {
+fn dangling_not_followed() -> Result<(), String> {
     let typed = parity_typed();
     let schema = parity_schema();
     // q1's `g` cell is dangling: backward closure over `g` from r0
     // reaches q0 (the defined preimage) and never q1.
-    let reached = backward_closure(&schema, &typed, &[node("r", 0)], &["g"]).expect("seeds exist");
+    let reached = backward_closure(&schema, &typed, &[node("r", 0)], &["g"])
+        .map_err(|e| reject_reason(&e))?;
     assert_eq!(
         reached,
         seeds(&[node("r", 0), node("q", 0)]),
         "the dangling preimage q1 contributes no edge"
     );
+    Ok(())
 }
 
 // ── donor contract: results_ordered — BTreeSet, sorted by construction ─
 
 #[test]
-fn results_ordered() {
+fn results_ordered() -> Result<(), String> {
     let typed = parity_typed();
     let schema = parity_schema();
-    let reached =
-        forward_closure(&schema, &typed, &[node("p", 0)], &["f", "g", "u"]).expect("seeds exist");
+    let reached = forward_closure(&schema, &typed, &[node("p", 0)], &["f", "g", "u"])
+        .map_err(|e| reject_reason(&e))?;
     let as_vec: Vec<NodeRef> = reached.iter().cloned().collect();
     let mut sorted = as_vec.clone();
     sorted.sort();
@@ -116,6 +132,7 @@ fn results_ordered() {
         Some(&node("p", 0)),
         "object-major ordering puts p0 first"
     );
+    Ok(())
 }
 
 // ── donor contract: fan_in_is_preimage_size ──────────────────────────
@@ -161,31 +178,34 @@ fn fan_in_is_preimage_size() {
 // ── the adapted extras: blast_radius and cyclic_nodes ────────────────
 
 #[test]
-fn blast_radius_is_closed_under_both_directions() {
+fn blast_radius_is_closed_under_both_directions() -> Result<(), String> {
     let typed = parity_typed();
     let schema = parity_schema();
     // Touching r0: backward reaches q0, whose forward reach adds r0 back;
     // q1 is backward of r0? g(q1) dangles, so no — q1 stays out.
-    let radius = blast_radius(&schema, &typed, &[node("r", 0)], &["g"]).expect("seeds exist");
+    let radius =
+        blast_radius(&schema, &typed, &[node("r", 0)], &["g"]).map_err(|e| reject_reason(&e))?;
     assert_eq!(
         radius,
         seeds(&[node("r", 0), node("q", 0)]),
         "the mixed closure over g"
     );
+    Ok(())
 }
 
 #[test]
-fn cyclic_nodes_names_self_loop_members() {
+fn cyclic_nodes_names_self_loop_members() -> Result<(), String> {
     let typed = parity_typed();
     let schema = parity_schema();
-    let cyclic = cyclic_nodes(&schema, &typed, &["u"]).expect("cyclic walk completes");
+    let cyclic = cyclic_nodes(&schema, &typed, &["u"]).map_err(|e| reject_reason(&e))?;
     assert_eq!(
         cyclic,
         seeds(&[node("p", 0)]),
         "the trivial self-edge makes p0 cyclic"
     );
-    let acyclic = cyclic_nodes(&schema, &typed, &["f", "g"]).expect("cyclic walk completes");
+    let acyclic = cyclic_nodes(&schema, &typed, &["f", "g"]).map_err(|e| reject_reason(&e))?;
     assert!(acyclic.is_empty(), "f and g form no cycle");
+    Ok(())
 }
 
 // ── parity fixtures (moved from common: only this binary uses them) ──

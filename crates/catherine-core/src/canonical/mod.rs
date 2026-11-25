@@ -25,6 +25,7 @@
 //! the hash contract, asserted structurally everywhere else.
 
 mod label;
+mod label_refine;
 mod predicate;
 mod pullbacks;
 mod value;
@@ -63,7 +64,9 @@ mod tests {
             (r#"{"text":"\n"}"#, r#"{"text":"\u000a"}"#),
         ];
         for (input, expected) in cases {
-            let value: Value = serde_json::from_str(input).expect("parses");
+            let Ok(value) = serde_json::from_str::<Value>(input) else {
+                panic!("parses: {input}");
+            };
             assert_eq!(write_value(&value), expected);
         }
     }
@@ -78,11 +81,10 @@ mod tests {
         prop_eq_model(&a, &b);
         let bytes = serialize(&a);
         assert_eq!(bytes, serialize(&b), "equal models, equal bytes");
-        assert_eq!(
-            parse(&bytes).expect("canonical bytes parse"),
-            a,
-            "serialization is a parse fixed point"
-        );
+        let Ok(round) = parse(&bytes) else {
+            panic!("canonical bytes parse");
+        };
+        assert_eq!(round, a, "serialization is a parse fixed point");
     }
 
     /// The first input ordering: canonical declaration order.
@@ -145,7 +147,7 @@ mod tests {
             model_hash(&b),
             "renaming is invisible to the hash"
         );
-        let c = parse(identity_map()).expect("parses");
+        let c = parse(identity_map()).unwrap_or_else(|error| panic!("parses: {error}"));
         assert_ne!(
             model_hash(&a),
             model_hash(&c),

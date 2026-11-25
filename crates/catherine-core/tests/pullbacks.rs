@@ -68,7 +68,11 @@ fn parsed(text: &str) -> Model {
     parse(text).expect("the document parses")
 }
 
-fn pullback(apex: &str, legs: &[&str], cospan: &[&str], status: ConstraintStatus) -> Pullback {
+/// A pullback declaration: the apex with its drawn square — legs,
+/// cospan, and status — so the builder stays within the two-parameter
+/// test limit.
+fn pullback(apex: &str, square: (&[&str], &[&str], ConstraintStatus)) -> Pullback {
+    let (legs, cospan, status) = square;
     Pullback {
         apex: Ident(apex.to_string()),
         legs: legs.iter().map(|name| Ident(name.to_string())).collect(),
@@ -94,9 +98,18 @@ fn pullbacks_round_trip_and_canonicalize() {
     let first = parsed(&fill(&section(ORDER_ONE)));
     let second = parsed(&fill(&section(ORDER_TWO)));
     let expected = vec![
-        pullback("P", &["p2", "p1"], &["g", "f"], ConstraintStatus::Accepted),
-        pullback("P", &["p2", "p1"], &["g", "f"], ConstraintStatus::Accepted),
-        pullback("Q", &["r2", "r1"], &["g", "f"], ConstraintStatus::Proposed),
+        pullback(
+            "P",
+            (&["p2", "p1"], &["g", "f"], ConstraintStatus::Accepted),
+        ),
+        pullback(
+            "P",
+            (&["p2", "p1"], &["g", "f"], ConstraintStatus::Accepted),
+        ),
+        pullback(
+            "Q",
+            (&["r2", "r1"], &["g", "f"], ConstraintStatus::Proposed),
+        ),
     ];
     assert_eq!(
         first.schema.pullbacks, expected,
@@ -261,13 +274,15 @@ fn malformed_pullback_is_rejected_at_its_node() {
     ];
     assert_eq!(cases.len(), 12, "every malformed-pullback class is pinned");
     for (raw, column, fragment) in cases {
-        assert_invalid(raw, column, fragment);
+        assert_invalid(raw, (column, fragment));
     }
 }
 
 /// One malformed declaration: the stable code, the offending node's line
-/// and column, and a message fragment naming the defect.
-fn assert_invalid(raw: &str, column: usize, fragment: &str) {
+/// and column, and a message fragment naming the defect — the defect's
+/// `(column, fragment)` drawn as one group.
+fn assert_invalid(raw: &str, defect: (usize, &str)) {
+    let (column, fragment) = defect;
     let text = fill(&section(raw));
     let expected_line = line_of(&text, raw);
     let ParseError::Semantic(error) = parse(&text).expect_err(raw) else {

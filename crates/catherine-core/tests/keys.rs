@@ -22,6 +22,22 @@ use catherine_core::model::{ConstraintStatus, Ident, Key};
 use catherine_core::parse::parse;
 use serde_json::{json, Value};
 
+/// A document parsed, or the test fails loudly naming the expectation.
+fn parsed(text: &str, what: &str) -> catherine_core::model::Model {
+    match parse(text) {
+        Ok(model) => model,
+        Err(error) => panic!("{what}: {error}"),
+    }
+}
+
+/// The parse rejection of a document that must not parse.
+fn parse_error(text: &str, what: &str) -> ParseError {
+    match parse(text) {
+        Err(error) => error,
+        Ok(_) => panic!("{what}: the document parses, a rejection was required"),
+    }
+}
+
 /// A 1.3 document with a `keys` placeholder and one arrow per object.
 fn key_document(keys: &str) -> String {
     format!(
@@ -50,7 +66,8 @@ fn ident(name: &str) -> Ident {
     Ident(name.to_string())
 }
 
-fn key(object: &str, arrows: &[&str], status: ConstraintStatus) -> Key {
+fn key(drawn: (&str, &[&str], ConstraintStatus)) -> Key {
+    let (object, arrows, status) = drawn;
     Key {
         object: ident(object),
         arrows: arrows.iter().map(|arrow| ident(arrow)).collect(),
@@ -64,28 +81,32 @@ fn key(object: &str, arrows: &[&str], status: ConstraintStatus) -> Key {
 /// of the input order.
 #[test]
 fn keys_round_trip_and_canonicalize() {
-    let first = parse(&key_document(
-        r#"{"object": "capture", "arrows": ["capture_edition", "capture_source"], "status": "accepted"},
+    let first = parsed(
+        &key_document(
+            r#"{"object": "capture", "arrows": ["capture_edition", "capture_source"], "status": "accepted"},
            {"object": "capture", "arrows": ["capture_edition"], "status": "proposed"},
            {"object": "capture", "arrows": ["capture_edition"], "status": "accepted"}"#,
-    ))
-    .expect("the 1.3 document parses");
-    let second = parse(&key_document(
-        r#"{"object": "capture", "arrows": ["capture_edition"], "status": "accepted"},
+        ),
+        "the 1.3 document parses",
+    );
+    let second = parsed(
+        &key_document(
+            r#"{"object": "capture", "arrows": ["capture_edition"], "status": "accepted"},
            {"object": "capture", "arrows": ["capture_edition", "capture_source"]},
            {"object": "capture", "arrows": ["capture_edition"], "status": "proposed"}"#,
-    ))
-    .expect("the reordered 1.3 document parses");
+        ),
+        "the reordered 1.3 document parses",
+    );
     assert_eq!(
         first.schema.keys,
         vec![
-            key("capture", &["capture_edition"], ConstraintStatus::Accepted),
-            key("capture", &["capture_edition"], ConstraintStatus::Proposed),
-            key(
+            key(("capture", &["capture_edition"], ConstraintStatus::Accepted)),
+            key(("capture", &["capture_edition"], ConstraintStatus::Proposed)),
+            key((
                 "capture",
                 &["capture_edition", "capture_source"],
                 ConstraintStatus::Accepted
-            ),
+            )),
         ],
         "canonical order is (object, arrows, status); absent status defaults to accepted"
     );
@@ -95,7 +116,7 @@ fn keys_round_trip_and_canonicalize() {
         canonical_bytes(&second),
         "input order never reaches the canonical bytes"
     );
-    let reparsed = parse(&serialize(&first)).expect("canonical bytes parse");
+    let reparsed = parsed(&serialize(&first), "canonical bytes parse");
     assert_eq!(reparsed, first, "serialize/parse is a fixed point");
 }
 
@@ -134,7 +155,7 @@ fn malformed_key_is_rejected_at_its_node() {
     ];
     for (key_json, column, what) in cases {
         let single = key_document(key_json);
-        let ParseError::Semantic(semantic) = parse(&single).expect_err(what) else {
+        let ParseError::Semantic(semantic) = parse_error(&single, what) else {
             panic!("{what}: expected a semantic rejection");
         };
         assert_eq!(
@@ -162,7 +183,7 @@ fn malformed_key_is_rejected_at_its_node() {
 fn ill_formed_key() {
     let single =
         key_document(r#"{"object": "capture", "arrows": ["capture_source", "capture_source"]}"#);
-    let ParseError::Semantic(semantic) = parse(&single).expect_err("duplicate arrow") else {
+    let ParseError::Semantic(semantic) = parse_error(&single, "duplicate arrow") else {
         panic!("a duplicate arrow is a semantic rejection");
     };
     assert_eq!(semantic.code, ErrorCode::InvalidKey);
@@ -178,16 +199,18 @@ fn ill_formed_key() {
 /// like any other and the accepted-key set is untouched.
 #[test]
 fn proposed_key_is_preserved_as_a_question() {
-    let model = parse(&key_document(
-        r#"{"object": "capture", "arrows": ["capture_source"], "status": "accepted"},
+    let model = parsed(
+        &key_document(
+            r#"{"object": "capture", "arrows": ["capture_source"], "status": "accepted"},
            {"object": "capture", "arrows": ["capture_edition"], "status": "proposed"}"#,
-    ))
-    .expect("the document parses");
+        ),
+        "the document parses",
+    );
     assert_eq!(
         model.schema.keys,
         vec![
-            key("capture", &["capture_edition"], ConstraintStatus::Proposed),
-            key("capture", &["capture_source"], ConstraintStatus::Accepted),
+            key(("capture", &["capture_edition"], ConstraintStatus::Proposed)),
+            key(("capture", &["capture_source"], ConstraintStatus::Accepted)),
         ]
     );
     let accepted: Vec<&Key> = model
@@ -217,8 +240,8 @@ fn absent_keys_are_hash_neutral() {
         "\"equations\": [{\"lhs\": [\"f\"], \"rhs\": [\"f\"], \"status\": \"accepted\"}]",
         "\"equations\": [{\"lhs\": [\"f\"], \"rhs\": [\"f\"], \"status\": \"accepted\"}], \"keys\": []",
     );
-    let absent = parse(without).expect("the keyless document parses");
-    let empty = parse(&with_empty).expect("the empty key list parses");
+    let absent = parsed(without, "the keyless document parses");
+    let empty = parsed(&with_empty, "the empty key list parses");
     assert!(empty.schema.keys.is_empty());
     assert_eq!(canonical_bytes(&absent), canonical_bytes(&empty));
     assert_eq!(model_hash(&absent), model_hash(&empty));
@@ -227,11 +250,11 @@ fn absent_keys_are_hash_neutral() {
         "an empty key list is omitted from canonical bytes"
     );
 
-    let with_key = parse(&key_document(
-        r#"{"object": "capture", "arrows": ["capture_source"]}"#,
-    ))
-    .expect("the keyed document parses");
-    let keyless = parse(&key_document("")).expect("the keyless 1.3 document parses");
+    let with_key = parsed(
+        &key_document(r#"{"object": "capture", "arrows": ["capture_source"]}"#),
+        "the keyed document parses",
+    );
+    let keyless = parsed(&key_document(""), "the keyless 1.3 document parses");
     assert_ne!(
         model_hash(&with_key),
         model_hash(&keyless),
@@ -244,11 +267,11 @@ fn absent_keys_are_hash_neutral() {
 fn current_major_parses_a_1_5_document() {
     let current = key_document(r#"{"object": "capture", "arrows": ["capture_source"]}"#)
         .replace("\"format_version\": \"1.3\"", "\"format_version\": \"1.5\"");
-    let model = parse(&current).expect("1.5 is the current known minor");
+    let model = parsed(&current, "1.5 is the current known minor");
     assert_eq!(model.format_version.minor, 5);
 
     let too_new = current.replace("\"format_version\": \"1.5\"", "\"format_version\": \"1.7\"");
-    let ParseError::Semantic(semantic) = parse(&too_new).expect_err("1.7 is unknown") else {
+    let ParseError::Semantic(semantic) = parse_error(&too_new, "1.7 is unknown") else {
         panic!("an unknown minor is a semantic rejection");
     };
     assert_eq!(semantic.code, ErrorCode::UnsupportedVersion);
@@ -265,9 +288,14 @@ fn current_major_parses_a_1_5_document() {
 /// or duplicate `arrows` list is rejected without the kernel.
 #[test]
 fn keys_are_covered_by_the_artifact() {
-    let artifact: Value =
-        serde_json::from_str(include_str!("../schema/ct-schema-v1.json")).expect("artifact JSON");
-    let validator = jsonschema::draft202012::new(&artifact).expect("the artifact is draft 2020-12");
+    let artifact: Value = match serde_json::from_str(include_str!("../schema/ct-schema-v1.json")) {
+        Ok(artifact) => artifact,
+        Err(error) => panic!("the artifact is not valid JSON: {error}"),
+    };
+    let validator = match jsonschema::draft202012::new(&artifact) {
+        Ok(validator) => validator,
+        Err(error) => panic!("the artifact is not draft 2020-12: {error}"),
+    };
 
     let base = json!({
         "format_version": "1.3",

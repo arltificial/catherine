@@ -29,6 +29,10 @@ use catherine_core::instance::TypedInstance;
 use catherine_core::model::{Ident, Model, RowId};
 use catherine_core::parse::parse;
 
+mod common;
+
+use common::Insist;
+
 /// Format 1.3: one accepted key over `capture`'s arrow pair; both rows
 /// carry the same tuple, so the injectivity claim fails exactly once.
 const KEY_DOC: &str = r#"{
@@ -80,22 +84,24 @@ const COPRODUCT_DOC: &str = r#"{
 
 /// Parse → build → check, the kernel's one pipeline.
 fn checked(text: &str) -> (Model, Vec<Finding>) {
-    let model = parse(text).expect("the fixture parses");
+    let model = parse(text).insist("the fixture parses");
     let built = TypedInstance::build(&model.schema, &model.instance);
     let findings = check(&model.schema, &built);
     (model, findings)
 }
 
 /// The dense id of an object's `index`-th parsed row — never a guessed
-/// name → id map.
-fn row(model: &Model, object: &str, index: usize) -> RowId {
+/// name → id map. The lookup is drawn as one `(object, index)` group.
+fn row(model: &Model, at: (&str, usize)) -> RowId {
+    let (object, index) = at;
     model.instance.rows[&Ident(object.to_string())][index]
 }
 
 /// The resolved value of an arrow on a source row, read from the parsed
-/// tables.
-fn value(model: &Model, arrow: &str, src: RowId) -> RowId {
-    model.instance.values[&Ident(arrow.to_string())][src.0].expect("cell is resolved")
+/// tables. The cell is drawn as one `(arrow, src)` group.
+fn value(model: &Model, cell: (&str, RowId)) -> RowId {
+    let (arrow, src) = cell;
+    model.instance.values[&Ident(arrow.to_string())][src.0].insist("cell is resolved")
 }
 
 fn violation(witness: ViolationWitness) -> Finding {
@@ -108,19 +114,15 @@ fn violation(witness: ViolationWitness) -> Finding {
 /// Assert the finding's label, kind, and exact witness field set, then
 /// return the serialized witness — structural, never output-text
 /// assertions.
-fn assert_encoding(
-    finding: &Finding,
-    label: &str,
-    kind: &str,
-    fields: &[&str],
-) -> serde_json::Value {
-    let json = serde_json::to_value(finding).expect("finding serializes");
+fn assert_encoding(finding: &Finding, expected: ((&str, &str), &[&str])) -> serde_json::Value {
+    let ((label, kind), fields) = expected;
+    let json = serde_json::to_value(finding).insist("finding serializes");
     assert_eq!(json["label"].as_str(), Some(label), "the epistemic label");
     assert_eq!(json["kind"].as_str(), Some(kind), "the finding kind");
     let witness = json["witness"].clone();
     let mut actual: Vec<String> = witness
         .as_object()
-        .expect("the witness is an object")
+        .insist("the witness is an object")
         .keys()
         .cloned()
         .collect();
@@ -136,8 +138,8 @@ fn assert_encoding(
 
 /// Serialize → deserialize → equal.
 fn round_trips(findings: &[Finding]) {
-    let text = serde_json::to_string(findings).expect("findings serialize");
-    let back: Vec<Finding> = serde_json::from_str(&text).expect("findings deserialize");
+    let text = serde_json::to_string(findings).insist("findings serialize");
+    let back: Vec<Finding> = serde_json::from_str(&text).insist("findings deserialize");
     assert_eq!(back.as_slice(), findings, "serde round-trip is lossless");
 }
 
@@ -151,12 +153,12 @@ fn equation_witness_golden_fixture() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/golden/violation_accepted.json"
     );
-    let text = std::fs::read_to_string(path).expect("the golden fixture exists");
+    let text = std::fs::read_to_string(path).insist("the golden fixture exists");
     let (model, findings) = checked(&text);
 
-    let failed = row(&model, "A", 1);
-    let lhs = value(&model, "f", failed);
-    let rhs = value(&model, "g", failed);
+    let failed = row(&model, ("A", 1));
+    let lhs = value(&model, ("f", failed));
+    let rhs = value(&model, ("g", failed));
     let expected = violation(ViolationWitness::Equation(EquationWitness {
         equation: 0,
         row: failed,
@@ -171,9 +173,10 @@ fn equation_witness_golden_fixture() {
 
     let witness = assert_encoding(
         &findings[0],
-        "executed",
-        "violation",
-        &["equation", "row", "lhs", "rhs"],
+        (
+            ("executed", "violation"),
+            &["equation", "row", "lhs", "rhs"],
+        ),
     );
     assert_eq!(witness["equation"].as_u64(), Some(0));
     assert_eq!(witness["row"].as_u64(), Some(failed.0 as u64));
@@ -193,7 +196,7 @@ fn equation_witness_golden_fixture() {
 fn key_witness_golden_fixture() {
     let (model, findings) = checked(KEY_DOC);
 
-    let rows = [row(&model, "capture", 0), row(&model, "capture", 1)];
+    let rows = [row(&model, ("capture", 0)), row(&model, ("capture", 1))];
     let expected = violation(ViolationWitness::Key(KeyWitness { key: 0, rows }));
     assert_eq!(
         findings,
@@ -201,7 +204,7 @@ fn key_witness_golden_fixture() {
         "the shared tuple collides exactly once"
     );
 
-    let witness = assert_encoding(&findings[0], "executed", "violation", &["key", "rows"]);
+    let witness = assert_encoding(&findings[0], (("executed", "violation"), &["key", "rows"]));
     assert_eq!(witness["key"].as_u64(), Some(0));
     assert_eq!(witness["rows"][0].as_u64(), Some(rows[0].0 as u64));
     assert_eq!(witness["rows"][1].as_u64(), Some(rows[1].0 as u64));
@@ -216,8 +219,8 @@ fn key_witness_golden_fixture() {
 fn coproduct_witness_golden_fixture() {
     let (model, findings) = checked(COPRODUCT_DOC);
 
-    let dual = row(&model, "C", 0);
-    let uncovered = row(&model, "C", 3);
+    let dual = row(&model, ("C", 0));
+    let uncovered = row(&model, ("C", 3));
     let expected = vec![
         violation(ViolationWitness::Coproduct(CoproductWitness {
             coproduct: 0,
@@ -237,16 +240,20 @@ fn coproduct_witness_golden_fixture() {
 
     let witness = assert_encoding(
         &findings[0],
-        "executed",
-        "violation",
-        &["coproduct", "row", "injections"],
+        (
+            ("executed", "violation"),
+            &["coproduct", "row", "injections"],
+        ),
     );
     assert_eq!(witness["coproduct"].as_u64(), Some(0));
     assert_eq!(witness["row"].as_u64(), Some(dual.0 as u64));
     assert_eq!(witness["injections"][0].as_str(), Some("i1"));
     assert_eq!(witness["injections"][1].as_str(), Some("i2"));
 
-    let witness = assert_encoding(&findings[1], "executed", "violation", &["coproduct", "row"]);
+    let witness = assert_encoding(
+        &findings[1],
+        (("executed", "violation"), &["coproduct", "row"]),
+    );
     assert_eq!(witness["coproduct"].as_u64(), Some(0));
     assert_eq!(witness["row"].as_u64(), Some(uncovered.0 as u64));
     assert!(

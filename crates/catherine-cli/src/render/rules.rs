@@ -150,6 +150,20 @@ fn violation_head(witness: &ViolationWitness, presentation: &RulePresentation) -
             "violation: key-{} collides on rows #{} and #{}",
             witness.key, witness.rows[0].0, witness.rows[1].0
         ),
+        ViolationWitness::Pullback(witness) => format!(
+            "violation: pullback-{} {}",
+            witness.pullback(),
+            pullback_offender(witness)
+        ),
+        witness => simple_head(witness).expect("every witness shape has a total head"),
+    }
+}
+
+/// The naturality, coproduct, and migration-naturality heads: the rule
+/// lens never emits these shapes, but the line stays total for
+/// programmatically assembled witnesses.
+fn simple_head(witness: &ViolationWitness) -> Option<String> {
+    Some(match witness {
         ViolationWitness::Naturality(witness) => format!(
             "violation: naturality of {} at row #{}",
             witness.arrow.0, witness.source_row.0
@@ -158,19 +172,13 @@ fn violation_head(witness: &ViolationWitness, presentation: &RulePresentation) -
             "violation: coproduct-{} at row #{}",
             witness.coproduct, witness.row.0
         ),
-        ViolationWitness::Pullback(witness) => format!(
-            "violation: pullback-{} {}",
-            witness.pullback(),
-            pullback_offender(witness)
-        ),
-        // Interim honest arm (see render.rs's matching arm): the rule
-        // lens never emits migration-naturality witnesses, but the line
-        // stays total.
+        // Interim honest arm (see render.rs's matching arm).
         ViolationWitness::MigrationNaturality(witness) => format!(
             "violation: migration naturality {} ; migrate",
             witness.operation.0
         ),
-    }
+        _ => return None,
+    })
 }
 
 /// The pullback verdict's offender in text: the failed row, the
@@ -296,35 +304,52 @@ mod tests {
     /// One finding per rendered shape (the test's fixtures).
     fn sample_findings() -> Vec<Finding> {
         vec![
-            Finding {
-                label: EpistemicLabel::Hypothesized,
-                kind: FindingKind::Underconstraint(
-                    catherine_core::findings::UnderconstraintWitness {
-                        case: DomainQuestion::UncoveredInputs {
-                            class: "age = 70".to_string(),
-                            examples: vec![RowId(3)],
-                        },
-                        question: "which action applies?".to_string(),
-                    },
-                ),
-            },
-            Finding {
-                label: EpistemicLabel::Executed,
-                kind: FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
-                    equation: 0,
-                    row: RowId(1),
-                    lhs: RowId(0),
-                    rhs: RowId(1),
-                })),
-            },
-            Finding {
-                label: EpistemicLabel::Executed,
-                kind: FindingKind::Redundant(catherine_core::findings::RedundantWitness {
-                    derivable: Path(vec![Ident("even".to_string())]),
-                    reducing: Path(vec![Ident("all".to_string())]),
-                }),
-            },
+            uncovered_inputs_finding(),
+            equation_violation_finding(),
+            redundant_finding(),
         ]
+    }
+
+    fn finding(kind: FindingKind, label: EpistemicLabel) -> Finding {
+        Finding { label, kind }
+    }
+
+    /// The underconstraint shape: an uncovered-input domain question.
+    fn uncovered_inputs_finding() -> Finding {
+        finding(
+            FindingKind::Underconstraint(catherine_core::findings::UnderconstraintWitness {
+                case: DomainQuestion::UncoveredInputs {
+                    class: "age = 70".to_string(),
+                    examples: vec![RowId(3)],
+                },
+                question: "which action applies?".to_string(),
+            }),
+            EpistemicLabel::Hypothesized,
+        )
+    }
+
+    /// The violation shape: the two rules disagree on input #1.
+    fn equation_violation_finding() -> Finding {
+        finding(
+            FindingKind::Violation(ViolationWitness::Equation(EquationWitness {
+                equation: 0,
+                row: RowId(1),
+                lhs: RowId(0),
+                rhs: RowId(1),
+            })),
+            EpistemicLabel::Executed,
+        )
+    }
+
+    /// The redundant shape: one path derives from another.
+    fn redundant_finding() -> Finding {
+        finding(
+            FindingKind::Redundant(catherine_core::findings::RedundantWitness {
+                derivable: Path(vec![Ident("even".to_string())]),
+                reducing: Path(vec![Ident("all".to_string())]),
+            }),
+            EpistemicLabel::Executed,
+        )
     }
 
     #[test]

@@ -20,7 +20,7 @@
 use catherine_core::findings::{
     EpistemicLabel, Finding, FindingKind, MigrationNaturalityWitness, ViolationWitness,
 };
-use catherine_core::model::{Ident, InstanceMap, Model, RowId, SchemaMap};
+use catherine_core::model::{Arrow, Ident, InstanceMap, Model, RowId, SchemaMap};
 use catherine_core::parse::RowNames;
 use std::collections::BTreeMap;
 
@@ -95,9 +95,59 @@ pub fn migration_naturality(
         .instance_map
         .as_ref()
         .ok_or(MigrationError::MissingInstanceMap)?;
-    let resolved =
-        resolve_migration_map(schema_map, instance_map, source, source_names, target_names)?;
+    let ctx = MigrationResolution {
+        schema_map,
+        instance_map,
+        source,
+        source_names,
+        target_names,
+    };
+    let resolved = resolve_migration_map(&ctx)?;
     Ok(migration_sweep(source, target, schema_map, &resolved))
+}
+
+/// The maps, documents, and names one migration resolution pass reads:
+/// bundled so the per-object helper stays within the parameter budget.
+struct MigrationResolution<'a> {
+    schema_map: &'a SchemaMap,
+    instance_map: &'a InstanceMap,
+    source: &'a Model,
+    source_names: &'a RowNames,
+    target_names: &'a RowNames,
+}
+
+impl MigrationResolution<'_> {
+    /// One migrated object's source rows resolved to their target rows
+    /// in the target object's name table.
+    fn object_rows(
+        &self,
+        object: &Ident,
+        target_object: &Ident,
+        rows: &[RowId],
+    ) -> Result<Vec<RowId>, MigrationError> {
+        let mut targets = Vec::with_capacity(rows.len());
+        let cells = self.instance_map.maps.get(object);
+        for row in rows {
+            let Some(target_name) = cells.and_then(|cells| cells.get(row)) else {
+                return Err(MigrationError::IncompleteInstanceMap {
+                    object: object.clone(),
+                    row: *row,
+                });
+            };
+            let target = self
+                .target_names
+                .get(target_object)
+                .and_then(|names| names.iter().position(|name| name == target_name))
+                .map(RowId)
+                .ok_or_else(|| MigrationError::UnknownMapTarget {
+                    object: object.clone(),
+                    source_row: source_row_name(self.source_names, object, *row),
+                    target_row: target_name.0.clone(),
+                })?;
+            targets.push(target);
+        }
+        Ok(targets)
+    }
 }
 
 /// The construction-time row migration: every source row of every
@@ -107,43 +157,29 @@ pub fn migration_naturality(
 /// with its rows; an unknown cell is a labeled error naming the object,
 /// the source row, and the missing target row.
 fn resolve_migration_map(
-    schema_map: &SchemaMap,
-    instance_map: &InstanceMap,
-    source: &Model,
-    source_names: &RowNames,
-    target_names: &RowNames,
+    ctx: &MigrationResolution<'_>,
 ) -> Result<BTreeMap<Ident, Vec<RowId>>, MigrationError> {
     let mut resolved: BTreeMap<Ident, Vec<RowId>> = BTreeMap::new();
-    for (object, target_object) in &schema_map.objects {
+    for (object, target_object) in &ctx.schema_map.objects {
         let Some(target_object) = target_object else {
             continue;
         };
-        let Some(rows) = source.instance.rows.get(object) else {
+        let Some(rows) = ctx.source.instance.rows.get(object) else {
             continue;
         };
-        let mut targets = Vec::with_capacity(rows.len());
-        let cells = instance_map.maps.get(object);
-        for row in rows {
-            let Some(target_name) = cells.and_then(|cells| cells.get(row)) else {
-                return Err(MigrationError::IncompleteInstanceMap {
-                    object: object.clone(),
-                    row: *row,
-                });
-            };
-            let target = target_names
-                .get(target_object)
-                .and_then(|names| names.iter().position(|name| name == target_name))
-                .map(RowId)
-                .ok_or_else(|| MigrationError::UnknownMapTarget {
-                    object: object.clone(),
-                    source_row: source_row_name(source_names, object, *row),
-                    target_row: target_name.0.clone(),
-                })?;
-            targets.push(target);
-        }
+        let targets = ctx.object_rows(object, target_object, rows)?;
         resolved.insert(object.clone(), targets);
     }
     Ok(resolved)
+}
+
+/// The documents and resolution one migration commutation square reads:
+/// bundled so the per-square helpers stay within the parameter budget.
+struct SquareInputs<'a> {
+    source: &'a Model,
+    target: &'a Model,
+    schema_map: &'a SchemaMap,
+    resolved: &'a BTreeMap<Ident, Vec<RowId>>,
 }
 
 /// The migration commutation sweep: for every operation arrow with a Δ
@@ -158,27 +194,46 @@ fn migration_sweep(
     resolved: &BTreeMap<Ident, Vec<RowId>>,
 ) -> MigrationOutcome {
     let mut outcome = MigrationOutcome::default();
+    let inputs = SquareInputs {
+        source,
+        target,
+        schema_map,
+        resolved,
+    };
     for (operation, arrow) in &source.schema.arrows {
-        let Some(Some(path)) = schema_map.arrows.get(operation) else {
-            continue;
-        };
-        let Some(rows) = resolved.get(&arrow.src) else {
-            continue;
-        };
-        for row in rows {
-            match migration_square(source, target, operation, &path.0, *row, resolved) {
-                MigrationSquare::Undefined => outcome.undefined.push(UndefinedSquare {
-                    arrow: operation.clone(),
-                    source_row: *row,
-                }),
-                MigrationSquare::Clean => {}
-                MigrationSquare::Violation(finding) => outcome.findings.push(finding),
-            }
-        }
+        sweep_operation(&inputs, &mut outcome, operation, arrow);
     }
     outcome.findings.sort();
     outcome.undefined.sort();
     outcome
+}
+
+/// One operation arrow's commutation squares: every source row of its
+/// migrated source object, classified and accumulated into the sweep
+/// outcome. An arrow without a Δ target path, or whose source object's
+/// rows did not migrate (a dropped object), contributes nothing.
+fn sweep_operation(
+    inputs: &SquareInputs<'_>,
+    outcome: &mut MigrationOutcome,
+    operation: &Ident,
+    arrow: &Arrow,
+) {
+    let Some(Some(path)) = inputs.schema_map.arrows.get(operation) else {
+        return;
+    };
+    let Some(rows) = inputs.resolved.get(&arrow.src) else {
+        return;
+    };
+    for row in rows {
+        match migration_square(inputs, operation, &path.0, *row) {
+            MigrationSquare::Undefined => outcome.undefined.push(UndefinedSquare {
+                arrow: operation.clone(),
+                source_row: *row,
+            }),
+            MigrationSquare::Clean => {}
+            MigrationSquare::Violation(finding) => outcome.findings.push(finding),
+        }
+    }
 }
 
 /// One migration commutation square's classification.
@@ -196,15 +251,13 @@ enum MigrationSquare {
 /// `None`s are undefined (never clean), and every other pair — including
 /// one unresolved side — is a witnessed break.
 fn migration_square(
-    source: &Model,
-    target: &Model,
+    inputs: &SquareInputs<'_>,
     operation: &Ident,
     path: &[Ident],
     row: RowId,
-    resolved: &BTreeMap<Ident, Vec<RowId>>,
 ) -> MigrationSquare {
-    let lhs = operate_then_migrate(source, operation, row, resolved);
-    let rhs = migrate_then_operate(source, target, operation, path, row, resolved);
+    let lhs = operate_then_migrate(inputs, operation, row);
+    let rhs = migrate_then_operate(inputs, operation, path, row);
     match (lhs, rhs) {
         (None, None) => MigrationSquare::Undefined,
         (lhs, rhs) if lhs == rhs => MigrationSquare::Clean,
@@ -226,14 +279,10 @@ fn migration_square(
 /// `migrate ∘ o`: the operation's image on the source row, then the
 /// target row its source-object Δ assign names. `None` when either side
 /// is unresolved.
-fn operate_then_migrate(
-    source: &Model,
-    operation: &Ident,
-    row: RowId,
-    resolved: &BTreeMap<Ident, Vec<RowId>>,
-) -> Option<RowId> {
-    let arrow = source.schema.arrows.get(operation)?;
-    source
+fn operate_then_migrate(inputs: &SquareInputs<'_>, operation: &Ident, row: RowId) -> Option<RowId> {
+    let arrow = inputs.source.schema.arrows.get(operation)?;
+    inputs
+        .source
         .instance
         .values
         .get(operation)
@@ -241,7 +290,8 @@ fn operate_then_migrate(
         .copied()
         .flatten()
         .and_then(|image| {
-            resolved
+            inputs
+                .resolved
                 .get(&arrow.tgt)
                 .and_then(|targets| targets.get(image.0))
                 .copied()
@@ -252,19 +302,18 @@ fn operate_then_migrate(
 /// path composed in order over the target instance. `None` when either
 /// side is unresolved.
 fn migrate_then_operate(
-    source: &Model,
-    target: &Model,
+    inputs: &SquareInputs<'_>,
     operation: &Ident,
     path: &[Ident],
     row: RowId,
-    resolved: &BTreeMap<Ident, Vec<RowId>>,
 ) -> Option<RowId> {
-    let arrow = source.schema.arrows.get(operation)?;
-    let migrated = resolved
+    let arrow = inputs.source.schema.arrows.get(operation)?;
+    let migrated = inputs
+        .resolved
         .get(&arrow.src)
         .and_then(|rows| rows.get(row.0))
         .copied();
-    path_image(target, path, migrated)
+    path_image(inputs.target, path, migrated)
 }
 
 /// One Δ target path's image at a migrated row: the path's arrows

@@ -15,15 +15,19 @@
 //! and a null result (Flyweight) is recorded as a null, never rounded
 //! up to a detection.
 
+mod support;
+
 use std::path::Path;
 
 use catherine_core::hash::model_hash;
 use catherine_core::parse::parse;
 use catherine_ledger::entry::BaselineMode;
 use catherine_ledger::harness::run;
-use catherine_ledger::validate::validate_dir;
+use catherine_ledger::validate::{validate_dir, ValidLedger};
+use support::{present, TestError};
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+const LEDGER: &str = "ledger/katas/weak-lens-set";
 
 const FIXTURES: [(&str, &str); 12] = [
     (
@@ -111,48 +115,58 @@ const POSITIVES: [(&str, &str, &str, usize); 5] = [
 ];
 
 /// One fixture's canonical model hash, recomputed from its bytes.
-fn fixture_hash(name: &str) -> String {
+fn fixture_hash(name: &str) -> Result<String, TestError> {
     let path = format!("{ROOT}/fixtures/katas/weak-lens-set/{name}");
-    let text = std::fs::read_to_string(path).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+    let text = std::fs::read_to_string(path)?;
+    let document = parse(&text)?;
+    Ok(model_hash(&document))
+}
+
+/// The committed kata ledger, validated; a refusal becomes the test's
+/// error with the violations spelled out.
+fn validated() -> Result<ValidLedger, TestError> {
+    validate_dir(Path::new(ROOT).join(LEDGER).as_path())
+        .map_err(|violations| format!("the weak-lens ledger refused: {violations:?}").into())
 }
 
 /// An edit to any committed fixture must become a superseding entry.
 #[test]
-fn weak_lens_fixture_hashes_are_pinned() {
+fn weak_lens_fixture_hashes_are_pinned() -> Result<(), TestError> {
     let mut mismatches = Vec::new();
     for (name, pin) in FIXTURES {
-        let got = fixture_hash(name);
+        let got = fixture_hash(name)?;
         println!("HASH {name} {got}");
         if got != pin {
             mismatches.push(format!("{name}: {got} != {pin}"));
         }
     }
     assert!(mismatches.is_empty(), "fixture hash drift: {mismatches:?}");
+    Ok(())
 }
 
 /// The clean fixtures satisfy their lens (zero findings); the seeded
 /// faults emit exactly the pre-registered counts, including Flyweight's
 /// zero.
 #[test]
-fn weak_lens_fixtures_execute_to_the_preregistered_counts() {
+fn weak_lens_fixtures_execute_to_the_preregistered_counts() -> Result<(), TestError> {
     for (name, _) in FIXTURES {
         let path = Path::new(ROOT)
             .join("fixtures/katas/weak-lens-set")
             .join(name);
         let executed = run(&path);
         assert!(executed.parsed, "{name} parses");
-        let expected = expected_count(name);
+        let pinned = expected_count(name)?;
         assert_eq!(
             executed.findings.len(),
-            expected,
-            "{name} emits {expected} findings"
+            pinned,
+            "{name} emits {pinned} findings"
         );
     }
+    Ok(())
 }
 
 /// The pre-registered finding count per fixture (the null included).
-fn expected_count(name: &str) -> usize {
+fn expected_count(name: &str) -> Result<usize, TestError> {
     match name {
         "control-floor.ct.json"
         | "observer.ct.json"
@@ -160,58 +174,70 @@ fn expected_count(name: &str) -> usize {
         | "flyweight.ct.json"
         | "command.ct.json"
         | "prototype.ct.json"
-        | "flyweight-fault-duplicate-instance.ct.json" => 0,
+        | "flyweight-fault-duplicate-instance.ct.json" => Ok(0),
         "control-floor-fault-stale-seen.ct.json"
         | "observer-fault-stale-delivery.ct.json"
         | "bridge-fault-divergent-op.ct.json"
         | "command-fault-undo-drift.ct.json"
-        | "prototype-fault-clone-drift.ct.json" => 1,
-        other => panic!("unregistered fixture {other}"),
+        | "prototype-fault-clone-drift.ct.json" => Ok(1),
+        other => Err(format!("unregistered fixture {other}").into()),
     }
 }
 
 /// The ledger validates control-first, the control self-negates, and
 /// each positive carries its executed baseline arm and honest gap.
 #[test]
-fn weak_lens_ledger_records_the_preregistered_dispositions() {
-    let dir = Path::new(ROOT).join("ledger/katas/weak-lens-set");
-    let valid = validate_dir(&dir).expect("the weak-lens ledger validates");
+fn weak_lens_ledger_records_the_preregistered_dispositions() -> Result<(), TestError> {
+    let valid = validated()?;
     assert_eq!(valid.entries.len(), 6, "control + five patterns");
-    let control = valid.kata_entries()[0].content.kata.clone().expect("kata");
-    assert!(control.control, "the near-floor control is first");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
-    assert!(control.comparison.unique_detections.is_empty());
+    let kata_entries = valid.kata_entries();
+    let control = present(kata_entries[0].content.kata.as_ref(), "kata record")?;
+    assert!(control.identity.control, "the near-floor control is first");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(control.derivation.comparison.unique_detections.is_empty());
     assert_eq!(control.expected[0].fault, "floor-stale-seen");
     assert!(control.catalog_hash.is_none(), "non-probe kata, no catalog");
     assert_eq!(control.run.findings.len(), 1);
+    let control_arm = present(
+        control.derivation.comparison.baseline.as_ref(),
+        "the control's arm",
+    )?;
     assert_eq!(
-        control
-            .comparison
-            .baseline
-            .as_ref()
-            .expect("arm")
-            .detections,
+        control_arm.detections,
         vec!["observer-control:seen!=subject.event@Observer#0"]
     );
-    for (entry, (fault, fixture, element, count)) in valid.kata_entries()[1..].iter().zip(POSITIVES)
-    {
-        let kata = entry.content.kata.as_ref().expect("kata");
-        assert_eq!(kata.kata_id, "weak-lens-set");
-        assert_eq!(kata.verdict, "killed");
-        assert!(kata.comparison.unique_detections.is_empty());
+    for (entry, (fault, fixture, element, count)) in kata_entries[1..].iter().zip(POSITIVES) {
+        let kata = present(entry.content.kata.as_ref(), "kata record")?;
+        assert_eq!(kata.identity.kata_id, "weak-lens-set");
+        assert_eq!(kata.derivation.verdict, "killed");
+        assert!(kata.derivation.comparison.unique_detections.is_empty());
         assert_eq!(kata.expected[0].fault, fault);
         assert!(kata.catalog_hash.is_none(), "{fault} has no catalog");
         assert_eq!(kata.run.findings.len(), count, "{fault} finding count");
-        assert_eq!(kata.comparison.fired.len(), count, "{fault} fired count");
-        assert!(!kata.expressibility_gap.is_empty(), "{fault} records a gap");
-        let baseline = kata.comparison.baseline.as_ref().expect("executed arm");
-        assert_eq!(baseline.mode, BaselineMode::Executed);
-        assert_eq!(baseline.detections, vec![element.to_string()]);
         assert_eq!(
-            kata.fixture,
+            kata.derivation.comparison.fired.len(),
+            count,
+            "{fault} fired count"
+        );
+        assert!(!kata.expressibility_gap.is_empty(), "{fault} records a gap");
+        let arm = present(
+            kata.derivation.comparison.baseline.as_ref(),
+            "the executed arm",
+        )?;
+        assert_eq!(arm.mode, BaselineMode::Executed);
+        assert_eq!(arm.detections, vec![element.to_string()]);
+        assert_eq!(
+            kata.provenance.fixture,
             format!("fixtures/katas/weak-lens-set/{fixture}")
         );
-        assert_eq!(entry.content.model_hashes, vec![kata.fixture_hash.clone()]);
-        assert_eq!(kata.fixture_hash, fixture_hash(fixture));
+        assert_eq!(
+            entry.content.model_hashes,
+            vec![kata.provenance.fixture_hash.clone()]
+        );
+        assert_eq!(kata.provenance.fixture_hash, fixture_hash(fixture)?);
     }
+    Ok(())
 }

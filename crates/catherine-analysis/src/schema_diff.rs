@@ -172,6 +172,41 @@ pub fn diff(v1: &Schema, v2: &Schema, bound: &SearchBounds) -> SchemaDiffReport 
     classify_dropping(v1, v2, bound, added)
 }
 
+/// One candidate's weakening verdict: the witness when `v2` accepts what
+/// `v1` rejects; a strengthening observation is recorded through the
+/// flag for the exhausted-scope classification.
+fn weakening_probe(
+    v1: &Schema,
+    v2: &Schema,
+    instance: &Instance,
+    strengthened: &mut bool,
+) -> Option<(Instance, Finding)> {
+    let typed = TypedInstance::build(v1, instance);
+    let v1_clean = is_clean_typed(v1, &typed);
+    let v2_clean = is_clean_typed(v2, &typed);
+    if v2_clean && !v1_clean {
+        return violation(v1, &typed).map(|finding| (instance.clone(), finding));
+    }
+    if v1_clean && !v2_clean {
+        *strengthened = true;
+    }
+    None
+}
+
+/// The exhausted-scope outcome: strengthening observed in scope is the
+/// mixed class, not an overclaimed equivalence.
+fn exhausted_outcome(
+    scope: SearchScope,
+    strengthened: bool,
+    added: Vec<EnforcedConstraint>,
+) -> SchemaDiffOutcome {
+    if strengthened {
+        SchemaDiffOutcome::StrengthenedInScope { added, scope }
+    } else {
+        SchemaDiffOutcome::EquivalentInScope { scope }
+    }
+}
+
 /// The bounded scan for edits that no longer enforce a constraint: first
 /// `v2`-clean and `v1`-dirty candidate is the weakening witness; if the
 /// space exhausts without one, the scan reports equivalence — or, when a
@@ -187,16 +222,7 @@ fn classify_dropping(
     // schemas: build once and evaluate both constraint sets on it.
     let mut strengthened = false;
     let scanned = enumerate(v1, bound, |instance| {
-        let typed = TypedInstance::build(v1, instance);
-        let v1_clean = is_clean_typed(v1, &typed);
-        let v2_clean = is_clean_typed(v2, &typed);
-        if v2_clean && !v1_clean {
-            return violation(v1, &typed).map(|finding| (instance.clone(), finding));
-        }
-        if v1_clean && !v2_clean {
-            strengthened = true;
-        }
-        None
+        weakening_probe(v1, v2, instance, &mut strengthened)
     });
     match scanned {
         Enumeration::Found((witness, finding)) => report(
@@ -204,14 +230,11 @@ fn classify_dropping(
             SchemaDiffOutcome::Weakened { witness },
             vec![finding],
         ),
-        Enumeration::Exhausted { scope } => {
-            let outcome = if strengthened {
-                SchemaDiffOutcome::StrengthenedInScope { added, scope }
-            } else {
-                SchemaDiffOutcome::EquivalentInScope { scope }
-            };
-            report(bound, outcome, Vec::new())
-        }
+        Enumeration::Exhausted { scope } => report(
+            bound,
+            exhausted_outcome(scope, strengthened, added),
+            Vec::new(),
+        ),
         Enumeration::Unknown { scope } => {
             report(bound, SchemaDiffOutcome::Unknown { scope }, Vec::new())
         }
@@ -250,6 +273,15 @@ pub(super) fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
             *multiset.entry(enforced).or_insert(0) += 1;
         }
     }
+    add_keys(&mut multiset, schema);
+    add_coproducts(&mut multiset, schema);
+    add_pullbacks(&mut multiset, schema);
+    multiset
+}
+
+/// Record every accepted key as its `(object, arrows)` member; proposed
+/// keys are questions and stay out of the enforced set.
+fn add_keys(multiset: &mut BTreeMap<EnforcedConstraint, usize>, schema: &Schema) {
     for key in &schema.keys {
         if key.status == ConstraintStatus::Accepted {
             let enforced = EnforcedConstraint::Key {
@@ -259,6 +291,11 @@ pub(super) fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
             *multiset.entry(enforced).or_insert(0) += 1;
         }
     }
+}
+
+/// Record every accepted coproduct as its `(object, arrows)` member;
+/// proposed coproducts are questions and stay out of the enforced set.
+fn add_coproducts(multiset: &mut BTreeMap<EnforcedConstraint, usize>, schema: &Schema) {
     for coproduct in &schema.coproducts {
         if coproduct.status == ConstraintStatus::Accepted {
             let enforced = EnforcedConstraint::Coproduct {
@@ -268,8 +305,6 @@ pub(super) fn enforced(schema: &Schema) -> BTreeMap<EnforcedConstraint, usize> {
             *multiset.entry(enforced).or_insert(0) += 1;
         }
     }
-    add_pullbacks(&mut multiset, schema);
-    multiset
 }
 
 /// Record every accepted pullback as its `(apex, legs, cospan)` member;

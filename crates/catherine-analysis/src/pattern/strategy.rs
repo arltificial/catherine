@@ -17,9 +17,8 @@
 //! no detection-rate claim is made: the lens is the rule-lens mapping and
 //! nothing else.
 
-use crate::bounds::ScopeCaps;
 use crate::pattern::{
-    bind_domain, describe_rule_scope, LawKind, LensFindings, LensInput, LensOutcome, PatternLens,
+    bind_domain, describe_rule_scope, LawKind, LensCall, LensFindings, LensOutcome, PatternLens,
     PatternMeta,
 };
 use crate::rule_lens::{rule_lens, RuleLensOutcome};
@@ -42,7 +41,8 @@ impl PatternLens for Lens {
         &STRATEGY_META
     }
 
-    fn run(&self, input: &LensInput<'_>, caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps } = call;
         let Some(presentation) = input.model.rule_presentation.as_ref() else {
             return LensOutcome::Unknown {
                 scope: "no rule_presentation section; nothing evaluated".to_string(),

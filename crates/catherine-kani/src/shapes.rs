@@ -30,7 +30,7 @@
 //! tables.
 
 use catherine_engine::engine::{
-    ident_key, push_bounded, Bounded, EngineInstance, EngineSchema, ROWS_CAP,
+    ident_key, push_bounded, Bounded, EngineInstance, EngineSchema, LaneSpec, ROWS_CAP,
 };
 use catherine_engine::model::{ConstraintStatus, RowId};
 
@@ -72,80 +72,80 @@ pub fn any_cells(arrow: u64) -> Option<RowId> {
 
 /// The equation family: parallel pair `[e1] = [e2]` over `a`.
 pub fn schema_equation() -> EngineSchema {
-    EngineSchema::lane(
-        &["a", "x"],
-        &[("e1", "a", "x"), ("e2", "a", "x")],
-        &[(&["e1"], &["e2"], ConstraintStatus::Accepted)],
-        &[],
-        &[],
-        &[],
-    )
+    EngineSchema::lane(LaneSpec {
+        objects: &["a", "x"],
+        arrows: &[("e1", "a", "x"), ("e2", "a", "x")],
+        equations: &[(&["e1"], &["e2"], ConstraintStatus::Accepted)],
+        keys: &[],
+        coproducts: &[],
+        pullbacks: &[],
+    })
 }
 
 /// The key family: one two-arrow key over `a`'s two rows.
 pub fn schema_key() -> EngineSchema {
-    EngineSchema::lane(
-        &["a", "x"],
-        &[("e1", "a", "x"), ("e2", "a", "x")],
-        &[],
-        &[("a", &["e1", "e2"], ConstraintStatus::Accepted)],
-        &[],
-        &[],
-    )
+    EngineSchema::lane(LaneSpec {
+        objects: &["a", "x"],
+        arrows: &[("e1", "a", "x"), ("e2", "a", "x")],
+        equations: &[],
+        keys: &[("a", &["e1", "e2"], ConstraintStatus::Accepted)],
+        coproducts: &[],
+        pullbacks: &[],
+    })
 }
 
 /// The coproduct family: two injections into the two-row `x`.
 pub fn schema_coproduct() -> EngineSchema {
-    EngineSchema::lane(
-        &["x", "y", "z"],
-        &[("i_y", "y", "x"), ("i_z", "z", "x")],
-        &[],
-        &[],
-        &[("x", &["i_y", "i_z"], ConstraintStatus::Accepted)],
-        &[],
-    )
+    EngineSchema::lane(LaneSpec {
+        objects: &["x", "y", "z"],
+        arrows: &[("i_y", "y", "x"), ("i_z", "z", "x")],
+        equations: &[],
+        keys: &[],
+        coproducts: &[("x", &["i_y", "i_z"], ConstraintStatus::Accepted)],
+        pullbacks: &[],
+    })
 }
 
 /// The pullback family: apex `a` over legs `e1`, `e2` and cospan
 /// `f1`, `f2` into the two-row `z`.
 pub fn schema_pullback() -> EngineSchema {
-    EngineSchema::lane(
-        &["a", "x", "z"],
-        &[
+    EngineSchema::lane(LaneSpec {
+        objects: &["a", "x", "z"],
+        arrows: &[
             ("e1", "a", "x"),
             ("e2", "a", "x"),
             ("f1", "x", "z"),
             ("f2", "x", "z"),
         ],
-        &[],
-        &[],
-        &[],
-        &[(
+        equations: &[],
+        keys: &[],
+        coproducts: &[],
+        pullbacks: &[(
             "a",
             &["e1", "e2"],
             &["f1", "f2"],
             ConstraintStatus::Accepted,
         )],
-    )
+    })
 }
 
 /// All four families on one minimal presentation — the integration
 /// shape the diff-stable sortedness obligation runs over.
 pub fn schema_all_families() -> EngineSchema {
     let arrows: Vec<(&str, &str, &str)> = ARROWS.iter().map(|(n, s, t, _)| (*n, *s, *t)).collect();
-    EngineSchema::lane(
-        &["a", "x", "y", "z"],
-        &arrows,
-        &[(&["e1"], &["e2"], ConstraintStatus::Accepted)],
-        &[("a", &["e1", "e2"], ConstraintStatus::Accepted)],
-        &[("x", &["i_y", "i_z"], ConstraintStatus::Accepted)],
-        &[(
+    EngineSchema::lane(LaneSpec {
+        objects: &["a", "x", "y", "z"],
+        arrows: &arrows,
+        equations: &[(&["e1"], &["e2"], ConstraintStatus::Accepted)],
+        keys: &[("a", &["e1", "e2"], ConstraintStatus::Accepted)],
+        coproducts: &[("x", &["i_y", "i_z"], ConstraintStatus::Accepted)],
+        pullbacks: &[(
             "a",
             &["e1", "e2"],
             &["f1", "f2"],
             ConstraintStatus::Accepted,
         )],
-    )
+    })
 }
 
 /// The deterministic instance over `schema`'s shapes: dense rows per
@@ -164,22 +164,31 @@ pub fn instance_for(schema: &EngineSchema) -> EngineInstance {
 /// key resolved against the shared space description by byte key.
 fn row_counts_for(schema: &EngineSchema) -> Vec<Option<usize>> {
     let mut row_counts: Vec<Option<usize>> = Vec::with_capacity(schema.object_keys.len());
-    let mut oi = 0;
-    while oi < schema.object_keys.len() {
+    for oi in 0..schema.object_keys.len() {
         let want = schema.object_keys[oi];
-        let mut found = None;
-        let mut si = 0;
-        while si < OBJECT_ROWS.len() {
-            if ident_key(OBJECT_ROWS[si].0) == want {
-                found = Some(OBJECT_ROWS[si].1);
-                break;
-            }
-            si += 1;
-        }
+        let found = OBJECT_ROWS
+            .iter()
+            .position(|(name, _)| ident_key(name) == want)
+            .map(|si| OBJECT_ROWS[si].1);
         push_bounded(&mut row_counts, found);
-        oi += 1;
     }
     row_counts
+}
+
+/// One arrow's tiered cell table: `rows` draws at the arrow's entropy
+/// tier, resolved by byte key; `None` when the arrow is outside the
+/// shared space.
+fn arrow_cells(want: u64) -> Option<Bounded<RowId, ROWS_CAP>> {
+    let si = ARROWS
+        .iter()
+        .position(|(name, ..)| ident_key(name) == want)?;
+    let key = ident_key(ARROWS[si].0);
+    let rows = ARROWS[si].3;
+    let mut table = Bounded::<RowId, ROWS_CAP>::new();
+    for _ in 0..rows {
+        table.push_cell(any_cells(key));
+    }
+    Some(table)
 }
 
 /// One tiered partial cell vector per declared arrow, parallel to the
@@ -187,32 +196,9 @@ fn row_counts_for(schema: &EngineSchema) -> Vec<Option<usize>> {
 fn cells_for(schema: &EngineSchema) -> Vec<Option<Bounded<RowId, ROWS_CAP>>> {
     let mut cells: Vec<Option<Bounded<RowId, ROWS_CAP>>> =
         Vec::with_capacity(schema.arrow_keys.len());
-    let mut ai = 0;
-    while ai < schema.arrow_keys.len() {
+    for ai in 0..schema.arrow_keys.len() {
         let want = schema.arrow_keys[ai];
-        let mut found: Option<(usize, u64)> = None;
-        let mut si = 0;
-        while si < ARROWS.len() {
-            let key = ident_key(ARROWS[si].0);
-            if key == want {
-                found = Some((ARROWS[si].3, key));
-                break;
-            }
-            si += 1;
-        }
-        match found {
-            Some((rows, key)) => {
-                let mut table = Bounded::<RowId, ROWS_CAP>::new();
-                let mut i = 0;
-                while i < rows {
-                    table.push_cell(any_cells(key));
-                    i += 1;
-                }
-                push_bounded(&mut cells, Some(table));
-            }
-            None => push_bounded(&mut cells, None),
-        }
-        ai += 1;
+        push_bounded(&mut cells, arrow_cells(want));
     }
     cells
 }

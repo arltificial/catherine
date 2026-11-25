@@ -5,41 +5,27 @@
 //! claim is split per witness shape (2026-11-24): coverage half and
 //! collision half, one soundness harness each.
 
-use catherine_engine::engine::{Bounded, EngineSchema, EngineTyped, Nid, ARROWS_CAP, ROWS_CAP};
+use catherine_engine::engine::{Bounded, EngineTyped, Nid, RowId, ARROWS_CAP, ROWS_CAP};
 
 /// The coproduct claim's coverage half, re-derived independently: the
 /// arrow images resolved straight from the interned tables as scalar
 /// facts, then the coverage claim. The claim is split per witness shape
 /// (Decision 4, 2026-11-24), and each half's re-derivation is fused
-/// (resolve and membership in one pass, nothing materialized): the
+/// per arrow (resolve and membership in one claim, nothing
+/// materialized): the
 /// earlier rebuild of the walk's image table — even mirror-free —
 /// quadrupled the check harness's formula (117 k generated VCCs); the
 /// collision half is `assert_coproduct_collision_sound`'s and the two
 /// harnesses' union carries the family's claim. Both declare unwind 4 —
 /// the shape's concrete loop bound (2 trips + exit); the mirror-era 8
 /// unrolled past need and peaked at 9.93 GB uncapped, over the scope.
-pub(crate) fn assert_coproduct_coverage_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    row: usize,
-) {
-    let coproduct = schema.coproducts[index].as_ref().unwrap();
-    let mut partial = false;
-    let mut covered = false;
-    let mut a = 0;
-    while a < coproduct.arrows.len() {
-        let (complete, covers) = arrow_image_facts(typed, coproduct.arrows[a], row);
-        if !complete {
-            partial = true;
-        }
-        if complete && covers {
-            covered = true;
-        }
-        a += 1;
+pub(crate) fn assert_coproduct_coverage_sound(ctx: &super::Ctx, row: usize) {
+    let coproduct = ctx.schema.coproducts[ctx.index].as_ref().unwrap();
+    for a in 0..coproduct.arrows.len() {
+        let (complete, covers) = arrow_image_facts(ctx.typed, coproduct.arrows[a], row);
+        assert!(complete);
+        assert!(!covers);
     }
-    assert!(!partial);
-    assert!(!covered);
 }
 
 /// The coproduct claim's collision half, re-derived independently (see
@@ -47,64 +33,65 @@ pub(crate) fn assert_coproduct_coverage_sound(
 /// rationale): every covering image is a named injection, and at least
 /// two named injections cover the row.
 pub(crate) fn assert_coproduct_collision_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
+    ctx: &super::Ctx,
     row: usize,
     injections: &Bounded<Nid, ARROWS_CAP>,
 ) {
-    let coproduct = schema.coproducts[index].as_ref().unwrap();
-    let mut partial = false;
+    let coproduct = ctx.schema.coproducts[ctx.index].as_ref().unwrap();
     let mut named_covering = 0;
-    let mut a = 0;
-    while a < coproduct.arrows.len() {
-        let (complete, covers) = arrow_image_facts(typed, coproduct.arrows[a], row);
-        if !complete {
-            partial = true;
-        }
+    for a in 0..coproduct.arrows.len() {
+        let (complete, covers) = arrow_image_facts(ctx.typed, coproduct.arrows[a], row);
         let is_named = injection_named(injections, coproduct.arrows[a]);
-        if complete && covers {
-            assert!(is_named || partial);
-            if is_named {
-                named_covering += 1;
-            }
-        } else if complete {
-            assert!(!is_named || partial);
+        assert!(complete);
+        if covers {
+            assert!(is_named);
+            named_covering += 1;
+        } else {
+            assert!(!is_named);
         }
-        a += 1;
     }
     assert!(named_covering >= 2);
 }
 
 /// One arrow's image facts, resolved straight from the interned table:
 /// `complete` — every cell resolved; `covers` — the row is among the
-/// resolved cells, checked while resolving so no image table is
-/// materialized (a `Bounded<(Nid, Bounded<u64, ROWS_CAP>), ARROWS_CAP>`
-/// rebuild's nested-array stores and merged-lens scans quadrupled the
-/// formula; these scalars carry the identical claims).
+/// resolved cells. Two plain slot scans, nothing materialized (a
+/// `Bounded<(Nid, Bounded<u64, ROWS_CAP>), ARROWS_CAP>` rebuild's
+/// nested-array stores and merged-lens scans quadrupled the formula;
+/// these scalars carry the identical claims).
 fn arrow_image_facts(typed: &EngineTyped, arrow: Nid, row: usize) -> (bool, bool) {
     let table = &typed.tables[arrow];
-    let mut complete = true;
-    let mut covers = false;
-    let mut idx = 0;
-    while idx < table.len() {
-        match table.get(idx).copied().flatten() {
-            Some(value) => covers |= value.0 as u64 == row as u64,
-            None => complete = false,
+    (table_complete(table), table_covers(table, row))
+}
+
+/// Every cell of the arrow's table resolved (no dangling cells).
+fn table_complete(table: &Bounded<RowId, ROWS_CAP>) -> bool {
+    for idx in 0..table.len() {
+        if table.get(idx).copied().flatten().is_none() {
+            return false;
         }
-        idx += 1;
     }
-    (complete, covers)
+    true
+}
+
+/// The row is among the arrow's resolved cells.
+fn table_covers(table: &Bounded<RowId, ROWS_CAP>, row: usize) -> bool {
+    for idx in 0..table.len() {
+        if let Some(value) = table.get(idx).copied().flatten() {
+            if value.0 as u64 == row as u64 {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Plain slot scan: is the arrow one of the witness's named injections?
 fn injection_named(injections: &Bounded<Nid, ARROWS_CAP>, arrow: Nid) -> bool {
-    let mut k = 0;
-    while k < injections.len() {
+    for k in 0..injections.len() {
         if injections[k] == Some(arrow) {
             return true;
         }
-        k += 1;
     }
     false
 }

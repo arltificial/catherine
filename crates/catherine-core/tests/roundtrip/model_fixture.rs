@@ -47,7 +47,23 @@ pub fn arb_model(tc: &hegel::TestCase) -> Model {
     let slots = arrow_defs.len().max(1);
     let raw_equations = draw_equations(tc, slots);
     let cell_pool = draw_cell_pool(tc);
-    build_model(&names, &arrow_defs, &row_counts, &raw_equations, &cell_pool)
+    build_model(&Drawn {
+        names: &names,
+        arrows: &arrow_defs,
+        row_counts: &row_counts,
+        raw_equations: &raw_equations,
+        cell_pool: &cell_pool,
+    })
+}
+
+/// The drawn model parts, held together so the builder stays within the
+/// two-parameter test limit.
+struct Drawn<'a> {
+    names: &'a [String],
+    arrows: &'a [(String, usize, usize)],
+    row_counts: &'a [usize],
+    raw_equations: &'a [(Vec<usize>, Vec<usize>)],
+    cell_pool: &'a [usize],
 }
 
 /// Draw the unique object names.
@@ -109,13 +125,14 @@ fn drawn_path(slots: usize) -> gs::VecGenerator<gs::IntegerGenerator<usize>, usi
 /// document; equation pairs whose path endpoints do not match are dropped
 /// at generation time (the generator, not the parser, must stay
 /// well-typed).
-fn build_model(
-    names: &[String],
-    arrows: &[(String, usize, usize)],
-    row_counts: &[usize],
-    raw_equations: &[(Vec<usize>, Vec<usize>)],
-    cell_pool: &[usize],
-) -> Model {
+fn build_model(drawn: &Drawn<'_>) -> Model {
+    let Drawn {
+        names,
+        arrows,
+        row_counts,
+        raw_equations,
+        cell_pool,
+    } = drawn;
     let format_version = Version { major: 1, minor: 0 }; // within KNOWN_MINOR (parse::schema)
     if names.is_empty() {
         return Model {
@@ -126,7 +143,7 @@ fn build_model(
     let arrows = arrow_map(names, arrows);
     let equations = build_equations(&arrows, raw_equations);
     let rows = row_map(names, row_counts);
-    let values = value_map(&arrows, &rows, cell_pool);
+    let values = value_map(&arrows, (&rows, cell_pool));
     Model {
         format_version,
         schema: Schema {
@@ -191,14 +208,11 @@ fn build_equations(
     if arrows.is_empty() {
         return Vec::new();
     }
-    let arrow_names: Vec<Ident> = arrows.keys().cloned().collect();
-    let arrow_list: Vec<&Arrow> = arrows.values().collect();
+    let table = ArrowTable::new(arrows);
     let mut equations: Vec<Equation> = raw_equations
         .iter()
         .enumerate()
-        .filter_map(|(i, (lhs_idx, rhs_idx))| {
-            equation_candidate(&arrow_names, &arrow_list, i, lhs_idx, rhs_idx)
-        })
+        .filter_map(|(i, (lhs_idx, rhs_idx))| table.candidate((i, (lhs_idx, rhs_idx))))
         .collect();
     // Canonical order, as the parser stores them.
     equations.sort_by(|a, b| {
@@ -212,29 +226,59 @@ fn build_equations(
     equations
 }
 
-/// One drawn equation pair, if its path endpoints match and its arrow
-/// slots are in range.
-fn equation_candidate(
-    arrow_names: &[Ident],
-    arrow_list: &[&Arrow],
-    i: usize,
-    lhs_idx: &[usize],
-    rhs_idx: &[usize],
-) -> Option<Equation> {
-    if out_of_range(arrow_list, lhs_idx, rhs_idx) {
-        return None;
+/// The declared arrows — names beside endpoints — so the equation
+/// candidate helpers stay within the two-parameter test limit.
+struct ArrowTable<'a> {
+    names: Vec<Ident>,
+    arrows: Vec<&'a Arrow>,
+}
+
+impl<'a> ArrowTable<'a> {
+    /// The arrow names in key order beside their endpoint pairs.
+    fn new(arrows: &'a std::collections::BTreeMap<Ident, Arrow>) -> Self {
+        ArrowTable {
+            names: arrows.keys().cloned().collect(),
+            arrows: arrows.values().collect(),
+        }
     }
-    if endpoints_of(arrow_list, lhs_idx) != endpoints_of(arrow_list, rhs_idx) {
-        return None; // ill-typed candidate — a generator artifact, never a model
+
+    /// One drawn equation pair, if its path endpoints match and its
+    /// arrow slots are in range. The drawn parts — the pair's index
+    /// beside its two paths — come as one group.
+    fn candidate(&self, drawn: (usize, (&Vec<usize>, &Vec<usize>))) -> Option<Equation> {
+        let (i, (lhs_idx, rhs_idx)) = drawn;
+        if self.out_of_range((lhs_idx, rhs_idx)) {
+            return None;
+        }
+        if self.endpoints_of(lhs_idx) != self.endpoints_of(rhs_idx) {
+            return None; // ill-typed candidate — a generator artifact, never a model
+        }
+        let names = &self.names;
+        let to_path =
+            |idx: &[usize]| -> Path { Path(idx.iter().map(|j| names[*j].clone()).collect()) };
+        Some(Equation {
+            lhs: to_path(lhs_idx),
+            rhs: to_path(rhs_idx),
+            rationale: format!("equation-{i}"),
+            status: drawn_status(i),
+        })
     }
-    let to_path =
-        |idx: &[usize]| -> Path { Path(idx.iter().map(|j| arrow_names[*j].clone()).collect()) };
-    Some(Equation {
-        lhs: to_path(lhs_idx),
-        rhs: to_path(rhs_idx),
-        rationale: format!("equation-{i}"),
-        status: drawn_status(i),
-    })
+
+    /// Whether either drawn path names an arrow slot beyond the arrow
+    /// list. The two drawn paths come as one group.
+    fn out_of_range(&self, paths: (&[usize], &[usize])) -> bool {
+        let (lhs_idx, rhs_idx) = paths;
+        lhs_idx.iter().any(|j| *j >= self.arrows.len())
+            || rhs_idx.iter().any(|j| *j >= self.arrows.len())
+    }
+
+    /// The (src, tgt) endpoint pair a drawn path's first and last arrow
+    /// slots resolve to.
+    fn endpoints_of(&self, idx: &[usize]) -> Option<(Ident, Ident)> {
+        let first = self.arrows.get(*idx.first()?)?;
+        let last = self.arrows.get(*idx.last()?)?;
+        Some((first.src.clone(), last.tgt.clone()))
+    }
 }
 
 /// Even-indexed pairs are accepted, odd ones proposed.
@@ -246,39 +290,28 @@ fn drawn_status(i: usize) -> ConstraintStatus {
     }
 }
 
-/// Whether either drawn path names an arrow slot beyond the arrow list.
-fn out_of_range(arrow_list: &[&Arrow], lhs_idx: &[usize], rhs_idx: &[usize]) -> bool {
-    lhs_idx.iter().any(|j| *j >= arrow_list.len()) || rhs_idx.iter().any(|j| *j >= arrow_list.len())
-}
-
-/// The (src, tgt) endpoint pair a drawn path's first and last arrow
-/// slots resolve to.
-fn endpoints_of(arrow_list: &[&Arrow], idx: &[usize]) -> Option<(Ident, Ident)> {
-    let first = arrow_list.get(*idx.first()?)?;
-    let last = arrow_list.get(*idx.last()?)?;
-    Some((first.src.clone(), last.tgt.clone()))
-}
-
-/// Total per-arrow tables drawn from the cycling cell pool.
+/// Total per-arrow tables drawn from the cycling cell pool. The rows
+/// beside the pool come as one group.
 fn value_map(
     arrows: &std::collections::BTreeMap<Ident, Arrow>,
-    rows: &std::collections::BTreeMap<Ident, Vec<RowId>>,
-    cell_pool: &[usize],
+    drawn: (&std::collections::BTreeMap<Ident, Vec<RowId>>, &[usize]),
 ) -> std::collections::BTreeMap<Ident, Vec<Option<RowId>>> {
+    let (rows, cell_pool) = drawn;
     let mut pool = cell_pool.iter().copied().cycle();
     arrows
         .iter()
-        .map(|(name, arrow)| (name.clone(), arrow_cells(&mut pool, rows, arrow)))
+        .map(|(name, arrow)| (name.clone(), arrow_cells(&mut pool, (rows, arrow))))
         .collect()
 }
 
 /// One arrow's cells: each source row draws a pool value; an empty
-/// target space or the sentinel `4` leaves the cell dangling.
+/// target space or the sentinel `4` leaves the cell dangling. The
+/// rows-beside-arrow context comes as one group.
 fn arrow_cells<I: Iterator<Item = usize>>(
     pool: &mut I,
-    rows: &std::collections::BTreeMap<Ident, Vec<RowId>>,
-    arrow: &Arrow,
+    context: (&std::collections::BTreeMap<Ident, Vec<RowId>>, &Arrow),
 ) -> Vec<Option<RowId>> {
+    let (rows, arrow) = context;
     let src_count = rows.get(&arrow.src).map_or(0, Vec::len);
     let tgt_count = rows.get(&arrow.tgt).map_or(0, Vec::len);
     (0..src_count)
@@ -314,13 +347,14 @@ pub(crate) fn self_loop(name: &str, obj: &str) -> std::collections::BTreeMap<Ide
     arrows
 }
 
-/// A pair of opposite arrows `f: p↔q` (`f` and `g` both declared).
+/// A pair of opposite arrows `f: p↔q` — the two arrow names and the two
+/// objects they connect, each drawn as one group.
 pub(crate) fn cross_maps(
-    f: &str,
-    p: &str,
-    q: &str,
-    g: &str,
+    names: (&str, &str),
+    objects: (&str, &str),
 ) -> std::collections::BTreeMap<Ident, Arrow> {
+    let (f, g) = names;
+    let (p, q) = objects;
     let mut arrows = std::collections::BTreeMap::new();
     arrows.insert(
         Ident(f.to_string()),
@@ -347,12 +381,13 @@ pub(crate) fn dense_rows(spec: &[(&str, usize)]) -> std::collections::BTreeMap<I
 }
 
 /// One total arrow table: `values[name] = vec![target(i); n]`, parallel
-/// to the source object's rows.
-pub(crate) fn table(
+/// to the source object's rows. The column — its row count beside the
+/// target function — comes as one group.
+pub(crate) fn table<F: Fn(usize) -> Option<RowId>>(
     name: &str,
-    n: usize,
-    target: impl Fn(usize) -> Option<RowId>,
+    column: (usize, F),
 ) -> std::collections::BTreeMap<Ident, Vec<Option<RowId>>> {
+    let (n, target) = column;
     let mut values = std::collections::BTreeMap::new();
     values.insert(
         Ident(name.to_string()),

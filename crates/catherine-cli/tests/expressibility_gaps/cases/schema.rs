@@ -106,7 +106,7 @@ pub(super) fn unknown_top_level_fields() -> Observation {
         run.text()
     );
     let text = run.text();
-    assert_diagnostic_names("unknown-top-level-fields", &text, &["unknown"]);
+    assert_diagnostic_names!("unknown-top-level-fields", &text, &["unknown"]);
     Observation::Cleared
 }
 
@@ -121,7 +121,7 @@ pub(super) fn declared_cones_ignored() -> Observation {
         return Observation::Limitation;
     }
     let text = run.text();
-    assert_diagnostic_names(
+    assert_diagnostic_names!(
         "declared-cones-ignored",
         &text,
         &["cones", "coproduct", "limit"],
@@ -143,7 +143,7 @@ pub(super) fn pullback_absence() -> Observation {
         .findings()
         .unwrap_or_else(|| panic!("pullback-absence: the claim must execute, got {text}"));
     assert_pullback_commutes_witness(found);
-    assert_diagnostic_names("pullback-absence", &text, &["pullback"]);
+    assert_diagnostic_names!("pullback-absence", &text, &["pullback"]);
     Observation::Cleared
 }
 

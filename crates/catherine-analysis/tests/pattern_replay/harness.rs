@@ -18,7 +18,7 @@
 
 use catherine_analysis::bounds::ScopeCaps;
 use catherine_analysis::pattern::{
-    self, LensError, LensFindings, LensInput, LensOutcome, PatternLens,
+    self, LensCall, LensError, LensFindings, LensInput, LensOutcome, PatternLens,
 };
 use catherine_core::findings::{EpistemicLabel, Finding, FindingKind};
 use catherine_core::migrate::{MigrationFinding, MigrationFindingKind};
@@ -27,6 +27,29 @@ use catherine_core::parse::parse;
 
 use crate::expectations::{Expectation, FindingKey, EXPECTATIONS};
 use crate::reference;
+
+/// A row the replay scheduled: the pattern id under test, the checked-in
+/// row, and the shared caps. The lens input loads per row.
+struct ScheduledRow<'a> {
+    /// The pattern id whose lens the row gates.
+    id: &'a str,
+    /// The checked-in expectation row.
+    row: &'a Expectation,
+    /// The replay's shared scope caps.
+    caps: &'a ScopeCaps,
+}
+
+/// A scheduled row with its loaded lens input, ready to run the lens.
+struct RowRun<'a> {
+    /// The pattern id whose lens the row gates.
+    id: &'a str,
+    /// The checked-in expectation row.
+    row: &'a Expectation,
+    /// The loaded fixture model and bound values.
+    input: &'a LensInput<'a>,
+    /// The replay's shared scope caps.
+    caps: &'a ScopeCaps,
+}
 
 /// Run every table row for one pattern id and return the number of rows
 /// replayed. A row whose fixture the parser refuses (`construction`)
@@ -40,7 +63,11 @@ pub fn replay(id: &str) -> usize {
     assert!(!rows.is_empty(), "the checked-in table covers `{id}`");
     let caps = ScopeCaps::default();
     for &row in &rows {
-        replay_row(id, row, &caps);
+        replay_row(&ScheduledRow {
+            id,
+            row,
+            caps: &caps,
+        });
     }
     rows.len()
 }
@@ -48,63 +75,75 @@ pub fn replay(id: &str) -> usize {
 /// Execute one table row: assert the recorded parse refusal for a
 /// `construction` row, otherwise run the resolved lens (or the fail-closed
 /// refusal when the lens is not registered).
-fn replay_row(id: &str, row: &Expectation, caps: &ScopeCaps) {
-    let text = std::fs::read_to_string(fixture_path(row.fixture))
-        .unwrap_or_else(|error| panic!("{} is readable: {error}", row.fixture));
-    if row.class == "construction" {
+fn replay_row(sched: &ScheduledRow<'_>) {
+    let text = std::fs::read_to_string(fixture_path(sched.row.fixture))
+        .unwrap_or_else(|error| panic!("{} is readable: {error}", sched.row.fixture));
+    if sched.row.class == "construction" {
         assert!(
             parse(&text).is_err(),
             "{} is the recorded parse refusal",
-            row.fixture
+            sched.row.fixture
         );
         return;
     }
-    let model = parse(&text).unwrap_or_else(|error| panic!("{} parses: {error:?}", row.fixture));
-    let values: Vec<String> = row.values.iter().map(|spec| spec.to_string()).collect();
+    let model =
+        parse(&text).unwrap_or_else(|error| panic!("{} parses: {error:?}", sched.row.fixture));
+    let values: Vec<String> = sched
+        .row
+        .values
+        .iter()
+        .map(|spec| spec.to_string())
+        .collect();
     let input = LensInput {
         model: &model,
         values: &values,
     };
-    match resolve(id) {
-        Some(lens) => assert_completed(id, row, lens, &input, caps),
-        None => assert_unregistered(id, &input, caps),
+    let run = RowRun {
+        id: sched.id,
+        row: sched.row,
+        input: &input,
+        caps: sched.caps,
+    };
+    match resolve(sched.id) {
+        Some(lens) => assert_completed(&run, lens),
+        None => assert_unregistered(&run),
     }
 }
 
 /// A completed run must match the row exactly; a bounded non-answer is a
 /// failure because the row's fixture is inside the lens's domain.
-fn assert_completed(
-    id: &str,
-    row: &Expectation,
-    lens: &'static dyn PatternLens,
-    input: &LensInput<'_>,
-    caps: &ScopeCaps,
-) {
-    match lens.run(input, caps) {
-        LensOutcome::Findings(findings) => assert_findings_match(id, row, &findings),
+fn assert_completed(run: &RowRun<'_>, lens: &'static dyn PatternLens) {
+    match lens.run(LensCall {
+        input: run.input,
+        caps: run.caps,
+    }) {
+        LensOutcome::Findings(findings) => assert_findings_match(run, &findings),
         LensOutcome::Unknown { scope } => {
-            panic!("`{id}` on {} reported unknown: {scope}", row.fixture)
+            panic!(
+                "`{}` on {} reported unknown: {scope}",
+                run.id, run.row.fixture
+            )
         }
     }
 }
 
 /// Compare a completed outcome with its row; the mismatch names the row's
 /// fixture, fault, parity, and both multisets.
-fn assert_findings_match(id: &str, row: &Expectation, findings: &LensFindings) {
-    if let Err(detail) = compare(findings, row.findings) {
+fn assert_findings_match(run: &RowRun<'_>, findings: &LensFindings) {
+    if let Err(detail) = compare(findings, run.row.findings) {
         panic!(
-            "`{id}` on {} (fault `{}`, parity {}): {detail}",
-            row.fixture, row.fault, row.parity
+            "`{}` on {} (fault `{}`, parity {}): {detail}",
+            run.id, run.row.fixture, run.row.fault, run.row.parity
         );
     }
 }
 
 /// An unregistered lens is the seam's fail-closed `UnknownPattern` naming
 /// the requested id.
-fn assert_unregistered(id: &str, input: &LensInput<'_>, caps: &ScopeCaps) {
-    let error = pattern::run(id, input, caps).expect_err("an unregistered lens");
+fn assert_unregistered(run: &RowRun<'_>) {
+    let error = pattern::run(run.id, run.input, run.caps).expect_err("an unregistered lens");
     match error {
-        LensError::UnknownPattern { id: got, .. } => assert_eq!(got, id),
+        LensError::UnknownPattern { id: got, .. } => assert_eq!(got, run.id),
     }
 }
 

@@ -19,7 +19,7 @@
 //! (kernel codes, positions, row ids), never snapshots.
 
 use catherine_core::checks;
-use catherine_core::composition::{glue, parse_document, CompositionError, Document};
+use catherine_core::composition::{glue, parse_document, CompositionError, Document, Glued};
 use catherine_core::error::ParseError;
 use catherine_core::findings::FindingKind;
 use catherine_core::instance::TypedInstance;
@@ -76,16 +76,30 @@ const SEAM_SIBLING: &str = r#"{"format_version":"1.4","schema":{"objects":["Orde
 /// deferral must not swallow a document-level error.
 const STATUS_SECOND: &str = r#"{"format_version":"1.4","schema":{"objects":["Order","Region"],"arrows":[{"name":"invoice_region","src":"Order","tgt":"Region"},{"name":"dispatch_region","src":"Order","tgt":"Region"}],"equations":[{"lhs":["invoice_region"],"rhs":["dispatch_region"],"rationale":"first"},{"lhs":["invoice_region"],"rhs":["dispatch_region"],"rationale":"second","status":"bogus"}]},"instance":{"rows":{},"tables":{}}}"#;
 
-/// Parse one fixture as a named document.
+/// Parse one fixture as a named document, panicking on failure.
 fn document(name: &str, text: &str) -> Document {
-    parse_document(name, text).expect("the document parses at document level")
+    match parse_document(name, text) {
+        Ok(document) => document,
+        Err(error) => panic!("parsing {name} at document level: {error:?}"),
+    }
+}
+
+/// Glue fixture documents, panicking if the pushout is refused.
+fn ok_glue(documents: &[Document]) -> Glued {
+    match glue(documents) {
+        Ok(glued) => glued,
+        Err(error) => panic!("the pushout is refused: {}", error.message()),
+    }
 }
 
 /// The labeled failure of gluing two fixture documents.
 fn glue_failure(first: (&str, &str), second: (&str, &str)) -> CompositionError {
     let a = document(first.0, first.1);
     let b = document(second.0, second.1);
-    glue(&[a, b]).expect_err("the overlap is refused")
+    match glue(&[a, b]) {
+        Ok(_) => panic!("the overlap is accepted"),
+        Err(error) => error,
+    }
 }
 
 /// Two clean documents that disagree on a shared object's row set are a
@@ -131,7 +145,7 @@ fn a_dangling_cell_against_a_value_is_a_row_conflict() {
 fn agreeing_dangling_cells_glue() {
     let a = document("a.ct.json", NULL_CELL);
     let b = document("b.ct.json", NULL_CELL);
-    let glued = glue(&[a, b]).expect("two identical dangling claims agree");
+    let glued = ok_glue(&[a, b]);
     let typed = TypedInstance::build(&glued.schema, &glued.instance);
     let findings = checks::check(&glued.schema, &typed);
     assert_eq!(
@@ -152,7 +166,7 @@ fn agreeing_dangling_cells_glue() {
 fn a_document_without_rows_claims_no_row_set() {
     let a = document("a.ct.json", PARTIAL_A);
     let b = document("seam.ct.json", ROW_LESS);
-    let glued = glue(&[a, b]).expect("the schema-only document claims no rows");
+    let glued = ok_glue(&[a, b]);
     assert_eq!(
         glued
             .instance
@@ -172,20 +186,20 @@ fn a_document_without_rows_claims_no_row_set() {
 fn the_empty_interface_is_namespaced() {
     let a = document("a.ct.json", SAME_ROW_A);
     let b = document("b.ct.json", SAME_ROW_B);
-    let glued = glue(&[a, b]).expect("a disjoint union still glues");
+    let glued = ok_glue(&[a, b]);
     assert!(
         glued.empty_interface,
         "a shared bare row name is not a shared identity"
     );
     let a = document("a.ct.json", CROSS_KIND_A);
     let b = document("b.ct.json", CROSS_KIND_B);
-    let glued = glue(&[a, b]).expect("a disjoint union still glues");
+    let glued = ok_glue(&[a, b]);
     assert!(
         glued.empty_interface,
         "an arrow name and a row name are different namespaces"
     );
     let identical = document("a.ct.json", SAME_ROW_A);
-    let glued = glue(&[identical.clone(), identical]).expect("a repeated input glues");
+    let glued = ok_glue(&[identical.clone(), identical]);
     assert!(
         !glued.empty_interface,
         "a shared object, arrow, and (object, row) pair is an interface"
@@ -196,13 +210,16 @@ fn the_empty_interface_is_namespaced() {
 /// resolves over the pushout with the parser's own check and order.
 #[test]
 fn deferred_resolution_keeps_parse_precedence() {
-    let parse_error = parse(PRECEDENCE).expect_err("the parser rejects equation 0");
+    let Err(parse_error) = parse(PRECEDENCE) else {
+        panic!("the parser accepts equation 0");
+    };
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("the first error is a semantic code");
     };
     let document = document("p.ct.json", PRECEDENCE);
-    let error =
-        glue(&[document.clone(), document]).expect_err("the joint run rejects the same equation");
+    let Err(error) = glue(&[document.clone(), document]) else {
+        panic!("the joint run accepts the same equation");
+    };
     assert_eq!(error.code(), semantic.code.as_str(), "same stable code");
     assert_eq!(
         error.position(),
@@ -220,12 +237,15 @@ fn deferred_resolution_keeps_parse_precedence() {
 /// equation slot raises it exactly as the parser does.
 #[test]
 fn a_status_error_is_raised_in_the_equation_slot() {
-    let parse_error = parse(STATUS_SECOND).expect_err("the parser rejects it");
+    let Err(parse_error) = parse(STATUS_SECOND) else {
+        panic!("the parser accepts the invalid status");
+    };
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("the first error is a semantic code");
     };
-    let error =
-        parse_document("s.ct.json", STATUS_SECOND).expect_err("the deferred parse raises it too");
+    let Err(error) = parse_document("s.ct.json", STATUS_SECOND) else {
+        panic!("the deferred parse accepts the invalid status");
+    };
     assert_eq!(
         semantic.code.as_str(),
         "invalid_status",
@@ -244,7 +264,7 @@ fn a_status_error_is_raised_in_the_equation_slot() {
 fn the_merged_row_space_is_the_agreed_set() {
     let a = document("a.ct.json", PARTIAL_A);
     let b = document("b.ct.json", PARTIAL_A);
-    let glued = glue(&[a, b]).expect("identical row sets agree");
+    let glued = ok_glue(&[a, b]);
     assert_eq!(
         glued
             .instance
@@ -270,7 +290,9 @@ fn the_merged_row_space_is_the_agreed_set() {
 fn a_status_error_behind_a_resolved_seam_is_still_raised() {
     let seam = document("seam.ct.json", SEAM_STATUS);
     let sibling = document("sibling.ct.json", SEAM_SIBLING);
-    let error = glue(&[seam, sibling]).expect_err("the later invalid status is still an error");
+    let Err(error) = glue(&[seam, sibling]) else {
+        panic!("the later invalid status is swallowed");
+    };
     assert_eq!(error.code(), "invalid_status", "the parser's code");
     assert_eq!(
         error.documents(),
@@ -289,13 +311,16 @@ fn a_status_error_behind_a_resolved_seam_is_still_raised() {
 /// reports the parser's error verbatim.
 #[test]
 fn a_local_endpoint_mismatch_is_raised_in_the_equation_slot() {
-    let parse_error = parse(ILL_TYPED_LOCAL).expect_err("the parser rejects the mismatch");
+    let Err(parse_error) = parse(ILL_TYPED_LOCAL) else {
+        panic!("the parser accepts the endpoint mismatch");
+    };
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("the first error is a semantic code");
     };
     assert_eq!(semantic.code.as_str(), "ill_typed_equation", "the code");
-    let error =
-        parse_document("t.ct.json", ILL_TYPED_LOCAL).expect_err("the deferred parse raises it too");
+    let Err(error) = parse_document("t.ct.json", ILL_TYPED_LOCAL) else {
+        panic!("the deferred parse accepts the endpoint mismatch");
+    };
     assert_eq!(
         error,
         ParseError::Semantic(semantic),

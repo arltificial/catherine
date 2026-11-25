@@ -108,6 +108,16 @@ pub struct LensInput<'a> {
     pub values: &'a [String],
 }
 
+/// One lens run: the input the lens reads, bound to the caps it runs
+/// under. The trait takes the pair as one value, so an implementor's `run`
+/// stays a single-argument method.
+pub struct LensCall<'a> {
+    /// The built model and bound values the lens runs over.
+    pub input: &'a LensInput<'a>,
+    /// The shared scope caps the run is bounded by.
+    pub caps: &'a ScopeCaps,
+}
+
 /// A completed lens run's findings, split by the kernel surface that
 /// produced them: the P2 taxonomy's checks and the migration engine's
 /// lost-data findings.
@@ -150,7 +160,7 @@ pub trait PatternLens: Sync {
     /// This lens's registry metadata.
     fn meta(&self) -> &'static PatternMeta;
     /// Run over a built model under the shared caps.
-    fn run(&self, input: &LensInput<'_>, caps: &ScopeCaps) -> LensOutcome;
+    fn run(&self, call: LensCall<'_>) -> LensOutcome;
 }
 
 /// The seam's fail-closed refusal: an id absent from the registry is a
@@ -228,7 +238,7 @@ pub fn find(id: &str) -> Option<&'static dyn PatternLens> {
 /// Run the lens named by `id`; an unregistered id is the labeled refusal.
 pub fn run(id: &str, input: &LensInput<'_>, caps: &ScopeCaps) -> Result<LensOutcome, LensError> {
     match find(id) {
-        Some(lens) => Ok(lens.run(input, caps)),
+        Some(lens) => Ok(lens.run(LensCall { input, caps })),
         None => Err(LensError::UnknownPattern {
             id: id.to_string(),
             known: known_ids(),

@@ -42,50 +42,93 @@ pub(super) struct RawInstanceMapEntry {
     pub(super) rows: BTreeMap<String, String>,
 }
 
+/// One entry's row checks: the entry index (for node pointers), the
+/// entry's object, the object's declared rows, the span index, and the
+/// mapped rows accumulated so far.
+struct EntryCheck<'a> {
+    index: usize,
+    object: &'a Ident,
+    declared: Option<&'a BTreeMap<String, RowId>>,
+    spans: &'a Spans,
+    mapped: BTreeMap<RowId, Ident>,
+}
+
+/// What the instance-map section is checked against: the declared
+/// objects, the declared rows per object, and the span index.
+pub(super) struct MapCtx<'a> {
+    pub(super) objects: &'a BTreeMap<Ident, ()>,
+    pub(super) row_index: &'a BTreeMap<String, BTreeMap<String, RowId>>,
+    pub(super) spans: &'a Spans,
+}
+
+/// The instance-map accumulator: the shared check context, the objects
+/// already claimed by an entry, and the collected per-object row maps.
+struct MapCheck<'a> {
+    ctx: &'a MapCtx<'a>,
+    seen: BTreeSet<Ident>,
+    maps: BTreeMap<Ident, BTreeMap<RowId, Ident>>,
+}
+
 /// Validate and normalize the declared instance map. `None` for an
 /// absent or empty section (hash-neutral).
 pub(super) fn build_instance_map(
     raw: &RawInstanceMap,
-    objects: &BTreeMap<Ident, ()>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    spans: &Spans,
+    ctx: MapCtx,
 ) -> Result<Option<InstanceMap>, ParseError> {
-    let mut maps: BTreeMap<Ident, BTreeMap<RowId, Ident>> = BTreeMap::new();
-    let mut seen: BTreeSet<Ident> = BTreeSet::new();
+    let mut check = MapCheck {
+        ctx: &ctx,
+        seen: BTreeSet::new(),
+        maps: BTreeMap::new(),
+    };
     for (index, entry) in raw.maps.iter().enumerate() {
-        let object = check_entry_object(entry, index, objects, spans)?;
-        if !seen.insert(object.clone()) {
-            return Err(spans.semantic(
-                &format!("/instance_map/maps/{index}/object"),
+        check.check_entry(entry, index)?;
+    }
+    reject_uncovered_objects(&ctx, &check.seen)?;
+    if check.maps.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(InstanceMap { maps: check.maps }))
+}
+
+impl MapCheck<'_> {
+    /// One entry: its object (declared, not a repeated entry), then its
+    /// rows; non-empty row maps are collected in object order.
+    fn check_entry(&mut self, entry: &RawInstanceMapEntry, index: usize) -> Result<(), ParseError> {
+        let node = format!("/instance_map/maps/{index}/object");
+        let object = check_entry_object(entry, &node, self.ctx)?;
+        if !self.seen.insert(object.clone()) {
+            return Err(self.ctx.spans.semantic(
+                &node,
                 ErrorCode::DuplicateIdent,
                 format!("duplicate instance map entry for object `{}`", object.0),
             ));
         }
-        let rows = check_entry_rows(entry, index, &object, row_index, spans)?;
+        let entry_check = EntryCheck {
+            index,
+            object: &object,
+            declared: self.ctx.row_index.get(&object.0),
+            spans: self.ctx.spans,
+            mapped: BTreeMap::new(),
+        };
+        let rows = check_entry_rows(entry, entry_check)?;
         if !rows.is_empty() {
-            maps.insert(object, rows);
+            self.maps.insert(object, rows);
         }
+        Ok(())
     }
-    reject_uncovered_objects(objects, row_index, &seen, spans)?;
-    if maps.is_empty() {
-        return Ok(None);
-    }
-    Ok(Some(InstanceMap { maps }))
 }
 
 /// The entry's object: a valid ident naming a declared schema object.
 fn check_entry_object(
     entry: &RawInstanceMapEntry,
-    index: usize,
-    objects: &BTreeMap<Ident, ()>,
-    spans: &Spans,
+    node: &str,
+    ctx: &MapCtx,
 ) -> Result<Ident, ParseError> {
-    let node = format!("/instance_map/maps/{index}/object");
-    check_ident(spans, &node, &entry.object)?;
+    check_ident(ctx.spans, node, &entry.object)?;
     let object = Ident(entry.object.clone());
-    if !objects.contains_key(&object) {
-        return Err(spans.semantic(
-            &node,
+    if !ctx.objects.contains_key(&object) {
+        return Err(ctx.spans.semantic(
+            node,
             ErrorCode::InvalidIdent,
             format!("instance map names undeclared object `{}`", entry.object),
         ));
@@ -98,76 +141,57 @@ fn check_entry_object(
 /// resolved here), and every declared row of the object is covered.
 fn check_entry_rows(
     entry: &RawInstanceMapEntry,
-    index: usize,
-    object: &Ident,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    spans: &Spans,
+    mut check: EntryCheck,
 ) -> Result<BTreeMap<RowId, Ident>, ParseError> {
-    let declared = row_index.get(&object.0);
-    let mut mapped: BTreeMap<RowId, Ident> = BTreeMap::new();
     for (source, target) in &entry.rows {
-        check_cell(declared, index, object, source, target, spans, &mut mapped)?;
+        check_cell(source, target, &mut check)?;
     }
-    check_coverage(declared, index, object, &mapped, spans)?;
-    Ok(mapped)
+    check_coverage(&check)?;
+    Ok(check.mapped)
 }
 
 /// One map cell: its source key must name a declared row of the entry's
 /// object, and its target must be a well-formed ident (preserved, never
 /// resolved here).
-fn check_cell(
-    declared: Option<&BTreeMap<String, RowId>>,
-    index: usize,
-    object: &Ident,
-    source: &str,
-    target: &str,
-    spans: &Spans,
-    mapped: &mut BTreeMap<RowId, Ident>,
-) -> Result<(), ParseError> {
-    let Some(row) = declared.and_then(|rows| rows.get(source)) else {
-        return Err(spans.syntax_key(
-            &format!("/instance_map/maps/{index}/rows"),
+fn check_cell(source: &str, target: &str, check: &mut EntryCheck) -> Result<(), ParseError> {
+    let Some(row) = check.declared.and_then(|rows| rows.get(source)) else {
+        return Err(check.spans.syntax_key(
+            &format!("/instance_map/maps/{}/rows", check.index),
             source,
             format!(
                 "instance map keys row `{source}`, which is not a row of `{}`",
-                object.0
+                check.object.0
             ),
         ));
     };
     if !is_ident(target) {
-        return Err(spans.semantic(
-            &format!("/instance_map/maps/{index}/rows/{source}"),
+        return Err(check.spans.semantic(
+            &format!("/instance_map/maps/{}/rows/{source}", check.index),
             ErrorCode::InvalidIdent,
             format!("instance map target `{target}` is not a well-formed row ident"),
         ));
     }
-    mapped.insert(*row, Ident(target.to_string()));
+    check.mapped.insert(*row, Ident(target.to_string()));
     Ok(())
 }
 
 /// Coverage: every declared row of the object carries a cell. The first
 /// uncovered row in sorted-name order is named at the per-object `rows`
 /// node — never an implicit identity on the rest.
-fn check_coverage(
-    declared: Option<&BTreeMap<String, RowId>>,
-    index: usize,
-    object: &Ident,
-    mapped: &BTreeMap<RowId, Ident>,
-    spans: &Spans,
-) -> Result<(), ParseError> {
-    let Some(rows) = declared else {
+fn check_coverage(check: &EntryCheck) -> Result<(), ParseError> {
+    let Some(rows) = check.declared else {
         return Ok(());
     };
-    let uncovered = rows.iter().find(|(_, row)| !mapped.contains_key(row));
+    let uncovered = rows.iter().find(|(_, row)| !check.mapped.contains_key(row));
     let Some((name, _)) = uncovered else {
         return Ok(());
     };
-    Err(spans.semantic(
-        &format!("/instance_map/maps/{index}/rows"),
+    Err(check.spans.semantic(
+        &format!("/instance_map/maps/{}/rows", check.index),
         ErrorCode::IncompleteInstanceMap,
         format!(
             "instance map for object `{}` omits row `{name}`; the map must be total",
-            object.0
+            check.object.0
         ),
     ))
 }
@@ -175,21 +199,16 @@ fn check_coverage(
 /// Every object with declared rows must carry an entry. A missing entry
 /// is the same malformed claim as a missing row, reported at the section
 /// node because no per-object map node exists to point at.
-fn reject_uncovered_objects(
-    objects: &BTreeMap<Ident, ()>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    seen: &BTreeSet<Ident>,
-    spans: &Spans,
-) -> Result<(), ParseError> {
-    for object in objects.keys() {
-        let Some(rows) = row_index.get(&object.0) else {
+fn reject_uncovered_objects(ctx: &MapCtx, seen: &BTreeSet<Ident>) -> Result<(), ParseError> {
+    for object in ctx.objects.keys() {
+        let Some(rows) = ctx.row_index.get(&object.0) else {
             continue;
         };
         let Some((name, _)) = rows.iter().next() else {
             continue;
         };
         if !seen.contains(object) {
-            return Err(spans.semantic(
+            return Err(ctx.spans.semantic(
                 "/instance_map/maps",
                 ErrorCode::IncompleteInstanceMap,
                 format!(

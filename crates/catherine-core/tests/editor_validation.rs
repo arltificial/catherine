@@ -40,6 +40,13 @@ fn valid_document() -> Value {
     })
 }
 
+/// One valid document, mutated by `edit` before use.
+fn mutated(edit: impl FnOnce(&mut Value)) -> Value {
+    let mut document = valid_document();
+    edit(&mut document);
+    document
+}
+
 /// The canonical keyword paths the artifact reports for `instance`.
 fn keyword_paths(instance: &Value) -> Vec<String> {
     let compiled = validator();
@@ -60,23 +67,22 @@ fn a_valid_document_passes_the_published_artifact() {
 
 #[test]
 fn schema_expressible_errors_are_rejected_without_the_kernel() {
-    let mut missing_instance = valid_document();
-    missing_instance
-        .as_object_mut()
-        .expect("valid document is an object")
-        .remove("instance");
+    let missing_instance = mutated(|document| {
+        document
+            .as_object_mut()
+            .expect("valid document is an object")
+            .remove("instance");
+    });
 
-    let mut wrong_type = valid_document();
-    wrong_type["format_version"] = json!(1.0);
+    let wrong_type = mutated(|document| document["format_version"] = json!(1.0));
 
-    let mut bad_status = valid_document();
-    bad_status["schema"]["equations"][0]["status"] = json!("maybe");
+    let bad_status = mutated(|document| {
+        document["schema"]["equations"][0]["status"] = json!("maybe");
+    });
 
-    let mut bad_ident = valid_document();
-    bad_ident["schema"]["objects"] = json!(["1bad"]);
+    let bad_ident = mutated(|document| document["schema"]["objects"] = json!(["1bad"]));
 
-    let mut duplicate_ident = valid_document();
-    duplicate_ident["schema"]["objects"] = json!(["A", "A"]);
+    let duplicate_ident = mutated(|document| document["schema"]["objects"] = json!(["A", "A"]));
 
     let cases: [(&str, Value, &str); 5] = [
         ("missing required field", missing_instance, "/required"),
@@ -113,8 +119,7 @@ fn schema_expressible_errors_are_rejected_without_the_kernel() {
 
 #[test]
 fn the_artifact_is_not_the_version_authority() {
-    let mut future_major = valid_document();
-    future_major["format_version"] = json!("9.9");
+    let future_major = mutated(|document| document["format_version"] = json!("9.9"));
     assert!(
         validator().is_valid(&future_major),
         "shape-valid versions pass the artifact; the kernel decides which majors it knows"

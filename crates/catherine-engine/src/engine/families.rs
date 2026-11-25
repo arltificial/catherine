@@ -2,8 +2,8 @@
 //! five families and the fiber helper, emitting compact int sort keys.
 
 use super::{
-    engine_compose, Bounded, CompactFinding, CompactViolation, EngineSchema, EngineTyped, SortKey,
-    REPORT_CAP, ROWS_CAP,
+    engine_compose, Bounded, CompactFinding, CompactViolation, CompiledEquation, EngineSchema,
+    EngineTyped, SortKey, REPORT_CAP, ROWS_CAP,
 };
 use crate::{findings::EpistemicLabel, model::RowId};
 
@@ -16,6 +16,16 @@ pub(crate) use keys::key_findings;
 pub(crate) use pullback::pullback_findings;
 
 pub(crate) use super::push_bounded;
+
+/// One partition entry's bounded report table: the walker fills it
+/// (ordering included — see the per-family entries) through `walk`.
+fn collect_partition(
+    walk: impl FnOnce(&mut Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP>),
+) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
+    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
+    walk(&mut out);
+    out
+}
 
 /// The families' emission sink: the walkers fill either storage — the
 /// heap `Vec` (parsed flavor, `engine_families`' single sorted output)
@@ -50,14 +60,12 @@ pub(crate) fn violation_flags(typed: &EngineTyped) -> Vec<Bounded<bool, ROWS_CAP
     let mut violated: Vec<Bounded<bool, ROWS_CAP>> = (0..typed.tables.len())
         .map(|_| Bounded::<bool, ROWS_CAP>::with_len(ROWS_CAP))
         .collect();
-    let mut vi = 0;
-    while vi < typed.typing_violations.len() {
+    for vi in 0..typed.typing_violations.len() {
         if let Some(&Some((seen, at, _))) = typed.typing_violations.get(vi) {
             if let Some(flag) = violated.get_mut(seen) {
                 flag[at] = Some(true);
             }
         }
-        vi += 1;
     }
     violated
 }
@@ -114,17 +122,43 @@ pub(crate) fn equation_findings(
             continue;
         };
         for row in 0..domain {
-            let Some(lhs) = engine_compose(typed, &equation.lhs, RowId(row)) else {
-                continue;
-            };
-            let Some(rhs) = engine_compose(typed, &equation.rhs, RowId(row)) else {
+            let Some((lhs, rhs)) = composed_sides(typed, equation, row) else {
                 continue;
             };
             if lhs != rhs {
-                push_equation_finding(out, index, row, lhs.0, rhs.0, equation.status);
+                push_equation_finding(
+                    out,
+                    index,
+                    row,
+                    EquationWitness {
+                        lhs: lhs.0,
+                        rhs: rhs.0,
+                        status: equation.status,
+                    },
+                );
             }
         }
     }
+}
+
+/// Both compositions of one equation at one row, `None` when either
+/// side dangles.
+fn composed_sides(
+    typed: &EngineTyped,
+    equation: &CompiledEquation,
+    row: usize,
+) -> Option<(RowId, RowId)> {
+    let lhs = engine_compose(typed, &equation.lhs, RowId(row))?;
+    let rhs = engine_compose(typed, &equation.rhs, RowId(row))?;
+    Some((lhs, rhs))
+}
+
+/// One composed row pair plus its constraint's status — the witness of
+/// an equation-disagreement finding.
+struct EquationWitness {
+    lhs: usize,
+    rhs: usize,
+    status: crate::model::ConstraintStatus,
 }
 
 /// One equation-disagreement finding for a composed row pair.
@@ -132,10 +166,9 @@ fn push_equation_finding(
     out: &mut impl FindingSink,
     index: usize,
     row: usize,
-    lhs: usize,
-    rhs: usize,
-    status: crate::model::ConstraintStatus,
+    witness: EquationWitness,
 ) {
+    let EquationWitness { lhs, rhs, status } = witness;
     out.emit((
         (0, 0, 0, index as u64, row as u64, lhs as u64, rhs as u64, 0),
         crate::findings::label_for(status),
@@ -166,11 +199,11 @@ pub fn engine_dangling_findings(
     // Worst case: every arrow's every source row dangles — a concrete
     // bound (the shapes hold 7 arrows × 2 rows = 14), so the capacity
     // asserts discharge and the walk never reallocates.
-    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
     let violated = violation_flags(typed);
-    dangling_findings(schema, typed, &violated, &mut out);
-    out.sort_pushed_by(|a, b| a.0.cmp(&b.0));
-    out
+    collect_partition(|out| {
+        dangling_findings(schema, typed, &violated, out);
+        out.sort_pushed_by(|a, b| a.0.cmp(&b.0));
+    })
 }
 
 /// The equation family's emissions in walk order — the check side's
@@ -190,9 +223,7 @@ pub fn engine_equation_findings(
     // Worst case: every equation disagrees on every domain row —
     // concrete under the declared shapes (≤ 6 emissions), well under
     // the cap; the capacity asserts discharge.
-    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
-    equation_findings(schema, typed, &mut out);
-    out
+    collect_partition(|out| equation_findings(schema, typed, out))
 }
 
 /// The key family's emissions in walk order — the check side's
@@ -209,9 +240,7 @@ pub fn engine_key_findings(
 ) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
     // Worst case: every resolved row pair collides — concrete under the
     // declared shape (≤ 1 emission), well under the cap.
-    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
-    key_findings(schema, typed, &mut out);
-    out
+    collect_partition(|out| key_findings(schema, typed, out))
 }
 
 /// The coproduct family's emissions in walk order — the check side's
@@ -224,9 +253,7 @@ pub fn engine_coproduct_findings(
 ) -> Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> {
     // Worst case: every target row uncovered or colliding — concrete
     // under the declared shape (≤ 2 emissions), well under the cap.
-    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
-    coproduct_findings(schema, typed, &mut out);
-    out
+    collect_partition(|out| coproduct_findings(schema, typed, out))
 }
 
 /// The pullback family's emissions in walk order — the check side's
@@ -243,7 +270,5 @@ pub fn engine_pullback_findings(
     // Worst case: every resolved apex row disagrees, every fiber pair is
     // uncovered, and the apex pair shares a projection — concrete under
     // the declared shape (≤ 7 emissions), well under the cap.
-    let mut out: Bounded<(SortKey, EpistemicLabel, CompactFinding), REPORT_CAP> = Bounded::new();
-    pullback_findings(schema, typed, &mut out);
-    out
+    collect_partition(|out| pullback_findings(schema, typed, out))
 }

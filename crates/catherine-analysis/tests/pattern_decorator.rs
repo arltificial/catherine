@@ -19,13 +19,11 @@
 #[path = "../src/pattern/decorator.rs"]
 mod decorator;
 
-mod bounds {
-    pub use catherine_analysis::bounds::ScopeCaps;
-}
+mod bounds {}
 
 mod pattern {
     pub use catherine_analysis::pattern::{
-        LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta,
+        LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta,
     };
 }
 
@@ -33,7 +31,7 @@ mod pattern {
 mod expectations;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LensFindings, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{LensCall, LensFindings, LensInput, LensOutcome, PatternLens};
 use catherine_core::findings::{EpistemicLabel, FindingKind};
 use catherine_core::model::Model;
 use catherine_core::parse::parse;
@@ -104,7 +102,10 @@ fn a_rule_table_without_equations_is_genuine_silence() {
         model: &model,
         values: &[],
     };
-    match decorator::Lens.run(&input, &ScopeCaps::default()) {
+    match decorator::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => {
             assert!(findings.checks.is_empty());
             assert!(findings.migrations.is_empty());
@@ -123,7 +124,10 @@ fn a_values_list_is_unknown_because_the_lens_has_no_rule_surface() {
         model: &model,
         values: &values,
     };
-    match decorator::Lens.run(&input, &ScopeCaps::default()) {
+    match decorator::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => {
             assert!(scope.contains("no rule-table surface"), "{scope}");
         }
@@ -139,7 +143,10 @@ fn actual_multiset(relative: &str, caps: &ScopeCaps) -> Vec<FindingKey> {
         model: &model,
         values: &[],
     };
-    match decorator::Lens.run(&input, caps) {
+    match decorator::Lens.run(LensCall {
+        input: &input,
+        caps,
+    }) {
         LensOutcome::Findings(findings) => {
             assert!(
                 findings.migrations.is_empty(),

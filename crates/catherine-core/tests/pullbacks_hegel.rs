@@ -40,8 +40,11 @@ const SQUARE_DOC: &str = r#"{
     "equations": [], "pullbacks": __PULLBACKS__},
   "instance": {"rows": __ROWS__, "tables": __TABLES__}}"#;
 
-/// Parse → build → check the square document with the spliced sections.
-fn square(pullbacks: &str, rows: &str, tables: &str) -> (Model, Vec<Finding>) {
+/// Parse → build → check the square document. The declaration list and
+/// the spliced instance — rows and tables drawn as one group — are the
+/// two arguments.
+fn square(pullbacks: &str, instance: (&str, &str)) -> (Model, Vec<Finding>) {
+    let (rows, tables) = instance;
     let text = SQUARE_DOC
         .replace("__PULLBACKS__", pullbacks)
         .replace("__ROWS__", rows)
@@ -100,8 +103,10 @@ fn tables_json(tables: &TablesPresentation) -> String {
     format!("{{{}}}", entries.join(", "))
 }
 
-/// One pullback declaration, serialized with fixed key order.
-fn declaration_json(apex: &str, legs: [&str; 2], cospan: [&str; 2]) -> String {
+/// One pullback declaration, serialized with fixed key order: the apex
+/// with its square — legs and cospan drawn as one group.
+fn declaration_json(apex: &str, square: ([&str; 2], [&str; 2])) -> String {
+    let (legs, cospan) = square;
     serde_json::json!({
         "apex": apex,
         "legs": legs,
@@ -121,7 +126,7 @@ fn pullbacks_json(declarations: &[String]) -> String {
 /// for every drawn reordering.
 #[hegel::test]
 fn pullback_verdicts_are_row_order_stable(tc: TestCase) {
-    let pullbacks = pullbacks_json(&[declaration_json("P", ["p1", "p2"], ["f", "g"])]);
+    let pullbacks = pullbacks_json(&[declaration_json("P", (["p1", "p2"], ["f", "g"]))]);
     let base_rows: RowsPresentation = vec![
         ("P".to_owned(), vec!["r1".to_owned()]),
         ("A".to_owned(), vec!["a1".to_owned()]),
@@ -137,8 +142,7 @@ fn pullback_verdicts_are_row_order_stable(tc: TestCase) {
 
     let (unpermuted, findings_unpermuted) = square(
         &pullbacks,
-        &rows_json(&base_rows),
-        &tables_json(&base_tables),
+        (&rows_json(&base_rows), &tables_json(&base_tables)),
     );
 
     // Permute object key order, each object's row-name list, arrow key
@@ -157,7 +161,7 @@ fn pullback_verdicts_are_row_order_stable(tc: TestCase) {
     tc.note(&format!("tables = {tables:?}"));
 
     let (reordered, findings_reordered) =
-        square(&pullbacks, &rows_json(&rows), &tables_json(&tables));
+        square(&pullbacks, (&rows_json(&rows), &tables_json(&tables)));
     assert_eq!(
         canonical_bytes(&unpermuted),
         canonical_bytes(&reordered),
@@ -179,8 +183,8 @@ fn pullback_verdicts_are_row_order_stable(tc: TestCase) {
 #[hegel::test]
 fn pullback_findings_are_declaration_order_stable(tc: TestCase) {
     let base_declarations = vec![
-        declaration_json("P", ["p1", "p2"], ["f", "g"]),
-        declaration_json("Q", ["q1", "q2"], ["f", "g"]),
+        declaration_json("P", (["p1", "p2"], ["f", "g"])),
+        declaration_json("Q", (["q1", "q2"], ["f", "g"])),
     ];
     let rows = rows_json(&vec![
         ("P".to_owned(), vec!["s1".to_owned()]),
@@ -199,11 +203,11 @@ fn pullback_findings_are_declaration_order_stable(tc: TestCase) {
     ]);
 
     let (unpermuted, findings_unpermuted) =
-        square(&pullbacks_json(&base_declarations), &rows, &tables);
+        square(&pullbacks_json(&base_declarations), (&rows, &tables));
 
     let declarations = permuted(&tc, base_declarations);
     tc.note(&format!("declarations = {declarations:?}"));
-    let (reordered, findings_reordered) = square(&pullbacks_json(&declarations), &rows, &tables);
+    let (reordered, findings_reordered) = square(&pullbacks_json(&declarations), (&rows, &tables));
     assert_eq!(
         unpermuted.schema, reordered.schema,
         "parser stores pullbacks in canonical sort order"

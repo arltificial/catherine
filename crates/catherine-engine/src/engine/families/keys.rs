@@ -17,7 +17,7 @@ pub(crate) fn key_findings(schema: &EngineSchema, typed: &EngineTyped, out: &mut
         };
         let label = crate::findings::label_for(key.status);
         let grouped = key_groups(typed, key, rows);
-        emit_key_pairs(out, &grouped, index, label);
+        emit_key_pairs(out, &grouped, KeyEmission { index, label });
     }
     let _ = schema;
 }
@@ -34,15 +34,13 @@ type KeyGroups = Bounded<(KeyTuple, usize), ROWS_CAP>;
 /// slot (the tuple lengths are equal within one key's group; the length
 /// arm keeps the general `Vec` order for shorter prefixes).
 fn tuple_cmp(a: &KeyTuple, b: &KeyTuple) -> Ordering {
-    let mut i = 0;
-    while i < a.len() && i < b.len() {
+    for i in 0..a.len().min(b.len()) {
         if a[i] < b[i] {
             return Ordering::Less;
         }
         if a[i] > b[i] {
             return Ordering::Greater;
         }
-        i += 1;
     }
     a.len().cmp(&b.len())
 }
@@ -52,14 +50,24 @@ fn tuple_eq(a: &KeyTuple, b: &KeyTuple) -> bool {
     if a.len() != b.len() {
         return false;
     }
-    let mut i = 0;
-    while i < a.len() {
+    for i in 0..a.len() {
         if a[i] != b[i] {
             return false;
         }
-        i += 1;
     }
     true
+}
+
+/// One row's fully resolved key tuple, ascending arrow order — `None`
+/// when any of the key's cells is unresolved (the walk's skip).
+fn key_tuple(typed: &EngineTyped, key: &CompiledKey, row: usize) -> Option<KeyTuple> {
+    let mut tuple = KeyTuple::new();
+    for arrow in &key.arrows {
+        let table = &typed.tables[*arrow];
+        let value = table.get(row).copied().flatten()?;
+        tuple.push(value.0 as u64);
+    }
+    Some(tuple)
 }
 
 /// The rows of one key grouped by fully resolved key tuple, insertion
@@ -67,29 +75,21 @@ fn tuple_eq(a: &KeyTuple, b: &KeyTuple) -> bool {
 /// every temporary is a fixed-cap table, no allocation model.
 fn key_groups(typed: &EngineTyped, key: &CompiledKey, rows: usize) -> KeyGroups {
     let mut grouped = KeyGroups::new();
-    let mut row = 0;
-    while row < rows {
-        let mut tuple = KeyTuple::new();
-        let mut resolved = true;
-        let mut a = 0;
-        while a < key.arrows.len() {
-            let table = &typed.tables[key.arrows[a]];
-            match table.get(row).copied().flatten() {
-                Some(value) => tuple.push(value.0 as u64),
-                None => {
-                    resolved = false;
-                    break;
-                }
-            }
-            a += 1;
-        }
-        if resolved {
+    for row in 0..rows {
+        if let Some(tuple) = key_tuple(typed, key, row) {
             grouped.push((tuple, row));
         }
-        row += 1;
     }
     grouped.sort_pushed_by(|a: &(KeyTuple, usize), b: &(KeyTuple, usize)| tuple_cmp(&a.0, &b.0));
     grouped
+}
+
+/// One key declaration's emission context: the declaration index and
+/// its constraint label — the pair every collision finding carries.
+#[derive(Clone, Copy)]
+struct KeyEmission {
+    index: usize,
+    label: EpistemicLabel,
 }
 
 /// One finding per unordered pair of each equal-tuple run, ascending
@@ -104,21 +104,12 @@ fn key_groups(typed: &EngineTyped, key: &CompiledKey, rows: usize) -> KeyGroups 
 /// (measured 2026-11-24: both key harnesses budget-killed in symex at
 /// the standard, at unwind 8 and 16 alike; the flat scan bounds every
 /// loop concretely by the cap).
-fn emit_key_pairs(
-    out: &mut impl FindingSink,
-    grouped: &KeyGroups,
-    index: usize,
-    label: EpistemicLabel,
-) {
-    let mut i = 0;
-    while i < ROWS_CAP {
+fn emit_key_pairs(out: &mut impl FindingSink, grouped: &KeyGroups, ctx: KeyEmission) {
+    for i in 0..ROWS_CAP {
         let a = key_slot(grouped, i);
-        let mut j = i + 1;
-        while j < ROWS_CAP {
-            emit_key_collision(out, &a, &key_slot(grouped, j), index, label);
-            j += 1;
+        for j in i + 1..ROWS_CAP {
+            emit_key_collision(out, &a, &key_slot(grouped, j), &ctx);
         }
-        i += 1;
     }
 }
 
@@ -135,16 +126,15 @@ fn emit_key_collision(
     out: &mut impl FindingSink,
     a: &Option<(&KeyTuple, usize)>,
     b: &Option<(&KeyTuple, usize)>,
-    index: usize,
-    label: EpistemicLabel,
+    ctx: &KeyEmission,
 ) {
     if let (Some((ta, ra)), Some((tb, rb))) = (a, b) {
         if tuple_eq(ta, tb) {
             out.emit((
-                (0, 1, 0, index as u64, *ra as u64, *rb as u64, 0, 0),
-                label,
+                (0, 1, 0, ctx.index as u64, *ra as u64, *rb as u64, 0, 0),
+                ctx.label,
                 CompactFinding::Violation(CompactViolation::Key {
-                    index,
+                    index: ctx.index,
                     lo: *ra,
                     hi: *rb,
                 }),

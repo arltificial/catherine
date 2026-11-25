@@ -16,44 +16,55 @@
 //! and a correction must be a superseding ledger entry. Reachability is
 //! recorded as a gap and a killed entry, never upgraded to a finding.
 
+mod support;
+
 use std::path::Path;
 
 use catherine_core::hash::{model_hash, sha256_digest};
 use catherine_core::parse::parse;
 use catherine_ledger::entry::{BaselineMode, KataRecord};
 use catherine_ledger::validate::{validate_dir, ValidLedger};
+use support::{present, TestError};
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 const KATA: &str = "fixtures/katas/state-discovery";
+const LEDGER: &str = "ledger/katas/state-discovery";
 const BASELINE_HASH: &str =
     "sha256:7d98b54bb65ea4e4c00962fc1d0e3e57ce19acb134f5d767b1177badd11fec3e";
 
 /// One fixture's canonical model hash, recomputed from its bytes.
-fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(format!("{ROOT}/{path}")).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+fn fixture_hash(path: &str) -> Result<String, TestError> {
+    let text = std::fs::read_to_string(format!("{ROOT}/{path}"))?;
+    let document = parse(&text)?;
+    Ok(model_hash(&document))
 }
 
 /// One fixture's raw bytes hash (for the construction probe, which never
 /// reaches a model).
-fn raw_hash(path: &str) -> String {
-    let bytes = std::fs::read(format!("{ROOT}/{path}")).expect("fixture readable");
-    sha256_digest(&bytes)
+fn raw_hash(path: &str) -> Result<String, TestError> {
+    let bytes = std::fs::read(format!("{ROOT}/{path}"))?;
+    Ok(sha256_digest(&bytes))
 }
 
 /// The `index`-th effective kata record.
-fn kata_at(valid: &ValidLedger, index: usize) -> &KataRecord {
-    valid.kata_entries()[index]
-        .content
-        .kata
-        .as_ref()
-        .expect("kata record")
+fn kata_at(valid: &ValidLedger, index: usize) -> Result<&KataRecord, TestError> {
+    present(
+        valid.kata_entries()[index].content.kata.as_ref(),
+        "kata record",
+    )
+}
+
+/// The committed kata ledger, validated; a refusal becomes the test's
+/// error with the violations spelled out.
+fn validated() -> Result<ValidLedger, TestError> {
+    validate_dir(Path::new(ROOT).join(LEDGER).as_path())
+        .map_err(|violations| format!("the kata ledger refused: {violations:?}").into())
 }
 
 /// The fixture hashes are pinned: an edit to a committed fixture must be
 /// a new ledger entry, never a silent change.
 #[test]
-fn state_discovery_fixture_hashes_are_pinned() {
+fn state_discovery_fixture_hashes_are_pinned() -> Result<(), TestError> {
     let pins = [
         (
             "near-floor.ct.json",
@@ -85,19 +96,20 @@ fn state_discovery_fixture_hashes_are_pinned() {
         ),
     ];
     for (name, pin) in pins {
-        assert_eq!(fixture_hash(&format!("{KATA}/{name}")), pin, "{name}");
+        assert_eq!(fixture_hash(&format!("{KATA}/{name}"))?, pin, "{name}");
     }
     let probe = format!("{KATA}/unknown-target.ct.json");
     assert_eq!(
-        raw_hash(&probe),
+        raw_hash(&probe)?,
         "sha256:06957f4c28a400dc84496f8b40f0c440b20f52228bbfdffc244cc2cb0672b064",
         "the construction probe's bytes are pinned"
     );
-    let text = std::fs::read_to_string(format!("{ROOT}/{probe}")).expect("probe readable");
+    let text = std::fs::read_to_string(format!("{ROOT}/{probe}"))?;
     assert!(
         parse(&text).is_err(),
         "the probe must never parse as a model"
     );
+    Ok(())
 }
 
 /// The conventional baseline arm is pinned: the ledger's uniqueness
@@ -111,94 +123,144 @@ fn state_discovery_baseline_artifact_is_pinned() {
     assert_eq!(sha256_digest(bytes), BASELINE_HASH);
 }
 
+/// One positive entry's ledger position, unique set, and verdict.
+struct PositiveSpec {
+    index: usize,
+    unique: &'static str,
+    verdict: &'static str,
+}
+
 /// The ledger validates, the control went first and self-negated, the
 /// positives carry executed baseline arms, and the discovery questions
 /// stay hypothesized.
 #[test]
-fn state_discovery_ledger_records_the_preregistered_evidence() {
-    let dir = Path::new(ROOT).join("ledger/katas/state-discovery");
-    let valid = validate_dir(&dir).expect("the kata ledger validates");
+fn state_discovery_ledger_records_the_preregistered_evidence() -> Result<(), TestError> {
+    let valid = validated()?;
     assert_eq!(valid.entries.len(), 5, "control + four recorded probes");
 
-    let control = kata_at(&valid, 0);
-    assert!(control.control, "the near-floor control is first");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
-    assert!(control.comparison.unique_detections.is_empty());
+    let control = kata_at(&valid, 0)?;
+    assert!(control.identity.control, "the near-floor control is first");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(control.derivation.comparison.unique_detections.is_empty());
     assert_eq!(control.run.findings.len(), 2, "two injected control faults");
 
-    assert_positive(&valid, 1, "cell:Paused/stop", "survived");
-    assert_positive(&valid, 2, "cell:Stopped/stop", "survived");
-    assert_positive(&valid, 3, "cell:Playing/pause", "survived");
-    assert_positive(&valid, 4, "", "killed");
-    assert_fixture_identity(&valid);
-    assert_discovery_questions(&valid);
+    let positives = [
+        PositiveSpec {
+            index: 1,
+            unique: "cell:Paused/stop",
+            verdict: "survived",
+        },
+        PositiveSpec {
+            index: 2,
+            unique: "cell:Stopped/stop",
+            verdict: "survived",
+        },
+        PositiveSpec {
+            index: 3,
+            unique: "cell:Playing/pause",
+            verdict: "survived",
+        },
+        PositiveSpec {
+            index: 4,
+            unique: "",
+            verdict: "killed",
+        },
+    ];
+    for spec in positives {
+        assert_positive(&valid, spec)?;
+    }
+    assert_fixture_identity(&valid)?;
+    assert_discovery_questions(&valid)?;
+    Ok(())
 }
 
 /// One positive entry's unique set and verdict.
-fn assert_positive(valid: &ValidLedger, index: usize, unique: &str, verdict: &str) {
-    let kata = kata_at(valid, index);
-    assert!(!kata.control, "entry {} is a positive", index + 1);
-    assert_eq!(kata.verdict, verdict, "{}", kata.name);
-    let expected: Vec<String> = if unique.is_empty() {
+fn assert_positive(valid: &ValidLedger, spec: PositiveSpec) -> Result<(), TestError> {
+    let PositiveSpec {
+        index,
+        unique,
+        verdict,
+    } = spec;
+    let kata = kata_at(valid, index)?;
+    assert!(!kata.identity.control, "entry {} is a positive", index + 1);
+    assert_eq!(kata.derivation.verdict, verdict, "{}", kata.identity.name);
+    let uniques: Vec<String> = if unique.is_empty() {
         Vec::new()
     } else {
         vec![unique.to_string()]
     };
-    assert_eq!(kata.comparison.unique_detections, expected, "{}", kata.name);
-    let baseline = kata.comparison.baseline.as_ref().expect("baseline arm");
-    assert_eq!(baseline.mode, BaselineMode::Executed);
+    assert_eq!(
+        kata.derivation.comparison.unique_detections, uniques,
+        "{}",
+        kata.identity.name
+    );
+    let arm = present(
+        kata.derivation.comparison.baseline.as_ref(),
+        "the baseline arm",
+    )?;
+    assert_eq!(arm.mode, BaselineMode::Executed);
     assert!(
-        baseline.artifact.contains(BASELINE_HASH),
+        arm.artifact.contains(BASELINE_HASH),
         "the executed arm is the pinned script"
     );
+    Ok(())
 }
 
 /// Every entry's recorded fixture hash recomputes, and its validated
 /// model hashes are the fixtures it names.
-fn assert_fixture_identity(valid: &ValidLedger) {
+fn assert_fixture_identity(valid: &ValidLedger) -> Result<(), TestError> {
     for entry in valid.kata_entries() {
-        let kata = entry.content.kata.as_ref().expect("kata");
-        let recomputed = fixture_hash(&kata.fixture);
-        assert_eq!(kata.fixture_hash, recomputed, "{}", kata.fixture);
+        let kata = present(entry.content.kata.as_ref(), "kata record")?;
+        let recomputed = fixture_hash(&kata.provenance.fixture)?;
+        assert_eq!(
+            kata.provenance.fixture_hash, recomputed,
+            "{}",
+            kata.provenance.fixture
+        );
         assert!(
             entry.content.model_hashes.contains(&recomputed),
             "{} validated its named fixture",
-            kata.name
+            kata.identity.name
         );
     }
     assert_eq!(
         valid.kata_entries()[1].content.model_hashes,
-        vec![fixture_hash(&format!("{KATA}/dangling-target.ct.json"))]
+        vec![fixture_hash(&format!("{KATA}/dangling-target.ct.json"))?]
     );
+    Ok(())
 }
 
 /// The discovery questions are recorded with the hypothesized label and
 /// never counted as detections.
-fn assert_discovery_questions(valid: &ValidLedger) {
+fn assert_discovery_questions(valid: &ValidLedger) -> Result<(), TestError> {
     for index in [2, 4] {
-        let kata = kata_at(valid, index);
-        let labels: Vec<&str> = kata
+        let kata = kata_at(valid, index)?;
+        let labels: Result<Vec<&str>, TestError> = kata
             .run
             .findings
             .iter()
             .filter(|finding| finding["kind"] == "underconstraint")
-            .map(|finding| finding["label"].as_str().expect("label"))
+            .map(|finding| present(finding["label"].as_str(), "finding label"))
             .collect();
         assert_eq!(
-            labels,
+            labels?,
             vec!["hypothesized", "hypothesized"],
             "{}",
-            kata.name
+            kata.identity.name
         );
         assert!(
-            kata.comparison
+            kata.derivation
+                .comparison
                 .unique_detections
                 .iter()
                 .all(|unique| !unique.contains("underconstraint")),
             "a question is not a detection"
         );
     }
-    let probe_entry = kata_at(valid, 3);
+    let probe_entry = kata_at(valid, 3)?;
     assert_eq!(
         probe_entry.run.probes.len(),
         1,
@@ -208,10 +270,15 @@ fn assert_discovery_questions(valid: &ValidLedger) {
     assert!(
         probe_entry.run.probes[0].document["instance"]["tables"]["to"]["t_playing_stop"] == "Ghost"
     );
-    let reachability = kata_at(valid, 4);
-    assert!(reachability.comparison.unique_detections.is_empty());
+    let reachability = kata_at(valid, 4)?;
+    assert!(reachability
+        .derivation
+        .comparison
+        .unique_detections
+        .is_empty());
     assert!(
         !reachability.expressibility_gap.is_empty(),
         "the gap is named"
     );
+    Ok(())
 }

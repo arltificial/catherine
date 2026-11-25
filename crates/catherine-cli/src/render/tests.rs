@@ -19,6 +19,20 @@ fn finding(kind: FindingKind, label: EpistemicLabel) -> Finding {
 /// The bowling schema, minimally reconstructed for the transcript
 /// pin: the four arrows and the one canonical equation.
 fn bowling_schema() -> Schema {
+    Schema {
+        objects: BTreeMap::new(),
+        arrows: bowling_arrows(),
+        equations: vec![bowling_equation()],
+        keys: Vec::new(),
+        coproducts: Vec::new(),
+        pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
+    }
+}
+
+/// The bowling schema's four arrows: staff and equipment units chain to
+/// the shared game unit.
+fn bowling_arrows() -> BTreeMap<Ident, Arrow> {
     let mut arrows = BTreeMap::new();
     for (name, src, tgt) in [
         ("staff_unit", "Assignment", "Staff"),
@@ -34,25 +48,23 @@ fn bowling_schema() -> Schema {
             },
         );
     }
-    Schema {
-        objects: BTreeMap::new(),
-        arrows,
-        equations: vec![Equation {
-            lhs: Path(vec![
-                Ident("staff_unit".to_string()),
-                Ident("assigned_staff".to_string()),
-            ]),
-            rhs: Path(vec![
-                Ident("equipment_unit".to_string()),
-                Ident("assigned_item".to_string()),
-            ]),
-            rationale: "a row's staff and its equipment land in the same unit".to_string(),
-            status: ConstraintStatus::Accepted,
-        }],
-        keys: Vec::new(),
-        coproducts: Vec::new(),
-        pullbacks: Vec::new(),
-        stored: BTreeMap::new(),
+    arrows
+}
+
+/// The one canonical equation: a row's staff and its equipment land in
+/// the same unit.
+fn bowling_equation() -> Equation {
+    Equation {
+        lhs: Path(vec![
+            Ident("staff_unit".to_string()),
+            Ident("assigned_staff".to_string()),
+        ]),
+        rhs: Path(vec![
+            Ident("equipment_unit".to_string()),
+            Ident("assigned_item".to_string()),
+        ]),
+        rationale: "a row's staff and its equipment land in the same unit".to_string(),
+        status: ConstraintStatus::Accepted,
     }
 }
 

@@ -23,75 +23,73 @@ use catherine_core::rule_lens::{
 };
 use common::rule_lens::{cmp, int_domain, integer, ints, modulus, presentation, rule, set};
 
-fn fizzbuzz() -> Vec<catherine_core::model::Rule> {
-    vec![
-        rule("fizzbuzz", modulus("n", 15, 0), "FizzBuzz"),
-        rule("fizz", modulus("n", 3, 0), "Fizz"),
-        rule("buzz", modulus("n", 5, 0), "Buzz"),
-        rule("plain", cmp("n", CmpOp::Ge, integer(1)), "n"),
-    ]
+/// A first-match table over the integer column `n`: the shared shape of
+/// every equivalence fixture.
+fn first_match(rules: Vec<catherine_core::model::Rule>) -> RulePresentation {
+    presentation((Some(Policy::FirstMatch), rules), &[("n", ColumnType::Int)])
 }
 
-fn fizzbuzz_swapped() -> Vec<catherine_core::model::Rule> {
-    vec![
-        rule("fizzbuzz", modulus("n", 15, 0), "FizzBuzz"),
-        rule("buzz", modulus("n", 5, 0), "Buzz"),
-        rule("fizz", modulus("n", 3, 0), "Fizz"),
-        rule("plain", cmp("n", CmpOp::Ge, integer(1)), "n"),
-    ]
-}
+/// The named rule fixtures: each table lists its members' names in
+/// declaration order (which is what the equivalence cases vary) instead
+/// of restating the rule builders.
+type RuleFixture = (&'static str, fn() -> catherine_core::model::Rule);
 
-fn default_all() -> Vec<catherine_core::model::Rule> {
-    vec![rule("all", cmp("n", CmpOp::Ge, integer(1)), "default")]
-}
-
-fn default_then_even() -> Vec<catherine_core::model::Rule> {
-    vec![
-        rule("all", cmp("n", CmpOp::Ge, integer(1)), "default"),
-        rule("even", modulus("n", 2, 0), "even"),
-    ]
-}
-
-fn even_then_default() -> Vec<catherine_core::model::Rule> {
-    vec![
-        rule("even", modulus("n", 2, 0), "even"),
-        rule("all", cmp("n", CmpOp::Ge, integer(1)), "default"),
-    ]
+fn fixture_rules(names: &[&str]) -> Vec<catherine_core::model::Rule> {
+    let known: &[RuleFixture] = &[
+        ("fizzbuzz", || {
+            rule("fizzbuzz", (modulus("n", (15, 0)), "FizzBuzz"))
+        }),
+        ("fizz", || rule("fizz", (modulus("n", (3, 0)), "Fizz"))),
+        ("buzz", || rule("buzz", (modulus("n", (5, 0)), "Buzz"))),
+        ("plain", || {
+            rule("plain", (cmp("n", (CmpOp::Ge, integer(1))), "n"))
+        }),
+        ("all", || {
+            rule("all", (cmp("n", (CmpOp::Ge, integer(1))), "default"))
+        }),
+        ("even", || rule("even", (modulus("n", (2, 0)), "even"))),
+    ];
+    names
+        .iter()
+        .map(|name| {
+            let (_, make) = known
+                .iter()
+                .find(|(known_name, _)| known_name == name)
+                .unwrap_or_else(|| panic!("unknown rule fixture `{name}`"));
+            make()
+        })
+        .collect()
 }
 
 fn six() -> RuleDomain {
-    let table = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        default_all(),
-    );
-    int_domain(&table, "n", &[1, 2, 3, 4, 5, 6])
+    let table = first_match(fixture_rules(&["all"]));
+    int_domain(&table, ("n", &[1, 2, 3, 4, 5, 6]))
 }
 
 fn fifteen() -> RuleDomain {
-    let table = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        fizzbuzz(),
-    );
-    int_domain(&table, "n", &(1..=15).collect::<Vec<_>>())
+    let table = first_match(fixture_rules(&["fizzbuzz", "fizz", "buzz", "plain"]));
+    int_domain(&table, ("n", &(1..=15).collect::<Vec<_>>()))
 }
 
 fn age_table() -> RulePresentation {
     presentation(
-        Some(Policy::PriorityOrder),
+        (
+            Some(Policy::PriorityOrder),
+            vec![
+                rule("kid", (cmp("age", (CmpOp::Lt, integer(18))), "kid")),
+                rule(
+                    "adult",
+                    (
+                        catherine_core::model::Predicate::And(vec![
+                            cmp("age", (CmpOp::Ge, integer(18))),
+                            cmp("age", (CmpOp::Lt, integer(65))),
+                        ]),
+                        "adult",
+                    ),
+                ),
+            ],
+        ),
         &[("age", ColumnType::Int)],
-        vec![
-            rule("kid", cmp("age", CmpOp::Lt, integer(18)), "kid"),
-            rule(
-                "adult",
-                catherine_core::model::Predicate::And(vec![
-                    cmp("age", CmpOp::Ge, integer(18)),
-                    cmp("age", CmpOp::Lt, integer(65)),
-                ]),
-                "adult",
-            ),
-        ],
     )
 }
 
@@ -99,15 +97,12 @@ fn age_table() -> RulePresentation {
 /// behind fizzbuzz.
 #[test]
 fn reordered_fizzbuzz_is_equivalent() {
-    let left = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        fizzbuzz(),
-    );
-    let right = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        fizzbuzz_swapped(),
+    let left = first_match(fixture_rules(&["fizzbuzz", "fizz", "buzz", "plain"]));
+    let right = first_match(fixture_rules(&["fizzbuzz", "buzz", "fizz", "plain"]));
+    let kept = left.rules.len();
+    assert_eq!(
+        kept, 4,
+        "reordering keeps the same four rules on both sides"
     );
     assert_eq!(
         equivalence(&left, &right, &fifteen()),
@@ -119,15 +114,11 @@ fn reordered_fizzbuzz_is_equivalent() {
 /// `all`, so both tables induce "default" everywhere.
 #[test]
 fn shadowed_rule_drops_without_witness() {
-    let left = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        default_then_even(),
-    );
-    let right = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        default_all(),
+    let left = first_match(fixture_rules(&["all", "even"]));
+    let right = first_match(fixture_rules(&["all"]));
+    assert!(
+        left.rules.len() == 2 && right.rules.len() == 1,
+        "shadowing drops `even` behind `all`'s catch-all"
     );
     assert_eq!(
         equivalence(&left, &right, &six()),
@@ -138,16 +129,8 @@ fn shadowed_rule_drops_without_witness() {
 /// `order_matters_when_earlier_rule_narrows`: 2 → "even" vs "default".
 #[test]
 fn order_matters_when_earlier_rule_narrows() {
-    let left = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        even_then_default(),
-    );
-    let right = presentation(
-        Some(Policy::FirstMatch),
-        &[("n", ColumnType::Int)],
-        default_all(),
-    );
+    let left = first_match(fixture_rules(&["even", "all"]));
+    let right = first_match(fixture_rules(&["all"]));
     assert_eq!(
         equivalence(&left, &right, &six()),
         EquivalenceOutcome::Distinguishing {
@@ -163,16 +146,28 @@ fn order_matters_when_earlier_rule_narrows() {
 #[test]
 fn gap_input_distinguishes_tables() {
     let left = age_table();
-    let right = presentation(Some(Policy::PriorityOrder), &[("age", ColumnType::Int)], {
-        let mut rules = left.rules.clone();
-        rules.push(rule("senior", cmp("age", CmpOp::Ge, integer(65)), "senior"));
-        rules
-    });
-    let domain = int_domain(&left, "age", &[10, 20, 30, 70]);
+    let right = presentation(
+        (Some(Policy::PriorityOrder), {
+            let mut rules = left.rules.clone();
+            rules.push(rule(
+                "senior",
+                (cmp("age", (CmpOp::Ge, integer(65))), "senior"),
+            ));
+            rules
+        }),
+        &[("age", ColumnType::Int)],
+    );
+    let domain = int_domain(&left, ("age", &[10, 20, 30, 70]));
+    let gap_input = ints(70);
+    assert_eq!(
+        right.rules.len(),
+        3,
+        "the senior rule is appended after the declared two"
+    );
     assert_eq!(
         equivalence(&left, &right, &domain),
         EquivalenceOutcome::Distinguishing {
-            input: ints(70),
+            input: gap_input,
             index: 3,
             bound: 4,
         }
@@ -184,17 +179,21 @@ fn gap_input_distinguishes_tables() {
 #[test]
 fn a_short_budget_yields_unknown_with_the_explored_scope() {
     let table = age_table();
-    let domain = int_domain(&table, "age", &[10, 20, 30, 70]);
+    let domain = int_domain(&table, ("age", &[10, 20, 30, 70]));
+    let RuleOutcome::Unknown { scope } = analyze_with_bounds(&table, &domain, 3) else {
+        panic!("a budget below |X| must stay unknown");
+    };
     assert_eq!(
-        analyze_with_bounds(&table, &domain, 3),
-        RuleOutcome::Unknown {
-            scope: catherine_core::rule_lens::RuleScope {
-                columns: [(catherine_core::model::Ident("age".to_string()), 4)]
-                    .into_iter()
-                    .collect(),
-                candidates_explored: 3,
-            },
-        }
+        scope
+            .columns
+            .get(&catherine_core::model::Ident("age".to_string())),
+        Some(&4),
+        "the scope names the column's exact size"
+    );
+    let explored = scope.candidates_explored;
+    assert_eq!(
+        explored, 3,
+        "the scope counts the candidates actually explored"
     );
 }
 
@@ -203,26 +202,28 @@ fn a_short_budget_yields_unknown_with_the_explored_scope() {
 #[test]
 fn a_zero_budget_yields_unknown_with_the_empty_scope() {
     let table = age_table();
-    let domain = int_domain(&table, "age", &[10, 20, 30, 70]);
-    assert_eq!(
-        analyze_with_bounds(&table, &domain, 0),
-        RuleOutcome::Unknown {
-            scope: catherine_core::rule_lens::RuleScope {
-                columns: std::collections::BTreeMap::new(),
-                candidates_explored: 0,
-            },
-        }
-    );
+    let domain = int_domain(&table, ("age", &[10, 20, 30, 70]));
+    let expected = RuleOutcome::Unknown {
+        scope: catherine_core::rule_lens::RuleScope {
+            columns: std::collections::BTreeMap::new(),
+            candidates_explored: 0,
+        },
+    };
+    assert_eq!(analyze_with_bounds(&table, &domain, 0), expected);
 }
 
 /// Completing at exactly the domain size is an analysis, not `UNKNOWN`.
 #[test]
 fn a_budget_equal_to_the_domain_completes() {
     let table = age_table();
-    let domain = int_domain(&table, "age", &[10, 20, 30, 70]);
+    let domain = int_domain(&table, ("age", &[10, 20, 30, 70]));
     let RuleOutcome::Analyzed(analysis) = analyze_with_bounds(&table, &domain, 4) else {
         panic!("a budget of |X| must complete");
     };
     assert_eq!(analysis.gap, set(&domain, &[ints(70)]));
-    assert_eq!(analysis.class_summary(), vec![RuleClass::Gap]);
+    let classes = analysis.class_summary();
+    for c in &classes {
+        assert_eq!(c, &RuleClass::Gap, "the completed analysis is one gap");
+    }
+    assert_eq!(classes, vec![RuleClass::Gap]);
 }

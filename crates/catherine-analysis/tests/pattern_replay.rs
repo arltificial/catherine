@@ -14,10 +14,11 @@
 //! absent lens is
 //! [`catherine_analysis::pattern::LensError::UnknownPattern`], a model
 //! without the lens's surface is `Unknown { scope }`, an expired budget is
-//! `Unknown`, and `gap`/`construction` rows stay silent. Test names are the
-//! pattern ids (Rust's underscore spelling), so
-//! `cargo test -p catherine-analysis --test pattern_replay <id>` is the
-//! per-lens Meter.
+//! `Unknown`, and `gap`/`construction` rows stay silent. The twelve per-lens
+//! Meters live in one table-driven test,
+//! [`every_meter_replays_its_recorded_row_count`], which asserts each
+//! pattern's recorded row count, so a silently shortened table fails the
+//! pattern.
 //!
 //! Rationale: the expectation table is checked in and the ledger is sealed,
 //! so a mismatch is a lens bug or a spec bug — never a table edit. The
@@ -45,7 +46,7 @@ mod harness;
 
 use catherine_analysis::bounds::ScopeCaps;
 use catherine_analysis::pattern::{
-    self, LensError, LensFindings, LensInput, LensOutcome, PatternLens,
+    self, LensCall, LensError, LensFindings, LensInput, LensOutcome, PatternLens,
 };
 use catherine_core::model::Model;
 use expectations::{FindingKey, EXPECTATIONS};
@@ -172,7 +173,10 @@ fn a_bounded_non_answer_is_unknown() {
         max_candidates: 1,
         ..ScopeCaps::default()
     };
-    match reference::VISITOR.run(&input, &caps) {
+    match reference::VISITOR.run(LensCall {
+        input: &input,
+        caps: &caps,
+    }) {
         LensOutcome::Unknown { scope } => {
             assert!(scope.contains("candidate"), "names the bound: {scope}")
         }
@@ -206,75 +210,30 @@ fn a_migrateless_lens_cannot_pass_a_lost_cell_row() {
     );
 }
 
-/// The replay Meter for `composite`; the row count pins table coverage.
+/// Every replay Meter in one table: each pattern's recorded row count pins
+/// table coverage, so a silently shortened table fails the pattern.
 #[test]
-fn composite() {
-    assert_eq!(replay("composite"), 6);
-}
-
-/// The replay Meter for `null-object`; the row count pins table coverage.
-#[test]
-fn null_object() {
-    assert_eq!(replay("null-object"), 6);
-}
-
-/// The replay Meter for `builder`; the row count pins table coverage.
-#[test]
-fn builder() {
-    assert_eq!(replay("builder"), 7);
-}
-
-/// The replay Meter for `adapter`; the row count pins table coverage.
-#[test]
-fn adapter() {
-    assert_eq!(replay("adapter"), 8);
-}
-
-/// The replay Meter for `decorator`; the row count pins table coverage.
-#[test]
-fn decorator() {
-    assert_eq!(replay("decorator"), 8);
-}
-
-/// The replay Meter for `proxy`; the row count pins table coverage.
-#[test]
-fn proxy() {
-    assert_eq!(replay("proxy"), 8);
-}
-
-/// The replay Meter for `visitor`; the row count pins table coverage.
-#[test]
-fn visitor() {
-    assert_eq!(replay("visitor"), 10);
-}
-
-/// The replay Meter for `interpreter`; the row count pins table coverage.
-#[test]
-fn interpreter() {
-    assert_eq!(replay("interpreter"), 10);
-}
-
-/// The replay Meter for `memento`; the row count pins table coverage.
-#[test]
-fn memento() {
-    assert_eq!(replay("memento"), 5);
-}
-
-/// The replay Meter for `state`; the row count pins table coverage.
-#[test]
-fn state() {
-    assert_eq!(replay("state"), 10);
-}
-
-/// The replay Meter for `chain-of-responsibility`; the row count pins table
-/// coverage.
-#[test]
-fn chain_of_responsibility() {
-    assert_eq!(replay("chain-of-responsibility"), 13);
-}
-
-/// The replay Meter for `strategy`; the row count pins table coverage.
-#[test]
-fn strategy() {
-    assert_eq!(replay("strategy"), 13);
+fn every_meter_replays_its_recorded_row_count() {
+    let meters = [
+        ("adapter", 8),
+        ("builder", 7),
+        ("chain-of-responsibility", 13),
+        ("composite", 6),
+        ("decorator", 8),
+        ("interpreter", 10),
+        ("memento", 5),
+        ("null-object", 6),
+        ("proxy", 8),
+        ("state", 10),
+        ("strategy", 13),
+        ("visitor", 10),
+    ];
+    assert_eq!(
+        meters.len(),
+        12,
+        "the table covers twelve in-scope patterns"
+    );
+    for (id, rows) in meters {
+        assert_eq!(replay(id), rows, "the `{id}` meter replays every row");
+    }
 }

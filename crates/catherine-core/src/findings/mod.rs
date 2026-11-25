@@ -363,7 +363,6 @@ pub enum FindingKind {
     Granularity(GranularityWitness),
 }
 
-
 /// A finding: the public diagnostic. The label rides on the finding as
 /// independent data (violation is the one kind that maps to two labels);
 /// the kind carries the witness. Ordered by kind (declaration order),

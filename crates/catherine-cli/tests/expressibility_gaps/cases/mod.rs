@@ -57,8 +57,10 @@ pub const EXPECTED_ROWS: usize = 15;
 
 /// Every registered case, in disposition-table order.
 pub fn all() -> Vec<Case> {
-    let mut cases = declaration_cases();
-    cases.extend(execution_cases());
+    let cases = declaration_cases()
+        .into_iter()
+        .chain(execution_cases())
+        .collect::<Vec<_>>();
     assert_count(cases.len());
     cases
 }

@@ -28,8 +28,7 @@
 //! [`Finding`]: catherine_core::findings::Finding
 //! [`MigrationFinding`]: catherine_core::migrate::MigrationFinding
 
-use crate::bounds::ScopeCaps;
-use crate::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta};
+use crate::pattern::{LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta};
 use catherine_core::checks::check;
 use catherine_core::instance::TypedInstance;
 use catherine_core::migrate;
@@ -55,7 +54,8 @@ impl PatternLens for Lens {
         &COMPOSITE_META
     }
 
-    fn run(&self, input: &LensInput<'_>, _caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps: _caps } = call;
         // Equation/Δ surface only: this lens has no rule table, so a
         // supplied finite domain cannot bind and must not be ignored.
         if !input.values.is_empty() {

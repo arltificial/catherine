@@ -45,13 +45,15 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use common::Insist;
+
 const PARITY_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/parity");
 
 #[test]
 fn parity_fixtures_match_the_vendored_expected_sets() {
     let mut dirs: Vec<PathBuf> = std::fs::read_dir(PARITY_DIR)
-        .expect("fixtures/parity exists")
-        .map(|e| e.expect("fixture dir entry").path())
+        .insist("fixtures/parity exists")
+        .map(|e| e.insist("fixture dir entry").path())
         .filter(|p| p.is_dir())
         .collect();
     dirs.sort();
@@ -67,115 +69,144 @@ fn parity_fixtures_match_the_vendored_expected_sets() {
 /// The fixture directory's display name for assertion messages.
 fn fixture_name(dir: &Path) -> String {
     dir.file_name()
-        .expect("fixture dir has a name")
+        .insist("fixture dir has a name")
         .to_string_lossy()
         .to_string()
 }
 
-/// Load one fixture: the model document routed through parse or the
-/// lenient presentation loader as `expected["route"]` demands.
-fn load_fixture(name: &str, model_text: &str, expected: &Value) -> (Schema, Instance) {
-    match expected["route"].as_str() {
-        Some("parse") => {
-            let model =
-                parse(model_text).unwrap_or_else(|e| panic!("[{name}] fixture must parse: {e:?}"));
-            (model.schema, model.instance)
+/// A fixture's display name with its vendored expected set, shared by
+/// the load and assertion helpers so each stays within the two-parameter
+/// test limit.
+struct Fixture<'a> {
+    name: &'a str,
+    expected: &'a Value,
+}
+
+impl Fixture<'_> {
+    /// Load the fixture: the model document routed through parse or the
+    /// lenient presentation loader as `expected["route"]` demands.
+    fn load(&self, model_text: &str) -> (Schema, Instance) {
+        let name = self.name;
+        let expected = self.expected;
+        match expected["route"].as_str() {
+            Some("parse") => {
+                let model = parse(model_text)
+                    .unwrap_or_else(|e| panic!("[{name}] fixture must parse: {e:?}"));
+                (model.schema, model.instance)
+            }
+            Some("presentation") => {
+                assert!(
+                    parse(model_text).is_err(),
+                    "[{name}] P0's parser must gate this wrong-object value structurally"
+                );
+                load_presentation(model_text)
+                    .unwrap_or_else(|e| panic!("[{name}] loader failed: {e}"))
+            }
+            other => panic!("[{name}] unknown route {other:?}"),
         }
-        Some("presentation") => {
-            assert!(
-                parse(model_text).is_err(),
-                "[{name}] P0's parser must gate this wrong-object value structurally"
-            );
-            load_presentation(model_text).unwrap_or_else(|e| panic!("[{name}] loader failed: {e}"))
-        }
-        other => panic!("[{name}] unknown route {other:?}"),
     }
 }
 
 fn assert_fixture(dir: &Path) {
     let name = fixture_name(dir);
     let model_text =
-        std::fs::read_to_string(dir.join("model.ct.json")).expect("model.ct.json exists");
+        std::fs::read_to_string(dir.join("model.ct.json")).insist("model.ct.json exists");
     let expected: Value = serde_json::from_str(
-        &std::fs::read_to_string(dir.join("expected.json")).expect("expected.json exists"),
+        &std::fs::read_to_string(dir.join("expected.json")).insist("expected.json exists"),
     )
-    .expect("expected.json is valid JSON");
+    .insist("expected.json is valid JSON");
 
-    let (schema, instance) = load_fixture(&name, &model_text, &expected);
+    let fixture = Fixture {
+        name: &name,
+        expected: &expected,
+    };
+    let (schema, instance) = fixture.load(&model_text);
     let built = TypedInstance::build(&schema, &instance);
-    assert_typing(&name, &built, &expected);
-    assert_dangling(&name, &built, &expected);
-    assert_tables(&name, &built, &expected);
-    assert_outcomes(&name, &schema, &built, &expected);
+    fixture.assert_typing(&built);
+    fixture.assert_dangling(&built);
+    fixture.assert_tables(&built);
+    fixture.assert_outcomes((&schema, &built));
 }
 
 /// The build's typing violations match the vendored expected set.
-fn assert_typing(name: &str, built: &TypedInstance, expected: &Value) {
-    let expected_typing: Vec<TypingViolation> = expected["typing_violations"]
-        .as_array()
-        .unwrap_or_else(|| panic!("[{name}] missing typing_violations"))
-        .iter()
-        .map(typed_violation)
-        .collect();
-    assert_eq!(
-        built.typing_violations(),
-        expected_typing.as_slice(),
-        "[{name}] typing violations"
-    );
+impl Fixture<'_> {
+    fn assert_typing(&self, built: &TypedInstance) {
+        let name = self.name;
+        let expected = self.expected;
+        let expected_typing: Vec<TypingViolation> = expected["typing_violations"]
+            .as_array()
+            .unwrap_or_else(|| panic!("[{name}] missing typing_violations"))
+            .iter()
+            .map(typed_violation)
+            .collect();
+        assert_eq!(
+            built.typing_violations(),
+            expected_typing.as_slice(),
+            "[{name}] typing violations"
+        );
+    }
 }
 
 /// One vendored typing violation.
 fn typed_violation(v: &Value) -> TypingViolation {
     TypingViolation {
-        arrow: Ident(v["arrow"].as_str().expect("arrow").to_string()),
-        src: RowId(v["src"].as_u64().expect("src") as usize),
-        value: RowId(v["value"].as_u64().expect("value") as usize),
+        arrow: Ident(v["arrow"].as_str().insist("arrow").to_string()),
+        src: RowId(v["src"].as_u64().insist("src") as usize),
+        value: RowId(v["value"].as_u64().insist("value") as usize),
     }
 }
 
 /// The build's dangling cells match the vendored expected set.
-fn assert_dangling(name: &str, built: &TypedInstance, expected: &Value) {
-    let expected_dangling: Vec<DanglingCell> = expected["dangling"]
-        .as_array()
-        .unwrap_or_else(|| panic!("[{name}] missing dangling"))
-        .iter()
-        .map(dangling_cell)
-        .collect();
-    assert_eq!(
-        built.dangling(),
-        expected_dangling.as_slice(),
-        "[{name}] dangling cells"
-    );
+impl Fixture<'_> {
+    fn assert_dangling(&self, built: &TypedInstance) {
+        let name = self.name;
+        let expected = self.expected;
+        let expected_dangling: Vec<DanglingCell> = expected["dangling"]
+            .as_array()
+            .unwrap_or_else(|| panic!("[{name}] missing dangling"))
+            .iter()
+            .map(dangling_cell)
+            .collect();
+        assert_eq!(
+            built.dangling(),
+            expected_dangling.as_slice(),
+            "[{name}] dangling cells"
+        );
+    }
 }
 
 /// One vendored dangling cell.
 fn dangling_cell(v: &Value) -> DanglingCell {
     DanglingCell {
-        arrow: Ident(v["arrow"].as_str().expect("arrow").to_string()),
-        src: RowId(v["src"].as_u64().expect("src") as usize),
+        arrow: Ident(v["arrow"].as_str().insist("arrow").to_string()),
+        src: RowId(v["src"].as_u64().insist("src") as usize),
     }
 }
 
 /// The build's morphism tables match the vendored expected set.
-fn assert_tables(name: &str, built: &TypedInstance, expected: &Value) {
-    let expected_tables: BTreeMap<Ident, Vec<Option<RowId>>> = expected["tables"]
-        .as_object()
-        .unwrap_or_else(|| panic!("[{name}] missing tables"))
-        .iter()
-        .map(|(arrow, cells)| (Ident(arrow.clone()), expected_cells(cells)))
-        .collect();
-    assert_eq!(built.tables(), &expected_tables, "[{name}] morphism tables");
+impl Fixture<'_> {
+    fn assert_tables(&self, built: &TypedInstance) {
+        let name = self.name;
+        let expected = self.expected;
+        let expected_tables: BTreeMap<Ident, Vec<Option<RowId>>> = expected["tables"]
+            .as_object()
+            .unwrap_or_else(|| panic!("[{name}] missing tables"))
+            .iter()
+            .map(|(arrow, cells)| (Ident(arrow.clone()), expected_cells(cells)))
+            .collect();
+        assert_eq!(built.tables(), &expected_tables, "[{name}] morphism tables");
+    }
 }
 
 /// One vendored arrow table: `null` cells stay dangling.
 fn expected_cells(cells: &Value) -> Vec<Option<RowId>> {
     cells
         .as_array()
-        .expect("cells array")
+        .insist("cells array")
         .iter()
         .map(|c| match c {
             Value::Null => None,
-            v => Some(RowId(v.as_u64().expect("row id") as usize)),
+            v => Some(RowId(v.as_u64().insist("row id") as usize)),
         })
         .collect()
 }
@@ -185,16 +216,21 @@ fn expected_cells(cells: &Value) -> Vec<Option<RowId>> {
 /// dangling-first order); the findings taxonomy's total order is the P2
 /// contract, so the expected set is sorted the same way `check` sorts
 /// before comparing — same facts, P2 order.
-fn assert_outcomes(name: &str, schema: &Schema, built: &TypedInstance, expected: &Value) {
-    let mut expected_findings: Vec<Finding> = expected["outcomes"]
-        .as_array()
-        .unwrap_or_else(|| panic!("[{name}] missing outcomes"))
-        .iter()
-        .map(|o| outcome_finding(name, o))
-        .collect();
-    expected_findings.sort();
-    let findings = check(schema, built);
-    assert_eq!(findings, expected_findings, "[{name}] check findings");
+impl Fixture<'_> {
+    fn assert_outcomes(&self, built: (&Schema, &TypedInstance)) {
+        let (schema, built) = built;
+        let name = self.name;
+        let expected = self.expected;
+        let mut expected_findings: Vec<Finding> = expected["outcomes"]
+            .as_array()
+            .unwrap_or_else(|| panic!("[{name}] missing outcomes"))
+            .iter()
+            .map(|o| outcome_finding(name, o))
+            .collect();
+        expected_findings.sort();
+        let findings = check(schema, built);
+        assert_eq!(findings, expected_findings, "[{name}] check findings");
+    }
 }
 
 /// One vendored outcome: a dangling finding, or a violation-shaped one
@@ -221,10 +257,10 @@ fn violation_outcome(name: &str, o: &Value) -> Finding {
             ViolationWitness::Pullback(pullback_witness(name, o))
         } else {
             ViolationWitness::Equation(EquationWitness {
-                equation: o["equation"].as_u64().expect("equation") as usize,
-                row: RowId(o["row"].as_u64().expect("row") as usize),
-                lhs: RowId(o["lhs"].as_u64().expect("lhs") as usize),
-                rhs: RowId(o["rhs"].as_u64().expect("rhs") as usize),
+                equation: o["equation"].as_u64().insist("equation") as usize,
+                row: RowId(o["row"].as_u64().insist("row") as usize),
+                lhs: RowId(o["lhs"].as_u64().insist("lhs") as usize),
+                rhs: RowId(o["rhs"].as_u64().insist("rhs") as usize),
             })
         }),
     }
@@ -239,7 +275,7 @@ fn pullback_witness(name: &str, o: &Value) -> PullbackWitness {
                 .unwrap_or_else(|| panic!("[{name}] pullback witness row id")) as usize,
         )
     };
-    let pullback = o["pullback"].as_u64().expect("pullback") as usize;
+    let pullback = o["pullback"].as_u64().insist("pullback") as usize;
     if let Some(pair) = o.get("pair") {
         PullbackWitness::Covers {
             pullback,
@@ -273,8 +309,8 @@ fn dangling_outcome(o: &Value) -> Finding {
     Finding {
         label: EpistemicLabel::Executed,
         kind: FindingKind::Dangling(DanglingWitness {
-            arrow: Ident(o["arrow"].as_str().expect("arrow").to_string()),
-            src: RowId(o["src"].as_u64().expect("src") as usize),
+            arrow: Ident(o["arrow"].as_str().insist("arrow").to_string()),
+            src: RowId(o["src"].as_u64().insist("src") as usize),
         }),
     }
 }

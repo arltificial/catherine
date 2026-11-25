@@ -29,6 +29,10 @@ use catherine_core::hash::model_hash;
 use catherine_core::parse::parse;
 use serde_json::Value;
 
+#[path = "instance_morphism/rejection.rs"]
+mod rejection;
+use rejection::rejection;
+
 const SMALL_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/small/model.ct.json"
@@ -181,24 +185,6 @@ fn parsed(text: &str, what: &str) -> catherine_core::model::Model {
     parse(text).unwrap_or_else(|error| panic!("{what} parses: {error:?}"))
 }
 
-/// The stable code, `(line, column)`, and message of a rejected
-/// document: the syntactic and semantic arms collapsed to one shape for
-/// the rejection table.
-fn rejection(text: &str, what: &str) -> (&'static str, (usize, usize), String) {
-    match parse(text).expect_err(what) {
-        ParseError::Syntax {
-            line,
-            column,
-            message,
-        } => ("syntax", (line, column), message),
-        ParseError::Semantic(semantic) => (
-            semantic.code.as_str(),
-            (semantic.line, semantic.column),
-            semantic.message,
-        ),
-    }
-}
-
 /// Scenario "Map round-trips and canonicalizes": input order is
 /// presentation — the parsed map carries the canonical `(object, rows)`
 /// order, canonical bytes are independent of the input order and of the
@@ -234,24 +220,30 @@ fn instance_map_round_trips_and_canonicalizes() {
     // Canonical `(object, rows)` order: objects ascending, each entry's
     // rows keyed by the document's rows. Target names are external, so
     // they are carried as declared.
-    let canonical: Value =
-        serde_json::from_str(&serialize(&first)).expect("canonical serialization is JSON");
+    let canonical: Value = serde_json::from_str(&serialize(&first))
+        .unwrap_or_else(|error| panic!("canonical serialization is not JSON: {error}"));
     let maps = canonical["instance_map"]["maps"]
         .as_array()
-        .expect("the section survives serialization");
+        .unwrap_or_else(|| panic!("the instance_map section does not survive serialization"));
     assert_eq!(maps.len(), 2, "one entry per mapped object");
     assert_eq!(maps[0]["object"], "account", "objects in ascending order");
     assert_eq!(maps[1]["object"], "owner", "objects in ascending order");
-    let account_rows = maps[0]["rows"].as_object().expect("rows is an object");
+    let account_rows = maps[0]["rows"]
+        .as_object()
+        .unwrap_or_else(|| panic!("the account rows are not an object"));
     assert_eq!(account_rows.len(), 2, "every account row is mapped");
     let mut targets: Vec<&str> = account_rows
         .values()
-        .map(|value| value.as_str().expect("target row name"))
+        .map(|value| {
+            value
+                .as_str()
+                .unwrap_or_else(|| panic!("a target row name is not a string"))
+        })
         .collect();
     targets.sort_unstable();
     assert_eq!(targets, vec!["w1", "w2"], "target names as declared");
 
-    let reparsed = parse(&serialize(&first)).expect("canonical bytes parse");
+    let reparsed = parsed(&serialize(&first), "canonical bytes parse");
     assert_eq!(reparsed, first, "serialize/parse is a fixed point");
 
     let unmapped = parsed(UNMAPPED_DOC, "the map-free document");
@@ -267,8 +259,12 @@ fn instance_map_round_trips_and_canonicalizes() {
 /// map over an empty instance is omitted just like an absent one.
 #[test]
 fn absent_instance_map_hashes_as_before() {
-    let text = std::fs::read_to_string(SMALL_FIXTURE).expect("corpus fixture exists");
-    let model = parse(&text).expect("the pre-1.4 corpus fixture parses");
+    let model = parsed(
+        &std::fs::read_to_string(SMALL_FIXTURE).unwrap_or_else(|error| {
+            panic!("corpus fixture {SMALL_FIXTURE} is unreadable: {error}")
+        }),
+        "the pre-1.4 corpus fixture parses",
+    );
     assert_eq!(
         canonical_bytes(&model),
         SMALL_PRE_CHANGE_CANONICAL,
@@ -308,10 +304,8 @@ fn absent_instance_map_hashes_as_before() {
 /// short — never an implicit identity on the rest.
 #[test]
 fn incomplete_map_is_rejected_at_its_node() {
-    let ParseError::Semantic(semantic) = parse(INCOMPLETE_MAP_DOC)
-        .expect_err("a map that omits a declared row is a malformed claim")
-    else {
-        panic!("an incomplete map is a labeled semantic rejection");
+    let Err(ParseError::Semantic(semantic)) = parse(INCOMPLETE_MAP_DOC) else {
+        panic!("an incomplete map is a labeled semantic rejection, never syntax or acceptance");
     };
     assert_eq!(
         semantic.code,
@@ -388,7 +382,7 @@ fn unknown_target_is_preserved_for_construction_time_resolution() {
         bytes.contains(r#""w9""#),
         "an unresolvable target name is preserved verbatim, never dropped: {bytes}"
     );
-    let reparsed = parse(&serialize(&model)).expect("the serialized document parses");
+    let reparsed = parsed(&serialize(&model), "the serialized document parses");
     assert_eq!(reparsed, model, "serialize/parse is a fixed point");
     assert_ne!(
         model_hash(&model),

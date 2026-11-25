@@ -47,10 +47,10 @@ pub fn underconstraint(schema: &Schema, caps: &ScopeCaps) -> Vec<Finding> {
     // Level 1: the generating arrows — only when the cap admits paths
     // of length 1 at all. A cap of 0 enumerates nothing: the cap bounds
     // the op from the start, never after the fact.
-    let mut frontier = seed_level(schema, max_path_length, &mut by_endpoints);
+    let frontier = seed_level(schema, max_path_length, &mut by_endpoints);
     // Extend level by level up to the cap. A path may revisit objects
     // (self-loops are legal); the length cap keeps the space finite.
-    extend_levels(schema, max_path_length, &mut frontier, &mut by_endpoints);
+    extend_levels(schema, max_path_length, frontier, &mut by_endpoints);
     // One hypothesis per unordered pair, in sorted path order.
     let mut findings = pair_hypotheses(schema, &by_endpoints);
     findings.sort();
@@ -86,40 +86,47 @@ fn seed_level(
 fn extend_levels(
     schema: &Schema,
     max_path_length: usize,
-    frontier: &mut Vec<(Ident, Ident, Vec<Ident>)>,
+    mut frontier: Vec<(Ident, Ident, Vec<Ident>)>,
     by_endpoints: &mut BTreeMap<(Ident, Ident), BTreeSet<Path>>,
 ) {
     for _ in 1..max_path_length.max(1) {
-        let mut next: Vec<(Ident, Ident, Vec<Ident>)> = Vec::new();
-        for (src, current, path) in &*frontier {
-            extend_one(schema, src, current, path, by_endpoints, &mut next);
+        let extensions: Vec<(Ident, Ident, Vec<Ident>)> = frontier
+            .iter()
+            .flat_map(|(src, current, path)| extend_one(schema, src, current, path))
+            .collect();
+        for (src, tgt, path) in &extensions {
+            by_endpoints
+                .entry((src.clone(), tgt.clone()))
+                .or_default()
+                .insert(Path(path.clone()));
         }
-        *frontier = next;
+        frontier = extensions;
     }
 }
 
 /// Extend one frontier path by every arrow that continues it — the
-/// extension step of the level-order walk.
+/// extension step of the level-order walk. The extensions are returned
+/// for the caller's next frontier; the endpoint grouping is the caller's
+/// to update.
 fn extend_one(
     schema: &Schema,
     src: &Ident,
     current: &Ident,
     path: &[Ident],
-    by_endpoints: &mut BTreeMap<(Ident, Ident), BTreeSet<Path>>,
-    next: &mut Vec<(Ident, Ident, Vec<Ident>)>,
-) {
-    for (name, arrow) in &schema.arrows {
-        if &arrow.src != current {
-            continue;
-        }
-        let mut extended = path.to_vec();
-        extended.push(name.clone());
-        by_endpoints
-            .entry((src.clone(), arrow.tgt.clone()))
-            .or_default()
-            .insert(Path(extended.clone()));
-        next.push((src.clone(), arrow.tgt.clone(), extended));
-    }
+) -> Vec<(Ident, Ident, Vec<Ident>)> {
+    schema
+        .arrows
+        .iter()
+        .filter(|(_, arrow)| &arrow.src == current)
+        .map(|(name, arrow)| {
+            let extended: Vec<Ident> = path
+                .iter()
+                .cloned()
+                .chain(std::iter::once(name.clone()))
+                .collect();
+            (src.clone(), arrow.tgt.clone(), extended)
+        })
+        .collect()
 }
 
 /// One hypothesis per unordered pair of same-endpoint paths, in sorted
@@ -128,11 +135,13 @@ fn pair_hypotheses(
     schema: &Schema,
     by_endpoints: &BTreeMap<(Ident, Ident), BTreeSet<Path>>,
 ) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    for paths in by_endpoints.values() {
-        let ordered: Vec<&Path> = paths.iter().collect();
-        findings.extend(unrelated_pairs(&ordered, &schema.equations));
-    }
+    let findings: Vec<Finding> = by_endpoints
+        .values()
+        .flat_map(|paths| {
+            let ordered: Vec<&Path> = paths.iter().collect();
+            unrelated_pairs(&ordered, &schema.equations)
+        })
+        .collect();
     findings
 }
 
@@ -141,17 +150,13 @@ fn unrelated_pairs(
     ordered: &[&Path],
     equations: &[catherine_core::model::Equation],
 ) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    for first in 0..ordered.len() {
-        for second in first + 1..ordered.len() {
-            let (lhs, rhs) = (ordered[first], ordered[second]);
-            if related(equations, lhs, rhs) {
-                continue;
-            }
-            findings.push(parallel_paths_finding(lhs.clone(), rhs.clone()));
-        }
-    }
-    findings
+    let candidate_pairs = (0..ordered.len()).flat_map(move |first| {
+        (first + 1..ordered.len()).map(move |second| (ordered[first], ordered[second]))
+    });
+    candidate_pairs
+        .filter(|&(lhs, rhs)| !related(equations, lhs, rhs))
+        .map(|(lhs, rhs)| parallel_paths_finding(lhs.clone(), rhs.clone()))
+        .collect()
 }
 
 /// Whether any declared equation relates the two paths — in either

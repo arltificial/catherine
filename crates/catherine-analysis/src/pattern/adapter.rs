@@ -22,8 +22,7 @@
 //! sample collapses the unique set, so the scope field carries that
 //! honesty boundary instead of a detection-rate claim.
 
-use crate::bounds::ScopeCaps;
-use crate::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta};
+use crate::pattern::{LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta};
 use catherine_core::checks::check;
 use catherine_core::instance::TypedInstance;
 
@@ -45,7 +44,8 @@ impl PatternLens for Lens {
         &ADAPTER_META
     }
 
-    fn run(&self, input: &LensInput<'_>, _caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps: _caps } = call;
         let typed = TypedInstance::build(&input.model.schema, &input.model.instance);
         LensOutcome::Findings(LensFindings {
             checks: check(&input.model.schema, &typed),

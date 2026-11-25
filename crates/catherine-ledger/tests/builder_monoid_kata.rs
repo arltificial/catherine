@@ -14,12 +14,15 @@
 //! drifting away from the fixtures and the pre-registered fault matrix it
 //! claims to have run against.
 
+mod support;
+
 use std::path::Path;
 
 use catherine_core::hash::{model_hash, sha256_digest};
 use catherine_core::parse::parse;
-use catherine_ledger::entry::{BaselineMode, Entry, KataRecord};
+use catherine_ledger::entry::{BaselineMode, Entry};
 use catherine_ledger::validate::{validate_dir, ValidLedger};
+use support::{present, TestError};
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 const LEDGER: &str = "ledger/katas/builder-monoid";
@@ -61,119 +64,145 @@ const FIXTURES: [(&str, &str); 8] = [
     ),
 ];
 
+/// The committed kata ledger, validated; a refusal becomes the test's
+/// error with the violations spelled out.
+fn validated(dir: &Path) -> Result<ValidLedger, TestError> {
+    validate_dir(dir)
+        .map_err(|violations| format!("the builder-monoid ledger refused: {violations:?}").into())
+}
+
 /// One fixture's model hash, recomputed from its canonical bytes.
-fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(format!("{ROOT}/{path}")).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+fn fixture_hash(path: &str) -> Result<String, TestError> {
+    let text = std::fs::read_to_string(format!("{ROOT}/{path}"))?;
+    let document = parse(&text)?;
+    Ok(model_hash(&document))
 }
 
 /// The baseline script's pinned identity (`--hash` prints the hex).
-fn baseline_hash() -> String {
-    sha256_digest(&std::fs::read(format!("{ROOT}/{BASELINE}")).expect("baseline readable"))
+fn baseline_hash() -> Result<String, TestError> {
+    let bytes = std::fs::read(format!("{ROOT}/{BASELINE}"))?;
+    Ok(sha256_digest(&bytes))
 }
 
-fn kata(entry: &Entry) -> &KataRecord {
-    entry.content.kata.as_ref().expect("kata-shaped entry")
-}
+/// The positive entries in ledger order: the fault they carry and the
+/// unique count the pre-registered arithmetic freezes.
+const POSITIVES: [(&str, usize); 4] = [
+    ("dropped-step", 25),
+    ("duplicated-step", 0),
+    ("out-of-order-step", 1),
+    ("optional-part-dropped", 1),
+];
 
 /// The fixtures' identities are pinned: an edit to any committed fixture
 /// must be a new ledger entry, never a silent change.
 #[test]
-fn fixture_hashes_are_pinned() {
-    for (path, expected) in FIXTURES {
-        assert_eq!(fixture_hash(path), expected, "{path} drifted");
+fn fixture_hashes_are_pinned() -> Result<(), TestError> {
+    for (path, pinned) in FIXTURES {
+        assert_eq!(fixture_hash(path)?, pinned, "{path} drifted");
     }
+    Ok(())
 }
 
 /// The baseline arm is executed, committed, and pinned by sha256.
 #[test]
-fn baseline_artifact_is_the_pinned_script() {
+fn baseline_artifact_is_the_pinned_script() -> Result<(), TestError> {
     assert_eq!(
-        baseline_hash(),
+        baseline_hash()?,
         "sha256:9d7b1066b77e9feedef981a4e1711a1af691ad99958cedeea5c2ec0408ef9ff4"
     );
+    Ok(())
 }
 
 /// The ledger validates and opens with a self-negated near-floor control.
 #[test]
-fn ledger_starts_with_the_self_negated_control() {
-    let valid = validate_dir(Path::new(ROOT).join(LEDGER).as_path())
-        .expect("the builder-monoid ledger validates");
+fn ledger_starts_with_the_self_negated_control() -> Result<(), TestError> {
+    let valid = validated(Path::new(ROOT).join(LEDGER).as_path())?;
     assert_eq!(valid.entries.len(), 5, "control + four positives");
-    assert_control(&valid);
+    assert_control(&valid)?;
+    Ok(())
 }
 
 /// The ledger's positives carry the pre-registered unique arithmetic and
 /// executed baseline arms; zero unique is a legitimate killed outcome.
 #[test]
-fn positives_record_the_preregistered_unique_counts() {
-    let valid = validate_dir(Path::new(ROOT).join(LEDGER).as_path())
-        .expect("the builder-monoid ledger validates");
+fn positives_record_the_preregistered_unique_counts() -> Result<(), TestError> {
+    let valid = validated(Path::new(ROOT).join(LEDGER).as_path())?;
     assert_eq!(valid.kata_entries().len(), 5, "control + four positives");
-    let expected = [
-        ("dropped-step", 25usize),
-        ("duplicated-step", 0),
-        ("out-of-order-step", 1),
-        ("optional-part-dropped", 1),
-    ];
-    for (entry, (name, unique)) in valid.kata_entries()[1..].iter().zip(expected) {
-        assert_positive(entry, name, unique);
+    for (entry, (name, unique)) in valid.kata_entries()[1..].iter().zip(POSITIVES) {
+        assert_positive(entry, PositiveSpec { name, unique })?;
     }
+    Ok(())
+}
+
+/// One positive entry's identity pin and unique arithmetic.
+struct PositiveSpec {
+    name: &'static str,
+    unique: usize,
 }
 
 /// The control went first, self-negated, and names the executed arm.
-fn assert_control(valid: &ValidLedger) {
+fn assert_control(valid: &ValidLedger) -> Result<(), TestError> {
     let entry = valid.kata_entries()[0];
-    let record = kata(entry);
-    assert!(record.control, "the near-floor control is first");
-    assert_eq!(record.kata_id, "builder-monoid");
-    assert_eq!(record.verdict, "killed", "the control self-negated");
-    assert!(record.comparison.unique_detections.is_empty());
-    assert_eq!(record.fixture_hash, fixture_hash(&record.fixture));
+    let record = present(entry.content.kata.as_ref(), "kata record")?;
+    assert!(record.identity.control, "the near-floor control is first");
+    assert_eq!(record.identity.kata_id, "builder-monoid");
+    assert_eq!(
+        record.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(record.derivation.comparison.unique_detections.is_empty());
+    assert_eq!(
+        record.provenance.fixture_hash,
+        fixture_hash(&record.provenance.fixture)?
+    );
     assert_eq!(
         entry.content.model_hashes.len(),
         3,
         "base + two floor faults"
     );
-    let baseline = record
-        .comparison
-        .baseline
-        .as_ref()
-        .expect("the control records the executed arm");
+    let baseline = present(
+        record.derivation.comparison.baseline.as_ref(),
+        "the control's executed arm",
+    )?;
     assert_eq!(baseline.mode, BaselineMode::Executed);
     assert_eq!(baseline.detections.len(), 2, "both floor faults caught");
+    Ok(())
 }
 
 /// One positive entry: identity, canonical element count, verdict, and
 /// the executed baseline arm that made the arithmetic legitimate.
-fn assert_positive(entry: &Entry, expected_id: &str, unique: usize) {
-    let record = kata(entry);
-    assert!(!record.control, "{expected_id} is a positive");
-    assert_eq!(record.kata_id, "builder-monoid");
-    assert_eq!(record.fixture_hash, fixture_hash(&record.fixture));
+fn assert_positive(entry: &Entry, spec: PositiveSpec) -> Result<(), TestError> {
+    let PositiveSpec { name, unique } = spec;
+    let record = present(entry.content.kata.as_ref(), "kata record")?;
+    assert!(!record.identity.control, "{name} is a positive");
+    assert_eq!(record.identity.kata_id, "builder-monoid");
+    assert_eq!(
+        record.provenance.fixture_hash,
+        fixture_hash(&record.provenance.fixture)?
+    );
     assert_eq!(
         entry.content.model_hashes,
-        vec![record.fixture_hash.clone()],
+        vec![record.provenance.fixture_hash.clone()],
         "the validated model is the fixture it names"
     );
     assert_eq!(
-        record.comparison.unique_detections.len(),
+        record.derivation.comparison.unique_detections.len(),
         unique,
-        "{expected_id} unique count"
+        "{name} unique count"
     );
     assert_eq!(
-        record.verdict,
+        record.derivation.verdict,
         if unique == 0 { "killed" } else { "survived" },
-        "{expected_id} verdict follows the arithmetic"
+        "{name} verdict follows the arithmetic"
     );
-    let baseline = record
-        .comparison
-        .baseline
-        .as_ref()
-        .expect("a baseline arm is recorded");
+    let baseline = present(
+        record.derivation.comparison.baseline.as_ref(),
+        "a baseline arm is recorded",
+    )?;
     assert_eq!(baseline.mode, BaselineMode::Executed);
     assert!(
-        baseline.artifact.contains(&baseline_hash()),
-        "{expected_id} pins the executed script"
+        baseline.artifact.contains(&baseline_hash()?),
+        "{name} pins the executed script"
     );
+    Ok(())
 }

@@ -15,49 +15,59 @@ use serde_json::Value;
 use std::process::Output;
 
 /// The three `distinguish` invocations behind the scope row: the bare form
-/// (no observation set) and the `f`-only and `g`-only forms.
+/// (no observation set) and the `f`-only and `g`-only forms. Each run keeps
+/// its exit code and reported outcome; the bare run's outcome stays empty
+/// when the invocation fails for lack of `--observe`.
 struct ScopeRuns {
-    bare_exit: i32,
+    bare: Run,
     bare_missing_observe: bool,
-    bare_outcome: String,
-    narrow_exit: i32,
-    narrow_outcome: String,
-    wide_exit: i32,
-    wide_outcome: String,
+    narrow: Run,
+    wide: Run,
+}
+
+/// One `distinguish` invocation's exit code and reported outcome.
+struct Run {
+    exit: i32,
+    outcome: String,
+}
+
+impl Run {
+    /// Exit 0 reporting `outcome`.
+    fn reports(&self, outcome: &str) -> bool {
+        self.exit == 0 && self.outcome == outcome
+    }
+
+    fn of(out: &Output, value: Value) -> Self {
+        Self {
+            exit: common::code(out),
+            outcome: outcome_of(&value),
+        }
+    }
+}
+
+/// The run envelope's `data.outcome`, empty when absent.
+fn outcome_of(value: &Value) -> String {
+    value["data"]["outcome"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned()
 }
 
 impl ScopeRuns {
     /// The claimed limitation: the bare form cannot pick the observation set,
     /// while `f` alone sees equivalence and `g` alone distinguishes.
     fn shows_limitation(&self) -> bool {
-        self.bare_is_missing_observe() && self.narrow_matches() && self.wide_matches()
+        self.bare.exit == 2
+            && self.bare_missing_observe
+            && self.narrow.reports("equivalent-in-scope")
+            && self.wide.reports("distinguishable")
     }
 
     /// The fix: the bare form now enumerates the scope and sees the `g`
     /// difference, or the narrow run now sees past its hand-picked
     /// observation.
     fn shows_fix(&self) -> bool {
-        self.bare_sees_difference() || self.narrow_sees_difference()
-    }
-
-    fn bare_is_missing_observe(&self) -> bool {
-        self.bare_exit == 2 && self.bare_missing_observe
-    }
-
-    fn bare_sees_difference(&self) -> bool {
-        self.bare_exit == 0 && self.bare_outcome == "distinguishable"
-    }
-
-    fn narrow_matches(&self) -> bool {
-        self.narrow_exit == 0 && self.narrow_outcome == "equivalent-in-scope"
-    }
-
-    fn narrow_sees_difference(&self) -> bool {
-        self.narrow_exit == 0 && self.narrow_outcome == "distinguishable"
-    }
-
-    fn wide_matches(&self) -> bool {
-        self.wide_exit == 0 && self.wide_outcome == "distinguishable"
+        self.bare.reports("distinguishable") || self.narrow.reports("distinguishable")
     }
 }
 
@@ -69,30 +79,16 @@ fn scope_runs() -> ScopeRuns {
     let narrow = common::run(&["distinguish", "--observe", "f@a#0", "--json", &left, &right]);
     let wide = common::run(&["distinguish", "--observe", "g@a#0", "--json", &left, &right]);
 
-    let narrow_value = envelope(&narrow, "narrow observation");
-    let wide_value = envelope(&wide, "wide observation");
     let bare_value = if common::code(&bare) == 0 {
         envelope(&bare, "bare observation")
     } else {
         Value::Null
     };
     ScopeRuns {
-        bare_exit: common::code(&bare),
+        bare: Run::of(&bare, bare_value),
         bare_missing_observe: common::stderr(&bare).contains("--observe"),
-        bare_outcome: bare_value["data"]["outcome"]
-            .as_str()
-            .unwrap_or_default()
-            .to_owned(),
-        narrow_exit: common::code(&narrow),
-        narrow_outcome: narrow_value["data"]["outcome"]
-            .as_str()
-            .unwrap_or_default()
-            .to_owned(),
-        wide_exit: common::code(&wide),
-        wide_outcome: wide_value["data"]["outcome"]
-            .as_str()
-            .unwrap_or_default()
-            .to_owned(),
+        narrow: Run::of(&narrow, envelope(&narrow, "narrow observation")),
+        wide: Run::of(&wide, envelope(&wide, "wide observation")),
     }
 }
 
@@ -107,7 +103,7 @@ pub(super) fn distinguish_observation_scope() -> Observation {
     panic!(
         "distinguish: unexpected behavior — bare exit {} (missing --observe: {}), \
          f-only `{}`, g-only `{}`",
-        runs.bare_exit, runs.bare_missing_observe, runs.narrow_outcome, runs.wide_outcome
+        runs.bare.exit, runs.bare_missing_observe, runs.narrow.outcome, runs.wide.outcome
     )
 }
 
@@ -120,10 +116,12 @@ pub(super) fn associativity_scaffolding() -> Observation {
     let omitted_out = common::run(&["check", &omitted, "--json"]);
     let omitted_value = envelope(&omitted_out, "omitted triples");
 
-    if associativity_limitation(&full_out, &full_value, &omitted_out, &omitted_value) {
+    if scaffold_cost(&full_out, &full_value) && omission_is_clean(&omitted_out, &omitted_value) {
         return Observation::Limitation;
     }
-    if associativity_fix(&full_out, &full_value, &omitted_out, &omitted_value) {
+    if declarative_surface(&full_out, &full_value)
+        || carrier_completeness(&omitted_out, &omitted_value)
+    {
         return Observation::Cleared;
     }
     panic!(
@@ -132,24 +130,6 @@ pub(super) fn associativity_scaffolding() -> Observation {
         common::code(&full_out),
         common::code(&omitted_out)
     )
-}
-
-fn associativity_limitation(
-    full_out: &std::process::Output,
-    full_value: &Value,
-    omitted_out: &std::process::Output,
-    omitted_value: &Value,
-) -> bool {
-    scaffold_cost(full_out, full_value) && omission_is_clean(omitted_out, omitted_value)
-}
-
-fn associativity_fix(
-    full_out: &std::process::Output,
-    full_value: &Value,
-    omitted_out: &std::process::Output,
-    omitted_value: &Value,
-) -> bool {
-    declarative_surface(full_out, full_value) || carrier_completeness(omitted_out, omitted_value)
 }
 
 /// The claimed signature: 18 violations at equation 7 over the hand-built
@@ -362,7 +342,7 @@ fn collision_fix(run: &probe::CheckRun) -> Observation {
         "selector_collision_claims: the fix names the collision, got {}",
         run.text()
     );
-    assert_diagnostic_names(
+    assert_diagnostic_names!(
         "selector-collision-claims",
         &run.text(),
         &[

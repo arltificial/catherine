@@ -63,24 +63,28 @@ fn parsed(a: &(Model, RowNames), b: &(Model, RowNames)) -> Vec<Disagreement> {
     agree(&a.0, &b.0, &a.1, &b.1)
 }
 
-/// Identical instances: zero findings — agreement over every shared key.
+/// The inline silence controls: identical instances and disjoint keys are
+/// both zero findings — identical instances agree over every shared key,
+/// and a row or key present on only one side is agreement over the shared
+/// sub-schema, never a completeness failure.
 #[test]
-fn identical_instances_are_silent() {
-    assert!(
-        outcome(IDENTICAL_A, IDENTICAL_B).is_empty(),
-        "identical instances agree everywhere"
-    );
-}
-
-/// Disjoint keys: zero findings, documented silence — a row or key
-/// present on only one side is agreement over the shared sub-schema,
-/// never a completeness failure.
-#[test]
-fn disjoint_keys_are_documented_silence() {
-    assert!(
-        outcome(DISJOINT_A, DISJOINT_B).is_empty(),
-        "one-sided rows are not findings: agreement, not completeness"
-    );
+fn silence_controls_are_documented() {
+    let controls = [
+        (
+            IDENTICAL_A,
+            IDENTICAL_B,
+            "identical instances agree everywhere",
+        ),
+        (
+            DISJOINT_A,
+            DISJOINT_B,
+            "one-sided rows are not findings: agreement, not completeness",
+        ),
+    ];
+    for (a, b, why) in controls {
+        assert!(outcome(a, b).is_empty(), "{why}");
+    }
+    assert_eq!(controls.len(), 2, "both silence controls replayed");
 }
 
 /// Conflicting overlap: the shared key `p1` disagrees on `works_at` and
@@ -106,9 +110,15 @@ fn conflicting_overlap_emits_a_witness() {
 /// partial overlap, and it emits nothing.
 #[test]
 fn agreeing_fixture_is_silent() {
+    let disagreements = parsed(&load_fixture("agreeing-a"), &load_fixture("agreeing-b"));
     assert!(
-        parsed(&load_fixture("agreeing-a"), &load_fixture("agreeing-b")).is_empty(),
+        disagreements.is_empty(),
         "partial overlap is agreement: side B's extra `p3` emits nothing"
+    );
+    assert_eq!(
+        disagreements.len(),
+        0,
+        "the agreeing fixture's witness list is empty"
     );
 }
 

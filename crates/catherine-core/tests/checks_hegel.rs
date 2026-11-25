@@ -79,7 +79,7 @@ fn every_finding_carries_in_scope_witnesses(tc: TestCase) {
             "kernel labels are executed/hypothesized only, got {:?}",
             finding.label
         );
-        scope::assert_witness_in_scope(&schema, &built, &finding);
+        scope::assert_witness_in_scope((&schema, &built), &finding);
     }
 }
 
@@ -97,7 +97,13 @@ fn zero_row_instance_is_silent(tc: TestCase) {
         .max_size(4),
     );
     tc.note(&format!("shapes: {shapes:?}"));
-    let case = fixture::build_case(&shapes, &[0, 0, 0], &[0; 4], &[], &[]);
+    let case = fixture::build_case(fixture::DrawnParts {
+        shapes,
+        row_counts: vec![0, 0, 0],
+        cell_pool: vec![0; 4],
+        eq_seeds: Vec::new(),
+        statuses: Vec::new(),
+    });
     let (schema, instance) = fixture::assemble(&case);
     let built = TypedInstance::build(&schema, &instance);
     assert_eq!(
@@ -138,12 +144,12 @@ fn self_loop_arrows_are_legal_and_evaluated() {
     // (dangling, reported); row 1 composes equal (silent).
     let case_one = TypedInstance::build(
         &schema,
-        &self_loop_instance(
-            1,
-            &[None, Some(RowId(1))],
-            &[Some(RowId(0)), Some(RowId(0))],
-            &[Some(RowId(0)), Some(RowId(0))],
-        ),
+        &self_loop_instance(SelfLoopCells {
+            b_rows: 1,
+            a: &[None, Some(RowId(1))],
+            f: &[Some(RowId(0)), Some(RowId(0))],
+            g: &[Some(RowId(0)), Some(RowId(0))],
+        }),
     );
     assert_eq!(
         check(&schema, &case_one),
@@ -162,12 +168,12 @@ fn self_loop_arrows_are_legal_and_evaluated() {
     // the violation witnesses the composition through the self-loop.
     let case_two = TypedInstance::build(
         &schema,
-        &self_loop_instance(
-            2,
-            &[Some(RowId(0)), Some(RowId(0))],
-            &[Some(RowId(0)), Some(RowId(1))],
-            &[Some(RowId(0)), Some(RowId(1))],
-        ),
+        &self_loop_instance(SelfLoopCells {
+            b_rows: 2,
+            a: &[Some(RowId(0)), Some(RowId(0))],
+            f: &[Some(RowId(0)), Some(RowId(1))],
+            g: &[Some(RowId(0)), Some(RowId(1))],
+        }),
     );
     // Row 0: f(a(0)) = f(0) = 0 vs f(0) = 0 — silent. Row 1:
     // f(a(1)) = f(0) = 0 vs f(1) = 1 — violation.
@@ -228,20 +234,24 @@ fn self_loop_path(names: &[&str]) -> Path {
     Path(names.iter().map(|name| Ident((*name).into())).collect())
 }
 
+/// The drawn cell tables for a self-loop instance over `self_loop_schema`.
+struct SelfLoopCells<'a> {
+    b_rows: usize,
+    a: &'a [Option<RowId>],
+    f: &'a [Option<RowId>],
+    g: &'a [Option<RowId>],
+}
+
 /// An instance over the self-loop schema: two A rows, `b_rows` B rows,
 /// and the drawn cell tables for a, f, g.
-fn self_loop_instance(
-    b_rows: usize,
-    a_cells: &[Option<RowId>],
-    f_cells: &[Option<RowId>],
-    g_cells: &[Option<RowId>],
-) -> Instance {
+fn self_loop_instance(cells: SelfLoopCells<'_>) -> Instance {
+    let SelfLoopCells { b_rows, a, f, g } = cells;
     let mut rows = BTreeMap::new();
     rows.insert(Ident("A".into()), vec![RowId(0), RowId(1)]);
     rows.insert(Ident("B".into()), (0..b_rows).map(RowId).collect());
     let mut values = BTreeMap::new();
-    values.insert(Ident("a".into()), a_cells.to_vec());
-    values.insert(Ident("f".into()), f_cells.to_vec());
-    values.insert(Ident("g".into()), g_cells.to_vec());
+    values.insert(Ident("a".into()), a.to_vec());
+    values.insert(Ident("f".into()), f.to_vec());
+    values.insert(Ident("g".into()), g.to_vec());
     Instance { rows, values }
 }

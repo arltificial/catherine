@@ -130,19 +130,19 @@ pub fn duplicate_document_warning(path: &str) -> Warning {
 /// kernel's labeled error data under it — stable code, message with
 /// position, remediation hint (Invariant 3.2.5: remediation non-empty).
 pub fn error_envelope(err: &LabeledError, warnings: Vec<Warning>) -> Envelope<ErrorResult> {
-    let result = ErrorResult::new(
-        &err.code,
-        &err.positioned_message(),
-        None,
-        None,
-        None,
-        Vec::new(),
-        vec![RemediationEntry {
+    // Invariant 3.2.5 holds by construction: exactly one remediation entry.
+    let result = ErrorResult {
+        code: err.code.clone(),
+        message: err.positioned_message(),
+        rule_name: None,
+        spec_ref: None,
+        entity_id: None,
+        unmet_clauses: Vec::new(),
+        remediation: vec![RemediationEntry {
             command: "catherine check <model.ct.json>".to_string(),
             description: err.hint.to_string(),
         }],
-    )
-    .expect("remediation is non-empty by construction");
+    };
     Envelope::error(CLI_VERSION, result, warnings)
 }
 

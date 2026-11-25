@@ -4,48 +4,46 @@
 
 use super::super::spans::Spans;
 use crate::error::ErrorCode;
-use crate::model::{Ident, Path, Schema};
+use crate::model::{Ident, Path};
 use std::collections::BTreeMap;
 
-use super::RawSchemaMap;
+use super::{RawSchemaMap, SourceMap, TargetSchema};
 
 /// The arrow assignments: every declared source arrow carries an entry —
 /// `null` drops it explicitly; a target path is non-empty and every path
 /// element is a declared target arrow.
 pub(super) fn mapped_arrows(
     raw: &RawSchemaMap,
-    arrows: &BTreeMap<Ident, crate::model::Arrow>,
-    target: &Schema,
-    spans: &Spans,
+    source: &SourceMap,
+    target: &TargetSchema,
 ) -> Result<BTreeMap<Ident, Option<Path>>, crate::error::ParseError> {
     let mut mapped = BTreeMap::new();
-    for name in arrows.keys() {
-        let Some(assignment) = raw.arrows.get(&name.0) else {
-            return Err(spans.semantic(
-                &format!("/schema_map/arrows/{}", name.0),
-                ErrorCode::PartialSchemaMap,
-                format!("schema map is partial: arrow `{}` has no assignment — map it, or map it to null to drop it explicitly", name.0),
-            ));
-        };
-        match assignment {
-            Some(path) => {
-                mapped.insert(
-                    name.clone(),
-                    declared_path(
-                        path,
-                        target,
-                        spans,
-                        &format!("/schema_map/arrows/{}", name.0),
-                    )?,
-                );
-            }
-            None => {
-                mapped.insert(name.clone(), None);
-            }
-        };
+    for name in source.arrows.keys() {
+        mapped.insert(name.clone(), mapped_arrow(raw, name, target)?);
     }
-    reject_foreign_arrows(raw, arrows, spans)?;
+    reject_foreign_arrows(raw, source.arrows, source.spans)?;
     Ok(mapped)
+}
+
+/// One arrow's assignment: required, and `null` (absent) means dropped
+/// explicitly.
+fn mapped_arrow(
+    raw: &RawSchemaMap,
+    name: &Ident,
+    target: &TargetSchema,
+) -> Result<Option<Path>, crate::error::ParseError> {
+    let pointer = format!("/schema_map/arrows/{}", name.0);
+    let Some(assignment) = raw.arrows.get(&name.0) else {
+        return Err(target.spans.semantic(
+            &pointer,
+            ErrorCode::PartialSchemaMap,
+            format!("schema map is partial: arrow `{}` has no assignment — map it, or map it to null to drop it explicitly", name.0),
+        ));
+    };
+    match assignment {
+        Some(path) => declared_path(path, target, &pointer),
+        None => Ok(None),
+    }
 }
 
 /// The declared target path for one source arrow: non-empty, and every
@@ -53,12 +51,11 @@ pub(super) fn mapped_arrows(
 /// `check_arrow_typing` once both assignment maps exist).
 fn declared_path(
     path: &[String],
-    target: &Schema,
-    spans: &Spans,
+    target: &TargetSchema,
     pointer: &str,
 ) -> Result<Option<Path>, crate::error::ParseError> {
     if path.is_empty() {
-        return Err(spans.semantic(
+        return Err(target.spans.semantic(
             pointer,
             ErrorCode::PartialSchemaMap,
             "arrow maps to an empty path".to_string(),
@@ -66,8 +63,8 @@ fn declared_path(
     }
     for (index, element) in path.iter().enumerate() {
         let element_ident = Ident(element.clone());
-        if !target.arrows.contains_key(&element_ident) {
-            return Err(spans.semantic(
+        if !target.schema.arrows.contains_key(&element_ident) {
+            return Err(target.spans.semantic(
                 &format!("{pointer}/{index}"),
                 ErrorCode::PartialSchemaMap,
                 format!(

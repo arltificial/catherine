@@ -26,8 +26,7 @@
 //! because this law is a rule-table-free equation surface; a malformed
 //! spelling is still the CLI's refusal before the lens runs.
 
-use crate::bounds::ScopeCaps;
-use crate::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta};
+use crate::pattern::{LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta};
 use catherine_core::checks;
 use catherine_core::instance::TypedInstance;
 use catherine_core::migrate;
@@ -52,7 +51,8 @@ impl PatternLens for Lens {
         &NULL_OBJECT_META
     }
 
-    fn run(&self, input: &LensInput<'_>, _caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps: _caps } = call;
         let model = input.model;
         if model.schema.equations.is_empty() {
             return LensOutcome::Unknown {

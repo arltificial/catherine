@@ -22,6 +22,7 @@
 //! in [`crate::runners`], the migrate runner in [`crate::migrate`], the
 //! flag parsers in [`crate::args`].
 
+use crate::dispatch::Ctx;
 use crate::render::{self, LabeledError};
 use catherine_core::checks;
 use catherine_core::findings::{Finding, FindingKind};
@@ -70,70 +71,58 @@ pub fn class_code(kind: &FindingKind) -> i32 {
 /// checked jointly (design Decision 1). Returns the process exit code.
 /// `quiet` suppresses the human finding lines (never the exit decision,
 /// never errors, never the machine envelope).
-#[allow(clippy::too_many_arguments)]
 pub fn run(
     surface: Surface,
     model_paths: &[String],
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
     let _ = surface; // one path for both names — see the module docs.
     if model_paths.len() > 1 {
-        return run_composition(model_paths, json, quiet, warnings, stdout, stderr);
+        return run_composition(model_paths, ctx);
     }
     let model_path = model_paths.first().map(String::as_str).unwrap_or_default();
+    run_single(model_path, ctx)
+}
 
+/// The unchanged single-document path of [`run`]: load, check (the
+/// stored-granularity lint rides the shared check path, sorted last by
+/// the taxonomy's kind order), then emit.
+fn run_single(model_path: &str, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
     let model = match load_model(model_path) {
         Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
 
     let typed = TypedInstance::build(&model.schema, &model.instance);
     let (mut findings, scope) = checks::check_with_scope(&model.schema, &typed);
-    // The stored-granularity lint (ticket `catherine-kw9.3`) rides the
-    // shared check path, sorted last by the taxonomy's kind order.
     findings.extend(crate::granularity::findings(&model));
 
-    emit_findings(
-        &findings,
-        &model.schema,
-        &scope,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-    );
+    emit_findings(&findings, &model.schema, &scope, ctx);
     exit_code(&findings)
 }
 
 /// The render tail of [`run`]: the `--json` findings envelope or the §5
 /// human lines to stdout, stderr reserved for errors.
-#[allow(clippy::too_many_arguments)]
 fn emit_findings(
     findings: &[Finding],
     schema: &catherine_core::model::Schema,
     scope: &checks::ExecutionScope,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) {
-    if json {
-        let envelope = render::findings_envelope(findings, Some(scope), warnings);
+    if ctx.json {
+        let envelope = render::findings_envelope(findings, Some(scope), ctx.take_warnings());
         let line = serde_json::to_string(&envelope)
             .map_err(|error| error.to_string())
-            .and_then(|text| writeln!(stdout, "{text}").map_err(|error| error.to_string()));
+            .and_then(|text| writeln!(ctx.stdout, "{text}").map_err(|error| error.to_string()));
         if let Err(error) = line {
-            let _ = writeln!(stderr, "catherine: cannot write findings envelope: {error}");
+            let _ = writeln!(
+                ctx.stderr,
+                "catherine: cannot write findings envelope: {error}"
+            );
         }
-    } else if !quiet {
+    } else if !ctx.quiet {
         for line in render::render_findings(findings, schema) {
-            let _ = writeln!(stdout, "{line}");
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
 }
@@ -141,48 +130,33 @@ fn emit_findings(
 /// The joint (composition) check: load and glue every input, execute the
 /// kernel checks over the merged model, warn on a disjoint union, and
 /// render the findings with source attribution.
-fn run_composition(
-    model_paths: &[String],
-    json: bool,
-    quiet: bool,
-    mut warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    crate::composition::warn_duplicate_inputs(model_paths, json, &mut warnings, stderr);
+fn run_composition(model_paths: &[String], ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
+    crate::composition::warn_duplicate_inputs(model_paths, ctx);
     let glued = match crate::composition::load_glued(model_paths) {
         Ok(glued) => glued,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
-    crate::composition::warn_empty_interface(&glued, json, &mut warnings, stderr);
+    crate::composition::warn_empty_interface(&glued, ctx);
     let typed = TypedInstance::build(&glued.schema, &glued.instance);
     let (findings, scope) = checks::check_with_scope(&glued.schema, &typed);
-    crate::composition::emit_findings(
-        &findings,
-        Some(scope),
-        &glued,
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-    )
+    crate::composition::emit_findings(&findings, Some(scope), &glued, ctx)
 }
 
 /// Emit a labeled error on the error stream — human two-liner, or the
 /// JSON error envelope under `--json` — and return the error exit code.
-/// Errors never write stdout, in either mode.
+/// Errors never write stdout, in either mode; the caller's stdout is not
+/// taken (the `Ctx` seam keeps the discipline at one place,
+/// [`crate::dispatch::Ctx::emit_error`]).
 pub(crate) fn emit_error(
     labeled: &LabeledError,
     json: bool,
     warnings: Vec<Warning>,
-    stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
-    let _ = stdout; // stream discipline: this path writes stderr only.
     if json {
-        let envelope = render::error_envelope(labeled, warnings);
-        match serde_json::to_string(&envelope) {
+        let line = serde_json::to_string(&render::error_envelope(labeled, warnings))
+            .map_err(|error| error.to_string());
+        match line {
             Ok(text) => {
                 let _ = writeln!(stderr, "{text}");
             }

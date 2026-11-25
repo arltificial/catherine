@@ -33,13 +33,24 @@ use catherine_core::parse::parse;
 const GOLDEN_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden");
 
 fn read_fixture(file: &str) -> String {
-    std::fs::read_to_string(format!("{GOLDEN_DIR}/{file}")).expect("fixture exists")
+    match std::fs::read_to_string(format!("{GOLDEN_DIR}/{file}")) {
+        Ok(text) => text,
+        Err(error) => panic!("fixture {file} is unreadable: {error}"),
+    }
+}
+
+/// A fixture P0's parser accepts, parsed or the test fails loudly.
+fn fixture_model(file: &str) -> catherine_core::model::Model {
+    let text = read_fixture(file);
+    match parse(&text) {
+        Ok(model) => model,
+        Err(error) => panic!("fixture {file} does not parse: {error}"),
+    }
 }
 
 /// The full pipeline for a fixture P0's parser accepts.
 fn check_parsed(file: &str) -> Vec<Finding> {
-    let text = read_fixture(file);
-    let model = parse(&text).expect("fixture parses");
+    let model = fixture_model(file);
     let built = TypedInstance::build(&model.schema, &model.instance);
     check(&model.schema, &built)
 }
@@ -52,7 +63,7 @@ fn check_parsed(file: &str) -> Vec<Finding> {
 #[test]
 fn accepted_violation_carries_its_witnesses() {
     let (_built, findings) = {
-        let model = parse(&read_fixture("violation_accepted.json")).expect("fixture parses");
+        let model = fixture_model("violation_accepted.json");
         let built = TypedInstance::build(&model.schema, &model.instance);
         let findings = check(&model.schema, &built);
         (built, findings)
@@ -70,6 +81,13 @@ fn accepted_violation_carries_its_witnesses() {
         }],
         "expected one executed violation naming equation 0, row a2, lhs=b1 rhs=b2"
     );
+    for f in &findings {
+        assert_eq!(
+            f.label,
+            EpistemicLabel::Executed,
+            "an accepted equation's violation is executed"
+        );
+    }
 }
 
 /// Task 5 (was P1 task 2) — a dangling arrow value: an executed dangling
@@ -79,7 +97,7 @@ fn accepted_violation_carries_its_witnesses() {
 #[test]
 fn dangling_value_is_reported_and_the_run_continues() {
     let (built, findings) = {
-        let model = parse(&read_fixture("dangling_value.json")).expect("fixture parses");
+        let model = fixture_model("dangling_value.json");
         let built = TypedInstance::build(&model.schema, &model.instance);
         let findings = check(&model.schema, &built);
         (built, findings)
@@ -92,6 +110,8 @@ fn dangling_value_is_reported_and_the_run_continues() {
         }],
         "expected the build to record f@a1 as dangling"
     );
+    let total = findings.len();
+    assert!(total >= 2, "the run continues past the dangling row");
     assert_eq!(
         findings,
         vec![
@@ -130,7 +150,10 @@ fn typing_violation_is_a_build_report_and_never_stored() {
         parse(&text).is_err(),
         "P0's parser gates a wrong-object table value structurally (Syntax)"
     );
-    let (schema, instance) = load_presentation(&text).expect("loader loads the presentation");
+    let (schema, instance) = match load_presentation(&text) {
+        Ok(pair) => pair,
+        Err(error) => panic!("loader does not load the presentation: {error}"),
+    };
     let built = TypedInstance::build(&schema, &instance);
     assert_eq!(
         built.typing_violations(),
@@ -203,7 +226,7 @@ fn proposed_failure_is_violation_shaped_and_hypothesized() {
 #[test]
 fn consistent_instance_is_silent() {
     let (built, findings) = {
-        let model = parse(&read_fixture("consistent.json")).expect("fixture parses");
+        let model = fixture_model("consistent.json");
         let built = TypedInstance::build(&model.schema, &model.instance);
         let findings = check(&model.schema, &built);
         (built, findings)
@@ -227,7 +250,7 @@ fn consistent_instance_is_silent() {
 /// A's two rows (4 rows total across A and B), none of them vacuous.
 #[test]
 fn execution_scope_rides_on_the_core_result() {
-    let model = parse(&read_fixture("violation_accepted.json")).expect("fixture parses");
+    let model = fixture_model("violation_accepted.json");
     let built = TypedInstance::build(&model.schema, &model.instance);
     let (findings, scope) = check_with_scope(&model.schema, &built);
     assert_eq!(
@@ -235,6 +258,13 @@ fn execution_scope_rides_on_the_core_result() {
         1,
         "the pinned violation is still the only finding"
     );
+    for f in &findings {
+        assert_eq!(
+            f.label,
+            EpistemicLabel::Executed,
+            "the scope-riding violation is executed"
+        );
+    }
     assert_eq!(
         scope,
         ExecutionScope {
@@ -251,10 +281,12 @@ fn execution_scope_rides_on_the_core_result() {
 /// binds zero rows — the walk executes nothing, honestly reported.
 #[test]
 fn zero_rows_scope_counts_the_equation_over_the_empty_table() {
-    let model = parse(&read_fixture("zero_rows.json")).expect("fixture parses");
+    let model = fixture_model("zero_rows.json");
     let built = TypedInstance::build(&model.schema, &model.instance);
     let (findings, scope) = check_with_scope(&model.schema, &built);
     assert_eq!(findings, vec![], "a zero-row instance emits nothing");
+    let checked = scope.constraints_checked;
+    assert_eq!(checked, 1, "the vacuous equation was still checked");
     assert_eq!(
         scope,
         ExecutionScope {
@@ -270,10 +302,16 @@ fn zero_rows_scope_counts_the_equation_over_the_empty_table() {
 /// across the board, so nothing-checked is distinguishable from clean.
 #[test]
 fn constraint_free_document_scope_is_all_zeros() {
-    let model = parse(&read_fixture("empty_ok.json")).expect("fixture parses");
+    let model = fixture_model("empty_ok.json");
     let built = TypedInstance::build(&model.schema, &model.instance);
     let (findings, scope) = check_with_scope(&model.schema, &built);
     assert_eq!(findings, vec![], "an empty document emits nothing");
+    let silent = findings.is_empty();
+    assert!(silent, "a constraint-free document is silent");
+    let honest = scope.constraints_checked == 0
+        && scope.rows_evaluated == 0
+        && scope.equations_over_zero_rows == 0;
+    assert!(honest, "all zeros — the honest empty scope");
     assert_eq!(
         scope,
         ExecutionScope {

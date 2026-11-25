@@ -24,6 +24,19 @@ use catherine_core::model::{ConstraintStatus, Ident, Pullback};
 use catherine_core::parse::parse;
 use serde_json::Value;
 
+mod common;
+
+use common::Insist;
+
+/// The labeled semantic rejection of one parse result: the error side of
+/// an expected rejection, with the expectation in the panic message.
+fn insist_err<T: std::fmt::Debug, E>(result: Result<T, E>, what: &str) -> E {
+    match result {
+        Ok(_) => panic!("{what}"),
+        Err(error) => error,
+    }
+}
+
 const SMALL_FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/small/model.ct.json"
@@ -101,8 +114,8 @@ const PULLBACK_MAP_DOC: &str = r#"{
 
 #[test]
 fn existing_documents_hash_as_before_the_schema_map_section() {
-    let text = std::fs::read_to_string(SMALL_FIXTURE).expect("corpus fixture exists");
-    let model = parse(&text).expect("corpus fixture parses");
+    let text = std::fs::read_to_string(SMALL_FIXTURE).insist("corpus fixture exists");
+    let model = parse(&text).insist("corpus fixture parses");
     assert!(
         model.schema_map.is_none(),
         "a pre-map document carries no schema map"
@@ -120,7 +133,7 @@ fn existing_documents_hash_as_before_the_schema_map_section() {
 
 #[test]
 fn a_total_schema_map_parses_with_target_and_explicit_drops() {
-    let model = parse(TOTAL_MAP_DOC).expect("a total map parses");
+    let model = parse(TOTAL_MAP_DOC).insist("a total map parses");
     let Some(map) = &model.schema_map else {
         panic!("the 1.1 section parses into the model");
     };
@@ -157,7 +170,7 @@ fn a_partial_schema_map_is_rejected_naming_the_unmapped_element() {
     // Drop the Blob assignment: the map no longer covers every declared
     // source object — the labeled rejection names the unmapped element.
     let partial = TOTAL_MAP_DOC.replace(r#""Blob": "Blob","#, "");
-    let error = parse(&partial).expect_err("a partial map is a build error");
+    let error = insist_err(parse(&partial), "a partial map is a build error");
     let ParseError::Semantic(semantic) = error else {
         panic!("the partial-map rejection is a labeled semantic error");
     };
@@ -171,19 +184,22 @@ fn a_partial_schema_map_is_rejected_naming_the_unmapped_element() {
 
 #[test]
 fn a_mapped_document_is_a_serialize_parse_fixed_point() {
-    let model = parse(TOTAL_MAP_DOC).expect("total map parses");
+    let model = parse(TOTAL_MAP_DOC).insist("total map parses");
     let bytes = serialize(&model);
     assert!(
         bytes.contains("schema_map"),
         "the map section is emitted when present"
     );
-    let reparsed = parse(&bytes).expect("the serialized document parses");
+    let reparsed = parse(&bytes).insist("the serialized document parses");
     assert_eq!(reparsed, model, "serialize/parse is a fixed point");
     assert_eq!(model_hash(&model), model_hash(&reparsed));
 }
 
-/// A typed pullback for the expected canonical order assertions.
-fn pullback(apex: &str, legs: &[&str], cospan: &[&str], status: ConstraintStatus) -> Pullback {
+/// A typed pullback for the expected canonical order assertions. The
+/// declaration's square — legs, cospan, and status — is drawn as one
+/// group.
+fn pullback(apex: &str, square: (&[&str], &[&str], ConstraintStatus)) -> Pullback {
+    let (legs, cospan, status) = square;
     Pullback {
         apex: Ident(apex.to_string()),
         legs: legs.iter().map(|name| Ident(name.to_string())).collect(),
@@ -206,14 +222,20 @@ fn line_of(document: &str, needle: &str) -> usize {
 
 #[test]
 fn a_target_schema_pullback_is_carried_canonically_and_round_trips() {
-    let model = parse(PULLBACK_MAP_DOC).expect("the target's pullback parses");
+    let model = parse(PULLBACK_MAP_DOC).insist("the target's pullback parses");
     let map = model
         .schema_map
         .as_ref()
-        .expect("the map section is present");
+        .insist("the map section is present");
     let expected = vec![
-        pullback("P", &["p1", "p2"], &["f", "g"], ConstraintStatus::Accepted),
-        pullback("Q", &["r1", "r2"], &["f", "g"], ConstraintStatus::Proposed),
+        pullback(
+            "P",
+            (&["p1", "p2"], &["f", "g"], ConstraintStatus::Accepted),
+        ),
+        pullback(
+            "Q",
+            (&["r1", "r2"], &["f", "g"], ConstraintStatus::Proposed),
+        ),
     ];
     assert_eq!(
         map.target.pullbacks, expected,
@@ -221,10 +243,10 @@ fn a_target_schema_pullback_is_carried_canonically_and_round_trips() {
     );
 
     let bytes = serialize(&model);
-    let document: Value = serde_json::from_str(&bytes).expect("canonical bytes are JSON");
+    let document: Value = serde_json::from_str(&bytes).insist("canonical bytes are JSON");
     let emitted = document["schema_map"]["target_schema"]["pullbacks"]
         .as_array()
-        .expect("the target's pullbacks are emitted under schema_map.target_schema");
+        .insist("the target's pullbacks are emitted under schema_map.target_schema");
     assert_eq!(
         emitted
             .iter()
@@ -233,12 +255,12 @@ fn a_target_schema_pullback_is_carried_canonically_and_round_trips() {
         vec![Some("P"), Some("Q")],
         "canonical bytes carry the target's declarations in canonical order"
     );
-    let reparsed = parse(&bytes).expect("the canonical document parses");
+    let reparsed = parse(&bytes).insist("the canonical document parses");
     assert_eq!(reparsed, model, "serialize/parse is a fixed point");
     assert_eq!(
         reparsed
             .schema_map
-            .expect("the section survives")
+            .insist("the section survives")
             .target
             .pullbacks,
         expected,
@@ -273,7 +295,7 @@ fn a_target_schema_pullback_rejects_undeclared_leg_and_cospan_arrows() {
 fn assert_target_pullback_rejects(declared: &str, malformed: &str) {
     let document = PULLBACK_MAP_DOC.replace(declared, malformed);
     let expected_line = line_of(&document, "zz");
-    let ParseError::Semantic(error) = parse(&document).expect_err("`zz` is not declared") else {
+    let ParseError::Semantic(error) = insist_err(parse(&document), "`zz` is not declared") else {
         panic!("the target-schema pullback runs the document schema's pullback pass");
     };
     assert_eq!(

@@ -45,19 +45,7 @@ pub(crate) fn dispatch_command(
 fn merge_command(left: &str, right: &str, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
     match composition::merge::run(left, right) {
         Ok(outcome) => {
-            for cell in &outcome.cells {
-                let witness = &cell.witness;
-                let label = match cell.label {
-                    EpistemicLabel::Executed => "executed",
-                    EpistemicLabel::Hypothesized => "hypothesized",
-                    EpistemicLabel::Unknown => "unknown",
-                };
-                let _ = writeln!(
-                    ctx.stdout,
-                    "{label} merge cell: '{}' conflicts — left: {}; right: {}",
-                    witness.entity, witness.left, witness.right
-                );
-            }
+            render_merge_cells(&outcome, ctx.stdout);
             if let Some(glued) = &outcome.glued {
                 let _ = writeln!(
                     ctx.stdout,
@@ -67,16 +55,39 @@ fn merge_command(left: &str, right: &str, ctx: &mut Ctx<'_, impl Write, impl Wri
                     glued.schema.equations.len()
                 );
             }
-            if outcome.cells.is_empty() {
-                0
-            } else {
-                3
-            }
+            merge_exit(&outcome)
         }
         Err(err) => {
             let _ = writeln!(ctx.stderr, "{}", err.positioned_message());
             1
         }
+    }
+}
+
+/// One line per merge cell: UNKNOWN identity-conflict cells name both
+/// conflicting sides; the tool never auto-resolves a conflict.
+fn render_merge_cells(outcome: &composition::merge::MergeOutcome, stdout: &mut impl Write) {
+    for cell in &outcome.cells {
+        let witness = &cell.witness;
+        let label = match cell.label {
+            EpistemicLabel::Executed => "executed",
+            EpistemicLabel::Hypothesized => "hypothesized",
+            EpistemicLabel::Unknown => "unknown",
+        };
+        let _ = writeln!(
+            stdout,
+            "{label} merge cell: '{}' conflicts — left: {}; right: {}",
+            witness.entity, witness.left, witness.right
+        );
+    }
+}
+
+/// The exit decision: any merge cell is an unresolved conflict (3).
+fn merge_exit(outcome: &composition::merge::MergeOutcome) -> i32 {
+    if outcome.cells.is_empty() {
+        0
+    } else {
+        3
     }
 }
 
@@ -93,19 +104,29 @@ pub(crate) struct Ctx<'a, O: Write, E: Write> {
 }
 
 impl<'a, O: Write, E: Write> Ctx<'a, O, E> {
-    pub(crate) fn new(
-        json: bool,
-        quiet: bool,
-        warnings: Vec<Warning>,
-        stdout: &'a mut O,
-        stderr: &'a mut E,
-    ) -> Self {
-        Ctx {
-            json,
-            quiet,
-            warnings,
-            stdout,
-            stderr,
+    /// The warnings channel by value, for the envelope and error
+    /// constructors that consume it (the channel ends empty — the same
+    /// hand-off the per-command wrappers made at the call boundary).
+    pub(crate) fn take_warnings(&mut self) -> Vec<Warning> {
+        std::mem::take(&mut self.warnings)
+    }
+
+    /// A labeled input error through the shared emit path: the `error:`
+    /// line (JSON mode keeps the envelope only) and the exit decision —
+    /// consumes the warnings, exactly as [`run::emit_error`] does.
+    pub(crate) fn emit_error(&mut self, labeled: &crate::render::LabeledError) -> i32 {
+        run::emit_error(labeled, self.json, self.take_warnings(), self.stderr)
+    }
+
+    /// Run-level warnings reach stderr in human mode too — the same
+    /// `warning: <message>` line the runners print (the catherine-uh0
+    /// discipline); JSON mode keeps them on the envelope only.
+    pub(crate) fn print_warnings(&mut self) {
+        if self.json {
+            return;
+        }
+        for warning in &self.warnings {
+            let _ = writeln!(self.stderr, "warning: {}", warning.message);
         }
     }
 }
@@ -122,28 +143,12 @@ fn search_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_,
     else {
         unreachable!("dispatch routes only Commands::Search here");
     };
-    runners::run_search(
-        model,
-        rows,
-        *max_candidates,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
-    )
+    runners::run_search(model, rows, *max_candidates, ctx)
 }
 
 /// Forward [`runners::run_redundant`] on the shared execution path.
 fn redundant_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -> i32 {
-    runners::run_redundant(
-        model,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
-    )
+    runners::run_redundant(model, ctx)
 }
 
 /// Forward [`runners::run_underconstraint`] on the shared execution path.
@@ -160,15 +165,7 @@ fn underconstraint_command<O: Write, E: Write>(
     else {
         unreachable!("dispatch routes only Commands::Underconstraint here");
     };
-    runners::run_underconstraint(
-        models,
-        *max_path_length,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
-    )
+    runners::run_underconstraint(models, *max_path_length, ctx)
 }
 
 /// Forward [`runners::run_distinguish`] on the shared execution path.
@@ -186,16 +183,7 @@ fn distinguish_command<O: Write, E: Write>(
     else {
         unreachable!("dispatch routes only Commands::Distinguish here");
     };
-    runners::run_distinguish(
-        model,
-        second,
-        observe,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
-    )
+    runners::run_distinguish(model, second, observe, ctx)
 }
 
 /// Forward [`diff::run_diff`] on the shared execution path. The arm
@@ -212,15 +200,13 @@ fn diff_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, O
         unreachable!("dispatch routes only Commands::Diff here");
     };
     diff::run_diff(
-        model,
-        second,
-        rows,
-        *max_candidates,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
+        diff::DiffRun {
+            model_path: model,
+            second_path: second,
+            rows,
+            max_candidates: *max_candidates,
+        },
+        ctx,
     )
 }
 
@@ -239,14 +225,12 @@ fn query_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, 
     };
     runners::run_query(
         model,
-        seed,
-        follow,
-        direction,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
+        runners::QueryFlags {
+            seeds: seed,
+            follow,
+            direction,
+        },
+        ctx,
     )
 }
 
@@ -256,27 +240,12 @@ fn check_command<O: Write, E: Write>(
     models: &[String],
     ctx: &mut Ctx<'_, O, E>,
 ) -> i32 {
-    run::run(
-        surface,
-        models,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
-    )
+    run::run(surface, models, ctx)
 }
 
 /// Forward [`migrate::run_migrate`] on the shared execution path.
 fn migrate_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -> i32 {
-    migrate::run_migrate(
-        model,
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
-    )
+    migrate::run_migrate(model, ctx)
 }
 
 /// Forward [`rules::run_rules`] on the shared execution path. The arm
@@ -296,15 +265,13 @@ fn rules_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, 
     };
     rules::run_rules(
         model,
-        values,
-        *max_candidates,
-        project.as_deref(),
-        columns.as_deref(),
-        action.as_deref(),
-        ctx.json,
-        ctx.quiet,
-        std::mem::take(&mut ctx.warnings),
-        ctx.stdout,
-        ctx.stderr,
+        &rules::LensOptions {
+            values,
+            max_candidates: *max_candidates,
+            project: project.as_deref(),
+            columns: columns.as_deref(),
+            action: action.as_deref(),
+        },
+        ctx,
     )
 }

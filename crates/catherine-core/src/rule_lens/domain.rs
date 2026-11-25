@@ -110,28 +110,9 @@ impl RuleDomain {
     /// inputs on that column); every value must match its column's type.
     pub fn from_presentation(
         presentation: &RulePresentation,
-        mut supplied: BTreeMap<Ident, Vec<Literal>>,
+        supplied: BTreeMap<Ident, Vec<Literal>>,
     ) -> Result<Self, RuleDomainError> {
-        let mut columns = Vec::with_capacity(presentation.columns.len());
-        let mut values = Vec::with_capacity(presentation.columns.len());
-        let mut positions = BTreeMap::new();
-        for (position, (column, column_type)) in presentation.columns.iter().enumerate() {
-            let Some(list) = supplied.remove(column) else {
-                return Err(RuleDomainError::MissingValues(column.clone()));
-            };
-            if list.iter().any(|value| !matches_type(value, *column_type)) {
-                return Err(RuleDomainError::WrongType {
-                    column: column.clone(),
-                    expected: *column_type,
-                });
-            }
-            positions.insert(column.clone(), position);
-            columns.push(column.clone());
-            values.push(list);
-        }
-        if let Some(undeclared) = supplied.keys().next() {
-            return Err(RuleDomainError::UnexpectedColumn(undeclared.clone()));
-        }
+        let (columns, values, positions) = bind_columns(presentation, supplied)?;
         Ok(Self {
             columns,
             values,
@@ -151,22 +132,7 @@ impl RuleDomain {
     ) -> Result<Self, RuleDomainError> {
         let columns: Vec<Ident> = presentation.columns.keys().cloned().collect();
         let types: Vec<ColumnType> = presentation.columns.values().copied().collect();
-        for input in &inputs {
-            if input.len() != columns.len() {
-                return Err(RuleDomainError::WrongWidth {
-                    expected: columns.len(),
-                    found: input.len(),
-                });
-            }
-            for ((value, column_type), column) in input.iter().zip(&types).zip(&columns) {
-                if !matches_type(value, *column_type) {
-                    return Err(RuleDomainError::WrongType {
-                        column: column.clone(),
-                        expected: *column_type,
-                    });
-                }
-            }
-        }
+        validate_tuples(&columns, &types, &inputs)?;
         let positions = columns
             .iter()
             .cloned()
@@ -267,6 +233,76 @@ impl RuleDomain {
         let position = *self.positions.get(column)?;
         input.get(position)
     }
+}
+
+/// Bind each presentation column to its supplied value list: every
+/// declared column needs an entry, every value must match the column's
+/// type, and no undeclared column may be supplied. Returns the columns
+/// in enumeration order, their value lists, and the column positions.
+/// The presentation columns in order, their value lists, and positions.
+type ColumnBinding = (Vec<Ident>, Vec<Vec<Literal>>, BTreeMap<Ident, usize>);
+
+fn bind_columns(
+    presentation: &RulePresentation,
+    mut supplied: BTreeMap<Ident, Vec<Literal>>,
+) -> Result<ColumnBinding, RuleDomainError> {
+    let values: Vec<Vec<Literal>> = presentation
+        .columns
+        .iter()
+        .map(|(column, column_type)| {
+            let list = supplied
+                .remove(column)
+                .ok_or_else(|| RuleDomainError::MissingValues(column.clone()))?;
+            if list.iter().any(|value| !matches_type(value, *column_type)) {
+                return Err(RuleDomainError::WrongType {
+                    column: column.clone(),
+                    expected: *column_type,
+                });
+            }
+            Ok(list)
+        })
+        .collect::<Result<_, _>>()?;
+    let columns: Vec<Ident> = presentation.columns.keys().cloned().collect();
+    let positions = column_positions(&presentation.columns);
+    if let Some(undeclared) = supplied.keys().next() {
+        return Err(RuleDomainError::UnexpectedColumn(undeclared.clone()));
+    }
+    Ok((columns, values, positions))
+}
+
+/// The declared columns' positions in enumeration order.
+fn column_positions(columns: &BTreeMap<Ident, ColumnType>) -> BTreeMap<Ident, usize> {
+    columns
+        .keys()
+        .enumerate()
+        .map(|(position, column)| (column.clone(), position))
+        .collect()
+}
+
+/// Validate an exact input set against the declared columns: every input
+/// has one value per column, each of its column's declared type.
+fn validate_tuples(
+    columns: &[Ident],
+    types: &[ColumnType],
+    inputs: &[RuleInput],
+) -> Result<(), RuleDomainError> {
+    for input in inputs {
+        if input.len() != columns.len() {
+            return Err(RuleDomainError::WrongWidth {
+                expected: columns.len(),
+                found: input.len(),
+            });
+        }
+        for ((value, column_type), column) in input.iter().zip(types).zip(columns) {
+            if !matches_type(value, *column_type) {
+                return Err(RuleDomainError::WrongType {
+                    column: column.clone(),
+                    expected: *column_type,
+                });
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Whether a literal is of the column's declared type.

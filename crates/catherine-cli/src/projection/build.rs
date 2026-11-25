@@ -47,46 +47,67 @@ pub(super) fn project_rows(
         .iter()
         .enumerate()
         .map(|(index, name)| {
-            let row = RowId(index);
-            let mut values = BTreeMap::new();
-            for column in &resolved.columns {
-                values.insert(column.clone(), cell_name(model, rows, column, row, name)?);
-            }
-            let action = match resolved.action.as_ref() {
-                Some(arrow) => cell_name(model, rows, arrow, row, name)?.0,
-                None => name.0.clone(),
-            };
-            Ok(RowProjection {
-                name: name.clone(),
-                values,
-                action,
-            })
+            project_row(
+                model,
+                resolved,
+                &RowRef {
+                    names: rows,
+                    id: RowId(index),
+                    name,
+                },
+            )
         })
         .collect()
 }
 
+/// One source row's projection: each declared column's cell mapped
+/// through its arrow, then the identity/`--action` action; a null cell
+/// refuses the run.
+fn project_row(
+    model: &Model,
+    resolved: &Resolved,
+    src: &RowRef<'_>,
+) -> Result<RowProjection, LabeledError> {
+    let mut values = BTreeMap::new();
+    for column in &resolved.columns {
+        values.insert(column.clone(), cell_name(model, src, column)?);
+    }
+    let action = match resolved.action.as_ref() {
+        Some(arrow) => cell_name(model, src, arrow)?.0,
+        None => src.name.0.clone(),
+    };
+    Ok(RowProjection {
+        name: src.name.clone(),
+        values,
+        action,
+    })
+}
+
+/// One source row being projected: its dense id, its declared name, and
+/// the target-side name tables.
+struct RowRef<'a> {
+    names: &'a RowNames,
+    id: RowId,
+    name: &'a Ident,
+}
+
 /// One cell's target row name; a dangling (`null`) cell names the row and
 /// the arrow — a row that cannot be projected is not silently dropped.
-fn cell_name(
-    model: &Model,
-    rows: &RowNames,
-    arrow_name: &Ident,
-    row: RowId,
-    row_name: &Ident,
-) -> Result<Ident, LabeledError> {
+fn cell_name(model: &Model, src: &RowRef<'_>, arrow_name: &Ident) -> Result<Ident, LabeledError> {
     let target = model
         .instance
         .values
         .get(arrow_name)
-        .and_then(|cells| cells.get(row.0))
+        .and_then(|cells| cells.get(src.id.0))
         .copied()
         .flatten()
-        .ok_or_else(|| incomplete(row_name, arrow_name))?;
+        .ok_or_else(|| incomplete(src.name, arrow_name))?;
     let arrow = &model.schema.arrows[arrow_name];
-    rows.get(&arrow.tgt)
+    src.names
+        .get(&arrow.tgt)
         .and_then(|names| names.get(target.0))
         .cloned()
-        .ok_or_else(|| incomplete(row_name, arrow_name))
+        .ok_or_else(|| incomplete(src.name, arrow_name))
 }
 
 /// The synthesized presentation: one rule per row, conjunctive column

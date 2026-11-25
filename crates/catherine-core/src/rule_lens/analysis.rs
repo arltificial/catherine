@@ -112,18 +112,13 @@ impl RuleAnalysis {
     /// once, shadow per dead rule, derivable per derivation. This is the
     /// semantic content the analysis crate maps to finding kinds.
     pub fn class_summary(&self) -> Vec<RuleClass> {
-        let mut classes = Vec::new();
-        if !self.gap.is_empty() {
-            classes.push(RuleClass::Gap);
-        }
-        if !self.overlaps.is_empty() {
-            classes.push(RuleClass::Overlap);
-        }
-        if let Some(shadow) = &self.shadow {
-            classes.extend(shadow.iter().map(|_| RuleClass::Shadow));
-        }
-        classes.extend(self.derivable.iter().map(|_| RuleClass::Derivable));
-        classes
+        let gap = (!self.gap.is_empty()).then_some(RuleClass::Gap).into_iter();
+        let overlap = (!self.overlaps.is_empty())
+            .then_some(RuleClass::Overlap)
+            .into_iter();
+        let shadow = self.shadow.iter().flatten().map(|_| RuleClass::Shadow);
+        let derivable = self.derivable.iter().map(|_| RuleClass::Derivable);
+        gap.chain(overlap).chain(shadow).chain(derivable).collect()
     }
 }
 
@@ -204,10 +199,7 @@ fn regions(
 
 /// X \ ⋃ R_i.
 fn gap(regions: &[BTreeSet<usize>], universe: usize) -> BTreeSet<usize> {
-    let mut covered = BTreeSet::new();
-    for region in regions {
-        covered.extend(region.iter().copied());
-    }
+    let covered: BTreeSet<usize> = regions.iter().flatten().copied().collect();
     (0..universe)
         .filter(|input| !covered.contains(input))
         .collect()
@@ -227,13 +219,14 @@ fn effective_regions(
 
 /// The priority-chain computation: rule order is the only precedence.
 fn priority_effective(regions: &[BTreeSet<usize>]) -> Vec<BTreeSet<usize>> {
-    let mut covered = BTreeSet::new();
-    let mut effective = Vec::with_capacity(regions.len());
-    for region in regions {
-        effective.push(region.difference(&covered).copied().collect());
-        covered.extend(region.iter().copied());
-    }
-    effective
+    regions
+        .iter()
+        .scan(BTreeSet::new(), |covered, region| {
+            let effective = region.difference(covered).copied().collect();
+            covered.extend(region.iter().copied());
+            Some(effective)
+        })
+        .collect()
 }
 
 /// Pairwise intersections. Under a priority policy order resolves them by
@@ -281,11 +274,9 @@ fn shadow_rules(effective: &Option<Vec<BTreeSet<usize>>>) -> Option<Vec<usize>> 
 /// R_k = R_i ∩ R_j for every ordered pair i < j (both ≠ k), rule-major
 /// then pair-lexicographic — the oracle's enumeration.
 fn derivations(regions: &[BTreeSet<usize>]) -> Vec<RuleDerivation> {
-    let mut derivations = Vec::new();
-    for rule in 0..regions.len() {
-        derivations.extend(derivations_for(rule, regions));
-    }
-    derivations
+    (0..regions.len())
+        .flat_map(|rule| derivations_for(rule, regions))
+        .collect()
 }
 
 /// The combining pairs for one derivable rule.

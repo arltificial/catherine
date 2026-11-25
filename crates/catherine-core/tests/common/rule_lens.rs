@@ -47,7 +47,8 @@ pub fn bools(value: bool) -> Vec<Literal> {
     vec![boolean(value)]
 }
 
-pub fn cmp(column: &str, op: CmpOp, value: Literal) -> Predicate {
+pub fn cmp(column: &str, drawn: (CmpOp, Literal)) -> Predicate {
+    let (op, value) = drawn;
     Predicate::Cmp {
         column: ident(column),
         op,
@@ -55,7 +56,8 @@ pub fn cmp(column: &str, op: CmpOp, value: Literal) -> Predicate {
     }
 }
 
-pub fn modulus(column: &str, modulus: i64, equals: i64) -> Predicate {
+pub fn modulus(column: &str, drawn: (i64, i64)) -> Predicate {
+    let (modulus, equals) = drawn;
     Predicate::Mod {
         column: ident(column),
         modulus,
@@ -71,7 +73,8 @@ pub fn negation(arg: Predicate) -> Predicate {
     Predicate::Not(Box::new(arg))
 }
 
-pub fn rule(name: &str, predicate: Predicate, action: &str) -> Rule {
+pub fn rule(name: &str, drawn: (Predicate, &str)) -> Rule {
+    let (predicate, action) = drawn;
     Rule {
         name: ident(name),
         predicate,
@@ -80,10 +83,10 @@ pub fn rule(name: &str, predicate: Predicate, action: &str) -> Rule {
 }
 
 pub fn presentation(
-    policy: Option<Policy>,
+    drawn: (Option<Policy>, Vec<Rule>),
     columns: &[(&str, ColumnType)],
-    rules: Vec<Rule>,
 ) -> RulePresentation {
+    let (policy, rules) = drawn;
     RulePresentation {
         domain: ident("Input"),
         columns: columns
@@ -104,7 +107,8 @@ pub fn domain(presentation: &RulePresentation, values: &[(&str, Vec<Literal>)]) 
 }
 
 /// A one-int-column domain with the given values.
-pub fn int_domain(presentation: &RulePresentation, column: &str, values: &[i64]) -> RuleDomain {
+pub fn int_domain(presentation: &RulePresentation, column: (&str, &[i64])) -> RuleDomain {
+    let (column, values) = column;
     let values: Vec<Literal> = values.iter().copied().map(integer).collect();
     domain(presentation, &[(column, values)])
 }

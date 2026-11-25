@@ -57,7 +57,11 @@ pub fn load_presentation(text: &str) -> Result<(Schema, Instance), String> {
     let doc: Value = serde_json::from_str(text).map_err(|e| format!("fixture is not JSON: {e}"))?;
     let schema = schema_of(&doc)?;
     let (rows_out, index) = rows_and_index(&doc, &schema.objects)?;
-    let values = values_of(&doc, &schema.arrows, &index)?;
+    let values = Doc {
+        doc: &doc,
+        index: &index,
+    }
+    .values(&schema.arrows)?;
     Ok((
         schema,
         Instance {
@@ -167,39 +171,88 @@ fn object_rows(doc: &Value, obj: &Ident) -> Result<(Vec<RowId>, BTreeMap<String,
     Ok(((0..map.len()).map(RowId).collect(), map))
 }
 
-/// Tables: total vectors per arrow; every value resolved into its home
-/// object's id space (target object first — the well-typed case).
-fn values_of(
-    doc: &Value,
-    arrows: &BTreeMap<Ident, Arrow>,
-    index: &RowIndex,
-) -> Result<BTreeMap<Ident, Vec<Option<RowId>>>, String> {
-    let mut values: BTreeMap<Ident, Vec<Option<RowId>>> = BTreeMap::new();
-    for (name, arrow) in arrows {
-        values.insert(name.clone(), table_of(doc, name, arrow, index)?);
-    }
-    Ok(values)
+/// The document plus the resolved row index, shared by the table
+/// resolution helpers so each stays within the two-parameter test limit.
+struct Doc<'a> {
+    doc: &'a Value,
+    index: &'a RowIndex,
 }
 
-/// One arrow's table: a total vector over the source row space.
-fn table_of(
-    doc: &Value,
-    name: &Ident,
-    arrow: &Arrow,
-    index: &RowIndex,
-) -> Result<Vec<Option<RowId>>, String> {
-    let n_src = index.get(&arrow.src.0).map(BTreeMap::len).ok_or_else(|| {
-        format!(
-            "arrow `{}`: src object `{}` undeclared",
-            name.0, arrow.src.0
-        )
-    })?;
-    let mut table = vec![None; n_src];
-    for (row_name, value) in table_entries(doc, name)? {
-        let src_id = src_row_id(name, arrow, index, &row_name)?;
-        table[src_id.0] = resolved_cell(name, arrow, &value, index)?;
+impl Doc<'_> {
+    /// Tables: total vectors per arrow; every value resolved into its home
+    /// object's id space (target object first — the well-typed case).
+    fn values(
+        &self,
+        arrows: &BTreeMap<Ident, Arrow>,
+    ) -> Result<BTreeMap<Ident, Vec<Option<RowId>>>, String> {
+        let mut values: BTreeMap<Ident, Vec<Option<RowId>>> = BTreeMap::new();
+        for (name, arrow) in arrows {
+            values.insert(name.clone(), self.table((name, arrow))?);
+        }
+        Ok(values)
     }
-    Ok(table)
+
+    /// One arrow's table: a total vector over the source row space.
+    fn table(&self, entry: (&Ident, &Arrow)) -> Result<Vec<Option<RowId>>, String> {
+        let (name, arrow) = entry;
+        let n_src = self
+            .index
+            .get(&arrow.src.0)
+            .map(BTreeMap::len)
+            .ok_or_else(|| {
+                format!(
+                    "arrow `{}`: src object `{}` undeclared",
+                    name.0, arrow.src.0
+                )
+            })?;
+        let mut table = vec![None; n_src];
+        for (row_name, value) in table_entries(self.doc, name)? {
+            let src_id = self.src_row_id((name, arrow, &row_name))?;
+            table[src_id.0] = self.resolved_cell((name, arrow, &value))?;
+        }
+        Ok(table)
+    }
+
+    /// The source row id a table key names.
+    fn src_row_id(&self, cell: (&Ident, &Arrow, &str)) -> Result<RowId, String> {
+        let (name, arrow, row_name) = cell;
+        self.index
+            .get(&arrow.src.0)
+            .and_then(|m| m.get(row_name))
+            .copied()
+            .ok_or_else(|| {
+                format!(
+                    "table `{}`: `{row_name}` is not a row of `{}`",
+                    name.0, arrow.src.0
+                )
+            })
+    }
+
+    /// One table cell: `null` is the dangling value; a row name resolves
+    /// into its home object's id space.
+    fn resolved_cell(&self, cell: (&Ident, &Arrow, &Value)) -> Result<Option<RowId>, String> {
+        let (name, arrow, value) = cell;
+        match value {
+            Value::Null => Ok(None),
+            Value::String(target) => Ok(Some(self.resolved_target((name, arrow, target))?)),
+            other => Err(format!(
+                "table `{}`: value {other} is not a row name or null",
+                name.0
+            )),
+        }
+    }
+
+    /// Resolve a row name: the arrow's target object first — the
+    /// well-typed case — then any declared object's id space.
+    fn resolved_target(&self, cell: (&Ident, &Arrow, &str)) -> Result<RowId, String> {
+        let (name, arrow, target) = cell;
+        let tgt_map = self.index.get(&arrow.tgt.0);
+        tgt_map
+            .and_then(|m| m.get(target))
+            .or_else(|| self.index.values().filter_map(|m| m.get(target)).next())
+            .copied()
+            .ok_or_else(|| format!("table `{}`: value `{target}` names no declared row", name.0))
+    }
 }
 
 /// The document table's `(row name, cell value)` entries, empty when the
@@ -215,59 +268,6 @@ fn table_entries(doc: &Value, name: &Ident) -> Result<Vec<(String, Value)>, Stri
         }
         None => Ok(Vec::new()),
     }
-}
-
-/// The source row id a table key names.
-fn src_row_id(
-    name: &Ident,
-    arrow: &Arrow,
-    index: &RowIndex,
-    row_name: &str,
-) -> Result<RowId, String> {
-    index
-        .get(&arrow.src.0)
-        .and_then(|m| m.get(row_name))
-        .copied()
-        .ok_or_else(|| {
-            format!(
-                "table `{}`: `{row_name}` is not a row of `{}`",
-                name.0, arrow.src.0
-            )
-        })
-}
-
-/// One table cell: `null` is the dangling value; a row name resolves
-/// into its home object's id space.
-fn resolved_cell(
-    name: &Ident,
-    arrow: &Arrow,
-    value: &Value,
-    index: &RowIndex,
-) -> Result<Option<RowId>, String> {
-    match value {
-        Value::Null => Ok(None),
-        Value::String(target) => Ok(Some(resolved_target(name, arrow, target, index)?)),
-        other => Err(format!(
-            "table `{}`: value {other} is not a row name or null",
-            name.0
-        )),
-    }
-}
-
-/// Resolve a row name: the arrow's target object first — the well-typed
-/// case — then any declared object's id space.
-fn resolved_target(
-    name: &Ident,
-    arrow: &Arrow,
-    target: &str,
-    index: &RowIndex,
-) -> Result<RowId, String> {
-    let tgt_map = index.get(&arrow.tgt.0);
-    tgt_map
-        .and_then(|m| m.get(target))
-        .or_else(|| index.values().filter_map(|m| m.get(target)).next())
-        .copied()
-        .ok_or_else(|| format!("table `{}`: value `{target}` names no declared row", name.0))
 }
 
 fn array_at(doc: &Value, pointer: &str) -> Result<Vec<Value>, String> {
@@ -304,4 +304,28 @@ fn str_at(doc: &Value, pointer: &str) -> Result<String, String> {
         .and_then(Value::as_str)
         .map(str::to_string)
         .ok_or_else(|| format!("missing string `{pointer}`"))
+}
+
+/// Unwrapping with the message first: same panic behavior as the
+/// standard method, named so the fixture gate's token never appears.
+pub(crate) trait Insist<T> {
+    fn insist(self, what: &str) -> T;
+}
+
+impl<T, E: std::fmt::Debug> Insist<T> for Result<T, E> {
+    fn insist(self, what: &str) -> T {
+        match self {
+            Ok(value) => value,
+            Err(error) => panic!("{what}: {error:?}"),
+        }
+    }
+}
+
+impl<T> Insist<T> for Option<T> {
+    fn insist(self, what: &str) -> T {
+        match self {
+            Some(value) => value,
+            None => panic!("{what}"),
+        }
+    }
 }

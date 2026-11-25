@@ -36,6 +36,10 @@ use catherine_core::hash::sha256_digest;
 
 pub use crate::decision::DecisionRecord;
 
+mod kata;
+
+pub use kata::{Derivation, KataIdentity, KataRecord, Provenance};
+
 /// The closed verdict vocabulary (design Decision 3) — exactly four.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -179,47 +183,6 @@ pub struct Gap {
     pub invariant: String,
     /// Why the v1 kernel surface cannot express it.
     pub why: String,
-}
-
-/// The kata-level record (one per ported kata; the negative control is
-/// `control: true` and must be the first kata entry in the ledger).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct KataRecord {
-    /// The series kata id (`kata-6`, …).
-    pub kata_id: String,
-    /// Human name, including the negative-control role when present.
-    pub name: String,
-    /// True only for the FizzBuzz negative control.
-    pub control: bool,
-    /// The series report this expectation is grounded in.
-    pub series_report: String,
-    /// The series verdict, quoted.
-    pub series_verdict: String,
-    /// The fixture path relative to the workspace root.
-    pub fixture: String,
-    /// The model hash of the fixture (`model_hash` over canonical bytes).
-    pub fixture_hash: String,
-    /// The pre-registered expectation mapping (fixed before the run).
-    pub expected: Vec<Expectation>,
-    /// The executed run.
-    pub run: RunLog,
-    /// The mechanical comparison the verdict derives from.
-    pub comparison: Comparison,
-    /// The named expressibility gaps (design Decision 5).
-    pub expressibility_gap: Vec<Gap>,
-    /// Recorded conflicts with upstream documents (e.g. proposal vs series).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub discrepancies: Vec<String>,
-    /// The recorded comparison procedure — the steps `comparison` and
-    /// `verdict` were derived by, mechanically.
-    pub procedure: Vec<String>,
-    /// The hash of the committed expectation catalog the entry ran
-    /// against; `None` for the ct-catlab katas and the rule-lens ledgers
-    /// whose expectations are code-frozen and predate this field.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub catalog_hash: Option<String>,
-    /// The derived verdict (closed vocabulary).
-    pub verdict: String,
 }
 
 /// The per-kata verdict line of a project rollup.

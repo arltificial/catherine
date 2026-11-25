@@ -22,8 +22,7 @@
 //! a detection-rate claim. The lens fills only the `checks` channel; it
 //! has no migration (Δ) surface.
 
-use crate::bounds::ScopeCaps;
-use crate::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta};
+use crate::pattern::{LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta};
 use catherine_core::checks;
 use catherine_core::instance::TypedInstance;
 
@@ -45,7 +44,8 @@ impl PatternLens for Lens {
         &DECORATOR_META
     }
 
-    fn run(&self, input: &LensInput<'_>, _caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps: _caps } = call;
         if let Some(scope) = refuse_values(input.values) {
             return LensOutcome::Unknown { scope };
         }

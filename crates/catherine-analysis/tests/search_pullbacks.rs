@@ -36,25 +36,27 @@ fn pullback() -> Pullback {
 /// Four objects and the square `P → A → C ← B ← P`; no equations, keys,
 /// or coproducts — the accepted pullback is the only constraint.
 fn schema() -> Schema {
-    let mut objects = BTreeMap::new();
-    for name in ["P", "A", "B", "C"] {
-        objects.insert(ident(name), ());
-    }
-    let mut arrows = BTreeMap::new();
-    for (name, src, tgt) in [
+    let objects = ["P", "A", "B", "C"]
+        .iter()
+        .map(|name| (ident(name), ()))
+        .collect::<BTreeMap<_, _>>();
+    let arrows = [
         ("p1", "P", "A"),
         ("p2", "P", "B"),
         ("f", "A", "C"),
         ("g", "B", "C"),
-    ] {
-        arrows.insert(
+    ]
+    .iter()
+    .map(|(name, src, tgt)| {
+        (
             ident(name),
             Arrow {
                 src: ident(src),
                 tgt: ident(tgt),
             },
-        );
-    }
+        )
+    })
+    .collect::<BTreeMap<_, _>>();
     Schema {
         objects,
         arrows,
@@ -70,10 +72,10 @@ fn schema() -> Schema {
 /// pair `(0, 0)` is non-empty, but no apex row can cover it, so every
 /// fully resolved candidate fails the accepted pullback's coverage.
 fn bound() -> SearchBounds {
-    let mut max_rows = BTreeMap::new();
-    for (name, rows) in [("P", 0), ("A", 1), ("B", 1), ("C", 1)] {
-        max_rows.insert(ident(name), rows);
-    }
+    let max_rows = [("P", 0), ("A", 1), ("B", 1), ("C", 1)]
+        .iter()
+        .map(|(name, rows)| (ident(name), *rows))
+        .collect::<BTreeMap<_, _>>();
     SearchBounds {
         max_rows,
         max_candidates: 100,

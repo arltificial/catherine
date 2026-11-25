@@ -41,19 +41,32 @@ fn main() {
     let staged = serde_json::to_string(&entry).expect("entry serializes");
     std::fs::write(&target, staged).expect("ledger file written");
 
-    if let Err(violations) = validate_dir(&dir) {
-        for violation in &violations {
-            eprintln!("violation: {violation:?}");
-        }
-        eprintln!(
-            "record reverted: {} violations after appending {}",
-            violations.len(),
-            target.display()
-        );
-        std::fs::remove_file(&target).expect("staged record removed");
+    if revert_on_invalid(&dir, &target).is_some() {
         std::process::exit(1);
     }
     println!("recorded {}", target.display());
+}
+
+/// Validate the ledger directory with the staged record in place. On
+/// violations, print the named rejections, remove the staged record
+/// (append-only with the discipline enforced at write time), and return
+/// them; `None` when the directory validates.
+fn revert_on_invalid(dir: &Path, target: &Path) -> Option<Vec<Violation>> {
+    match validate_dir(dir) {
+        Ok(_) => None,
+        Err(violations) => {
+            for violation in &violations {
+                eprintln!("violation: {violation:?}");
+            }
+            eprintln!(
+                "record reverted: {} violations after appending {}",
+                violations.len(),
+                target.display()
+            );
+            std::fs::remove_file(target).expect("staged record removed");
+            Some(violations)
+        }
+    }
 }
 
 /// Read the candidate entry, sealing it under its computed content

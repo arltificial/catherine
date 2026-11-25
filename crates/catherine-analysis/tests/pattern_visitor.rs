@@ -16,8 +16,10 @@
 //! unique-detection or detection-rate claim is made here, and the
 //! expectation table is read, never edited.
 
-use catherine_analysis::bounds::{self, ScopeCaps};
-use catherine_analysis::pattern::{self, LensFindings, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::bounds::ScopeCaps;
+use catherine_analysis::pattern::{
+    self, LensCall, LensFindings, LensInput, LensOutcome, PatternLens,
+};
 use catherine_analysis::rule_lens;
 use catherine_core::findings::{EpistemicLabel, Finding, FindingKind};
 use catherine_core::migrate::{MigrationFinding, MigrationFindingKind};
@@ -109,7 +111,10 @@ fn every_visitor_row_matches_the_recorded_multiset() {
             model: &model,
             values: &values,
         };
-        let findings = match visitor::Lens.run(&input, &caps) {
+        let findings = match visitor::Lens.run(LensCall {
+            input: &input,
+            caps: &caps,
+        }) {
             LensOutcome::Findings(findings) => findings,
             LensOutcome::Unknown { scope } => {
                 panic!("visitor on {} reported unknown: {scope}", row.fixture)
@@ -145,7 +150,10 @@ fn the_near_floor_control_stays_silent() {
         model: &model,
         values: &values,
     };
-    match visitor::Lens.run(&input, &ScopeCaps::default()) {
+    match visitor::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => assert_eq!(findings, LensFindings::default()),
         LensOutcome::Unknown { scope } => panic!("the floor control is decidable: {scope}"),
     }
@@ -165,8 +173,12 @@ fn a_bounded_budget_is_unknown() {
         max_candidates: 1,
         ..ScopeCaps::default()
     };
-    match visitor::Lens.run(&input, &caps) {
+    match visitor::Lens.run(LensCall {
+        input: &input,
+        caps: &caps,
+    }) {
         LensOutcome::Unknown { scope } => {
+            assert!(!scope.is_empty(), "the bound is spelled out: {scope}");
             assert!(scope.contains("candidate"), "names the bound: {scope}")
         }
         LensOutcome::Findings(findings) => panic!("a bounded run is not clean: {findings:?}"),
@@ -182,7 +194,10 @@ fn a_model_without_a_rule_presentation_is_unknown() {
         model: &model,
         values: &[],
     };
-    match visitor::Lens.run(&input, &ScopeCaps::default()) {
+    match visitor::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => {
             assert!(
                 scope.contains("rule_presentation"),
@@ -203,8 +218,15 @@ fn an_undeclared_domain_column_is_unknown() {
         model: &model,
         values: &values,
     };
-    match visitor::Lens.run(&input, &ScopeCaps::default()) {
-        LensOutcome::Unknown { scope } => assert!(!scope.is_empty(), "the refusal names its scope"),
+    match visitor::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
+        LensOutcome::Unknown { scope } => {
+            assert!(!scope.is_empty(), "the refusal is spelled out");
+            assert!(!values.is_empty(), "the refused spelling is present");
+            assert_eq!(values.len(), 1, "the refusal covers one spelling")
+        }
         LensOutcome::Findings(findings) => {
             panic!("an unbindable domain is not clean: {findings:?}")
         }

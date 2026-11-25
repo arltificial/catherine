@@ -122,37 +122,89 @@ fn schema_for_properties() -> Schema {
 
 // ── the independent reference walk ───────────────────────────────────
 
-/// A reference closure: plain BFS over the schema's defined edges.
-fn reference_closure(
+/// The instance view the reference walk traverses: the schema, its typed
+/// instance, and the morphisms the walk may follow.
+struct WalkView<'a> {
+    /// The fixed three-arrow schema.
+    schema: &'a Schema,
+    /// The instance's cells resolved against the schema.
+    typed: &'a TypedInstance,
+    /// The morphisms the walk may traverse.
+    morphisms: &'a [Ident],
+}
+
+/// Everything one reference BFS reads: the walk's direction, the instance
+/// view it traverses, and its seed nodes.
+struct ReferenceWalk<'a> {
+    /// The direction the closure follows.
     direction: Direction,
-    schema: &Schema,
-    typed: &TypedInstance,
-    seeds: &BTreeSet<NodeRef>,
-    morphisms: &[Ident],
-) -> BTreeSet<NodeRef> {
-    let edges = defined_edges(schema, typed, morphisms);
-    let mut seen = seeds.clone();
-    let mut queue: VecDeque<NodeRef> = seeds.iter().cloned().collect();
-    while let Some(node) = queue.pop_front() {
-        relax(direction, &edges, &node, &mut seen, &mut queue);
+    /// The schema/instance/morphisms view the walk reads.
+    view: WalkView<'a>,
+    /// The nodes the closure starts from.
+    seeds: &'a BTreeSet<NodeRef>,
+}
+
+/// The BFS frontier: every node already reached, and the expansion queue.
+struct Frontier {
+    /// Every node the walk has reached, seeds included.
+    seen: BTreeSet<NodeRef>,
+    /// The nodes awaiting expansion, in reach order.
+    queue: VecDeque<NodeRef>,
+}
+
+/// One expansion step: the walk's direction, its edge list, and the node
+/// being expanded.
+struct Walk<'a> {
+    /// The direction the closure follows.
+    direction: Direction,
+    /// The defined `(source, target)` edges of the traversable morphisms.
+    edges: &'a [(NodeRef, NodeRef)],
+    /// The node being expanded.
+    node: &'a NodeRef,
+}
+
+impl Walk<'_> {
+    /// The neighbor of the walk's node along one edge, in the walk's
+    /// direction.
+    fn neighbor(&self, edge: &(NodeRef, NodeRef)) -> Option<NodeRef> {
+        let (from, to) = edge;
+        match self.direction {
+            Direction::Forward => (from == self.node).then(|| to.clone()),
+            Direction::Backward => (to == self.node).then(|| from.clone()),
+        }
     }
-    seen
+}
+
+/// A reference closure: plain BFS over the schema's defined edges.
+fn reference_closure(walk: &ReferenceWalk<'_>) -> BTreeSet<NodeRef> {
+    let edges = defined_edges(&walk.view);
+    let mut frontier = Frontier {
+        seen: walk.seeds.clone(),
+        queue: walk.seeds.iter().cloned().collect(),
+    };
+    while let Some(node) = frontier.queue.pop_front() {
+        relax(
+            &Walk {
+                direction: walk.direction,
+                edges: &edges,
+                node: &node,
+            },
+            &mut frontier,
+        );
+    }
+    frontier.seen
 }
 
 /// The defined edges of the named morphisms: (source, target) pairs for
 /// every resolved cell; unknown morphisms and dangling cells contribute
 /// nothing.
-fn defined_edges(
-    schema: &Schema,
-    typed: &TypedInstance,
-    morphisms: &[Ident],
-) -> Vec<(NodeRef, NodeRef)> {
+fn defined_edges(view: &WalkView<'_>) -> Vec<(NodeRef, NodeRef)> {
     let mut edges = Vec::new();
-    for name in morphisms {
-        let Some(arrow) = schema.arrows.get(name) else {
+    for name in view.morphisms {
+        let Some(arrow) = view.schema.arrows.get(name) else {
             continue;
         };
-        let Some(cells) = typed.tables().get(name) else {
+        let Some(cells) = view.typed.tables().get(name) else {
             continue;
         };
         edges.extend(arrow_edges(arrow, cells));
@@ -183,30 +235,16 @@ fn arrow_edges(arrow: &Arrow, cells: &[Option<RowId>]) -> Vec<(NodeRef, NodeRef)
         .collect()
 }
 
-/// One BFS relaxation over every edge at `node`: enqueue each newly
-/// seen neighbor.
-fn relax(
-    direction: Direction,
-    edges: &[(NodeRef, NodeRef)],
-    node: &NodeRef,
-    seen: &mut BTreeSet<NodeRef>,
-    queue: &mut VecDeque<NodeRef>,
-) {
-    for (from, to) in edges {
-        let Some(next) = step(direction, from, to, node) else {
+/// One BFS relaxation over every edge at the walk's node: enqueue each
+/// newly seen neighbor into the frontier.
+fn relax(walk: &Walk<'_>, frontier: &mut Frontier) {
+    for edge in walk.edges {
+        let Some(next) = walk.neighbor(edge) else {
             continue;
         };
-        if seen.insert(next.clone()) {
-            queue.push_back(next);
+        if frontier.seen.insert(next.clone()) {
+            frontier.queue.push_back(next);
         }
-    }
-}
-
-/// The neighbor of `node` along one edge, in the walk's direction.
-fn step(direction: Direction, from: &NodeRef, to: &NodeRef, node: &NodeRef) -> Option<NodeRef> {
-    match direction {
-        Direction::Forward => (from == node).then(|| to.clone()),
-        Direction::Backward => (to == node).then(|| from.clone()),
     }
 }
 
@@ -241,13 +279,15 @@ fn ported_closure_matches_the_reference_bfs(tc: hegel::TestCase) {
         morphisms: ["f", "g", "u"].iter().map(|n| ident(n)).collect(),
     };
     let ported = run(&query, &schema, &typed).expect("all seeds exist");
-    let reference = reference_closure(
+    let reference = reference_closure(&ReferenceWalk {
         direction,
-        &schema,
-        &typed,
-        &all_seeds,
-        &[ident("f"), ident("g"), ident("u")],
-    );
+        view: WalkView {
+            schema: &schema,
+            typed: &typed,
+            morphisms: &[ident("f"), ident("g"), ident("u")],
+        },
+        seeds: &all_seeds,
+    });
     assert_eq!(
         ported.clone(),
         reference,
@@ -268,22 +308,18 @@ fn ported_closure_matches_the_reference_bfs(tc: hegel::TestCase) {
 fn expected_preimages(schema: &Schema, typed: &TypedInstance) -> BTreeMap<NodeRef, usize> {
     let mut expected: BTreeMap<NodeRef, usize> = BTreeMap::new();
     for (name, arrow) in &schema.arrows {
-        if let Some(cells) = typed.tables().get(name) {
-            tally_cells(&mut expected, arrow, cells);
+        let Some(cells) = typed.tables().get(name) else {
+            continue;
+        };
+        for to in cells.iter().flatten() {
+            let target = NodeRef {
+                object: arrow.tgt.clone(),
+                row: *to,
+            };
+            *expected.entry(target).or_default() += 1;
         }
     }
     expected
-}
-
-/// Add one arrow's defined cells to the preimage tally.
-fn tally_cells(expected: &mut BTreeMap<NodeRef, usize>, arrow: &Arrow, cells: &[Option<RowId>]) {
-    for to in cells.iter().flatten() {
-        let target = NodeRef {
-            object: arrow.tgt.clone(),
-            row: *to,
-        };
-        *expected.entry(target).or_default() += 1;
-    }
 }
 
 /// `fan_in` equals the independently recounted preimage size on

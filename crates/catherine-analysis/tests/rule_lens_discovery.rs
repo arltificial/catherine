@@ -27,20 +27,21 @@ use catherine_core::model::{Ident, Literal, RowId, RulePresentation};
 use catherine_core::parse::parse;
 use catherine_core::rule_lens::RuleDomain;
 use std::collections::BTreeMap;
+use std::error::Error;
 
-fn fixture(name: &str) -> RulePresentation {
+fn fixture(name: &str) -> Result<RulePresentation, Box<dyn Error>> {
     let path = format!(
         "{}/../../fixtures/rule_lens/{name}",
         env!("CARGO_MANIFEST_DIR")
     );
-    let text = std::fs::read_to_string(path).expect("golden fixture exists");
-    parse(&text)
-        .expect("golden fixture parses")
+    let text = std::fs::read_to_string(path)?;
+    let model = parse(&text).map_err(|e| format!("golden fixture parses: {e:?}"))?;
+    Ok(model
         .rule_presentation
-        .expect("the fixture declares a rule presentation")
+        .ok_or("the fixture declares a rule presentation")?)
 }
 
-fn domain(table: &RulePresentation) -> RuleDomain {
+fn domain(table: &RulePresentation) -> Result<RuleDomain, Box<dyn Error>> {
     let supplied: BTreeMap<Ident, Vec<Literal>> = [(
         Ident("age".to_string()),
         vec![
@@ -52,7 +53,7 @@ fn domain(table: &RulePresentation) -> RuleDomain {
     )]
     .into_iter()
     .collect();
-    RuleDomain::from_presentation(table, supplied).expect("domain matches the presentation")
+    Ok(RuleDomain::from_presentation(table, supplied)?)
 }
 
 fn example(age: i64, expected: &str) -> RuleExample {
@@ -67,25 +68,24 @@ fn example(age: i64, expected: &str) -> RuleExample {
 /// A covered example with the expected action is clean — and the report
 /// states its scope (one example checked), never exhaustiveness.
 #[test]
-fn a_covered_example_is_clean() {
-    let table = fixture("gap.ct.json");
-    let report = discover(&table, &domain(&table), &[example(30, "adult")])
-        .expect("the example matches the declared vocabulary");
+fn a_covered_example_is_clean() -> Result<(), Box<dyn Error>> {
+    let table = fixture("gap.ct.json")?;
+    let report = discover(&table, &domain(&table)?, &[example(30, "adult")])?;
     assert!(report.findings.is_empty(), "the table covers age = 30");
     assert_eq!(
         report.examples_checked, 1,
         "the verdict is scoped over the supplied example, not the domain"
     );
+    Ok(())
 }
 
 /// An uncovered example is a Decision-1 gap: `underconstraint`,
 /// `hypothesized`, `UncoveredInputs` naming the class and the example's
 /// dense index in the sample.
 #[test]
-fn an_uncovered_example_is_a_gap_finding() {
-    let table = fixture("gap.ct.json");
-    let report = discover(&table, &domain(&table), &[example(70, "senior")])
-        .expect("the example matches the declared vocabulary");
+fn an_uncovered_example_is_a_gap_finding() -> Result<(), Box<dyn Error>> {
+    let table = fixture("gap.ct.json")?;
+    let report = discover(&table, &domain(&table)?, &[example(70, "senior")])?;
     assert_eq!(
         report.findings,
         vec![Finding {
@@ -100,7 +100,7 @@ fn an_uncovered_example_is_a_gap_finding() {
         }]
     );
     assert_eq!(report.examples_checked, 1);
-    let json = serde_json::to_value(&report.findings).expect("findings serialize");
+    let json = serde_json::to_value(&report.findings)?;
     assert_eq!(json[0]["kind"].as_str(), Some("underconstraint"));
     assert_eq!(json[0]["label"].as_str(), Some("hypothesized"));
     assert_eq!(
@@ -113,18 +113,18 @@ fn an_uncovered_example_is_a_gap_finding() {
     );
     println!(
         "discovery gap: {}",
-        serde_json::to_string(&report.findings[0]).expect("serializes")
+        serde_json::to_string(&report.findings[0])?
     );
+    Ok(())
 }
 
 /// An example the table covers with a different action is a violation
 /// witnessed by the example: the table selected rule 1 (`adult`) for
 /// `age = 20`, but the expected output was `kid`.
 #[test]
-fn a_differing_example_is_a_violation_finding() {
-    let table = fixture("gap.ct.json");
-    let report = discover(&table, &domain(&table), &[example(20, "kid")])
-        .expect("the example matches the declared vocabulary");
+fn a_differing_example_is_a_violation_finding() -> Result<(), Box<dyn Error>> {
+    let table = fixture("gap.ct.json")?;
+    let report = discover(&table, &domain(&table)?, &[example(20, "kid")])?;
     assert_eq!(
         report.findings,
         vec![Finding {
@@ -138,12 +138,13 @@ fn a_differing_example_is_a_violation_finding() {
         }]
     );
     assert_eq!(report.examples_checked, 1);
-    let json = serde_json::to_value(&report.findings).expect("findings serialize");
+    let json = serde_json::to_value(&report.findings)?;
     assert_eq!(json[0]["kind"].as_str(), Some("violation"));
     assert_eq!(json[0]["label"].as_str(), Some("executed"));
     assert_eq!(json[0]["witness"]["row"].as_u64(), Some(0));
     println!(
         "discovery violation: {}",
-        serde_json::to_string(&report.findings[0]).expect("serializes")
+        serde_json::to_string(&report.findings[0])?
     );
+    Ok(())
 }

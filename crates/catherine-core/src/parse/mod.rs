@@ -35,9 +35,11 @@
 //! a value (the `rules --project` bridge) read the table while `Instance`
 //! equality, the canonical bytes, and the model hash remain name-blind.
 
+mod additives;
 mod build;
 mod coproducts;
 mod deferred;
+mod equations;
 mod instance_map;
 mod keys;
 mod predicate;
@@ -51,19 +53,18 @@ mod spans;
 mod tables;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
-use crate::model::{
-    Arrow, Coproduct, Equation, Ident, InstanceMap, Key, Model, Pullback, RowId, RulePresentation,
-    SchemaMap,
-};
+use crate::model::{Arrow, Coproduct, Equation, Ident, Key, Model, Pullback, RowId};
 use rows::check_rows;
 pub use rows::RowNames;
 
+use additives::validate_additives;
 use build::build_model;
-use coproducts::check_coproducts;
+use coproducts::{check_coproducts, CoproductCtx};
 pub(crate) use deferred::{parse_deferred, PendingEquations};
-use keys::check_keys;
-use pullbacks::check_pullbacks;
-use schema::{check_arrows, check_equations, check_objects, check_version, RawDoc, RawSchema};
+use equations::check_equations;
+use keys::{check_keys, KeyCtx};
+use pullbacks::{check_pullbacks, PullbackCtx};
+use schema::{check_arrows, check_objects, check_version, RawDoc, RawSchema};
 use serde_error::doc_err;
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
@@ -105,9 +106,10 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 /// function-size gate.
 /// The required `schema`/`instance` pair plus the three optional additive
 /// sections, in document order.
-type RawSections = (
-    RawSchema,
-    schema::RawInstance,
+type RawSections = (RawSchema, schema::RawInstance, RawAdditives);
+
+/// The optional additive sections, in document order.
+type RawAdditives = (
     Option<schema_map::RawSchemaMap>,
     Option<rule_presentation::RawRulePresentation>,
     Option<instance_map::RawInstanceMap>,
@@ -131,9 +133,7 @@ fn required_sections(doc: RawDoc, spans: &Spans) -> Result<RawSections, ParseErr
     Ok((
         schema,
         instance,
-        schema_map,
-        rule_presentation,
-        instance_map,
+        (schema_map, rule_presentation, instance_map),
     ))
 }
 
@@ -182,33 +182,138 @@ fn validate_with(
     defer_equations: bool,
 ) -> Result<(Model, RowNames, Option<PendingEquations>), ParseError> {
     let version = check_version(&doc, spans)?;
-    let (schema, instance, schema_map, rule_presentation, instance_map) =
-        required_sections(doc, spans)?;
-    let objects = check_objects(&schema, spans)?;
-    let arrows = check_arrows(&schema, &objects, spans)?;
-    let (equations, pending) = resolved_equations(&schema, &arrows, spans, defer_equations)?;
-    let row_index = check_rows(&instance, &objects, spans)?;
-    let values = check_tables(&instance, &arrows, &row_index, spans)?;
-    let (keys, coproducts, pullbacks) = check_structure(&schema, &objects, &arrows, spans)?;
-    let instance_map = declared_instance_map(&instance_map, &objects, &row_index, spans)?;
-    let schema_map = declared_schema_map(&schema_map, &objects, &arrows, spans)?;
-    let rule_presentation = declared_rule_presentation(&rule_presentation, &objects, spans)?;
-    let (mut model, rows) = build_model(
-        version,
+    let (schema, instance, additives) = required_sections(doc, spans)?;
+    let sections = SectionCtx {
+        schema: &schema,
+        instance: &instance,
+        spans,
+    };
+    let checked = check_sections(&sections, defer_equations)?;
+    let (input, pending) = validate_additives(additives, checked, spans)?;
+    let (mut model, rows) = build_model(version, input);
+    apply_stored(&mut model, schema.stored);
+    Ok((model, rows, pending))
+}
+
+/// The schema and instance checks' output, in document order: the merged
+/// name sets, the declared arrows, the equations (plus any deferred to
+/// the post-glue resolution), the dense rows, the total value vectors,
+/// and the structural declarations.
+struct CheckedSections {
+    objects: BTreeMap<Ident, ()>,
+    arrows: BTreeMap<Ident, Arrow>,
+    equations: Vec<Equation>,
+    pending: Option<PendingEquations>,
+    row_index: BTreeMap<String, BTreeMap<String, RowId>>,
+    values: BTreeMap<Ident, Vec<Option<RowId>>>,
+    keys: Vec<Key>,
+    coproducts: Vec<Coproduct>,
+    pullbacks: Vec<Pullback>,
+}
+
+/// The required sections as one check target: the raw schema, the raw
+/// instance, and the span index.
+struct SectionCtx<'a> {
+    schema: &'a RawSchema,
+    instance: &'a schema::RawInstance,
+    spans: &'a Spans,
+}
+
+/// The equation phase's inputs: the declared arrows, the span index, and
+/// whether composition defers sibling-arrow paths.
+struct EqCheck<'a> {
+    arrows: &'a BTreeMap<Ident, Arrow>,
+    spans: &'a Spans,
+    defer_equations: bool,
+}
+
+/// The declared schema elements shared by the structural checks.
+struct Decl<'a> {
+    objects: &'a BTreeMap<Ident, ()>,
+    arrows: &'a BTreeMap<Ident, Arrow>,
+    spans: &'a Spans,
+}
+
+/// The required sections' checks, in document order: schema objects →
+/// arrows → equations → instance rows → instance tables → the structural
+/// declarations (keys, coproducts, pullbacks). Split out of
+/// `validate_with` (mechanical lint refactor; no behavior change) so both
+/// halves stay inside the function-size gate.
+fn check_sections(
+    sections: &SectionCtx,
+    defer_equations: bool,
+) -> Result<CheckedSections, ParseError> {
+    let schema = sections.schema;
+    let spans = sections.spans;
+    let objects = check_objects(schema, spans)?;
+    let arrows = check_arrows(schema, &objects, spans)?;
+    let (equations, pending) = resolved_equations(
+        schema,
+        EqCheck {
+            arrows: &arrows,
+            spans,
+            defer_equations,
+        },
+    )?;
+    let (row_index, values, structure) = checked_data_sections(sections, &objects, &arrows)?;
+    Ok(CheckedSections {
         objects,
         arrows,
         equations,
-        keys,
-        coproducts,
-        pullbacks,
+        pending,
         row_index,
         values,
-        schema_map,
-        rule_presentation,
-        instance_map,
-    );
-    apply_stored(&mut model, schema.stored);
-    Ok((model, rows, pending))
+        keys: structure.0,
+        coproducts: structure.1,
+        pullbacks: structure.2,
+    })
+}
+
+/// The instance and structural sections' results, in check order.
+type DataSections = (RowIndex, Values, RawStructure);
+
+/// The instance and structural sections over the schema's checked
+/// objects and arrows: rows, value tables, keys, coproducts, pullbacks.
+fn checked_data_sections(
+    sections: &SectionCtx,
+    objects: &BTreeMap<Ident, ()>,
+    arrows: &BTreeMap<Ident, Arrow>,
+) -> Result<DataSections, ParseError> {
+    let (row_index, values) = checked_instance(sections, objects, arrows, sections.spans)?;
+    let structure = check_structure(
+        sections.schema,
+        &Decl {
+            objects,
+            arrows,
+            spans: sections.spans,
+        },
+    )?;
+    Ok((row_index, values, structure))
+}
+
+/// The instance's object → row → declared id table (dense-sorted ids).
+type RowIndex = BTreeMap<String, BTreeMap<String, RowId>>;
+/// The instance's per-arrow cell tables over the indexed rows.
+type Values = BTreeMap<Ident, Vec<Option<RowId>>>;
+
+/// The instance section's row index and tables, checked against the
+/// schema's objects and arrows.
+fn checked_instance(
+    sections: &SectionCtx,
+    objects: &BTreeMap<Ident, ()>,
+    arrows: &BTreeMap<Ident, Arrow>,
+    spans: &Spans,
+) -> Result<(RowIndex, Values), ParseError> {
+    let row_index = check_rows(sections.instance, objects, spans)?;
+    let values = check_tables(
+        sections.instance,
+        tables::TableCtx {
+            arrows,
+            row_index: &row_index,
+            spans,
+        },
+    )?;
+    Ok((row_index, values))
 }
 
 /// The three structural checks over the same (schema, objects, arrows)
@@ -217,15 +322,32 @@ fn validate_with(
 /// Keys, coproducts, and pullbacks discovered in one schema, in check order.
 type RawStructure = (Vec<Key>, Vec<Coproduct>, Vec<Pullback>);
 
-fn check_structure(
-    schema: &RawSchema,
-    objects: &BTreeMap<Ident, ()>,
-    arrows: &BTreeMap<Ident, Arrow>,
-    spans: &Spans,
-) -> Result<RawStructure, ParseError> {
-    let keys = check_keys(schema, objects, arrows, spans)?;
-    let coproducts = check_coproducts(schema, objects, arrows, spans)?;
-    let pullbacks = check_pullbacks(schema, objects, arrows, spans)?;
+fn check_structure(schema: &RawSchema, decl: &Decl) -> Result<RawStructure, ParseError> {
+    let spans = decl.spans;
+    let keys = check_keys(
+        schema,
+        KeyCtx {
+            objects: decl.objects,
+            arrows: decl.arrows,
+            spans,
+        },
+    )?;
+    let coproducts = check_coproducts(
+        schema,
+        CoproductCtx {
+            objects: decl.objects,
+            arrows: decl.arrows,
+            spans,
+        },
+    )?;
+    let pullbacks = check_pullbacks(
+        schema,
+        PullbackCtx {
+            objects: decl.objects,
+            arrows: decl.arrows,
+            spans,
+        },
+    )?;
     Ok((keys, coproducts, pullbacks))
 }
 
@@ -247,59 +369,15 @@ fn apply_stored(model: &mut Model, stored: BTreeMap<String, String>) {
 /// 3).
 fn resolved_equations(
     schema: &schema::RawSchema,
-    arrows: &BTreeMap<Ident, Arrow>,
-    spans: &Spans,
-    defer_equations: bool,
+    check: EqCheck,
 ) -> Result<(Vec<Equation>, Option<PendingEquations>), ParseError> {
-    if defer_equations {
-        deferred::check_equations(&schema.equations, arrows, spans)
+    if check.defer_equations {
+        deferred::check_equations(&schema.equations, check.arrows, check.spans)
     } else {
-        Ok((check_equations(&schema.equations, arrows, spans)?, None))
-    }
-}
-
-/// The document's declared instance map, validated (additive 1.4) —
-/// `None` for every pre-map document (hash-neutral).
-fn declared_instance_map(
-    doc_instance_map: &Option<instance_map::RawInstanceMap>,
-    objects: &BTreeMap<Ident, ()>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    spans: &Spans,
-) -> Result<Option<InstanceMap>, ParseError> {
-    match doc_instance_map {
-        Some(raw) => instance_map::build_instance_map(raw, objects, row_index, spans),
-        None => Ok(None),
-    }
-}
-
-/// The document's declared schema map, validated (additive 1.1) —
-/// `None` for every pre-map document (hash-neutral).
-fn declared_schema_map(
-    doc_schema_map: &Option<schema_map::RawSchemaMap>,
-    objects: &BTreeMap<Ident, ()>,
-    arrows: &BTreeMap<Ident, Arrow>,
-    spans: &Spans,
-) -> Result<Option<SchemaMap>, ParseError> {
-    match doc_schema_map {
-        Some(raw) => Ok(Some(schema_map::build_schema_map(
-            raw, objects, arrows, spans,
-        )?)),
-        None => Ok(None),
-    }
-}
-
-/// The document's declared rule presentation, validated (additive 1.2) —
-/// `None` for every pre-rule document (hash-neutral).
-fn declared_rule_presentation(
-    doc_rule_presentation: &Option<rule_presentation::RawRulePresentation>,
-    objects: &BTreeMap<Ident, ()>,
-    spans: &Spans,
-) -> Result<Option<RulePresentation>, ParseError> {
-    match doc_rule_presentation {
-        Some(raw) => Ok(Some(rule_presentation::build_rule_presentation(
-            raw, objects, spans,
-        )?)),
-        None => Ok(None),
+        Ok((
+            check_equations(&schema.equations, check.arrows, check.spans)?,
+            None,
+        ))
     }
 }
 

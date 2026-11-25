@@ -112,29 +112,15 @@ fn main() {
     let (json, quiet, warnings) = resolve_settings(&cli);
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();
-    let code = dispatch(
-        &cli.command,
+    let ctx = &mut Ctx {
         json,
         quiet,
         warnings,
-        &mut stdout,
-        &mut stderr,
-    );
+        stdout: &mut stdout,
+        stderr: &mut stderr,
+    };
+    let code = dispatch_command(&cli.command, ctx);
     exit(code);
-}
-
-/// The subcommand dispatch: one thin forwarding wrapper per command,
-/// all funneling into the shared execution path.
-fn dispatch(
-    command: &cli::Commands,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    let ctx = &mut Ctx::new(json, quiet, warnings, stdout, stderr);
-    dispatch_command(command, ctx)
 }
 
 #[cfg(test)]

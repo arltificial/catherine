@@ -21,7 +21,7 @@ use common::rule_lens::{fixture_presentation, int_domain, ints, set};
 #[test]
 fn the_gap_fixture_has_one_uncovered_input() {
     let table = fixture_presentation("gap.ct.json");
-    let domain = int_domain(&table, "age", &[10, 20, 30, 70]);
+    let domain = int_domain(&table, ("age", &[10, 20, 30, 70]));
     let analysis = analyze(&table, &domain);
     assert_eq!(analysis.gap, set(&domain, &[ints(70)]));
     assert_eq!(analysis.shadow, Some(vec![]));
@@ -33,7 +33,7 @@ fn the_gap_fixture_has_one_uncovered_input() {
 #[test]
 fn the_overlap_fixture_shares_exactly_amount_100() {
     let table = fixture_presentation("overlap-disjoint.ct.json");
-    let domain = int_domain(&table, "amount", &[50, 100, 200]);
+    let domain = int_domain(&table, ("amount", &[50, 100, 200]));
     let analysis = analyze(&table, &domain);
     assert_eq!(
         analysis.overlaps,
@@ -50,7 +50,7 @@ fn the_overlap_fixture_shares_exactly_amount_100() {
 fn the_shadow_fixture_kills_the_even_rule() {
     let table = fixture_presentation("shadow.ct.json");
     let values: Vec<i64> = (1..=6).collect();
-    let domain = int_domain(&table, "n", &values);
+    let domain = int_domain(&table, ("n", &values));
     let analysis = analyze(&table, &domain);
     assert_eq!(analysis.shadow, Some(vec![1]), "`even` is dead");
     assert_eq!(analysis.class_summary(), vec![RuleClass::Shadow]);
@@ -60,7 +60,7 @@ fn the_shadow_fixture_kills_the_even_rule() {
 fn the_derivable_fixture_combines_fizz_and_buzz() {
     let table = fixture_presentation("derivable.ct.json");
     let values: Vec<i64> = (1..=15).collect();
-    let domain = int_domain(&table, "n", &values);
+    let domain = int_domain(&table, ("n", &values));
     let analysis = analyze(&table, &domain);
     assert_eq!(
         analysis.derivable,

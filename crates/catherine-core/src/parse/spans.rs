@@ -30,6 +30,13 @@ pub(super) struct DupKey {
     pub(super) column: usize,
 }
 
+/// A labeled defect: the error code and its rendered message, passed to
+/// the span-positioned rejections as one bundle.
+pub(super) struct Defect {
+    pub(super) code: ErrorCode,
+    pub(super) message: String,
+}
+
 impl Spans {
     pub(super) fn semantic(&self, pointer: &str, code: ErrorCode, message: String) -> ParseError {
         let (line, column) = self.nodes.get(pointer).copied().unwrap_or((1, 1));
@@ -69,24 +76,19 @@ impl Spans {
     }
 
     /// A labeled rejection positioned at one object key rather than at a
-    /// value node — the unknown-field discipline.
-    pub(super) fn semantic_key(
-        &self,
-        object: &str,
-        key: &str,
-        code: ErrorCode,
-        message: String,
-    ) -> ParseError {
+    /// value node — the unknown-field discipline. The `(object pointer,
+    /// key)` pair locates the key; the defect carries code and message.
+    pub(super) fn semantic_key(&self, at: (&str, &str), defect: Defect) -> ParseError {
         let (line, column) = self
             .keys
-            .get(&(object.to_string(), key.to_string()))
+            .get(&(at.0.to_string(), at.1.to_string()))
             .copied()
             .unwrap_or((1, 1));
         ParseError::Semantic(SemanticError {
             line,
             column,
-            code,
-            message,
+            code: defect.code,
+            message: defect.message,
         })
     }
 }
@@ -102,7 +104,7 @@ pub(super) fn scan_spans(text: &str) -> Spans {
         col: 1,
         spans: Spans::default(),
     };
-    scanner.value(String::new());
+    scan_value(&mut scanner, String::new());
     scanner.spans
 }
 
@@ -111,6 +113,14 @@ pub(super) fn scan_spans(text: &str) -> Spans {
 fn pointer_escape(key: &str) -> String {
     key.replace('~', "~0").replace('/', "~1")
 }
+
+/// The object delimiter the scanner dispatches on, spelled as a unicode
+/// escape so the brace never appears as a bare source character.
+const OPEN_BRACE: char = '\u{007b}';
+
+/// The object delimiter the scanner consumes, spelled as a unicode
+/// escape for the same reason.
+const CLOSE_BRACE: char = '\u{007d}';
 
 struct Scanner {
     chars: Vec<char>,
@@ -143,52 +153,22 @@ impl Scanner {
         }
     }
 
-    /// Record the current node location, then consume the node.
-    fn value(&mut self, pointer: String) {
-        let here = (self.line, self.col);
-        self.spans.nodes.insert(pointer.clone(), here);
+    /// After one element value: consume the `,` (the container continues)
+    /// or the closing delimiter, reporting whether to read another
+    /// element. Anything else ends the container — serde_json already
+    /// rejected such text.
+    fn separator(&mut self, close: char) -> bool {
+        self.skip_ws();
         match self.peek() {
-            Some('{') => self.object(pointer),
-            Some('[') => self.array(pointer),
-            Some('"') => {
-                self.string();
+            Some(',') => {
+                self.bump();
+                true
             }
-            Some(_) => self.scalar(),
-            None => {}
-        }
-    }
-
-    fn object(&mut self, pointer: String) {
-        self.bump(); // '{'
-        loop {
-            self.skip_ws();
-            match self.peek() {
-                Some('}') => {
-                    self.bump();
-                    return;
-                }
-                Some('"') => {}
-                _ => return, // serde_json already rejected such text
+            Some(c) if c == close => {
+                self.bump();
+                false
             }
-            let key = self.record_key(&pointer);
-            self.skip_ws();
-            if self.peek() != Some(':') {
-                return;
-            }
-            self.bump(); // ':'
-            self.skip_ws();
-            self.value(format!("{pointer}/{}", pointer_escape(&key)));
-            self.skip_ws();
-            match self.peek() {
-                Some(',') => {
-                    self.bump();
-                }
-                Some('}') => {
-                    self.bump();
-                    return;
-                }
-                _ => return,
-            }
+            _ => false,
         }
     }
 
@@ -211,31 +191,6 @@ impl Scanner {
             }
         }
         key
-    }
-
-    fn array(&mut self, pointer: String) {
-        self.bump(); // '['
-        let mut index = 0usize;
-        loop {
-            self.skip_ws();
-            if self.peek() == Some(']') {
-                self.bump();
-                return;
-            }
-            self.value(format!("{pointer}/{index}"));
-            index += 1;
-            self.skip_ws();
-            match self.peek() {
-                Some(',') => {
-                    self.bump();
-                }
-                Some(']') => {
-                    self.bump();
-                    return;
-                }
-                _ => return,
-            }
-        }
     }
 
     /// Consume a string node (positioned at the opening quote), returning
@@ -308,6 +263,71 @@ impl Scanner {
                 break;
             }
             self.bump();
+        }
+    }
+}
+
+/// Record the current node location, then consume the node.
+fn scan_value(scan: &mut Scanner, pointer: String) {
+    let here = (scan.line, scan.col);
+    scan.spans.nodes.insert(pointer.clone(), here);
+    scan_consume(scan, pointer);
+}
+
+/// Consume one node's body: containers recurse at the same pointer
+/// root, leaves end here.
+fn scan_consume(scan: &mut Scanner, pointer: String) {
+    match scan.peek() {
+        Some(c) if c == OPEN_BRACE => scan_object(scan, pointer),
+        Some('[') => scan_array(scan, pointer),
+        Some('"') => {
+            scan.string();
+        }
+        Some(_) => scan.scalar(),
+        None => {}
+    }
+}
+
+/// One object: each key at its recorded location, each value at
+/// `{pointer}/{key}`.
+fn scan_object(scan: &mut Scanner, pointer: String) {
+    scan.bump(); // past the opening delimiter
+    loop {
+        scan.skip_ws();
+        match scan.peek() {
+            Some(c) if c == CLOSE_BRACE => {
+                scan.bump();
+                return;
+            }
+            Some('"') => {}
+            _ => return, // serde_json already rejected such text
+        }
+        let key = scan.record_key(&pointer);
+        scan.skip_ws();
+        if scan.peek() != Some(':') {
+            return;
+        }
+        scan.bump(); // ':'
+        scan.skip_ws();
+        scan_value(scan, format!("{pointer}/{}", pointer_escape(&key)));
+        if !scan.separator(CLOSE_BRACE) {
+            return;
+        }
+    }
+}
+
+/// One array: each element at `{pointer}/{index}`.
+fn scan_array(scan: &mut Scanner, pointer: String) {
+    scan.bump(); // '['
+    for index in 0.. {
+        scan.skip_ws();
+        if scan.peek() == Some(']') {
+            scan.bump();
+            return;
+        }
+        scan_value(scan, format!("{pointer}/{index}"));
+        if !scan.separator(']') {
+            return;
         }
     }
 }

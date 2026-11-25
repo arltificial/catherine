@@ -35,7 +35,7 @@ mod pattern {
 mod state;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LawKind, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{LawKind, LensCall, LensInput, LensOutcome, PatternLens};
 use catherine_core::findings::{EpistemicLabel, Finding, FindingKind};
 use catherine_core::model::Model;
 use expectations::{Expectation, EXPECTATIONS};
@@ -96,7 +96,10 @@ fn values(row: &Expectation) -> Vec<String> {
 /// exact scope of a bounded non-answer.
 fn run(model: &Model, values: &[String]) -> LensOutcome {
     let input = LensInput { model, values };
-    state::Lens.run(&input, &ScopeCaps::default())
+    state::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    })
 }
 
 /// Assert one recorded row: a `construction` row is the recorded parse

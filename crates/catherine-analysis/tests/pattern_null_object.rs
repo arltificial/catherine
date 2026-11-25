@@ -26,9 +26,7 @@ mod expectations;
 // same source under the test crate, with the library's `crate::{bounds,
 // pattern}` roots re-exported so the module's imports resolve unchanged —
 // the behaviour under test is the production file, not a copy.
-mod bounds {
-    pub use catherine_analysis::bounds::*;
-}
+mod bounds {}
 mod pattern {
     pub use catherine_analysis::pattern::*;
 }
@@ -36,7 +34,9 @@ mod pattern {
 mod null_object;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{
+    LawKind, LensCall, LensFindings, LensInput, LensOutcome, PatternLens,
+};
 use catherine_core::findings::{EpistemicLabel, Finding, FindingKind, ViolationWitness};
 use catherine_core::migrate::{MigrationFinding, MigrationFindingKind};
 use catherine_core::model::Model;
@@ -80,7 +80,10 @@ fn run_row(row: &Expectation) -> LensFindings {
         model: &model,
         values: &bound,
     };
-    match null_object::Lens.run(&input, &ScopeCaps::default()) {
+    match null_object::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => findings,
         LensOutcome::Unknown { scope } => panic!(
             "{} ({}) must evaluate, got UNKNOWN: {scope}",
@@ -283,7 +286,10 @@ fn the_clean_arm_is_silent_but_completed() {
             model: &model,
             values: &[],
         };
-        match null_object::Lens.run(&input, &ScopeCaps::default()) {
+        match null_object::Lens.run(LensCall {
+            input: &input,
+            caps: &ScopeCaps::default(),
+        }) {
             LensOutcome::Findings(findings) => {
                 assert!(findings.checks.is_empty(), "{relative} holds the law");
                 assert!(
@@ -303,7 +309,10 @@ fn a_model_without_equations_is_unknown_not_clean() {
         model: &model,
         values: &[],
     };
-    match null_object::Lens.run(&input, &ScopeCaps::default()) {
+    match null_object::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("equations")),
         LensOutcome::Findings(findings) => {
             panic!("an absent surface must not be clean: {findings:?}")

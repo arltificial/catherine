@@ -21,35 +21,45 @@ pub(crate) fn arrow(src: &str, tgt: &str) -> Arrow {
     }
 }
 
-pub(crate) fn equation(
-    lhs: &[&str],
-    rhs: &[&str],
-    rationale: &str,
-    status: ConstraintStatus,
-) -> Equation {
+/// The parts of one equation fixture, grouped so builders stay within the
+/// two-parameter test limit.
+pub(crate) struct EquationInput<'a> {
+    pub lhs: &'a [&'a str],
+    pub rhs: &'a [&'a str],
+    pub rationale: &'a str,
+    pub status: ConstraintStatus,
+}
+
+pub(crate) fn equation(input: EquationInput) -> Equation {
     Equation {
-        lhs: path(lhs),
-        rhs: path(rhs),
-        rationale: rationale.to_string(),
-        status,
+        lhs: path(input.lhs),
+        rhs: path(input.rhs),
+        rationale: input.rationale.to_string(),
+        status: input.status,
     }
 }
 
-pub(crate) fn schema(
-    objects: &[&str],
-    arrows: &[(&str, &str, &str)],
-    equations: Vec<Equation>,
-) -> Schema {
+/// The parts of one schema fixture, grouped so builders stay within the
+/// two-parameter test limit.
+pub(crate) struct SchemaInput<'a> {
+    pub objects: &'a [&'a str],
+    pub arrows: &'a [(&'a str, &'a str, &'a str)],
+    pub equations: Vec<Equation>,
+}
+
+pub(crate) fn schema(input: SchemaInput) -> Schema {
     Schema {
-        objects: objects
+        objects: input
+            .objects
             .iter()
             .map(|o| (ident(o), ()))
             .collect::<BTreeMap<_, _>>(),
-        arrows: arrows
+        arrows: input
+            .arrows
             .iter()
             .map(|(name, src, tgt)| (ident(name), arrow(src, tgt)))
             .collect::<BTreeMap<_, _>>(),
-        equations,
+        equations: input.equations,
         keys: Vec::new(),
         coproducts: Vec::new(),
         pullbacks: Vec::new(),
@@ -59,10 +69,11 @@ pub(crate) fn schema(
 
 /// Per-object row maxima, spelled in test order (stored in a `BTreeMap`).
 pub(crate) fn rows(pairs: &[(&str, usize)]) -> BTreeMap<Ident, usize> {
-    pairs
-        .iter()
-        .map(|(o, n)| (ident(o), *n))
-        .collect::<BTreeMap<_, _>>()
+    let mut maxima = BTreeMap::new();
+    for (object, count) in pairs {
+        maxima.insert(ident(object), *count);
+    }
+    maxima
 }
 
 /// A total arrow table: every source row resolves to `pick(row)`.
@@ -70,115 +81,97 @@ pub(crate) fn total_table(n_src: usize, pick: impl Fn(usize) -> usize) -> Vec<Op
     (0..n_src).map(|i| Some(RowId(pick(i)))).collect()
 }
 
-/// RED task 1 + 2 fixture: the over-constrained shape. Arrow `f: a→b`
-/// with the bounds leaving `b` empty: *no fully resolved instance exists*
-/// (every candidate dangles on `f`), so exhaustion proves the accepted
-/// equation set admits no instance. `e0` routes through `b`; `e1` is an
-/// accepted self-loop equation — together the enforced scope.
-pub(crate) fn contradiction_schema() -> Schema {
-    schema(
-        &["a", "b", "c"],
-        &[
-            ("f", "a", "b"),
-            ("g", "b", "c"),
-            ("h", "a", "c"),
-            ("s", "a", "a"),
-            ("t", "a", "a"),
-        ],
-        vec![
-            equation(
-                &["f", "g"],
-                &["h"],
-                "the composite lands via b",
-                ConstraintStatus::Accepted,
-            ),
-            equation(
-                &["s"],
-                &["t"],
-                "the two endomorphisms agree",
-                ConstraintStatus::Accepted,
-            ),
-        ],
-    )
+/// One table-driven fixture per analysis RED task; the name selects the
+/// objects, arrows, and accepted equations.
+///
+/// - `"contradiction"` (RED task 1 + 2): arrow `f: a→b` with the bounds
+///   leaving `b` empty — *no fully resolved instance exists* (every
+///   candidate dangles on `f`), so exhaustion proves the accepted equation
+///   set admits no instance. `e0` routes through `b`; `e1` is an accepted
+///   self-loop equation — together the enforced scope.
+/// - `"parallel"` (RED task 3): `f∘g` and `h` share endpoints (a→c) and no
+///   equation relates them — the discovery pattern.
+/// - `"rewrite"` (RED task 4): `e2` (the route `f,g,k` equals `n`) is
+///   derivable from `e0` (`f,g = h`) and `e1` (`h,k = n`) by rewriting;
+///   `e0` and `e1` are not derivable from the others. Paths are spelled in
+///   the kernel's application order (the lead arrow first — the same
+///   convention as the bowling fixture's `staff_unit∘assigned_staff`).
+/// - `"transitive-chain"` (catherine-7e8): three parallel arrows
+///   `p,q,r: a→c`; the accepted equations `p=q` and `q=r` relate the outer
+///   pair only transitively — rewriting can derive `p=r`, yet the (p,r)
+///   question stays raised (documented direct-only limit).
+/// - `"distinguish"` (RED task 5): one schema, two arrow tables; the two
+///   instances differ only in where `f` sends the single `a` row.
+pub(crate) fn fixture_schema(name: &str) -> Schema {
+    type FixtureShape<'a> = (
+        &'a [&'a str],
+        &'a [(&'a str, &'a str, &'a str)],
+        Vec<Equation>,
+    );
+    let (objects, arrows, equations): FixtureShape = match name {
+        "contradiction" => (
+            &["a", "b", "c"],
+            &[
+                ("f", "a", "b"),
+                ("g", "b", "c"),
+                ("h", "a", "c"),
+                ("s", "a", "a"),
+                ("t", "a", "a"),
+            ],
+            vec![
+                accepted((&["f", "g"], &["h"]), "the composite lands via b"),
+                accepted((&["s"], &["t"]), "the two endomorphisms agree"),
+            ],
+        ),
+        "parallel" => (
+            &["a", "b", "c"],
+            &[("f", "a", "b"), ("g", "b", "c"), ("h", "a", "c")],
+            vec![],
+        ),
+        "rewrite" => (
+            &["a", "b", "c", "d"],
+            &[
+                ("f", "a", "b"),
+                ("g", "b", "c"),
+                ("h", "a", "c"),
+                ("k", "c", "d"),
+                ("n", "a", "d"),
+            ],
+            vec![
+                accepted((&["f", "g"], &["h"]), "h is the composite"),
+                accepted((&["h", "k"], &["n"]), "n continues the composite"),
+                accepted(
+                    (&["f", "g", "k"], &["n"]),
+                    "same route spelled through the generators",
+                ),
+            ],
+        ),
+        "transitive-chain" => (
+            &["a", "c"],
+            &[("p", "a", "c"), ("q", "a", "c"), ("r", "a", "c")],
+            vec![
+                accepted((&["p"], &["q"]), "p and q declared equal"),
+                accepted((&["q"], &["r"]), "q and r declared equal"),
+            ],
+        ),
+        "distinguish" => (&["a", "b"], &[("f", "a", "b"), ("g", "a", "b")], vec![]),
+        other => panic!("no fixture schema named {other}"),
+    };
+    schema(SchemaInput {
+        objects,
+        arrows,
+        equations,
+    })
 }
 
-/// RED task 3 fixture: `f∘g` and `h` share endpoints (a→c) and no
-/// equation relates them — the discovery pattern.
-pub(crate) fn parallel_schema() -> Schema {
-    schema(
-        &["a", "b", "c"],
-        &[("f", "a", "b"), ("g", "b", "c"), ("h", "a", "c")],
-        vec![],
-    )
-}
-
-/// RED task 4 fixture: `e2` (the route `f,g,k` equals `n`) is derivable
-/// from `e0` (`f,g = h`) and `e1` (`h,k = n`) by rewriting; `e0` and
-/// `e1` are not derivable from the others. Paths are spelled in the
-/// kernel's application order (the lead arrow first — the same
-/// convention as the bowling fixture's `staff_unit∘assigned_staff`).
-pub(crate) fn rewrite_schema() -> Schema {
-    schema(
-        &["a", "b", "c", "d"],
-        &[
-            ("f", "a", "b"),
-            ("g", "b", "c"),
-            ("h", "a", "c"),
-            ("k", "c", "d"),
-            ("n", "a", "d"),
-        ],
-        vec![
-            equation(
-                &["f", "g"],
-                &["h"],
-                "h is the composite",
-                ConstraintStatus::Accepted,
-            ),
-            equation(
-                &["h", "k"],
-                &["n"],
-                "n continues the composite",
-                ConstraintStatus::Accepted,
-            ),
-            equation(
-                &["f", "g", "k"],
-                &["n"],
-                "same route spelled through the generators",
-                ConstraintStatus::Accepted,
-            ),
-        ],
-    )
-}
-
-/// catherine-7e8 fixture: three parallel arrows `p,q,r: a→c`; the
-/// accepted equations `p=q` and `q=r` relate the outer pair only
-/// transitively — rewriting can derive `p=r`, yet the (p,r) question
-/// stays raised (documented direct-only limit).
-pub(crate) fn transitive_chain_schema() -> Schema {
-    schema(
-        &["a", "c"],
-        &[("p", "a", "c"), ("q", "a", "c"), ("r", "a", "c")],
-        vec![
-            equation(
-                &["p"],
-                &["q"],
-                "p and q declared equal",
-                ConstraintStatus::Accepted,
-            ),
-            equation(
-                &["q"],
-                &["r"],
-                "q and r declared equal",
-                ConstraintStatus::Accepted,
-            ),
-        ],
-    )
-}
-
-/// RED task 5 fixture: one schema, two arrow tables; the two instances
-/// differ only in where `f` sends the single `a` row.
-pub(crate) fn distinguish_schema() -> Schema {
-    schema(&["a", "b"], &[("f", "a", "b"), ("g", "a", "b")], vec![])
+/// An accepted equation fixture from its two paths and its rationale.
+fn accepted(paths: (&[&str], &[&str]), rationale: &str) -> Equation {
+    equation(EquationInput {
+        lhs: paths.0,
+        rhs: paths.1,
+        rationale,
+        status: ConstraintStatus::Accepted,
+    })
 }
 
 pub(crate) fn distinguish_pair() -> (Schema, Instance, Instance) {
@@ -196,7 +189,7 @@ pub(crate) fn distinguish_pair() -> (Schema, Instance, Instance) {
             .map(|(name, cells)| (ident(name), cells))
             .collect::<BTreeMap<_, _>>(),
     };
-    (distinguish_schema(), instance_a, instance_b)
+    (fixture_schema("distinguish"), instance_a, instance_b)
 }
 
 pub(crate) fn rows_of(objects: &[(&str, usize)]) -> BTreeMap<Ident, Vec<RowId>> {

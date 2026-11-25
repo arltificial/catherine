@@ -241,38 +241,38 @@ pub fn render_diff(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
 /// The `accreted` human lines: the head count, then one line per added
 /// constraint.
 fn accreted_lines(added: &[EnforcedConstraint]) -> Vec<String> {
-    let mut lines = vec![format!(
+    let head = format!(
         "diff: accreted — {} enforced constraint(s) added, 0 findings",
         added.len()
-    )];
-    lines.extend(added.iter().map(added_line));
-    lines
+    );
+    std::iter::once(head)
+        .chain(added.iter().map(added_line))
+        .collect()
 }
 
 /// The `weakened` human lines: the head, then the §5 finding block
 /// rendered against the v1 schema (the side that enforced the constraint).
 fn weakened_lines(report: &SchemaDiffReport, v1: &Schema) -> Vec<String> {
-    let mut lines =
-        vec!["diff: weakened — a v1-enforced constraint is not enforced by v2".to_string()];
-    lines.extend(
-        report
-            .findings
-            .iter()
-            .flat_map(|finding| render_one(finding, v1)),
-    );
-    lines
+    let findings = report
+        .findings
+        .iter()
+        .flat_map(|finding| render_one(finding, v1));
+    std::iter::once("diff: weakened — a v1-enforced constraint is not enforced by v2".to_string())
+        .chain(findings)
+        .collect()
 }
 
 /// The `strengthened-in-scope` human lines: the head with the scope tail,
 /// then one line per added constraint.
 fn strengthened_lines(added: &[EnforcedConstraint], scope: &SearchScope) -> Vec<String> {
-    let mut lines = vec![format!(
+    let head = format!(
         "diff: strengthened-in-scope — no weakening instance within the explored bounds, {} enforced constraint(s) added{}",
         added.len(),
         scope_suffix(scope)
-    )];
-    lines.extend(added.iter().map(added_line));
-    lines
+    );
+    std::iter::once(head)
+        .chain(added.iter().map(added_line))
+        .collect()
 }
 
 /// One added constraint as a human line: an equation as `lhs = rhs`, a

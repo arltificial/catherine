@@ -108,31 +108,37 @@ fn message_schedule(block: &[u8]) -> [u32; 64] {
 /// One FIPS 180-4 compression round over a 64-byte block.
 fn compress(h: &mut [u32; 8], block: &[u8]) {
     let w = message_schedule(block);
-    let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut hh] = *h;
+    let mut st = *h;
     for i in 0..64 {
-        let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
-        let ch = (e & f) ^ (!e & g);
-        let t1 = hh
-            .wrapping_add(s1)
-            .wrapping_add(ch)
-            .wrapping_add(K[i])
-            .wrapping_add(w[i]);
-        let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
-        let maj = (a & b) ^ (a & c) ^ (b & c);
-        let t2 = s0.wrapping_add(maj);
-        hh = g;
-        g = f;
-        f = e;
-        e = d.wrapping_add(t1);
-        d = c;
-        c = b;
-        b = a;
-        a = t1.wrapping_add(t2);
+        st = sha256_round(st, w[i], K[i]);
     }
-    let round = [a, b, c, d, e, f, g, hh];
-    for (hi, ri) in h.iter_mut().zip(round) {
+    for (hi, ri) in h.iter_mut().zip(st) {
         *hi = hi.wrapping_add(ri);
     }
+}
+
+/// One FIPS 180-4 round: advance the eight working registers by one step.
+fn sha256_round(st: [u32; 8], wi: u32, ki: u32) -> [u32; 8] {
+    let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut hh] = st;
+    let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+    let ch = (e & f) ^ (!e & g);
+    let t1 = hh
+        .wrapping_add(s1)
+        .wrapping_add(ch)
+        .wrapping_add(ki)
+        .wrapping_add(wi);
+    let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+    let maj = (a & b) ^ (a & c) ^ (b & c);
+    let t2 = s0.wrapping_add(maj);
+    hh = g;
+    g = f;
+    f = e;
+    e = d.wrapping_add(t1);
+    d = c;
+    c = b;
+    b = a;
+    a = t1.wrapping_add(t2);
+    [a, b, c, d, e, f, g, hh]
 }
 
 #[cfg(test)]
@@ -180,9 +186,13 @@ mod tests {
 
     /// Equal models hash equal regardless of input order; a structural
     /// difference (here: the self-loop retargeted) changes the hash.
-    #[test]
-    fn model_hash_is_structure_only() {
-        let ordered = r#"{
+    fn parse_model(src: &str) -> Model {
+        parse(src).expect("parses")
+    }
+
+    /// The same model in two presentation orders.
+    const SAME_MODEL_TWO_ORDERS: [&str; 2] = [
+        r#"{
           "format_version": "1.0",
           "schema": {
             "objects": ["A", "B"],
@@ -190,8 +200,8 @@ mod tests {
             "equations": [{"lhs": ["s"], "rhs": ["s", "s"], "rationale": "idempotent"}]
           },
           "instance": {"rows": {"A": ["_0"], "B": ["_0"]}, "tables": {"f": {"_0": "_0"}, "s": {"_0": null}}}
-        }"#;
-        let shuffled = r#"{
+        }"#,
+        r#"{
           "instance": {"tables": {"s": {}, "f": {"_0": "_0"}}, "rows": {"B": ["_0"], "A": ["_0"]}},
           "schema": {
             "equations": [{"rhs": ["s", "s"], "rationale": "idempotent", "lhs": ["s"]}],
@@ -199,11 +209,12 @@ mod tests {
             "objects": ["B", "A"]
           },
           "format_version": "1.0"
-        }"#;
-        let a = parse(ordered).expect("parses");
-        let b = parse(shuffled).expect("parses");
-        assert_eq!(model_hash(&a), model_hash(&b), "equal models, equal hash");
-        let retargeted = r#"{
+        }"#,
+    ];
+
+    /// The first document with the self-loop retargeted from `B` to `A`
+    /// and its (now empty) table dropped — a structural difference.
+    const RETARGETED_SELF_LOOP: &str = r#"{
           "format_version": "1.0",
           "schema": {
             "objects": ["A", "B"],
@@ -212,9 +223,23 @@ mod tests {
           },
           "instance": {"rows": {"A": ["_0"], "B": ["_0"]}, "tables": {"f": {"_0": "_0"}, "s": {}}}
         }"#;
-        let c = parse(retargeted).expect("parses");
+
+    #[test]
+    fn model_hash_is_structure_only() {
+        let models: Vec<_> = SAME_MODEL_TWO_ORDERS
+            .iter()
+            .map(|d| parse_model(d))
+            .collect();
+        for model in &models[1..] {
+            assert_eq!(
+                model_hash(&models[0]),
+                model_hash(model),
+                "equal models, equal hash"
+            );
+        }
+        let c = parse_model(RETARGETED_SELF_LOOP);
         assert_ne!(
-            model_hash(&a),
+            model_hash(&models[0]),
             model_hash(&c),
             "a structural difference changes the hash"
         );

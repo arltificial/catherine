@@ -14,14 +14,18 @@
 //! claims. A silent fixture or baseline edit must break this test, not
 //! the ledger's arithmetic.
 
+mod support;
+
 use std::path::{Path, PathBuf};
 
 use catherine_core::hash::{model_hash, sha256_digest};
 use catherine_core::parse::parse;
-use catherine_ledger::entry::BaselineMode;
+use catherine_ledger::entry::{BaselineMode, Entry};
 use catherine_ledger::validate::{validate_dir, ValidLedger};
+use support::{present, TestError};
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+const LEDGER: &str = "ledger/katas/visitor-sum-types";
 
 const BASELINE_ARTIFACT: &str = concat!(
     "prototype/visitor_sum_types_baseline.py ",
@@ -91,19 +95,22 @@ fn workspace_root() -> PathBuf {
 }
 
 /// One fixture's canonical model hash, recomputed from disk.
-fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(workspace_root().join(path)).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+fn fixture_hash(path: &str) -> Result<String, TestError> {
+    let text = std::fs::read_to_string(workspace_root().join(path))?;
+    let document = parse(&text)?;
+    Ok(model_hash(&document))
 }
 
-/// The committed kata ledger, validated.
-fn ledger() -> ValidLedger {
-    validate_dir(&workspace_root().join("ledger/katas/visitor-sum-types"))
-        .expect("the visitor-sum-types kata ledger validates")
+/// The committed kata ledger, validated; a refusal becomes the test's
+/// error with the violations spelled out.
+fn ledger() -> Result<ValidLedger, TestError> {
+    validate_dir(&workspace_root().join(LEDGER)).map_err(|violations| {
+        format!("the visitor-sum-types kata ledger refused: {violations:?}").into()
+    })
 }
 
 /// An entry's model-hash list as borrowed strings.
-fn hashes(entry: &catherine_ledger::entry::Entry) -> Vec<&str> {
+fn hashes(entry: &Entry) -> Vec<&str> {
     entry
         .content
         .model_hashes
@@ -113,34 +120,41 @@ fn hashes(entry: &catherine_ledger::entry::Entry) -> Vec<&str> {
 }
 
 #[test]
-fn visitor_fixture_hashes_are_pinned() {
-    for (path, expected) in FIXTURES {
-        assert_eq!(fixture_hash(path), expected, "{path} drifted");
+fn visitor_fixture_hashes_are_pinned() -> Result<(), TestError> {
+    for (path, pinned) in FIXTURES {
+        assert_eq!(fixture_hash(path)?, pinned, "{path} drifted");
     }
+    Ok(())
 }
 
 #[test]
-fn baseline_artifact_hash_is_pinned() {
-    let bytes = std::fs::read(workspace_root().join("prototype/visitor_sum_types_baseline.py"))
-        .expect("baseline readable");
+fn baseline_artifact_hash_is_pinned() -> Result<(), TestError> {
+    let bytes = std::fs::read(workspace_root().join("prototype/visitor_sum_types_baseline.py"))?;
     let digest = sha256_digest(&bytes);
     assert_eq!(
         BASELINE_ARTIFACT,
         format!("prototype/visitor_sum_types_baseline.py {digest}")
     );
+    Ok(())
 }
 
 #[test]
-fn control_goes_first_and_self_negates() {
-    let valid = ledger();
+fn control_goes_first_and_self_negates() -> Result<(), TestError> {
+    let valid = ledger()?;
     let katas = valid.kata_entries();
     assert_eq!(katas.len(), 2, "one control + one positive entry");
     let entry = katas[0];
-    let control = entry.content.kata.as_ref().expect("control kata");
-    assert!(control.control, "the first entry is the negative control");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
+    let control = present(entry.content.kata.as_ref(), "the control kata record")?;
     assert!(
-        control.comparison.unique_detections.is_empty(),
+        control.identity.control,
+        "the first entry is the negative control"
+    );
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(
+        control.derivation.comparison.unique_detections.is_empty(),
         "the floor buys no unique detections"
     );
     assert_eq!(
@@ -149,28 +163,34 @@ fn control_goes_first_and_self_negates() {
         "three floor faults pre-registered"
     );
     assert_eq!(hashes(entry), CONTROL_HASHES);
-    assert_eq!(control.fixture_hash, fixture_hash(&control.fixture));
-    let arm = control
-        .comparison
-        .baseline
-        .as_ref()
-        .expect("the executed baseline arm");
+    assert_eq!(
+        control.provenance.fixture_hash,
+        fixture_hash(&control.provenance.fixture)?
+    );
+    let arm = present(
+        control.derivation.comparison.baseline.as_ref(),
+        "the executed baseline arm",
+    )?;
     assert_eq!(arm.mode, BaselineMode::Executed);
     assert_eq!(arm.artifact, BASELINE_ARTIFACT);
+    Ok(())
 }
 
 #[test]
-fn positive_carries_three_unique_detections_against_an_executed_arm() {
-    let valid = ledger();
+fn positive_carries_three_unique_detections_against_an_executed_arm() -> Result<(), TestError> {
+    let valid = ledger()?;
     let katas = valid.kata_entries();
     let entry = katas[1];
-    let positive = entry.content.kata.as_ref().expect("positive kata");
-    assert!(!positive.control);
-    assert_eq!(positive.verdict, "survived");
+    let positive = present(entry.content.kata.as_ref(), "the positive kata record")?;
+    assert!(!positive.identity.control);
+    assert_eq!(positive.derivation.verdict, "survived");
     assert_eq!(positive.expected.len(), 5, "five faults pre-registered");
     assert_eq!(hashes(entry), POSITIVE_HASHES);
-    assert_eq!(positive.fixture_hash, fixture_hash(&positive.fixture));
-    let unique = &positive.comparison.unique_detections;
+    assert_eq!(
+        positive.provenance.fixture_hash,
+        fixture_hash(&positive.provenance.fixture)?
+    );
+    let unique = &positive.derivation.comparison.unique_detections;
     assert_eq!(unique.len(), 3, "F3, F4, F5 against the sampled baseline");
     for (detection, fault) in unique.iter().zip(["F3 ", "F4 ", "F5 "]) {
         assert!(
@@ -178,11 +198,10 @@ fn positive_carries_three_unique_detections_against_an_executed_arm() {
             "{detection:?} is not the {fault}element"
         );
     }
-    let arm = positive
-        .comparison
-        .baseline
-        .as_ref()
-        .expect("uniqueness requires the executed arm");
+    let arm = present(
+        positive.derivation.comparison.baseline.as_ref(),
+        "the executed arm behind the uniqueness claim",
+    )?;
     assert_eq!(arm.mode, BaselineMode::Executed);
     assert_eq!(arm.artifact, BASELINE_ARTIFACT);
     assert_eq!(
@@ -190,4 +209,5 @@ fn positive_carries_three_unique_detections_against_an_executed_arm() {
         2,
         "F1 and F2 are the parity detections"
     );
+    Ok(())
 }

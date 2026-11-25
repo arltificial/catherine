@@ -11,9 +11,7 @@
 //! machinery serves here as `check` (design Decision 1's one path).
 
 use crate::composition;
-use crate::run::emit_error;
 use catherine_analysis::bounds::ScopeCaps;
-use genesis::envelope::Warning;
 use std::io::Write;
 
 /// The underconstraint scope caps: the caller's path cap over the shared
@@ -28,25 +26,18 @@ pub(super) fn path_caps(max_path_length: usize) -> ScopeCaps {
 /// The joint underconstraint run: glue the inputs, raise the parallel-path
 /// questions over the merged schema, and render them with source
 /// attribution.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn composition(
     model_paths: &[String],
     max_path_length: usize,
-    json: bool,
-    quiet: bool,
-    mut warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut crate::dispatch::Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
-    composition::warn_duplicate_inputs(model_paths, json, &mut warnings, stderr);
+    composition::warn_duplicate_inputs(model_paths, ctx);
     let glued = match composition::load_glued(model_paths) {
         Ok(glued) => glued,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
-    composition::warn_empty_interface(&glued, json, &mut warnings, stderr);
+    composition::warn_empty_interface(&glued, ctx);
     let findings =
         catherine_analysis::parallel::underconstraint(&glued.schema, &path_caps(max_path_length));
-    composition::emit_findings(
-        &findings, None, &glued, json, quiet, warnings, stdout, stderr,
-    )
+    composition::emit_findings(&findings, None, &glued, ctx)
 }

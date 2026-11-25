@@ -30,17 +30,17 @@ fn expected_dangling(built: &TypedInstance) -> Vec<Finding> {
     built
         .tables()
         .iter()
-        .flat_map(|(name, cells)| dangling_in_table(name, cells, &violated))
+        .flat_map(|(name, cells)| dangling_in_table((name, cells.as_slice()), &violated))
         .collect()
 }
 
 /// The dangling findings in one arrow's table: its unresolved cells that
 /// are not typing violations.
 fn dangling_in_table(
-    name: &Ident,
-    cells: &[Option<RowId>],
+    table: (&Ident, &[Option<RowId>]),
     violated: &[(String, usize)],
 ) -> Vec<Finding> {
+    let (name, cells) = table;
     cells
         .iter()
         .enumerate()
@@ -61,38 +61,34 @@ fn dangling_in_table(
 fn expected_violations(schema: &Schema, built: &TypedInstance) -> Vec<Finding> {
     let mut out = Vec::new();
     for (index, equation) in schema.equations.iter().enumerate() {
-        out.extend(equation_violations(schema, built, index, equation));
+        out.extend(equation_violations((schema, built), (index, equation)));
     }
     out
 }
 
 /// One equation's violation findings over its domain rows.
 fn equation_violations(
-    schema: &Schema,
-    built: &TypedInstance,
-    index: usize,
-    equation: &Equation,
+    inputs: (&Schema, &TypedInstance),
+    slot: (usize, &Equation),
 ) -> Vec<Finding> {
+    let (schema, built) = inputs;
+    let (index, equation) = slot;
     let lead = match schema.arrows.get(&equation.lhs.0[0]) {
         Some(lead) => lead,
         None => return Vec::new(),
     };
     let n_rows = built.rows().get(&lead.src).map(Vec::len).unwrap_or(0);
     (0..n_rows)
-        .filter_map(|row| row_violation(built, index, equation, row))
+        .filter_map(|row| row_violation(built, (index, equation, row)))
         .collect()
 }
 
 /// One domain row's finding: the witnessed violation when both equation
 /// sides compose and disagree, labeled by the equation's status.
-fn row_violation(
-    built: &TypedInstance,
-    index: usize,
-    equation: &Equation,
-    row: usize,
-) -> Option<Finding> {
-    let lhs = naive_compose(built, &equation.lhs, row);
-    let rhs = naive_compose(built, &equation.rhs, row);
+fn row_violation(built: &TypedInstance, slot: (usize, &Equation, usize)) -> Option<Finding> {
+    let (index, equation, row) = slot;
+    let lhs = naive_compose(built, (&equation.lhs, row));
+    let rhs = naive_compose(built, (&equation.rhs, row));
     match (lhs, rhs) {
         (Some(lhs), Some(rhs)) if lhs != rhs => Some(Finding {
             label: match equation.status {
@@ -110,7 +106,8 @@ fn row_violation(
     }
 }
 
-fn naive_compose(built: &TypedInstance, path: &Path, start: usize) -> Option<RowId> {
+fn naive_compose(built: &TypedInstance, start: (&Path, usize)) -> Option<RowId> {
+    let (path, start) = start;
     let mut current = start;
     for name in &path.0 {
         let cells = built.tables().get(name)?;

@@ -41,6 +41,22 @@ use catherine_core::model::{ConstraintStatus, Schema};
 
 use hegel::TestCase;
 
+/// Any serializable value as JSON text, or the test fails loudly.
+fn to_json<T: serde::Serialize>(value: &T) -> String {
+    match serde_json::to_string(value) {
+        Ok(text) => text,
+        Err(error) => panic!("value does not serialize: {error}"),
+    }
+}
+
+/// JSON text deserialized, or the test fails loudly.
+fn from_json<T: serde::de::DeserializeOwned>(text: &str) -> T {
+    match serde_json::from_str(text) {
+        Ok(value) => value,
+        Err(error) => panic!("value does not deserialize: {error}"),
+    }
+}
+
 /// Findings round-trip through serde JSON losslessly, and repeated
 /// checks — separate invocations over fresh builds — serialize
 /// byte-identically; the emitted list is in the taxonomy's total
@@ -52,11 +68,11 @@ fn findings_round_trip_and_serialize_stably(tc: TestCase) {
     let (schema, instance) = fixture::assemble(&case);
     let built = TypedInstance::build(&schema, &instance);
     let findings = check(&schema, &built);
-    let first = serde_json::to_string(&findings).expect("findings serialize");
+    let first = to_json(&findings);
     let rebuilt = TypedInstance::build(&schema, &instance);
-    let again = serde_json::to_string(&check(&schema, &rebuilt)).expect("findings serialize");
+    let again = to_json(&check(&schema, &rebuilt));
     assert_eq!(first, again, "repeated checks serialize byte-identically");
-    let back: Vec<Finding> = serde_json::from_str(&first).expect("findings deserialize");
+    let back: Vec<Finding> = from_json(&first);
     assert_eq!(findings, back, "serde round-trip is lossless");
     assert!(
         findings.windows(2).all(|w| w[0] <= w[1]),
@@ -71,10 +87,10 @@ fn findings_round_trip_and_serialize_stably(tc: TestCase) {
 fn every_kind_round_trips_and_serializes_deterministically(tc: TestCase) {
     let finding = tc.draw(arb_finding());
     tc.note(&format!("finding: {finding:?}"));
-    let first = serde_json::to_string(&finding).expect("finding serializes");
-    let back: Finding = serde_json::from_str(&first).expect("finding deserializes");
+    let first = to_json(&finding);
+    let back: Finding = from_json(&first);
     assert_eq!(finding, back, "serde round-trip is lossless");
-    let second = serde_json::to_string(&finding).expect("finding serializes");
+    let second = to_json(&finding);
     assert_eq!(first, second, "serialization is deterministic");
 }
 
@@ -130,18 +146,18 @@ fn kernel_findings_are_label_and_kind_sound(tc: TestCase) {
             "kernel labels are executed/hypothesized only, got {:?}",
             finding.label
         );
-        assert_kernel_witness_sound(&schema, &built, &finding);
+        assert_kernel_witness_sound((&schema, &built), &finding);
     }
 }
 
 /// One kernel finding's witnesses stay sound: the arm for each kind
 /// delegates to the small assertion helpers below, and the arms with no
 /// kernel producer refuse their witnesses.
-fn assert_kernel_witness_sound(schema: &Schema, built: &TypedInstance, finding: &Finding) {
+fn assert_kernel_witness_sound(inputs: (&Schema, &TypedInstance), finding: &Finding) {
     match &finding.kind {
-        FindingKind::Dangling(w) => assert_dangling_witness_sound(schema, built, finding.label, w),
+        FindingKind::Dangling(w) => assert_dangling_witness_sound(inputs, (finding.label, w)),
         FindingKind::Violation(ViolationWitness::Equation(w)) => {
-            assert_equation_witness_sound(schema, built, finding.label, w)
+            assert_equation_witness_sound(inputs, (finding.label, w))
         }
 
         FindingKind::Violation(ViolationWitness::Naturality(_)) => {
@@ -153,11 +169,11 @@ fn assert_kernel_witness_sound(schema: &Schema, built: &TypedInstance, finding: 
         }
 
         FindingKind::Violation(ViolationWitness::Coproduct(w)) => {
-            assert_coproduct_witness_sound(schema, built, finding.label, w)
+            assert_coproduct_witness_sound(inputs, (finding.label, w))
         }
 
         FindingKind::Violation(ViolationWitness::Key(w)) => {
-            assert_key_witness_sound(schema, built, finding.label, w)
+            assert_key_witness_sound(inputs, (finding.label, w))
         }
         // The generated fixture declares no pullbacks
         // (`fixture::assemble` always fills `pullbacks` with
@@ -186,11 +202,11 @@ fn assert_kernel_witness_sound(schema: &Schema, built: &TypedInstance, finding: 
 /// A dangling witness is executed, names a declared arrow, and names a
 /// row of that arrow's source object.
 fn assert_dangling_witness_sound(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &DanglingWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &DanglingWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert_eq!(label, EpistemicLabel::Executed, "dangling is executed");
     assert!(
         built.tables().contains_key(&w.arrow),
@@ -208,11 +224,11 @@ fn assert_dangling_witness_sound(
 /// domain object, and composed values of the path's target; the label
 /// mirrors the equation's status.
 fn assert_equation_witness_sound(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &EquationWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &EquationWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert!(w.equation < schema.equations.len(), "equation index valid");
     let eq = &schema.equations[w.equation];
     assert_eq!(
@@ -237,11 +253,11 @@ fn assert_equation_witness_sound(
 /// A coproduct witness names a valid coproduct and a row of the
 /// coproduct's object; the label mirrors the coproduct's status.
 fn assert_coproduct_witness_sound(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &CoproductWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &CoproductWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert!(
         w.coproduct < schema.coproducts.len(),
         "coproduct index valid"
@@ -266,11 +282,11 @@ fn assert_coproduct_witness_sound(
 /// A key witness names a valid key and ascending rows of the key's
 /// object; the label mirrors the key's status.
 fn assert_key_witness_sound(
-    schema: &Schema,
-    built: &TypedInstance,
-    label: EpistemicLabel,
-    w: &KeyWitness,
+    inputs: (&Schema, &TypedInstance),
+    finding: (EpistemicLabel, &KeyWitness),
 ) {
+    let (schema, built) = inputs;
+    let (label, w) = finding;
     assert!(w.key < schema.keys.len(), "key index valid");
     let key = &schema.keys[w.key];
     let n = built.rows().get(&key.object).map(Vec::len).unwrap_or(0);

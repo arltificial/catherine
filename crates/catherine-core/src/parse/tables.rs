@@ -20,36 +20,75 @@ use crate::error::{ErrorCode, ParseError, SemanticError};
 use crate::model::{Arrow, Ident, RowId};
 use std::collections::BTreeMap;
 
+/// What the instance tables are checked against: the declared arrows, the
+/// declared rows per object, and the span index.
+pub(super) struct TableCtx<'a> {
+    pub(super) arrows: &'a BTreeMap<Ident, Arrow>,
+    pub(super) row_index: &'a BTreeMap<String, BTreeMap<String, RowId>>,
+    pub(super) spans: &'a Spans,
+}
+
+/// One table's cell checks: the declaring arrow's name and definition, its
+/// source/target row maps, the value vectors being filled, and the span
+/// index.
+struct TableCellCheck<'a> {
+    name: &'a str,
+    arrow: &'a Arrow,
+    src_rows: Option<&'a BTreeMap<String, RowId>>,
+    tgt_rows: Option<&'a BTreeMap<String, RowId>>,
+    values: &'a mut BTreeMap<Ident, Vec<Option<RowId>>>,
+    spans: &'a Spans,
+}
+
 /// Instance tables: repeated keys, declared arrows, declared src rows,
 /// and values that are declared target rows or `null`. Every declared
 /// arrow carries a total vector over its source object's rows; an
 /// unspecified cell parses as `None` (dangling).
 pub(super) fn check_tables(
     instance: &RawInstance,
-    arrows: &BTreeMap<Ident, Arrow>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    spans: &Spans,
+    ctx: TableCtx,
 ) -> Result<BTreeMap<Ident, Vec<Option<RowId>>>, ParseError> {
-    check_table_dup_keys(spans)?;
+    check_table_dup_keys(ctx.spans)?;
+    check_table_arrows(instance, &ctx)?;
+    let mut values = init_tables(&ctx);
+    for (arrow_name, table) in &instance.tables {
+        let arrow = &ctx.arrows[&Ident(arrow_name.clone())];
+        let mut cells = TableCellCheck {
+            name: arrow_name,
+            arrow,
+            src_rows: ctx.row_index.get(&arrow.src.0),
+            tgt_rows: ctx.row_index.get(&arrow.tgt.0),
+            values: &mut values,
+            spans: ctx.spans,
+        };
+        check_table_cells(&mut cells, table)?;
+    }
+    Ok(values)
+}
+
+/// Every table names a declared arrow.
+fn check_table_arrows(instance: &RawInstance, ctx: &TableCtx) -> Result<(), ParseError> {
     for arrow_name in instance.tables.keys() {
-        if !arrows.contains_key(&Ident(arrow_name.clone())) {
-            return Err(spans.syntax_key(
+        if !ctx.arrows.contains_key(&Ident(arrow_name.clone())) {
+            return Err(ctx.spans.syntax_key(
                 "/instance/tables",
                 arrow_name,
                 format!("instance table names undeclared arrow `{arrow_name}`"),
             ));
         }
     }
+    Ok(())
+}
+
+/// An empty total table per declared arrow, sized by its source object's
+/// row count.
+fn init_tables(ctx: &TableCtx) -> BTreeMap<Ident, Vec<Option<RowId>>> {
     let mut values: BTreeMap<Ident, Vec<Option<RowId>>> = BTreeMap::new();
-    for (name, arrow) in arrows {
-        let n = row_index.get(&arrow.src.0).map_or(0, BTreeMap::len);
+    for (name, arrow) in ctx.arrows.iter() {
+        let n = ctx.row_index.get(&arrow.src.0).map_or(0, BTreeMap::len);
         values.insert(name.clone(), vec![None; n]);
     }
-    for (arrow_name, table) in &instance.tables {
-        let arrow = &arrows[&Ident(arrow_name.clone())];
-        check_table_cells(arrow_name, arrow, table, row_index, &mut values, spans)?;
-    }
-    Ok(values)
+    values
 }
 
 /// Repeated keys inside one table are a duplicate row ident.
@@ -74,61 +113,55 @@ fn check_table_dup_keys(spans: &Spans) -> Result<(), ParseError> {
 /// cell is an explicit `null` — the same dangling value as an absent
 /// cell).
 fn check_table_cells(
-    arrow_name: &str,
-    arrow: &Arrow,
+    check: &mut TableCellCheck,
     table: &BTreeMap<String, Option<String>>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    values: &mut BTreeMap<Ident, Vec<Option<RowId>>>,
-    spans: &Spans,
 ) -> Result<(), ParseError> {
-    let src_rows = row_index.get(&arrow.src.0);
-    let tgt_rows = row_index.get(&arrow.tgt.0);
     for (row_name, value) in table {
-        let key_at = format!("/instance/tables/{arrow_name}");
-        let src_id = check_table_src(arrow_name, arrow, row_name, src_rows, &key_at, spans)?;
+        let key_at = format!("/instance/tables/{}", check.name);
+        let src_id = check_table_src(check, row_name, &key_at)?;
         let Some(target) = value else {
             continue; // explicit `null` — the same dangling value as an absent cell
         };
-        let Some(tgt_id) = tgt_rows.and_then(|m| m.get(target)) else {
-            return Err(spans.syntax(
+        let Some(tgt_id) = check.tgt_rows.and_then(|m| m.get(target)) else {
+            return Err(check.spans.syntax(
                 &format!("{key_at}/{row_name}"),
                 format!(
-                    "table `{arrow_name}` maps `{row_name}` to `{target}`, which is not a row of `{}`",
-                    arrow.tgt.0
+                    "table `{}` maps `{row_name}` to `{target}`, which is not a row of `{}`",
+                    check.name, check.arrow.tgt.0
                 ),
             ));
         };
-        values.get_mut(&Ident(arrow_name.to_string())).unwrap()[src_id.0] = Some(*tgt_id);
+        check
+            .values
+            .get_mut(&Ident(check.name.to_string()))
+            .unwrap()[src_id.0] = Some(*tgt_id);
     }
     Ok(())
 }
 
 /// A table key must be a declared row of the arrow's source object.
 fn check_table_src(
-    arrow_name: &str,
-    arrow: &Arrow,
+    check: &TableCellCheck,
     row_name: &str,
-    src_rows: Option<&BTreeMap<String, RowId>>,
     key_at: &str,
-    spans: &Spans,
 ) -> Result<RowId, ParseError> {
-    let Some(src_map) = src_rows else {
-        return Err(spans.syntax_key(
+    let Some(src_map) = check.src_rows else {
+        return Err(check.spans.syntax_key(
             key_at,
             row_name,
             format!(
-                "table `{arrow_name}` keys row `{row_name}`, but `{}` has no declared rows",
-                arrow.src.0
+                "table `{}` keys row `{row_name}`, but `{}` has no declared rows",
+                check.name, check.arrow.src.0
             ),
         ));
     };
     let Some(src_id) = src_map.get(row_name) else {
-        return Err(spans.syntax_key(
+        return Err(check.spans.syntax_key(
             key_at,
             row_name,
             format!(
-                "table `{arrow_name}` keys row `{row_name}`, which is not a row of `{}`",
-                arrow.src.0
+                "table `{}` keys row `{row_name}`, which is not a row of `{}`",
+                check.name, check.arrow.src.0
             ),
         ));
     };

@@ -7,11 +7,16 @@
 //! model loading.
 //!
 //! Rationale: kept in a submodule file so `pattern.rs` stays under the
-//! file-size gate; the tests and their assertions are unchanged.
+//! file-size gate; the tests and their assertions are unchanged. The
+//! renderers they exercise live in [`super::report`].
 
-use super::*;
+use super::report::{list_lines, outcome_exit, render_migrations, PatternData};
+use super::{check_values_syntax, unknown_pattern};
+use crate::cli::LOST_DATA_EXIT_CODE;
+use catherine_analysis::pattern::{LensError, LensFindings};
 use catherine_core::findings::EpistemicLabel;
-use catherine_core::model::{Ident, RowId};
+use catherine_core::migrate::{MigrationFinding, MigrationFindingKind};
+use catherine_core::model::{Ident, RowId, Schema};
 
 fn lost_cell(arrow: &str, row: usize) -> MigrationFinding {
     MigrationFinding {

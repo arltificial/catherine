@@ -23,44 +23,88 @@ pub struct FixtureCase {
     pub equations: Vec<Equation>,
 }
 
+/// The drawn parts a case is built from: arrow shapes, per-object row
+/// counts, the cell pool, equation seeds, and the equation statuses.
+pub struct DrawnParts {
+    pub shapes: Vec<(usize, usize)>,
+    pub row_counts: Vec<usize>,
+    pub cell_pool: Vec<usize>,
+    pub eq_seeds: Vec<(usize, usize)>,
+    pub statuses: Vec<bool>,
+}
+
 /// Build the case from drawn parts: well-typed tables (a drawn value is
 /// clamped into the target object's row space, an empty target space
 /// leaves the cell dangling), equations over endpoint-matched candidate
 /// paths, in deterministic generation order.
-pub fn build_case(
-    shapes: &[(usize, usize)],
-    row_counts: &[usize],
-    cell_pool: &[usize],
-    eq_seeds: &[(usize, usize)],
-    statuses: &[bool],
-) -> FixtureCase {
+pub fn build_case(parts: DrawnParts) -> FixtureCase {
+    let candidates = candidate_groups(&parts.shapes, parts.row_counts.len());
+    let cells = parts.cells();
+    let equations = parts.equations(&candidates);
     FixtureCase {
-        arrows: shapes.to_vec(),
-        row_counts: row_counts.to_vec(),
-        cells: cells_for(shapes, row_counts, cell_pool),
-        equations: equations_for_seeds(
-            eq_seeds,
-            &candidate_groups(shapes, row_counts.len()),
-            statuses,
-        ),
+        arrows: parts.shapes,
+        row_counts: parts.row_counts,
+        cells,
+        equations,
     }
 }
 
-/// The case's cell tables: per arrow, one clamped cell per source row.
-fn cells_for(
-    shapes: &[(usize, usize)],
-    row_counts: &[usize],
-    cell_pool: &[usize],
-) -> Vec<Vec<Option<usize>>> {
-    let mut pool = cell_pool.iter().copied();
-    shapes
-        .iter()
-        .map(|&(s, t)| {
-            (0..row_counts[s])
-                .map(|_| cell_for(&mut pool, row_counts[t]))
-                .collect::<Vec<_>>()
+impl DrawnParts {
+    /// The case's cell tables: per arrow, one clamped cell per source row.
+    fn cells(&self) -> Vec<Vec<Option<usize>>> {
+        let mut pool = self.cell_pool.iter().copied();
+        self.shapes
+            .iter()
+            .map(|&(s, t)| {
+                (0..self.row_counts[s])
+                    .map(|_| cell_for(&mut pool, self.row_counts[t]))
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
+
+    /// The equations the seeds generate over the candidate groups, in
+    /// generation order.
+    fn equations(&self, candidates: &[Vec<Vec<usize>>]) -> Vec<Equation> {
+        self.eq_seeds
+            .iter()
+            .enumerate()
+            .filter_map(|(k, seed)| {
+                SeedDraw {
+                    k,
+                    seed,
+                    statuses: &self.statuses,
+                }
+                .equation(candidates)
+            })
+            .collect()
+    }
+}
+
+/// One drawn equation seed with its status pool, so the equation builder
+/// stays within the two-parameter test limit.
+struct SeedDraw<'a> {
+    k: usize,
+    seed: &'a (usize, usize),
+    statuses: &'a [bool],
+}
+
+impl SeedDraw<'_> {
+    /// One seed's equation, if any candidates exist.
+    fn equation(&self, candidates: &[Vec<Vec<usize>>]) -> Option<Equation> {
+        if candidates.is_empty() {
+            return None;
+        }
+        let k = self.k;
+        let seed = self.seed;
+        let group = &candidates[(seed.0 + seed.1 + k) % candidates.len()];
+        Some(Equation {
+            lhs: Path(path_idents(&group[seed.0 % group.len()])),
+            rhs: Path(path_idents(&group[seed.1 % group.len()])),
+            rationale: format!("property equation {k}"),
+            status: seed_status(self.statuses, k),
         })
-        .collect()
+    }
 }
 
 /// One drawn cell: clamped into the target's row space; an empty target
@@ -72,14 +116,63 @@ fn cell_for<I: Iterator<Item = usize>>(pool: &mut I, tgt_rows: usize) -> Option<
     }
 }
 
+/// The drawn arrow shapes shared by the candidate-path helpers, so each
+/// helper stays within the two-parameter test limit.
+struct Paths<'a> {
+    shapes: &'a [(usize, usize)],
+}
+
+impl Paths<'_> {
+    /// Candidate paths from `s` to `t`: one-hop arrows and two-hop
+    /// compositions through an intermediate object.
+    fn between(&self, endpoints: (usize, usize)) -> Vec<Vec<usize>> {
+        let (s, t) = endpoints;
+        let mut paths = Vec::new();
+        for (i, &(src, _)) in self.shapes.iter().enumerate() {
+            if src == s {
+                paths.extend(self.through((i, t)));
+            }
+        }
+        paths
+    }
+
+    /// The paths starting at arrow `i` (whose target is `tgt`) and ending
+    /// at `t`: the one-hop `i` itself, then the two-hops `i` followed by
+    /// any other arrow landing on `t`.
+    fn through(&self, hop: (usize, usize)) -> Vec<Vec<usize>> {
+        let (i, t) = hop;
+        let tgt = self.shapes[i].1;
+        let mut paths = Vec::new();
+        if tgt == t {
+            paths.push(vec![i]);
+        }
+        paths.extend(self.second_hops(hop));
+        paths
+    }
+
+    /// The second hops completing arrow `i` onto `t`: other arrows `j`
+    /// whose source is `i`'s target and whose target is `t`.
+    fn second_hops(&self, hop: (usize, usize)) -> Vec<Vec<usize>> {
+        let (i, t) = hop;
+        let tgt = self.shapes[i].1;
+        self.shapes
+            .iter()
+            .enumerate()
+            .filter(|&(j, &(src2, tgt2))| j != i && src2 == tgt && tgt2 == t)
+            .map(|(j, _)| vec![i, j])
+            .collect()
+    }
+}
+
 /// Candidate equation paths grouped by endpoint pair `(s, t)` in pair
 /// order, so lhs/rhs always come from matching endpoints — parse rejects
 /// mismatched endpoints (ill_typed_equation), so the generator must stay
 /// well-typed.
 fn candidate_groups(shapes: &[(usize, usize)], max_objects: usize) -> Vec<Vec<Vec<usize>>> {
+    let paths = Paths { shapes };
     let mut by_endpoints: BTreeMap<(usize, usize), Vec<Vec<usize>>> = BTreeMap::new();
     for (s, t) in pair_keys(shapes.len().min(max_objects)) {
-        let matching = paths_between(shapes, s, t);
+        let matching = paths.between((s, t));
         if !matching.is_empty() {
             by_endpoints.insert((s, t), matching);
         }
@@ -90,74 +183,6 @@ fn candidate_groups(shapes: &[(usize, usize)], max_objects: usize) -> Vec<Vec<Ve
 /// All `(s, t)` pairs over `0..n`, row-major.
 fn pair_keys(n: usize) -> Vec<(usize, usize)> {
     (0..n).flat_map(|s| (0..n).map(move |t| (s, t))).collect()
-}
-
-/// Candidate paths from `s` to `t`: one-hop arrows and two-hop
-/// compositions through an intermediate object.
-fn paths_between(shapes: &[(usize, usize)], s: usize, t: usize) -> Vec<Vec<usize>> {
-    let mut paths = Vec::new();
-    for (i, &(src, tgt)) in shapes.iter().enumerate() {
-        if src == s {
-            paths.extend(hops_through(shapes, i, tgt, t));
-        }
-    }
-    paths
-}
-
-/// The paths starting at arrow `i` (whose target is `tgt`) and ending at
-/// `t`: the one-hop `i` itself, then the two-hops `i` followed by any
-/// other arrow landing on `t`.
-fn hops_through(shapes: &[(usize, usize)], i: usize, tgt: usize, t: usize) -> Vec<Vec<usize>> {
-    let mut paths = Vec::new();
-    if tgt == t {
-        paths.push(vec![i]);
-    }
-    paths.extend(two_hop_matches(shapes, i, tgt, t));
-    paths
-}
-
-/// The second hops completing arrow `i` onto `t`: other arrows `j` whose
-/// source is `i`'s target and whose target is `t`.
-fn two_hop_matches(shapes: &[(usize, usize)], i: usize, tgt: usize, t: usize) -> Vec<Vec<usize>> {
-    shapes
-        .iter()
-        .enumerate()
-        .filter(|&(j, &(src2, tgt2))| j != i && src2 == tgt && tgt2 == t)
-        .map(|(j, _)| vec![i, j])
-        .collect()
-}
-
-/// The equations the seeds generate over the candidate groups, in
-/// generation order.
-fn equations_for_seeds(
-    eq_seeds: &[(usize, usize)],
-    candidates: &[Vec<Vec<usize>>],
-    statuses: &[bool],
-) -> Vec<Equation> {
-    eq_seeds
-        .iter()
-        .enumerate()
-        .filter_map(|(k, seed)| seed_equation(k, seed, candidates, statuses))
-        .collect()
-}
-
-/// One seed's equation, if any candidates exist.
-fn seed_equation(
-    k: usize,
-    seed: &(usize, usize),
-    candidates: &[Vec<Vec<usize>>],
-    statuses: &[bool],
-) -> Option<Equation> {
-    if candidates.is_empty() {
-        return None;
-    }
-    let group = &candidates[(seed.0 + seed.1 + k) % candidates.len()];
-    Some(Equation {
-        lhs: Path(path_idents(&group[seed.0 % group.len()])),
-        rhs: Path(path_idents(&group[seed.1 % group.len()])),
-        rationale: format!("property equation {k}"),
-        status: seed_status(statuses, k),
-    })
 }
 
 /// A drawn equation's status: a drawn `true` marks it proposed.

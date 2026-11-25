@@ -21,7 +21,8 @@ use catherine_analysis::naturality::{
     migration_naturality, naturality, MigrationOutcome, NaturalityOutcome, UndefinedSquare,
 };
 use catherine_core::findings::{FindingKind, ViolationWitness};
-use catherine_core::model::{Ident, RowId};
+use catherine_core::model::{Ident, Model, RowId};
+use catherine_core::parse::RowNames;
 
 /// A source instance whose `account_owner` cell at `a2` dangles; the
 /// declared map is total.
@@ -97,20 +98,30 @@ fn ident(name: &str) -> Ident {
     Ident(name.to_string())
 }
 
+/// Parse the source and target documents with their row names.
+fn parse_pair(
+    source_text: &str,
+    target_text: &str,
+) -> Result<(Model, RowNames, Model, RowNames), String> {
+    let (source, source_names) = catherine_core::parse::parse_with_rows(source_text)
+        .map_err(|e| format!("the source parses: {e:?}"))?;
+    let (target, target_names) = catherine_core::parse::parse_with_rows(target_text)
+        .map_err(|e| format!("the target parses: {e:?}"))?;
+    Ok((source, source_names, target, target_names))
+}
+
 /// Execute the declared map over the given source/target documents.
-fn outcome(source_text: &str, target_text: &str) -> NaturalityOutcome {
-    let (source, source_names) =
-        catherine_core::parse::parse_with_rows(source_text).expect("the source parses");
-    let (target, target_names) =
-        catherine_core::parse::parse_with_rows(target_text).expect("the target parses");
-    naturality(&source, &target, &source_names, &target_names).expect("the map resolves")
+fn outcome(source_text: &str, target_text: &str) -> Result<NaturalityOutcome, String> {
+    let (source, source_names, target, target_names) = parse_pair(source_text, target_text)?;
+    naturality(&source, &target, &source_names, &target_names)
+        .map_err(|e| format!("the map resolves: {e:?}"))
 }
 
 /// Both compositions undefined: exactly one undefined square, no finding
 /// — the square is a non-answer, never a clean.
 #[test]
-fn undefined_square_is_reported_not_clean() {
-    let outcome = outcome(SOURCE_DANGLING, TARGET_DANGLING);
+fn undefined_square_is_reported_not_clean() -> Result<(), String> {
+    let outcome = outcome(SOURCE_DANGLING, TARGET_DANGLING)?;
     assert!(
         outcome.findings.is_empty(),
         "an undefined square is not a witnessed break: {:?}",
@@ -124,13 +135,14 @@ fn undefined_square_is_reported_not_clean() {
         }],
         "the `account_owner` square at row `a2` is undefined on both sides"
     );
+    Ok(())
 }
 
 /// One side undefined: a witnessed break with a null `lhs` and the
 /// resolved target row as `rhs`.
 #[test]
-fn one_sided_undefined_is_a_witnessed_violation() {
-    let outcome = outcome(SOURCE_DANGLING, TARGET_DEFINED);
+fn one_sided_undefined_is_a_witnessed_violation() -> Result<(), String> {
+    let outcome = outcome(SOURCE_DANGLING, TARGET_DEFINED)?;
     assert!(
         outcome.undefined.is_empty(),
         "a one-sided undefined square is decidable: {:?}",
@@ -146,13 +158,14 @@ fn one_sided_undefined_is_a_witnessed_violation() {
         }
         other => panic!("a break is a naturality violation, not {other:?}"),
     }
+    Ok(())
 }
 
 /// Both compositions defined and equal: the fully executed sweep is clean
 /// in both channels.
 #[test]
-fn defined_commuting_square_is_clean() {
-    let outcome = outcome(SOURCE_DEFINED, TARGET_DEFINED);
+fn defined_commuting_square_is_clean() -> Result<(), String> {
+    let outcome = outcome(SOURCE_DEFINED, TARGET_DEFINED)?;
     assert!(
         outcome.findings.is_empty(),
         "the defined map commutes: {:?}",
@@ -163,6 +176,7 @@ fn defined_commuting_square_is_clean() {
         "every square was verified: {:?}",
         outcome.undefined
     );
+    Ok(())
 }
 
 // --- migration naturality (catherine-kw9.2): migrate-then-operate must
@@ -267,20 +281,17 @@ const MIGRATION_NONCOMMUTING_TARGET: &str = r#"{
 
 /// Run the migration-naturality sweep over a v1 document and its
 /// migrated v2 instance.
-fn migration_outcome(source_text: &str, target_text: &str) -> MigrationOutcome {
-    let (source, source_names) =
-        catherine_core::parse::parse_with_rows(source_text).expect("the v1 document parses");
-    let (target, target_names) =
-        catherine_core::parse::parse_with_rows(target_text).expect("the v2 instance parses");
+fn migration_outcome(source_text: &str, target_text: &str) -> Result<MigrationOutcome, String> {
+    let (source, source_names, target, target_names) = parse_pair(source_text, target_text)?;
     migration_naturality(&source, &target, &source_names, &target_names)
-        .expect("the migration maps resolve")
+        .map_err(|e| format!("the migration maps resolve: {e:?}"))
 }
 
 /// An isomorphic-rename migration commutes in both directions for every
 /// operation: zero findings, zero undefined squares.
 #[test]
-fn isomorphic_rename_migration_commutes() {
-    let outcome = migration_outcome(MIGRATION_COMMUTING, MIGRATION_COMMUTING_TARGET);
+fn isomorphic_rename_migration_commutes() -> Result<(), String> {
+    let outcome = migration_outcome(MIGRATION_COMMUTING, MIGRATION_COMMUTING_TARGET)?;
     assert!(
         outcome.findings.is_empty(),
         "a rename migration commutes: {:?}",
@@ -291,6 +302,7 @@ fn isomorphic_rename_migration_commutes() {
         "every square was verified: {:?}",
         outcome.undefined
     );
+    Ok(())
 }
 
 /// Migrating then operating with the split ops does not reproduce the
@@ -299,8 +311,8 @@ fn isomorphic_rename_migration_commutes() {
 /// one witnessed break naming the operation pair (`setName` vs the Δ
 /// path) and both composed result rows.
 #[test]
-fn split_operation_migration_breaks_with_witness() {
-    let outcome = migration_outcome(MIGRATION_NONCOMMUTING, MIGRATION_NONCOMMUTING_TARGET);
+fn split_operation_migration_breaks_with_witness() -> Result<(), String> {
+    let outcome = migration_outcome(MIGRATION_NONCOMMUTING, MIGRATION_NONCOMMUTING_TARGET)?;
     assert!(
         outcome.undefined.is_empty(),
         "every square is decidable here: {:?}",
@@ -328,4 +340,5 @@ fn split_operation_migration_breaks_with_witness() {
         }
         other => panic!("a broken migration square is a violation, not {other:?}"),
     }
+    Ok(())
 }

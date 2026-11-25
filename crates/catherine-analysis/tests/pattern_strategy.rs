@@ -29,9 +29,7 @@ mod reference;
 mod harness;
 
 /// The library's module roots under the names the lens source imports.
-mod bounds {
-    pub use catherine_analysis::bounds::*;
-}
+mod bounds {}
 
 /// The seam's types and helpers, re-exported for the lens source.
 mod pattern {
@@ -47,7 +45,7 @@ mod rule_lens {
 mod strategy;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LawKind, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{LawKind, LensCall, LensInput, LensOutcome, PatternLens};
 use expectations::{Expectation, EXPECTATIONS};
 use harness::{compare, fixture};
 use strategy::Lens;
@@ -82,7 +80,10 @@ fn run_row(row: &Expectation) -> LensOutcome {
         model: &model,
         values: &values,
     };
-    Lens.run(&input, &ScopeCaps::default())
+    Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    })
 }
 
 /// A completed outcome carrying exactly the row's recorded multiset. The
@@ -172,7 +173,10 @@ fn a_model_without_a_rule_presentation_is_unknown_not_clean() {
         model: &model,
         values: &[],
     };
-    match Lens.run(&input, &ScopeCaps::default()) {
+    match Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("rule_presentation")),
         LensOutcome::Findings(findings) => {
             panic!("an absent surface must not be clean: {findings:?}")
@@ -189,7 +193,10 @@ fn unbound_values_are_an_unknown_scope() {
         model: &model,
         values: &values,
     };
-    match Lens.run(&input, &ScopeCaps::default()) {
+    match Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("does not declare")),
         LensOutcome::Findings(_) => panic!("an unbound domain must not be evaluated"),
     }
@@ -208,7 +215,10 @@ fn an_expired_candidate_budget_is_unknown() {
         max_candidates: 0,
         ..ScopeCaps::default()
     };
-    match Lens.run(&input, &caps) {
+    match Lens.run(LensCall {
+        input: &input,
+        caps: &caps,
+    }) {
         LensOutcome::Unknown { scope } => {
             assert!(scope.contains("nothing decided"), "scope: {scope}")
         }

@@ -16,52 +16,51 @@
 //! same discipline the P6 ledger's validator applies, made executable for
 //! the rule-lens entries.
 
-use catherine_core::hash::model_hash;
-use catherine_core::parse::parse;
+mod probe_support;
+
+use std::path::Path;
+
 use catherine_ledger::rollup::derive;
 use catherine_ledger::validate::validate_dir;
 
-/// The workspace root, from this test crate's manifest directory.
-fn workspace_root() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-/// The model hash of a workspace-relative fixture path.
-fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(workspace_root().join(path)).expect("fixture exists");
-    let model = parse(&text).expect("fixture parses");
-    model_hash(&model)
-}
+use probe_support::{fixture_hash, present, TestError};
 
 #[test]
-fn rule_lens_ledger_is_valid_and_derives_its_recorded_verdict() {
-    let valid = validate_dir(&workspace_root().join("ledger/rule-lens"))
-        .expect("the rule-lens ledger validates");
+fn rule_lens_ledger_is_valid_and_derives_its_recorded_verdict() -> Result<(), TestError> {
+    let root = Path::new(probe_support::ROOT);
+    let valid = validate_dir(&root.join("ledger/rule-lens"))
+        .map_err(|violations| format!("{violations:?}"))?;
     let katas = valid.kata_entries();
     assert_eq!(katas.len(), 2, "one control + one above-floor kata");
 
-    let control = katas[0].content.kata.as_ref().expect("control kata");
-    assert!(control.control, "the first entry is the negative control");
-    assert_eq!(control.verdict, "killed", "the control self-negates");
+    let control = present(katas[0].content.kata.as_ref(), "control kata")?;
     assert!(
-        control.comparison.unique_detections.is_empty(),
+        control.identity.control,
+        "the first entry is the negative control"
+    );
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negates"
+    );
+    assert!(
+        control.derivation.comparison.unique_detections.is_empty(),
         "the control earns no unique detection"
     );
 
-    let above_floor = katas[1].content.kata.as_ref().expect("above-floor kata");
-    assert!(!above_floor.control);
-    assert_eq!(above_floor.verdict, "survived");
+    let above_floor = present(katas[1].content.kata.as_ref(), "above-floor kata")?;
+    assert!(!above_floor.identity.control);
+    assert_eq!(above_floor.derivation.verdict, "survived");
     assert_eq!(
-        above_floor.comparison.unique_detections.len(),
+        above_floor.derivation.comparison.unique_detections.len(),
         5,
         "the five structural unique detections are recorded"
     );
 
     for entry in &katas {
-        let kata = entry.content.kata.as_ref().expect("kata record");
+        let kata = present(entry.content.kata.as_ref(), "kata record")?;
         assert_eq!(
-            kata.fixture_hash,
-            fixture_hash(&kata.fixture),
+            kata.provenance.fixture_hash,
+            fixture_hash(&kata.provenance.fixture)?,
             "the fixture hash is recomputed from canonical model bytes"
         );
         assert!(
@@ -70,34 +69,25 @@ fn rule_lens_ledger_is_valid_and_derives_its_recorded_verdict() {
         );
     }
 
-    let recorded = valid.rollup().expect("the ledger ends with a rollup");
-    let record = recorded.content.rollup.as_ref().expect("rollup record");
-    let derived = derive(&katas).expect("the committed procedure derives");
+    let recorded = present(valid.rollup(), "the ledger ends with a rollup")?;
+    let record = present(recorded.content.rollup.as_ref(), "rollup record")?;
+    let derived = derive(&katas)?;
     assert_eq!(record.verdict, derived.verdict.as_str());
     assert_eq!(record.control_gate, derived.control_gate);
-    let per_kata: Vec<(String, String, String)> = record
+    let recorded_per_kata: Vec<_> = record
         .per_kata
         .iter()
-        .map(|line| {
-            (
-                line.kata_id.clone(),
-                line.entry_id.clone(),
-                line.verdict.clone(),
-            )
-        })
+        .map(|line| (&line.kata_id, &line.entry_id, line.verdict.as_str()))
         .collect();
-    let expected: Vec<(String, String, String)> = derived
+    let derived_per_kata: Vec<_> = derived
         .per_kata
         .iter()
-        .map(|(kata_id, entry_id, verdict)| {
-            (
-                kata_id.clone(),
-                entry_id.clone(),
-                verdict.as_str().to_string(),
-            )
-        })
+        .map(|(kata_id, entry_id, verdict)| (kata_id, entry_id, verdict.as_str()))
         .collect();
-    assert_eq!(per_kata, expected, "the rollup is the derived one");
+    assert_eq!(
+        recorded_per_kata, derived_per_kata,
+        "the rollup is the derived one"
+    );
     assert_eq!(
         record.kata_entry_ids,
         katas
@@ -106,4 +96,5 @@ fn rule_lens_ledger_is_valid_and_derives_its_recorded_verdict() {
             .collect::<Vec<_>>(),
         "the rollup consumes every kata entry, in seq order"
     );
+    Ok(())
 }

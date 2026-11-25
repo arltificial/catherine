@@ -13,26 +13,39 @@
 //! Rationale: the baseline script and this test are the two frozen
 //! things; the ledger entry is the science between them.
 
+mod support;
+
 use std::path::Path;
 
 use catherine_core::hash::model_hash;
 use catherine_core::parse::parse;
 use catherine_ledger::entry::BaselineMode;
 use catherine_ledger::validate::validate_dir;
+use support::{present, TestError};
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+const LEDGER: &str = "ledger/katas/composite-null-object";
 const BASELINE_SHA: &str = "83d443b58296df3cdb5213efff6888fe974f190e8e01fe85684aa390469b4a6a";
 
 /// One fixture's model hash, recomputed from its canonical model bytes.
-fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(format!("{ROOT}/{path}")).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+fn fixture_hash(path: &str) -> Result<String, TestError> {
+    let text = std::fs::read_to_string(format!("{ROOT}/{path}"))?;
+    let document = parse(&text)?;
+    Ok(model_hash(&document))
+}
+
+/// The committed kata ledger, validated; a refusal becomes the test's
+/// error with the violations spelled out.
+fn validated() -> Result<catherine_ledger::validate::ValidLedger, TestError> {
+    validate_dir(Path::new(ROOT).join(LEDGER).as_path()).map_err(|violations| {
+        format!("the composite-null-object ledger refused: {violations:?}").into()
+    })
 }
 
 /// The six committed fixtures' identities are pinned: an edit to any of
 /// them must be a new ledger entry, never a silent change.
 #[test]
-fn fixture_model_hashes_are_pinned() {
+fn fixture_model_hashes_are_pinned() -> Result<(), TestError> {
     let pinned = [
         (
             "fixtures/katas/composite-null-object/composite-null-object.ct.json",
@@ -60,37 +73,43 @@ fn fixture_model_hashes_are_pinned() {
         ),
     ];
     for (path, hash) in pinned {
-        assert_eq!(fixture_hash(path), hash, "fixture hash drift: {path}");
+        assert_eq!(fixture_hash(path)?, hash, "fixture hash drift: {path}");
     }
+    Ok(())
 }
 
 /// The ledger validates and the control is the first kata entry, `killed`
 /// with an empty unique set: the floor self-negates.
 #[test]
-fn control_goes_first_and_self_negates() {
-    let dir = Path::new(ROOT).join("ledger/katas/composite-null-object");
-    let valid = validate_dir(&dir).expect("the kata ledger validates");
+fn control_goes_first_and_self_negates() -> Result<(), TestError> {
+    let valid = validated()?;
     assert_eq!(valid.entries.len(), 4, "control + three positives");
     let kata_entries = valid.kata_entries();
     assert_eq!(kata_entries.len(), 4);
-    let control = kata_entries[0].content.kata.clone().expect("kata record");
-    assert!(control.control, "the floor control is first");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
-    assert!(control.comparison.unique_detections.is_empty());
-    assert_eq!(control.fixture_hash, fixture_hash(&control.fixture));
+    let control = present(kata_entries[0].content.kata.as_ref(), "kata record")?;
+    assert!(control.identity.control, "the floor control is first");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(control.derivation.comparison.unique_detections.is_empty());
+    assert_eq!(
+        control.provenance.fixture_hash,
+        fixture_hash(&control.provenance.fixture)?
+    );
     assert_eq!(
         control.catalog_hash, None,
         "this kata id is not a registered probe"
     );
+    Ok(())
 }
 
 /// Each positive entry carries a non-empty unique set, backed by the
 /// executed baseline arm whose pin names the frozen script's sha256, and
 /// its recorded fixture hash recomputes.
 #[test]
-fn positives_carry_the_preregistered_unique_elements() {
-    let dir = Path::new(ROOT).join("ledger/katas/composite-null-object");
-    let valid = validate_dir(&dir).expect("the kata ledger validates");
+fn positives_carry_the_preregistered_unique_elements() -> Result<(), TestError> {
+    let valid = validated()?;
     let expected = vec![
         vec!["dangling:parent@Node#3".to_string()],
         vec!["violation:eq0@Node#4".to_string()],
@@ -99,25 +118,28 @@ fn positives_carry_the_preregistered_unique_elements() {
             .collect(),
     ];
     for (entry, elements) in valid.kata_entries()[1..].iter().zip(expected) {
-        let kata = entry.content.kata.as_ref().expect("kata record");
-        assert!(!kata.control);
-        assert_eq!(kata.comparison.unique_detections, elements);
-        let baseline = kata
-            .comparison
-            .baseline
-            .as_ref()
-            .expect("a unique claim needs an executed baseline arm");
+        let kata = present(entry.content.kata.as_ref(), "kata record")?;
+        assert!(!kata.identity.control);
+        assert_eq!(kata.derivation.comparison.unique_detections, elements);
+        let baseline = present(
+            kata.derivation.comparison.baseline.as_ref(),
+            "the executed baseline arm behind the unique claim",
+        )?;
         assert_eq!(baseline.mode, BaselineMode::Executed);
         assert!(
             baseline.artifact.contains(BASELINE_SHA),
             "the arm pins the committed script: {}",
             baseline.artifact
         );
-        assert_eq!(kata.fixture_hash, fixture_hash(&kata.fixture));
+        assert_eq!(
+            kata.provenance.fixture_hash,
+            fixture_hash(&kata.provenance.fixture)?
+        );
         assert_eq!(
             entry.content.model_hashes,
-            vec![kata.fixture_hash.clone()],
+            vec![kata.provenance.fixture_hash.clone()],
             "the validated model is the fixture it names"
         );
     }
+    Ok(())
 }

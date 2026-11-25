@@ -30,19 +30,26 @@ pub fn arb_case(tc: &TestCase) -> FixtureCase {
     let n_objects = tc.draw(gs::integers::<usize>().min_value(1).max_value(3));
     let n_arrows = tc.draw(gs::integers::<usize>().min_value(1).max_value(4));
 
-    let shapes = draw_shapes(tc, n_objects, n_arrows);
+    let shapes = draw_shapes(tc, (n_objects, n_arrows));
     let row_counts = draw_row_counts(tc, n_objects);
-    let cell_pool = draw_cell_pool(tc, &shapes, &row_counts);
+    let cell_pool = draw_cell_pool(tc, (&shapes, &row_counts));
     let (eq_seeds, statuses) = draw_equations(tc);
 
-    let mut case = fixture::build_case(&shapes, &row_counts, &cell_pool, &eq_seeds, &statuses);
+    let mut case = fixture::build_case(fixture::DrawnParts {
+        shapes,
+        row_counts,
+        cell_pool,
+        eq_seeds,
+        statuses,
+    });
     sort_equations(&mut case);
     case
 }
 
 /// Arrow shapes: `n_arrows` `(src, tgt)` pairs over `n_objects` objects,
 /// self-loops included.
-fn draw_shapes(tc: &TestCase, n_objects: usize, n_arrows: usize) -> Vec<(usize, usize)> {
+fn draw_shapes(tc: &TestCase, layout: (usize, usize)) -> Vec<(usize, usize)> {
+    let (n_objects, n_arrows) = layout;
     tc.draw(
         gs::vecs(hegel::tuples!(
             gs::integers::<usize>()
@@ -68,7 +75,8 @@ fn draw_row_counts(tc: &TestCase, n_objects: usize) -> Vec<usize> {
 
 /// The cell pool must cover every source row of every arrow; the
 /// builder consumes it in arrow order and ignores any surplus.
-fn draw_cell_pool(tc: &TestCase, shapes: &[(usize, usize)], row_counts: &[usize]) -> Vec<usize> {
+fn draw_cell_pool(tc: &TestCase, drawn: (&[(usize, usize)], &[usize])) -> Vec<usize> {
+    let (shapes, row_counts) = drawn;
     let n_cells: usize = shapes
         .iter()
         .enumerate()

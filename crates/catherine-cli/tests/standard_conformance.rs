@@ -105,41 +105,53 @@ fn beads_issues_jsonl_is_an_intact_source_of_truth() {
         ".beads/issues.jsonl is empty — the exported source of truth is gone"
     );
 
-    let mut ids = BTreeSet::new();
-    // (line number, dependency's issue_id, dependency's depends_on_id)
-    let mut dependencies = Vec::new();
-    for (index, line) in raw.lines().enumerate() {
-        collect_issue_line(line, index + 1, &mut ids, &mut dependencies);
-    }
+    let mut export = Export::default();
+    export.collect_lines(&raw);
 
     assert!(
-        !ids.is_empty(),
+        !export.ids.is_empty(),
         "issues.jsonl contains no issues — source of truth is degenerate"
     );
-    assert_dependencies_resolve(&dependencies, &ids);
+    assert_dependencies_resolve(&export.dependencies, &export.ids);
 }
 
-/// One line of the export: a JSON object with a unique, non-empty id whose
-/// dependency references are recorded for the resolve pass. Blank lines are
-/// skipped.
-fn collect_issue_line(
-    line: &str,
-    number: usize,
-    ids: &mut BTreeSet<String>,
-    dependencies: &mut Vec<(usize, String, String)>,
-) {
-    if line.trim().is_empty() {
-        return;
-    }
-    let record: Json = serde_json::from_str(line)
-        .unwrap_or_else(|e| panic!("line {number} of issues.jsonl is not valid JSON: {e}"));
-    let id = issue_id(&record, number);
-    assert!(
-        ids.insert(id.to_string()),
-        "duplicate issue id '{id}' at line {number}"
-    );
-    if let Some(deps) = record.get("dependencies").and_then(|v| v.as_array()) {
-        collect_dependencies(deps, number, dependencies);
+/// The intact-export accumulators: every line's issue id (unique,
+/// non-empty) and every recorded dependency reference
+/// `(line number, issue_id, depends_on_id)`, in file order.
+#[derive(Default)]
+struct Export {
+    ids: BTreeSet<String>,
+    dependencies: Vec<(usize, String, String)>,
+}
+
+impl Export {
+    /// One pass over the export: every line is a JSON object with a
+    /// unique, non-empty id whose dependency references are recorded for
+    /// the resolve pass. Blank lines are skipped.
+    fn collect_lines(&mut self, raw: &str) {
+        for (index, line) in raw
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| !line.trim().is_empty())
+        {
+            let number = index + 1;
+            let record: Json = serde_json::from_str(line)
+                .unwrap_or_else(|e| panic!("line {number} of issues.jsonl is not valid JSON: {e}"));
+            let id = issue_id(&record, number);
+            assert!(
+                self.ids.insert(id.to_string()),
+                "duplicate issue id '{id}' at line {number}"
+            );
+            for dep in record
+                .get("dependencies")
+                .and_then(|v| v.as_array())
+                .into_iter()
+                .flatten()
+            {
+                let (from, to) = dependency_ref(dep, number);
+                self.dependencies.push((number, from, to));
+            }
+        }
     }
 }
 
@@ -150,18 +162,6 @@ fn issue_id(record: &Json, number: usize) -> &str {
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| panic!("line {number} of issues.jsonl has no id"))
-}
-
-/// Record every dependency reference on one issue, in file order.
-fn collect_dependencies(
-    deps: &[Json],
-    number: usize,
-    dependencies: &mut Vec<(usize, String, String)>,
-) {
-    for dep in deps {
-        let (from, to) = dependency_ref(dep, number);
-        dependencies.push((number, from, to));
-    }
 }
 
 /// One dependency's `(issue_id, depends_on_id)` pair; both ends are required.

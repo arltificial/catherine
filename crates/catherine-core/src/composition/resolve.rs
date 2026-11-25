@@ -29,15 +29,31 @@ pub(super) fn merge_equations(
     arrows: &BTreeMap<Ident, Arrow>,
     arrow_sources: &BTreeMap<Ident, Vec<String>>,
 ) -> Result<(Vec<Equation>, Vec<EquationSource>), CompositionError> {
-    let mut pairs: Vec<(Equation, EquationSource)> = Vec::new();
-    for doc in documents {
-        for equation in doc.resolved_equations(arrows)? {
-            let source = equation_source(&doc.name, &equation, arrow_sources);
-            pairs.push((equation, source));
-        }
-    }
-    pairs.sort_by(|(a, _), (b, _)| a.sort_key().cmp(&b.sort_key()));
+    let resolved: Vec<Vec<(Equation, EquationSource)>> = documents
+        .iter()
+        .map(|doc| {
+            doc.resolved_equations(arrows).map(|equations| {
+                equations
+                    .into_iter()
+                    .map(|equation| {
+                        let source = equation_source(&doc.name, &equation, arrow_sources);
+                        (equation, source)
+                    })
+                    .collect()
+            })
+        })
+        .collect::<Result<_, _>>()?;
+    let pairs = sorted(resolved.into_iter().flatten().collect(), |a, b| {
+        a.sort_key().cmp(&b.sort_key())
+    });
     Ok(pairs.into_iter().unzip())
+}
+
+/// The pairs in the items' canonical sort-key order (stable for equal
+/// keys, matching the parser's storage discipline).
+fn sorted<T, S>(mut pairs: Vec<(T, S)>, key: impl Fn(&T, &T) -> std::cmp::Ordering) -> Vec<(T, S)> {
+    pairs.sort_by(|(a, _), (b, _)| key(a, b));
+    pairs
 }
 
 /// The attribution of one resolved equation: its declaring document and
@@ -60,19 +76,19 @@ fn path_sources(path: &Path, arrow_sources: &BTreeMap<Ident, Vec<String>>) -> Ve
     path.0
         .iter()
         .filter_map(|name| arrow_sources.get(name))
-        .fold(Vec::new(), |mut sources, documents| {
-            extend_unique(&mut sources, documents);
-            sources
+        .fold(Vec::new(), |sources, documents| {
+            extend_unique(sources, documents)
         })
 }
 
 /// Append the elements of `source` not already present, preserving order.
-fn extend_unique(documents: &mut Vec<String>, source: &[String]) {
+fn extend_unique(mut documents: Vec<String>, source: &[String]) -> Vec<String> {
     for doc in source {
         if !documents.contains(doc) {
             documents.push(doc.clone());
         }
     }
+    documents
 }
 
 /// Keys are never merged away: every declaration is kept in canonical
@@ -81,21 +97,23 @@ pub(super) fn merge_keys(
     documents: &[Document],
     arrow_sources: &BTreeMap<Ident, Vec<String>>,
 ) -> (Vec<Key>, Vec<KeySource>) {
-    let mut pairs: Vec<(Key, KeySource)> = documents
-        .iter()
-        .flat_map(|doc| {
-            doc.model.schema.keys.iter().map(move |key| {
-                (
-                    key.clone(),
-                    KeySource {
-                        declaring: doc.name.clone(),
-                        arrows: path_sources(&Path(key.arrows.clone()), arrow_sources),
-                    },
-                )
+    let pairs = sorted(
+        documents
+            .iter()
+            .flat_map(|doc| {
+                doc.model.schema.keys.iter().map(move |key| {
+                    (
+                        key.clone(),
+                        KeySource {
+                            declaring: doc.name.clone(),
+                            arrows: path_sources(&Path(key.arrows.clone()), arrow_sources),
+                        },
+                    )
+                })
             })
-        })
-        .collect();
-    pairs.sort_by(|(a, _), (b, _)| a.sort_key().cmp(&b.sort_key()));
+            .collect(),
+        |a, b| a.sort_key().cmp(&b.sort_key()),
+    );
     pairs.into_iter().unzip()
 }
 
@@ -106,21 +124,23 @@ pub(super) fn merge_coproducts(
     documents: &[Document],
     arrow_sources: &BTreeMap<Ident, Vec<String>>,
 ) -> (Vec<Coproduct>, Vec<CoproductSource>) {
-    let mut pairs: Vec<(Coproduct, CoproductSource)> = documents
-        .iter()
-        .flat_map(|doc| {
-            doc.model.schema.coproducts.iter().map(move |coproduct| {
-                (
-                    coproduct.clone(),
-                    CoproductSource {
-                        declaring: doc.name.clone(),
-                        arrows: path_sources(&Path(coproduct.arrows.clone()), arrow_sources),
-                    },
-                )
+    let pairs = sorted(
+        documents
+            .iter()
+            .flat_map(|doc| {
+                doc.model.schema.coproducts.iter().map(move |coproduct| {
+                    (
+                        coproduct.clone(),
+                        CoproductSource {
+                            declaring: doc.name.clone(),
+                            arrows: path_sources(&Path(coproduct.arrows.clone()), arrow_sources),
+                        },
+                    )
+                })
             })
-        })
-        .collect();
-    pairs.sort_by(|(a, _), (b, _)| a.sort_key().cmp(&b.sort_key()));
+            .collect(),
+        |a, b| a.sort_key().cmp(&b.sort_key()),
+    );
     pairs.into_iter().unzip()
 }
 
@@ -132,25 +152,26 @@ pub(super) fn merge_pullbacks(
     documents: &[Document],
     arrow_sources: &BTreeMap<Ident, Vec<String>>,
 ) -> (Vec<Pullback>, Vec<PullbackSource>) {
-    let mut pairs: Vec<(Pullback, PullbackSource)> = documents
-        .iter()
-        .flat_map(|doc| {
-            doc.model.schema.pullbacks.iter().map(move |pullback| {
-                let mut arrows = path_sources(&Path(pullback.legs.clone()), arrow_sources);
-                extend_unique(
-                    &mut arrows,
-                    &path_sources(&Path(pullback.cospan.clone()), arrow_sources),
-                );
-                (
-                    pullback.clone(),
-                    PullbackSource {
-                        declaring: doc.name.clone(),
-                        arrows,
-                    },
-                )
+    let pairs = sorted(
+        documents
+            .iter()
+            .flat_map(|doc| {
+                doc.model.schema.pullbacks.iter().map(move |pullback| {
+                    let arrows = extend_unique(
+                        path_sources(&Path(pullback.legs.clone()), arrow_sources),
+                        &path_sources(&Path(pullback.cospan.clone()), arrow_sources),
+                    );
+                    (
+                        pullback.clone(),
+                        PullbackSource {
+                            declaring: doc.name.clone(),
+                            arrows,
+                        },
+                    )
+                })
             })
-        })
-        .collect();
-    pairs.sort_by(|(a, _), (b, _)| a.sort_key().cmp(&b.sort_key()));
+            .collect(),
+        |a, b| a.sort_key().cmp(&b.sort_key()),
+    );
     pairs.into_iter().unzip()
 }

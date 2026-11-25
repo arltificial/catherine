@@ -23,13 +23,11 @@
 #[path = "../src/pattern/proxy.rs"]
 mod proxy;
 
-mod bounds {
-    pub use catherine_analysis::bounds::ScopeCaps;
-}
+mod bounds {}
 
 mod pattern {
     pub use catherine_analysis::pattern::{
-        LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta,
+        LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta,
     };
 }
 
@@ -37,7 +35,7 @@ mod pattern {
 mod expectations;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LensFindings, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{LensCall, LensFindings, LensInput, LensOutcome, PatternLens};
 use catherine_core::findings::{
     DanglingWitness, EpistemicLabel, Finding, FindingKind, ViolationWitness,
 };
@@ -79,7 +77,10 @@ fn every_recorded_proxy_row_replays_exactly() {
             model: &model,
             values: &[],
         };
-        match proxy::Lens.run(&input, &caps) {
+        match proxy::Lens.run(LensCall {
+            input: &input,
+            caps: &caps,
+        }) {
             LensOutcome::Findings(findings) => {
                 assert!(
                     findings.migrations.is_empty(),
@@ -185,7 +186,10 @@ fn a_document_without_an_equation_surface_is_unknown() {
         model: &model,
         values: &[],
     };
-    match proxy::Lens.run(&input, &ScopeCaps::default()) {
+    match proxy::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("surface")),
         LensOutcome::Findings(findings) => {
             panic!("an absent surface must not be clean: {findings:?}")
@@ -201,7 +205,10 @@ fn a_value_declaration_the_equation_law_cannot_bind_is_unknown() {
         model: &model,
         values: &values,
     };
-    match proxy::Lens.run(&input, &ScopeCaps::default()) {
+    match proxy::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("--values")),
         LensOutcome::Findings(_) => panic!("an unbound domain must not be evaluated"),
     }
@@ -214,7 +221,10 @@ fn run_findings(fixture: &str, values: &[String]) -> LensFindings {
         model: &model,
         values,
     };
-    match proxy::Lens.run(&input, &ScopeCaps::default()) {
+    match proxy::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => {
             assert!(findings.migrations.is_empty(), "no migration surface");
             findings

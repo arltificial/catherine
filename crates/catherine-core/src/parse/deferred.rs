@@ -61,7 +61,7 @@ impl PendingEquations {
         &self,
         arrows: &BTreeMap<Ident, Arrow>,
     ) -> Result<Vec<Equation>, ParseError> {
-        super::schema::check_equations(&self.equations, arrows, &self.spans)
+        super::equations::check_equations(&self.equations, arrows, &self.spans)
     }
 }
 
@@ -92,7 +92,7 @@ pub(super) fn check_equations(
     arrows: &BTreeMap<Ident, Arrow>,
     spans: &Spans,
 ) -> Result<(Vec<Equation>, Option<PendingEquations>), ParseError> {
-    match super::schema::check_equations(equations, arrows, spans) {
+    match super::equations::check_equations(equations, arrows, spans) {
         Ok(resolved) => Ok((resolved, None)),
         Err(error) => deferred_or(error, equations, spans),
     }

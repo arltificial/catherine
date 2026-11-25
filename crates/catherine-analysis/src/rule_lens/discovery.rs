@@ -117,6 +117,25 @@ impl std::fmt::Display for DiscoveryError {
 
 impl std::error::Error for DiscoveryError {}
 
+/// The report assembly: the violation findings, plus the uncovered-inputs
+/// classification when some example matched no rule, sorted.
+fn report(
+    violations: Vec<Finding>,
+    class: Option<String>,
+    uncovered: Vec<RowId>,
+    examples_checked: usize,
+) -> DiscoveryReport {
+    let mut findings = violations;
+    if let Some(class) = class {
+        findings.push(uncovered_inputs_finding(class, uncovered));
+    }
+    findings.sort();
+    DiscoveryReport {
+        findings,
+        examples_checked,
+    }
+}
+
 /// Check the candidate table against every supplied example. The verdict
 /// is scoped over this sample; an example outside the declared value
 /// enumeration is still evaluated (predicates are structural), so callers
@@ -144,15 +163,7 @@ pub fn discover(
         }
         violations.push(violation_finding(presentation, example, index, &matching));
     }
-    let mut findings = violations;
-    if let Some(class) = class {
-        findings.push(uncovered_inputs_finding(class, uncovered));
-    }
-    findings.sort();
-    Ok(DiscoveryReport {
-        findings,
-        examples_checked: examples.len(),
-    })
+    Ok(report(violations, class, uncovered, examples.len()))
 }
 
 /// The rules whose predicates accept the example, in priority order.
@@ -305,8 +316,9 @@ mod tests {
         );
     }
 
-    #[test]
-    fn an_untyped_example_value_is_rejected() {
+    /// The int-columned table and its matching domain, shared by the
+    /// type-rejection test.
+    fn int_table() -> (RulePresentation, RuleDomain) {
         let table = RulePresentation {
             domain: Ident("Input".to_string()),
             columns: [(Ident("n".to_string()), ColumnType::Int)]
@@ -322,6 +334,12 @@ mod tests {
                 .collect(),
         )
         .expect("domain matches");
+        (table, domain)
+    }
+
+    #[test]
+    fn an_untyped_example_value_is_rejected() {
+        let (table, domain) = int_table();
         let example = RuleExample {
             input: [(Ident("n".to_string()), Literal::String("one".to_string()))]
                 .into_iter()

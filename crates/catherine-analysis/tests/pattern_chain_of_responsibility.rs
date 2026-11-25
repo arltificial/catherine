@@ -26,9 +26,7 @@ mod expectations;
 /// The crate modules the by-path lens imports; this is the test-local
 /// mirror of `catherine_analysis`'s own module tree, not a second copy of
 /// any implementation.
-mod bounds {
-    pub use catherine_analysis::bounds::*;
-}
+mod bounds {}
 mod pattern {
     pub use catherine_analysis::pattern::*;
 }
@@ -40,7 +38,7 @@ mod rule_lens {
 mod chain_of_responsibility;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LensFindings, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{LensCall, LensFindings, LensInput, LensOutcome, PatternLens};
 use catherine_core::findings::{EpistemicLabel, Finding, FindingKind};
 use catherine_core::migrate::{MigrationFinding, MigrationFindingKind};
 use catherine_core::model::Model;
@@ -115,7 +113,10 @@ fn a_model_without_a_rule_presentation_is_unknown_not_clean() {
         model: &model,
         values: &[],
     };
-    match Lens.run(&input, &ScopeCaps::default()) {
+    match Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("rule_presentation")),
         LensOutcome::Findings(findings) => {
             panic!("an absent surface must not be clean: {findings:?}")
@@ -135,7 +136,10 @@ fn unbound_values_are_an_unknown_scope() {
         model: &model,
         values: &values,
     };
-    match Lens.run(&input, &ScopeCaps::default()) {
+    match Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => {
             assert!(
                 scope.contains("amount"),
@@ -156,7 +160,10 @@ fn run_row(row: &Expectation) -> LensFindings {
         model: &model,
         values: &values,
     };
-    match Lens.run(&input, &ScopeCaps::default()) {
+    match Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => findings,
         LensOutcome::Unknown { scope } => {
             panic!(

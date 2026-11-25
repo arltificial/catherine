@@ -12,44 +12,69 @@ use super::probe::{self, assert_diagnostic_names, check_run, envelope};
 use super::Observation;
 use crate::common;
 
+/// One `migrate --json` run over a named fixture: the fixture name, the
+/// raw process output and its parsed JSON envelope. The shared context the
+/// row's three outcomes (lossless, refused, loss-reporting) read.
+struct MigrateRun<'a> {
+    name: &'a str,
+    out: std::process::Output,
+    value: serde_json::Value,
+}
+
+impl<'a> MigrateRun<'a> {
+    fn of(name: &'a str) -> Self {
+        let path = probe::fixture(name);
+        let out = common::run(&["migrate", &path, "--json"]);
+        let value = envelope(&out, name);
+        Self { name, out, value }
+    }
+}
+
 fn migrate_without_loss(name: &str, expected_objects: &[&str]) -> Observation {
-    let path = probe::fixture(name);
-    let out = common::run(&["migrate", &path, "--json"]);
-    let value = envelope(&out, name);
-    match common::code(&out) {
+    let run = MigrateRun::of(name);
+    match common::code(&run.out) {
         0 => {
-            assert_lossless(name, &value, expected_objects);
+            assert_lossless(&run, expected_objects);
             Observation::Limitation
         }
-        1 => {
-            assert_eq!(value["ok"], false, "{name}: exit 1 is the error envelope");
-            let code = value["data"]["code"]
-                .as_str()
-                .unwrap_or_else(|| panic!("{name}: a rejected map is a labeled error"));
-            assert!(
-                code != "syntax" && code != "no_schema_map",
-                "{name}: a broken document is not the map-checking fix (code `{code}`)"
-            );
-            let text = format!(
-                "{code}: {}",
-                value["data"]["message"].as_str().unwrap_or_default()
-            );
-            assert_diagnostic_names(
-                name,
-                &text,
-                &["map", "functor", "equation", "pullback", "endpoint"],
-            );
-            Observation::Cleared
-        }
-        _ => migrated_loss(name, &out, &value),
+        1 => rejected_map(&run),
+        _ => migrated_loss(&run),
     }
+}
+
+/// The exit-1 shape: the map was checked and refused as a labeled error
+/// naming the map-checking fix — never a merely broken document.
+fn rejected_map(run: &MigrateRun<'_>) -> Observation {
+    let name = run.name;
+    assert_eq!(
+        run.value["ok"], false,
+        "{name}: exit 1 is the error envelope"
+    );
+    let code = run.value["data"]["code"]
+        .as_str()
+        .unwrap_or_else(|| panic!("{name}: a rejected map is a labeled error"));
+    assert!(
+        code != "syntax" && code != "no_schema_map",
+        "{name}: a broken document is not the map-checking fix (code `{code}`)"
+    );
+    let text = format!(
+        "{code}: {}",
+        run.value["data"]["message"].as_str().unwrap_or_default()
+    );
+    assert_diagnostic_names!(
+        name,
+        &text,
+        &["map", "functor", "equation", "pullback", "endpoint"],
+    );
+    Observation::Cleared
 }
 
 /// The fixed signature on the finding-bearing exit: the map now reports the
 /// lost data it previously swallowed. Any other exit panics.
-fn migrated_loss(name: &str, out: &std::process::Output, value: &serde_json::Value) -> Observation {
-    if common::code(out) == 8 {
-        let lost = value["data"]["lost"].as_array().expect("lost array");
+fn migrated_loss(run: &MigrateRun<'_>) -> Observation {
+    let name = run.name;
+    if common::code(&run.out) == 8 {
+        let lost = run.value["data"]["lost"].as_array().expect("lost array");
         assert!(
             !lost.is_empty(),
             "{name}: the fixed migration reports lost data"
@@ -58,14 +83,15 @@ fn migrated_loss(name: &str, out: &std::process::Output, value: &serde_json::Val
     }
     panic!(
         "{name}: unexpected migrate exit {}: {}",
-        common::code(out),
-        common::stderr(out)
+        common::code(&run.out),
+        common::stderr(&run.out)
     )
 }
 
 /// The claimed signature: lossless reindexing covers every expected object.
-fn assert_lossless(name: &str, value: &serde_json::Value, expected_objects: &[&str]) {
-    let rows = value["data"]["rows"]
+fn assert_lossless(run: &MigrateRun<'_>, expected_objects: &[&str]) {
+    let name = run.name;
+    let rows = run.value["data"]["rows"]
         .as_object()
         .unwrap_or_else(|| panic!("{name}: migration ran"));
     for object in expected_objects {
@@ -74,7 +100,7 @@ fn assert_lossless(name: &str, value: &serde_json::Value, expected_objects: &[&s
             "{name}: migration covered object {object}"
         );
     }
-    let lost = value["data"]["lost"].as_array().expect("lost array");
+    let lost = run.value["data"]["lost"].as_array().expect("lost array");
     assert!(
         lost.is_empty(),
         "{name}: the claimed behavior is zero lost data"
@@ -107,7 +133,7 @@ fn nonfunctorial_refusal(name: &str) -> Observation {
         "{code}: {}",
         value["data"]["message"].as_str().unwrap_or_default()
     );
-    assert_diagnostic_names(name, &text, &["f", "A", "B", "X", "Y", "endpoint"]);
+    assert_diagnostic_names!(name, &text, &["f", "A", "B", "X", "Y", "endpoint"]);
     Observation::Cleared
 }
 
@@ -145,7 +171,7 @@ fn vacuity_fix(zero: &probe::CheckRun) -> Observation {
         "zero_rows_instance: the fix is a vacuity diagnostic, got {}",
         zero.text()
     );
-    assert_diagnostic_names(
+    assert_diagnostic_names!(
         "vacuous-clean-instances",
         &zero.text(),
         &["vacuous", "zero", "empty", "no row"],

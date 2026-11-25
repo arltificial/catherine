@@ -8,18 +8,16 @@ use catherine_analysis::search::{search, SearchOutcome};
 use catherine_core::findings::{EpistemicLabel, FindingKind};
 use catherine_core::instance::TypedInstance;
 use catherine_core::model::RowId;
+use std::error::Error;
 
-use super::builders::{
-    contradiction_schema, distinguish_pair, parallel_schema, path, rewrite_schema, rows,
-    transitive_chain_schema,
-};
+use super::builders::{distinguish_pair, fixture_schema, path, rows};
 use crate::common::ident;
 
 // ── RED task 1: over-constrained → contradiction within bounds ──────
 
 #[test]
 fn task1_over_constrained_schema_exhausts_to_contradiction() {
-    let schema = contradiction_schema();
+    let schema = fixture_schema("contradiction");
     // `b` has no rows under the bound: `f` cannot resolve, so no fully
     // resolved instance exists. The space (8 candidates) exhausts well
     // within the budget.
@@ -61,7 +59,7 @@ fn task1_the_same_schema_admits_a_witness_once_the_bound_frees_b() {
     // Sanity anchor: the contradiction comes from the bounds (exhaustion
     // over a real space), not from a broken engine — with `b` nonempty
     // the smallest total instance (everything → row 0) witnesses.
-    let schema = contradiction_schema();
+    let schema = fixture_schema("contradiction");
     let bound = SearchBounds {
         max_rows: rows(&[("a", 1), ("b", 1), ("c", 1)]),
         max_candidates: 64,
@@ -83,7 +81,7 @@ fn task1_the_same_schema_admits_a_witness_once_the_bound_frees_b() {
 
 #[test]
 fn task2_small_budget_yields_unknown_with_the_explored_scope() {
-    let schema = contradiction_schema();
+    let schema = fixture_schema("contradiction");
     // The same shape as task 1 (an 8-candidate space), budget 2: the
     // enumeration cannot complete, so the answer is UNKNOWN with the
     // exact explored scope — never a contradiction claim, never a naked
@@ -120,7 +118,7 @@ fn task2_zero_budget_yields_unknown_before_any_enumeration() {
     // Budget 0 on a *satisfiable* schema: the answer is still UNKNOWN
     // with zero candidates explored — never a witness smuggled out from
     // an enumeration that did not run, never "no violation found".
-    let schema = contradiction_schema();
+    let schema = fixture_schema("contradiction");
     let bound = SearchBounds {
         max_rows: rows(&[("a", 1), ("b", 1), ("c", 1)]),
         max_candidates: 0,
@@ -141,7 +139,7 @@ fn task2_zero_budget_yields_unknown_before_any_enumeration() {
 
 #[test]
 fn task2_zero_size_bound_yields_unknown_with_the_empty_scope() {
-    let schema = contradiction_schema();
+    let schema = fixture_schema("contradiction");
     let bound = SearchBounds {
         max_rows: rows(&[("a", 0), ("b", 0), ("c", 0)]),
         max_candidates: 64,
@@ -164,8 +162,8 @@ fn task2_zero_size_bound_yields_unknown_with_the_empty_scope() {
 // ── RED task 3: parallel paths, no equation → hypothesized question ──
 
 #[test]
-fn task3_parallel_paths_raise_the_hypothesized_domain_question() {
-    let findings = underconstraint(&parallel_schema(), &ScopeCaps::default());
+fn task3_parallel_paths_raise_the_hypothesized_domain_question() -> Result<(), Box<dyn Error>> {
+    let findings = underconstraint(&fixture_schema("parallel"), &ScopeCaps::default());
     assert_eq!(findings.len(), 1, "one parallel pair within the cap");
     let finding = &findings[0];
     assert_eq!(
@@ -173,7 +171,7 @@ fn task3_parallel_paths_raise_the_hypothesized_domain_question() {
         EpistemicLabel::Hypothesized,
         "underconstraint is a question, never a violation"
     );
-    let serialized = serde_json::to_value(finding).expect("findings serialize");
+    let serialized = serde_json::to_value(finding)?;
     assert_eq!(serialized["kind"], "underconstraint");
     assert_eq!(serialized["label"], "hypothesized");
     assert_eq!(
@@ -193,6 +191,7 @@ fn task3_parallel_paths_raise_the_hypothesized_domain_question() {
         serialized["witness"]["question"], "should these agree?",
         "the domain question, text last"
     );
+    Ok(())
 }
 
 #[test]
@@ -200,7 +199,7 @@ fn task3_zero_cap_enumerates_no_paths() {
     // A cap of 0 bounds the op from the start: no paths, no hypotheses —
     // a cap hit is a bounded non-answer, never a quiet truncation.
     let findings = underconstraint(
-        &parallel_schema(),
+        &fixture_schema("parallel"),
         &ScopeCaps {
             max_path_length: 0,
             ..ScopeCaps::default()
@@ -210,18 +209,19 @@ fn task3_zero_cap_enumerates_no_paths() {
 }
 
 #[test]
-fn transitive_equation_chain_does_not_suppress_the_end_pair_question() {
+fn transitive_equation_chain_does_not_suppress_the_end_pair_question() -> Result<(), Box<dyn Error>>
+{
     // catherine-7e8, documented limit: `related` is direct-only — the
     // accepted chain p=q, q=r proves p=r by rewriting, but does not
     // suppress the (p,r) domain question. Question-raiser v1 semantics:
     // noise over silence; congruence closure is future capability.
-    let findings = underconstraint(&transitive_chain_schema(), &ScopeCaps::default());
+    let findings = underconstraint(&fixture_schema("transitive-chain"), &ScopeCaps::default());
     assert_eq!(
         findings.len(),
         1,
         "only the directly-unrelated (p,r) pair is raised"
     );
-    let serialized = serde_json::to_value(&findings[0]).expect("findings serialize");
+    let serialized = serde_json::to_value(&findings[0])?;
     assert_eq!(
         serialized["witness"]["detail"]["lhs"],
         serde_json::json!(["p"])
@@ -231,13 +231,14 @@ fn transitive_equation_chain_does_not_suppress_the_end_pair_question() {
         serde_json::json!(["r"])
     );
     assert_eq!(serialized["witness"]["question"], "should these agree?");
+    Ok(())
 }
 
 // ── RED task 4: path derivable under the declared equations ─────────
 
 #[test]
 fn task4_derivable_equation_is_proven_redundant_with_both_paths() {
-    let findings = redundant(&rewrite_schema(), &ScopeCaps::default());
+    let findings = redundant(&fixture_schema("rewrite"), &ScopeCaps::default());
     assert_eq!(
         findings.len(),
         1,
@@ -317,15 +318,20 @@ fn task5_restricted_observation_set_yields_equivalent_in_scope() {
 // ── determinism: repeated runs serialize byte-identically ────────────
 
 #[test]
-fn emitted_findings_serialize_byte_identically_across_repeated_runs() {
-    let redundant_findings = redundant(&rewrite_schema(), &ScopeCaps::default());
-    let underconstraint_findings = underconstraint(&parallel_schema(), &ScopeCaps::default());
-    let first = serde_json::to_string(&redundant_findings).expect("redundant serializes")
-        + &serde_json::to_string(&underconstraint_findings).expect("underconstraint serializes");
-    let second = serde_json::to_string(&redundant(&rewrite_schema(), &ScopeCaps::default()))
-        .expect("serializes")
-        + &serde_json::to_string(&underconstraint(&parallel_schema(), &ScopeCaps::default()))
-            .expect("serializes");
+fn emitted_findings_serialize_byte_identically_across_repeated_runs() -> Result<(), Box<dyn Error>>
+{
+    let redundant_findings = redundant(&fixture_schema("rewrite"), &ScopeCaps::default());
+    let underconstraint_findings =
+        underconstraint(&fixture_schema("parallel"), &ScopeCaps::default());
+    let first = serde_json::to_string(&redundant_findings)?
+        + &serde_json::to_string(&underconstraint_findings)?;
+    let second = serde_json::to_string(&redundant(
+        &fixture_schema("rewrite"),
+        &ScopeCaps::default(),
+    ))? + &serde_json::to_string(&underconstraint(
+        &fixture_schema("parallel"),
+        &ScopeCaps::default(),
+    ))?;
     assert_eq!(first, second, "repeated runs serialize byte-identically");
     // The taxonomy's total order holds through the new producers: within
     // one kind the witness ids order the findings.
@@ -335,11 +341,12 @@ fn emitted_findings_serialize_byte_identically_across_repeated_runs() {
         sorted, underconstraint_findings,
         "producers emit sorted order"
     );
+    Ok(())
 }
 
 #[test]
 fn search_runs_are_deterministic() {
-    let schema = contradiction_schema();
+    let schema = fixture_schema("contradiction");
     let bound = SearchBounds {
         max_rows: rows(&[("a", 1), ("b", 1), ("c", 1)]),
         max_candidates: 64,

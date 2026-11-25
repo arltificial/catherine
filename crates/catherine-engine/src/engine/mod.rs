@@ -39,11 +39,14 @@ use std::cmp::Ordering;
 /// spaces, each assigned in sorted-name order, so id order is name order.
 pub type Nid = usize;
 
+mod build;
 mod compile;
 mod compose;
 mod families;
 mod lane;
 mod store;
+
+pub use build::engine_build;
 
 #[cfg(kani)]
 pub use compile::ident_key;
@@ -55,6 +58,8 @@ pub use families::{
     engine_coproduct_findings, engine_dangling_findings, engine_equation_findings,
     engine_key_findings, engine_pullback_findings,
 };
+#[cfg(kani)]
+pub use lane::LaneSpec;
 pub use store::{Bounded, ARROWS_CAP, REPORT_CAP, ROWS_CAP};
 
 pub(crate) use compose::engine_compose;
@@ -119,6 +124,13 @@ pub enum CompactPullback {
     },
 }
 
+/// Per-arrow endpoints in canonical order: `src[arrow]` / `tgt[arrow]`
+/// are the arrow's source and target object ids.
+pub(crate) struct ArrowDirs {
+    pub(crate) src: Vec<Nid>,
+    pub(crate) tgt: Vec<Nid>,
+}
+
 /// The interned presentation. Names are owned only on the parsed flavor
 /// (built by [`EngineSchema::compile`]); the lane flavor ([`EngineSchema::lane`])
 /// leaves them empty and carries nothing but ids.
@@ -135,10 +147,8 @@ pub struct EngineSchema {
     /// Arrows' byte keys in canonical order — lane flavor only.
     #[cfg(kani)]
     pub arrow_keys: Vec<u64>,
-    /// Per arrow: the source object's id.
-    pub(crate) arrow_src: Vec<Nid>,
-    /// Per arrow: the target object's id.
-    pub(crate) arrow_tgt: Vec<Nid>,
+    /// Per arrow: the source and target object ids.
+    pub(crate) arrows: ArrowDirs,
     /// Equations in declaration order; `domain: None` marks the walk's
     /// skip cases (empty lhs, undeclared lead arrow).
     pub equations: Vec<CompiledEquation>,
@@ -238,63 +248,6 @@ pub fn push_bounded<T>(v: &mut Vec<T>, x: T) {
     }
 }
 
-/// The exact report bound: every taken cell lands in at most one
-/// report, and no cell outside a table can. The lane's array caps are
-/// proof obligations discharged against this bound; production is
-/// parsed-data-sized and carries no cap.
-#[cfg(kani)]
-fn report_bound(schema: &EngineSchema, instance: &EngineInstance) -> usize {
-    let mut bound = 0usize;
-    for (nid, src) in schema.arrow_src.iter().enumerate() {
-        let n_src = instance.row_counts[*src].unwrap_or(0);
-        if let Some(cells) = &instance.cells[nid] {
-            bound += cells.len().min(n_src);
-        }
-    }
-    bound
-}
-
-/// The build classification over ids — `TypedInstance::build`'s walk:
-/// every parsed arrow value lands in a morphism table entry, a dangling
-/// record, or a typing violation; cells beyond the source object's row
-/// space are ignored; arrows outside the presentation are ignored.
-pub fn engine_build(schema: &EngineSchema, instance: &EngineInstance) -> EngineTyped {
-    let mut tables: Vec<Bounded<RowId, ROWS_CAP>> = Vec::with_capacity(schema.arrow_src.len());
-    // Under the lane, the array caps are proof obligations discharged
-    // against the computed exact bound (the shapes declare it well
-    // under `REPORT_CAP`). Production is parsed-data-sized and carries
-    // no cap.
-    #[cfg(kani)]
-    assert!(report_bound(schema, instance) <= REPORT_CAP);
-    let mut typing_violations = Bounded::new();
-    let mut dangling = Bounded::new();
-    for (nid, src) in schema.arrow_src.iter().enumerate() {
-        let n_src = instance.row_counts[*src].unwrap_or(0);
-        let n_tgt = schema
-            .arrow_tgt
-            .get(nid)
-            .and_then(|tgt| instance.row_counts[*tgt])
-            .unwrap_or(0);
-        let mut table = Bounded::<RowId, ROWS_CAP>::with_len(n_src);
-        if let Some(cells) = &instance.cells[nid] {
-            for (idx, &cell) in cells.iter().enumerate().take(n_src) {
-                match cell {
-                    None => dangling.push((nid, idx)),
-                    Some(value) if value.0 < n_tgt => table[idx] = Some(value),
-                    Some(value) => typing_violations.push((nid, idx, value)),
-                }
-            }
-        }
-        tables.push(table);
-    }
-    EngineTyped {
-        row_counts: instance.row_counts.clone(),
-        tables,
-        typing_violations,
-        dangling,
-    }
-}
-
 /// Bounded insertion sort by comparator — the solver-shaped
 /// replacement for `sort_unstable_by_key`/`sort_unstable` (beads catherine-6g2, measured: slice-sort
 /// internals — `smallsort::insert_tail`, `swap_nonoverlapping_chunks`
@@ -307,8 +260,7 @@ pub fn engine_build(schema: &EngineSchema, instance: &EngineInstance) -> EngineT
 /// witness-soundness harness crate re-derives sorts independently.
 pub fn insertion_sort_by<T>(v: &mut [T], cmp: impl Fn(&T, &T) -> Ordering) {
     let len = v.len();
-    let mut i = 1;
-    while i < len {
+    for i in 1..len {
         // Hole technique: the element at `i` is read out once, later
         // elements shift by single-element reads/writes, and the held
         // element is written back at the final hole.
@@ -324,7 +276,6 @@ pub fn insertion_sort_by<T>(v: &mut [T], cmp: impl Fn(&T, &T) -> Ordering) {
             hole -= 1;
         }
         unsafe { std::ptr::write(v.as_mut_ptr().add(hole), tmp) };
-        i += 1;
     }
 }
 
@@ -335,31 +286,21 @@ pub fn dedup_sorted<T: Clone + PartialEq>(v: &mut Vec<T>) {
     if len <= 1 {
         return;
     }
-    let mut read_index = 1;
     let mut write_index = 1;
-    while read_index < len {
+    for read_index in 1..len {
         if v[read_index] != v[write_index - 1] {
             v[write_index] = v[read_index].clone();
             write_index += 1;
         }
-        read_index += 1;
     }
     v.truncate(write_index);
 }
 
-/// Execute every declared constraint over the interned tables, compact:
-/// findings sorted under the taxonomy's total order (the int-key sort is
-/// exactly `Finding::cmp`), names never materialized. The parsed flavor
-/// renders with [`render_compact`]; the lane harnesses assert the
-/// compact shapes directly.
-pub fn engine_families(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-) -> Vec<(SortKey, EpistemicLabel, CompactFinding)> {
-    // An upper bound on emitted findings — every family's worst case is
-    // a function of the row spaces and declaration counts (concrete
-    // inputs), so the walk never reallocates and never branches into the
-    // allocator.
+/// The findings vector's exact capacity bound: every family's worst case
+/// is a function of the row spaces and declaration counts (concrete
+/// inputs), so the walk never reallocates and never branches into the
+/// allocator.
+fn findings_capacity(schema: &EngineSchema, typed: &EngineTyped) -> usize {
     let max_rows: usize = typed
         .row_counts
         .iter()
@@ -372,12 +313,23 @@ pub fn engine_families(
         schema.coproducts.len(),
         schema.pullbacks.len(),
     );
-    let mut out: Vec<(SortKey, EpistemicLabel, CompactFinding)> = Vec::with_capacity(
-        schema.arrow_src.len() * max_rows
-            + max_rows * max_rows * (eqs + keys + cops + 3 * pbs)
-            + max_rows * (eqs + cops + pbs)
-            + 1,
-    );
+    schema.arrows.src.len() * max_rows
+        + max_rows * max_rows * (eqs + keys + cops + 3 * pbs)
+        + max_rows * (eqs + cops + pbs)
+        + 1
+}
+
+/// Execute every declared constraint over the interned tables, compact:
+/// findings sorted under the taxonomy's total order (the int-key sort is
+/// exactly `Finding::cmp`), names never materialized. The parsed flavor
+/// renders with [`render_compact`]; the lane harnesses assert the
+/// compact shapes directly.
+pub fn engine_families(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+) -> Vec<(SortKey, EpistemicLabel, CompactFinding)> {
+    let mut out: Vec<(SortKey, EpistemicLabel, CompactFinding)> =
+        Vec::with_capacity(findings_capacity(schema, typed));
     let violated = violation_flags(typed);
     dangling_findings(schema, typed, &violated, &mut out);
     equation_findings(schema, typed, &mut out);

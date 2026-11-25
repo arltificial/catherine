@@ -108,6 +108,42 @@ pub fn naturality(
     Ok(sweep(source, target, &resolved))
 }
 
+/// The names and cells one resolution pass reads: bundled so the
+/// per-object helper stays within the parameter budget.
+struct MapResolution<'a> {
+    map: &'a InstanceMap,
+    source_names: &'a RowNames,
+    target_names: &'a RowNames,
+}
+
+impl MapResolution<'_> {
+    /// One object's source rows resolved to their target rows.
+    fn object_rows(&self, object: &Ident, rows: &[RowId]) -> Result<Vec<RowId>, NaturalityError> {
+        let mut targets = Vec::with_capacity(rows.len());
+        let cells = self.map.maps.get(object);
+        for row in rows {
+            let Some(target_name) = cells.and_then(|cells| cells.get(row)) else {
+                return Err(NaturalityError::IncompleteInstanceMap {
+                    object: object.clone(),
+                    row: *row,
+                });
+            };
+            let target = self
+                .target_names
+                .get(object)
+                .and_then(|names| names.iter().position(|name| name == target_name))
+                .map(RowId)
+                .ok_or_else(|| NaturalityError::UnknownMapTarget {
+                    object: object.clone(),
+                    source_row: source_row_name(self.source_names, object, *row),
+                    target_row: target_name.0.clone(),
+                })?;
+            targets.push(target);
+        }
+        Ok(targets)
+    }
+}
+
 /// The construction-time target resolution: every source row of every
 /// object gets the target row its map cell names. Target names are looked
 /// up in the target instance's name side table, so an unknown cell is a
@@ -119,32 +155,18 @@ fn resolve_map(
     source_names: &RowNames,
     target_names: &RowNames,
 ) -> Result<BTreeMap<Ident, Vec<RowId>>, NaturalityError> {
+    let ctx = MapResolution {
+        map,
+        source_names,
+        target_names,
+    };
     let mut resolved: BTreeMap<Ident, Vec<RowId>> = BTreeMap::new();
     for (object, rows) in &source.instance.rows {
-        let mut targets = Vec::with_capacity(rows.len());
-        if rows.is_empty() {
-            resolved.insert(object.clone(), targets);
-            continue;
-        }
-        let cells = map.maps.get(object);
-        for row in rows {
-            let Some(target_name) = cells.and_then(|cells| cells.get(row)) else {
-                return Err(NaturalityError::IncompleteInstanceMap {
-                    object: object.clone(),
-                    row: *row,
-                });
-            };
-            let target = target_names
-                .get(object)
-                .and_then(|names| names.iter().position(|name| name == target_name))
-                .map(RowId)
-                .ok_or_else(|| NaturalityError::UnknownMapTarget {
-                    object: object.clone(),
-                    source_row: source_row_name(source_names, object, *row),
-                    target_row: target_name.0.clone(),
-                })?;
-            targets.push(target);
-        }
+        let targets = if rows.is_empty() {
+            Vec::new()
+        } else {
+            ctx.object_rows(object, rows)?
+        };
         resolved.insert(object.clone(), targets);
     }
     Ok(resolved)
@@ -159,6 +181,14 @@ pub(crate) fn source_row_name(source_names: &RowNames, object: &Ident, row: RowI
         .unwrap_or_else(|| format!("#{}", row.0))
 }
 
+/// The documents and resolution one commutation square reads: bundled so
+/// the per-square helper stays within the parameter budget.
+struct SquareInputs<'a> {
+    source: &'a Model,
+    target: &'a Model,
+    resolved: &'a BTreeMap<Ident, Vec<RowId>>,
+}
+
 /// The commutation sweep: for every arrow and every source row, compare
 /// `map ∘ arrow` (lhs) with `arrow ∘ map` (rhs). A composition through a
 /// dangling cell is `None`; two unequal values — including one unresolved
@@ -169,13 +199,18 @@ fn sweep(
     target: &Model,
     resolved: &BTreeMap<Ident, Vec<RowId>>,
 ) -> NaturalityOutcome {
+    let inputs = SquareInputs {
+        source,
+        target,
+        resolved,
+    };
     let mut outcome = NaturalityOutcome::default();
     for (arrow_name, arrow) in &source.schema.arrows {
         let Some(rows) = source.instance.rows.get(&arrow.src) else {
             continue;
         };
         for row in rows {
-            match square(source, target, arrow_name, *row, resolved) {
+            match square(&inputs, arrow_name, *row) {
                 Some(Square::Violation(finding)) => outcome.findings.push(finding),
                 Some(Square::Undefined) => outcome.undefined.push(UndefinedSquare {
                     arrow: arrow_name.clone(),
@@ -200,30 +235,36 @@ enum Square {
     Undefined,
 }
 
-/// One commutation square: `map ∘ arrow` (lhs) against `arrow ∘ map`
-/// (rhs). A composition through a dangling cell is `None`. Two equal
-/// values are clean, two `None`s are undefined (never clean), and every
-/// other pair — including one unresolved side — is a witnessed break.
-fn square(
+/// `map ∘ arrow` at one source row: the mapped row's image through the
+/// target-side resolution; `None` when the arrow cell or the target row
+/// is unresolved.
+fn mapped_image(
     source: &Model,
-    target: &Model,
     arrow_name: &Ident,
     row: RowId,
-    resolved: &BTreeMap<Ident, Vec<RowId>>,
-) -> Option<Square> {
-    let arrow = source.schema.arrows.get(arrow_name)?;
-    let src_map = resolved.get(&arrow.src)?;
-    let tgt_map = resolved.get(&arrow.tgt);
-    let mapped_row = src_map.get(row.0).copied();
-    let lhs = source
+    tgt_map: Option<&Vec<RowId>>,
+) -> Option<RowId> {
+    source
         .instance
         .values
         .get(arrow_name)
         .and_then(|cells| cells.get(row.0))
         .copied()
         .flatten()
-        .and_then(|image| tgt_map.and_then(|map| map.get(image.0)).copied());
-    let rhs = arrow_image(target, arrow_name, mapped_row);
+        .and_then(|image| tgt_map.and_then(|map| map.get(image.0)).copied())
+}
+
+/// One commutation square: `map ∘ arrow` (lhs) against `arrow ∘ map`
+/// (rhs). A composition through a dangling cell is `None`. Two equal
+/// values are clean, two `None`s are undefined (never clean), and every
+/// other pair — including one unresolved side — is a witnessed break.
+fn square(inputs: &SquareInputs<'_>, arrow_name: &Ident, row: RowId) -> Option<Square> {
+    let arrow = inputs.source.schema.arrows.get(arrow_name)?;
+    let src_map = inputs.resolved.get(&arrow.src)?;
+    let tgt_map = inputs.resolved.get(&arrow.tgt);
+    let mapped_row = src_map.get(row.0).copied();
+    let lhs = mapped_image(inputs.source, arrow_name, row, tgt_map);
+    let rhs = arrow_image(inputs.target, arrow_name, mapped_row);
     match (lhs, rhs) {
         (None, None) => Some(Square::Undefined),
         (lhs, rhs) if lhs == rhs => Some(Square::Clean),

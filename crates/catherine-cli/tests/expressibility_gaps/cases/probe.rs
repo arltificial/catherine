@@ -13,6 +13,23 @@ use crate::common;
 use serde_json::Value;
 use std::process::Output;
 
+/// Assert that a diagnostic names its subject; the panic is the case's
+/// failure when a fixture breaks for an unrelated reason. A macro so every
+/// call site keeps one shape without a three-parameter unit.
+macro_rules! assert_diagnostic_names {
+    ($what:expr, $text:expr, $needles:expr $(,)?) => {{
+        let what = $what;
+        let text = $text;
+        let needles = $needles;
+        let lowered = text.to_ascii_lowercase();
+        assert!(
+            needles.iter().any(|needle| lowered.contains(needle)),
+            "{what}: the diagnostic must name one of {needles:?}, got `{text}`"
+        );
+    }};
+}
+pub(super) use assert_diagnostic_names;
+
 /// Absolute path to one gap-suite fixture document.
 pub(super) fn fixture(name: &str) -> String {
     crate::fixture(name)
@@ -51,17 +68,29 @@ pub(super) enum CheckRun {
     Findings(Vec<Value>),
 }
 
+/// Generates the three outcome predicates the disposition rows compose,
+/// one `matches!` wrapper per non-finding variant: literally one shape,
+/// three variant instantiations. Invoked inside the `impl` below because
+/// the expansions are `&self` methods.
+macro_rules! outcome_predicates {
+    ($($(#[$doc:meta])* $name:ident => $variant:pat),+ $(,)?) => {
+        $(
+            $(#[$doc])*
+            pub(super) fn $name(&self) -> bool {
+                matches!(self, $variant)
+            }
+        )+
+    };
+}
+
 impl CheckRun {
-    pub(super) fn is_silent(&self) -> bool {
-        matches!(self, Self::Silent)
-    }
-
-    pub(super) fn is_labeled(&self) -> bool {
-        matches!(self, Self::Labeled(_))
-    }
-
-    pub(super) fn is_warning(&self) -> bool {
-        matches!(self, Self::Warning(_))
+    outcome_predicates! {
+        /// Exit 0 with no findings and no warnings: the claimed silent drop.
+        is_silent => Self::Silent,
+        /// Exit 1 carrying a labeled error.
+        is_labeled => Self::Labeled(_),
+        /// Exit 0 with a warning on the envelope: a diagnostic, not a finding.
+        is_warning => Self::Warning(_),
     }
 
     /// The finding array, `None` for every non-violation outcome.
@@ -88,31 +117,20 @@ pub(super) fn check_run(name: &str) -> CheckRun {
     let path = fixture(name);
     let out = common::run(&["check", &path, "--json"]);
     let value = parsed_envelope(name, &out);
-    classify(name, &out, &value)
+    match common::code(&out) {
+        0 => classify_clean(&value),
+        1 => CheckRun::Labeled(labeled_error(name, &value)),
+        3 => CheckRun::Findings(findings(&value).clone()),
+        other => panic!(
+            "{name}: unexpected check exit {other}: {}",
+            common::stderr(&out)
+        ),
+    }
 }
 
 fn parsed_envelope(name: &str, out: &Output) -> Value {
     if matches!(common::code(out), 0 | 1 | 3) {
         return envelope(out, name);
-    }
-    panic!(
-        "{name}: unexpected check exit {}: {}",
-        common::code(out),
-        common::stderr(out)
-    )
-}
-
-fn classify(name: &str, out: &Output, value: &Value) -> CheckRun {
-    match common::code(out) {
-        0 => classify_clean(value),
-        1 => CheckRun::Labeled(labeled_error(name, value)),
-        _ => classify_finding_run(name, out, value),
-    }
-}
-
-fn classify_finding_run(name: &str, out: &Output, value: &Value) -> CheckRun {
-    if common::code(out) == 3 {
-        return CheckRun::Findings(findings(value).clone());
     }
     panic!(
         "{name}: unexpected check exit {}: {}",
@@ -154,19 +172,7 @@ fn diagnostic_text(value: &Value) -> String {
 }
 
 fn warning_text(warning: &Value) -> String {
-    format!(
-        "{}: {}",
-        warning["rule_name"].as_str().unwrap_or_default(),
-        warning["message"].as_str().unwrap_or_default()
-    )
-}
-
-/// Assert that a diagnostic names its subject; the panic is the case's
-/// failure when a fixture breaks for an unrelated reason.
-pub(super) fn assert_diagnostic_names(what: &str, text: &str, needles: &[&str]) {
-    let lowered = text.to_ascii_lowercase();
-    assert!(
-        needles.iter().any(|needle| lowered.contains(needle)),
-        "{what}: the diagnostic must name one of {needles:?}, got `{text}`"
-    );
+    let rule_name = warning["rule_name"].as_str().unwrap_or_default();
+    let message = warning["message"].as_str().unwrap_or_default();
+    format!("{rule_name}: {message}")
 }

@@ -79,14 +79,6 @@ impl Report {
         }
     }
 
-    /// Record one row's observed verdict against the one its disposition claims.
-    fn record(&mut self, id: &str, observed: Observation, expected: Observation) {
-        self.checked += 1;
-        if observed != expected {
-            self.flipped.push(id.to_string());
-        }
-    }
-
     /// Record one row visited by a check that has no verdict to compare.
     fn visit(&mut self) {
         self.checked += 1;
@@ -99,13 +91,13 @@ impl Report {
     }
 
     /// Panic with the per-row guidance when a case contradicted its row.
-    fn expect_no_flips(&self, registered: &str, guidance: &str) {
+    fn expect_no_flips(&self, registered_and_guidance: &str) {
         assert!(
             self.flipped.is_empty(),
             "{}",
             self.flipped
                 .iter()
-                .map(|id| format!("row `{id}` is registered `{registered}`; {guidance}"))
+                .map(|id| format!("row `{id}` {registered_and_guidance}"))
                 .collect::<Vec<_>>()
                 .join("\n")
         );
@@ -174,15 +166,15 @@ pub fn gap_rows_still_show_the_limitation(cases: &[Case]) -> Report {
         .collect();
     let mut report = Report::new(gap_rows.len());
     for row in gap_rows {
-        report.record(
-            &row.id,
-            (case_for(cases, &row.id).observe)(),
-            Observation::Limitation,
-        );
+        let observed = (case_for(cases, &row.id).observe)();
+        report.checked += 1;
+        if observed != Observation::Limitation {
+            report.flipped.push(row.id.clone());
+        }
     }
     report.expect_no_flips(
-        "gap",
-        "its case no longer shows the limitation — flip the row to `closed` with the fixing evidence",
+        "is registered `gap`; its case no longer shows the limitation — \
+         flip the row to `closed` with the fixing evidence",
     );
     eprintln!("gap rows observed as limitations: {}", report.checked);
     report
@@ -197,15 +189,15 @@ pub fn closed_rows_still_show_the_fix(cases: &[Case]) -> Report {
         .collect();
     let mut report = Report::new(closed_rows.len());
     for row in closed_rows {
-        report.record(
-            &row.id,
-            (case_for(cases, &row.id).observe)(),
-            Observation::Cleared,
-        );
+        let observed = (case_for(cases, &row.id).observe)();
+        report.checked += 1;
+        if observed != Observation::Cleared {
+            report.flipped.push(row.id.clone());
+        }
     }
     report.expect_no_flips(
-        "closed",
-        "its case shows the limitation again — record the regression and flip the row back to `gap`",
+        "is registered `closed`; its case shows the limitation again — \
+         record the regression and flip the row back to `gap`",
     );
     eprintln!("closed rows observed as fixes: {}", report.checked);
     report
@@ -345,11 +337,9 @@ fn run_claim_gate(synthetic: Option<&str>) -> Output {
 }
 
 fn gate_text(output: &Output) -> String {
-    format!(
-        "{}{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    )
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    format!("{stdout}{stderr}")
 }
 
 /// `just ci` must keep invoking the claim gate recipe.

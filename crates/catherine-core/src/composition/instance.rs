@@ -36,7 +36,12 @@ pub(super) fn merge_instance(
         .arrows
         .iter()
         .map(|(name, arrow)| {
-            arrow_cells(documents, name, arrow, &index).map(|cells| (name.clone(), cells))
+            let merge = CellMerge {
+                name,
+                arrow,
+                index: &index,
+            };
+            arrow_cells(documents, &merge).map(|cells| (name.clone(), cells))
         })
         .collect::<Result<_, _>>()?;
     Ok(Instance { rows, values })
@@ -54,19 +59,25 @@ fn check_row_sets(documents: &[Document]) -> Result<(), CompositionError> {
     let mut claims: BTreeMap<Ident, RowClaim> = BTreeMap::new();
     for doc in documents {
         for (object, rows) in &doc.rows {
-            claim_rows(doc, object, rows, &mut claims)?;
+            claim_rows(&DeclaredRows { doc, object, rows }, &mut claims)?;
         }
     }
     Ok(())
 }
 
+/// One document's declared rows for one object.
+struct DeclaredRows<'a> {
+    doc: &'a Document,
+    object: &'a Ident,
+    rows: &'a [Ident],
+}
+
 /// Record one document's row claim for one object, refusing a mismatch.
 fn claim_rows(
-    doc: &Document,
-    object: &Ident,
-    rows: &[Ident],
+    declared: &DeclaredRows<'_>,
     claims: &mut BTreeMap<Ident, RowClaim>,
 ) -> Result<(), CompositionError> {
+    let (doc, object, rows) = (declared.doc, declared.object, declared.rows);
     if rows.is_empty() {
         return Ok(());
     }
@@ -83,31 +94,28 @@ fn claim_rows(
     if existing.rows == rows {
         return Ok(());
     }
-    Err(row_set_conflict(doc, object, existing, rows))
+    Err(row_set_conflict(declared, existing))
 }
 
 /// The labeled row-set `row_conflict`: the object, both declared sets, and
 /// the differing row names, attributed to both declaring documents.
-fn row_set_conflict(
-    doc: &Document,
-    object: &Ident,
-    existing: &RowClaim,
-    rows: &[Ident],
-) -> CompositionError {
+fn row_set_conflict(declared: &DeclaredRows<'_>, existing: &RowClaim) -> CompositionError {
+    let (doc, object) = (declared.doc, declared.object);
+    let rows = declared.rows;
     let differing = differing_rows(&existing.rows, rows);
-    CompositionError::new(
-        "row_conflict",
-        format!(
+    CompositionError::new(super::ErrorSpec {
+        code: "row_conflict".to_string(),
+        message: format!(
             "object `{}` is declared with different row sets [{}] and [{}]; differing rows: [{}]",
             object.0,
             spelled(&existing.rows),
             spelled(rows),
             differing.join(", ")
         ),
-        vec![existing.document.clone(), doc.name.clone()],
-        None,
-        Some(object.0.clone()),
-    )
+        documents: vec![existing.document.clone(), doc.name.clone()],
+        position: None,
+        node: Some(object.0.clone()),
+    })
 }
 
 /// The row names only one of the two claims carries, sorted.
@@ -190,19 +198,33 @@ impl CellClaim {
     }
 }
 
+/// The cell-merge context for one arrow: its declared name, its endpoints,
+/// and the merged row index the cells remap into.
+struct CellMerge<'a> {
+    name: &'a Ident,
+    arrow: &'a Arrow,
+    index: &'a BTreeMap<Ident, BTreeMap<Ident, RowId>>,
+}
+
+/// The cell whose claims are being compared: the document that just
+/// claimed it, the arrow context, and the merged source row.
+struct CellConflict<'a> {
+    doc: &'a Document,
+    merge: &'a CellMerge<'a>,
+    src: RowId,
+}
+
 /// One arrow's merged value vector: every declaring document claims the
 /// cells it carries; a shared cell must agree or the run is refused.
 fn arrow_cells(
     documents: &[Document],
-    name: &Ident,
-    arrow: &Arrow,
-    index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
+    merge: &CellMerge,
 ) -> Result<Vec<Option<RowId>>, CompositionError> {
-    let size = index.get(&arrow.src).map_or(0, BTreeMap::len);
+    let size = merge.index.get(&merge.arrow.src).map_or(0, BTreeMap::len);
     let mut cells: Vec<Option<CellClaim>> = vec![None; size];
     for doc in documents {
-        if doc.model.schema.arrows.contains_key(name) {
-            fill_doc_cells(doc, name, arrow, index, &mut cells)?;
+        if doc.model.schema.arrows.contains_key(merge.name) {
+            fill_doc_cells(doc, merge, &mut cells)?;
         }
     }
     Ok(cells
@@ -222,33 +244,50 @@ fn target_of(claim: &CellClaim) -> Option<RowId> {
 /// Fill one document's claims for one arrow into the merged vector.
 fn fill_doc_cells(
     doc: &Document,
-    name: &Ident,
-    arrow: &Arrow,
-    index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
+    merge: &CellMerge,
     cells: &mut [Option<CellClaim>],
 ) -> Result<(), CompositionError> {
-    let Some(values) = doc.model.instance.values.get(name) else {
+    let Some(values) = doc.model.instance.values.get(merge.name) else {
         return Ok(());
     };
     for (i, target) in values.iter().enumerate() {
-        set_cell(doc, name, arrow, index, (RowId(i), *target), cells)?;
+        set_cell(
+            &CellUpdate {
+                doc,
+                cell: (RowId(i), *target),
+            },
+            merge,
+            cells,
+        )?;
     }
     Ok(())
 }
 
+/// One document's claim about one merged cell: the declaring document and
+/// its (source row, target) pair.
+struct CellUpdate<'a> {
+    doc: &'a Document,
+    cell: (RowId, Option<RowId>),
+}
+
 /// Set one remapped cell, refusing a disagreeing shared claim.
 fn set_cell(
-    doc: &Document,
-    name: &Ident,
-    arrow: &Arrow,
-    index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
-    cell: (RowId, Option<RowId>),
+    update: &CellUpdate<'_>,
+    merge: &CellMerge,
     cells: &mut [Option<CellClaim>],
 ) -> Result<(), CompositionError> {
-    let Some(src) = remap_row(doc, &arrow.src, index, cell.0) else {
+    let (doc, cell) = (update.doc, update.cell);
+    let Some(src) = remap_row(
+        doc,
+        merge.index,
+        &RowRef {
+            object: &merge.arrow.src,
+            row: cell.0,
+        },
+    ) else {
         return Ok(());
     };
-    let Some(claim) = cell_claim(doc, arrow, index, cell.1) else {
+    let Some(claim) = cell_claim(doc, merge, cell.1) else {
         return Ok(());
     };
     match &cells[src.0] {
@@ -256,78 +295,82 @@ fn set_cell(
             cells[src.0] = Some(claim);
             Ok(())
         }
-        Some(existing) => set_or_conflict(doc, name, arrow, index, src, existing, claim),
+        Some(existing) => set_or_conflict(&CellConflict { doc, merge, src }, existing, claim),
     }
 }
 
 /// One document's claim about one cell: an unmappable target row (only
 /// possible for a document that claims no rows for the target object)
 /// yields no claim.
-fn cell_claim(
-    doc: &Document,
-    arrow: &Arrow,
-    index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
-    target: Option<RowId>,
-) -> Option<CellClaim> {
+fn cell_claim(doc: &Document, merge: &CellMerge, target: Option<RowId>) -> Option<CellClaim> {
     let Some(target) = target else {
         return Some(CellClaim::Dangling(doc.name.clone()));
     };
-    remap_row(doc, &arrow.tgt, index, target).map(|tgt| CellClaim::Value(doc.name.clone(), tgt))
+    remap_row(
+        doc,
+        merge.index,
+        &RowRef {
+            object: &merge.arrow.tgt,
+            row: target,
+        },
+    )
+    .map(|tgt| CellClaim::Value(doc.name.clone(), tgt))
 }
 
 /// Accept an agreeing claim or refuse the disagreeing pair.
 fn set_or_conflict(
-    doc: &Document,
-    name: &Ident,
-    arrow: &Arrow,
-    index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
-    src: RowId,
+    conflict: &CellConflict,
     existing: &CellClaim,
     claim: CellClaim,
 ) -> Result<(), CompositionError> {
     if existing.agrees_with(&claim) {
         return Ok(());
     }
-    Err(row_conflict(doc, name, arrow, index, src, existing, &claim))
+    Err(row_conflict(conflict, existing, &claim))
+}
+
+/// One row addressed by its object and dense id.
+struct RowRef<'a> {
+    object: &'a Ident,
+    row: RowId,
 }
 
 /// One dense id's merged id, through the document's presentation name.
 fn remap_row(
     doc: &Document,
-    object: &Ident,
     index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
-    row: RowId,
+    at: &RowRef<'_>,
 ) -> Option<RowId> {
-    let name = doc.rows.get(object)?.get(row.0)?;
-    index.get(object)?.get(name).copied()
+    let name = doc.rows.get(at.object)?.get(at.row.0)?;
+    index.get(at.object)?.get(name).copied()
 }
 
 /// The labeled cell `row_conflict`: names the arrow, the row, both claims
 /// (a dangling claim spelled `<dangling>`), and both declaring documents.
 fn row_conflict(
-    doc: &Document,
-    name: &Ident,
-    arrow: &Arrow,
-    index: &BTreeMap<Ident, BTreeMap<Ident, RowId>>,
-    src: RowId,
+    conflict: &CellConflict,
     existing: &CellClaim,
     claim: &CellClaim,
 ) -> CompositionError {
+    let (doc, merge, src) = (&conflict.doc, &conflict.merge, conflict.src);
+    let arrow = merge.arrow;
+    let index = merge.index;
     let row = name_of(index, &arrow.src, src);
     let first = spoken(index, &arrow.tgt, existing);
     let second = spoken(index, &arrow.tgt, claim);
-    CompositionError::new(
-        "row_conflict",
-        format!(
+    CompositionError::new(super::ErrorSpec {
+        code: "row_conflict".to_string(),
+        message: format!(
             "arrow `{}` values row `{row}` as `{first}` and `{second}`",
-            name.0
+            merge.name.0
         ),
-        vec![existing.document().to_string(), doc.name.clone()],
-        doc.cell_positions
-            .get(&(name.0.clone(), row.clone()))
+        documents: vec![existing.document().to_string(), doc.name.clone()],
+        position: doc
+            .cell_positions
+            .get(&(merge.name.0.clone(), row.clone()))
             .copied(),
-        Some(row),
-    )
+        node: Some(row),
+    })
 }
 
 /// A claim as the conflict message spells it: the target row's presentation

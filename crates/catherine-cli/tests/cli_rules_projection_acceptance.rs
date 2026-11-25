@@ -22,6 +22,7 @@ mod common;
 use common::{code, findings, kinds, parse_json, run, stderr, stdout};
 use serde_json::Value;
 use std::collections::BTreeMap;
+use std::error::Error;
 use std::process::Output;
 
 const CAPTURE_SLICE: &str = concat!(
@@ -33,26 +34,39 @@ const CAPTURE_SLICE: &str = concat!(
 /// holding dense row ids.
 type CollisionGroups = BTreeMap<(String, String), Vec<usize>>;
 
-fn read_slice() -> Value {
-    let text = std::fs::read_to_string(CAPTURE_SLICE).expect("read the committed slice");
-    parse_json(&text, "capture slice")
+fn read_slice() -> Result<Value, Box<dyn Error>> {
+    let text = std::fs::read_to_string(CAPTURE_SLICE)?;
+    Ok(parse_json(&text, "capture slice"))
 }
 
-/// One named column cell per capture row.
-fn cell(value: &Value, table: &str, capture: &str) -> String {
-    value["instance"]["tables"][table][capture]
-        .as_str()
-        .unwrap_or_else(|| panic!("fixture has a `{table}` cell for `{capture}`"))
-        .to_string()
+/// One named column cell per capture row, keyed by capture name.
+fn column(value: &Value, table: &str) -> BTreeMap<String, String> {
+    value["instance"]["tables"][table]
+        .as_object()
+        .unwrap_or_else(|| panic!("the fixture declares the `{table}` table"))
+        .iter()
+        .map(|(capture, cell)| {
+            (
+                capture.clone(),
+                cell.as_str()
+                    .unwrap_or_else(|| panic!("fixture has a `{table}` cell for `{capture}`"))
+                    .to_string(),
+            )
+        })
+        .collect()
 }
 
 /// The slice's capture rows in declared file order.
 fn capture_names(slice: &Value) -> Vec<String> {
     slice["instance"]["rows"]["backfill_captures"]
         .as_array()
-        .expect("capture rows")
+        .unwrap_or_else(|| panic!("capture rows"))
         .iter()
-        .map(|name| name.as_str().expect("row name").to_string())
+        .map(|name| {
+            name.as_str()
+                .unwrap_or_else(|| panic!("row name"))
+                .to_string()
+        })
         .collect()
 }
 
@@ -67,17 +81,16 @@ fn dense_id(dense: &[String], capture: &str) -> usize {
     dense
         .iter()
         .position(|row| row == capture)
-        .expect("dense id")
+        .unwrap_or_else(|| panic!("dense id"))
 }
 
 /// Each capture's projected selector and dense id, grouped.
 fn collision_groups(slice: &Value, dense: &[String]) -> CollisionGroups {
+    let sources = column(slice, "capture_source");
+    let editions = column(slice, "capture_edition_date");
     let mut groups: CollisionGroups = BTreeMap::new();
     for capture in capture_names(slice) {
-        let selector = (
-            cell(slice, "capture_source", &capture),
-            cell(slice, "capture_edition_date", &capture),
-        );
+        let selector = (sources[&capture].clone(), editions[&capture].clone());
         groups
             .entry(selector)
             .or_default()
@@ -129,8 +142,12 @@ fn capture_slice_run(extra: &[&str]) -> Output {
 }
 
 fn violation_pair(finding: &Value) -> (usize, usize) {
-    let left = finding["witness"]["lhs"].as_u64().expect("lhs") as usize;
-    let right = finding["witness"]["rhs"].as_u64().expect("rhs") as usize;
+    let left = finding["witness"]["lhs"]
+        .as_u64()
+        .unwrap_or_else(|| panic!("lhs")) as usize;
+    let right = finding["witness"]["rhs"]
+        .as_u64()
+        .unwrap_or_else(|| panic!("rhs")) as usize;
     (left, right)
 }
 
@@ -141,12 +158,12 @@ fn assert_three_violations(value: &Value, expected: &[(usize, usize)]) {
     assert_eq!(found.len(), 3, "exactly one finding per ambiguous selector");
     let labels: Vec<&str> = found
         .iter()
-        .map(|finding| finding["label"].as_str().expect("label"))
+        .map(|finding| finding["label"].as_str().unwrap_or_else(|| panic!("label")))
         .collect();
     assert_eq!(labels, vec!["executed"; 3]);
     let observed_kinds: Vec<&str> = found
         .iter()
-        .map(|finding| finding["kind"].as_str().expect("kind"))
+        .map(|finding| finding["kind"].as_str().unwrap_or_else(|| panic!("kind")))
         .collect();
     assert_eq!(
         observed_kinds,
@@ -179,27 +196,22 @@ fn assert_declared_gap(out: &Output) {
     let gap = findings(&value)
         .iter()
         .find(|finding| finding["kind"] == "underconstraint")
-        .expect("the declared absent input is a gap");
+        .unwrap_or_else(|| panic!("the declared absent input is a gap"));
     assert_eq!(gap["label"], "hypothesized");
     let class = gap["witness"]["detail"]["class"]
         .as_str()
-        .expect("gap class");
+        .unwrap_or_else(|| panic!("gap class"));
     assert!(
         class.contains("src_nacional_primera") && class.contains("ed_2026_11_07"),
         "the gap names the declared input: {class}"
     );
 }
 
-/// The grounded acceptance: exactly the three ambiguous selectors of the
-/// committed slice, each carrying the two capture rows behind it; no gap
-/// on the 30 undeclared zero-match selectors; declaring an absent input
-/// adds the one gap.
-#[test]
-fn projection_capture_slice_acceptance_three_violations() {
-    let slice = read_slice();
-    let groups = collision_groups(&slice, &dense_captures(&slice));
+/// The committed slice's ambiguous selectors: exactly the three
+/// pre-registered `(source, edition)` pairs.
+fn assert_pre_registered_selectors(groups: &CollisionGroups) {
     assert_eq!(
-        ambiguous_selectors(&groups),
+        ambiguous_selectors(groups),
         vec![
             (
                 "src_nacional_primera".to_string(),
@@ -213,6 +225,17 @@ fn projection_capture_slice_acceptance_three_violations() {
         ],
         "the pre-registered ambiguous selectors"
     );
+}
+
+/// The grounded acceptance: exactly the three ambiguous selectors of the
+/// committed slice, each carrying the two capture rows behind it; no gap
+/// on the 30 undeclared zero-match selectors; declaring an absent input
+/// adds the one gap.
+#[test]
+fn projection_capture_slice_acceptance_three_violations() -> Result<(), Box<dyn Error>> {
+    let slice = read_slice()?;
+    let groups = collision_groups(&slice, &dense_captures(&slice));
+    assert_pre_registered_selectors(&groups);
 
     let out = capture_slice_run(&[]);
     assert_eq!(code(&out), 3, "three violations → violation class");
@@ -227,4 +250,5 @@ fn projection_capture_slice_acceptance_three_violations() {
         "capture_edition_date=ed_2026_11_07",
     ]);
     assert_declared_gap(&declared);
+    Ok(())
 }

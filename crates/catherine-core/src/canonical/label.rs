@@ -5,6 +5,7 @@
 use crate::model::{Ident, Model, RowId};
 use std::collections::BTreeMap;
 
+use super::label_refine::{first_tied_class, refine};
 use super::serialize;
 
 /// One row's address during canonical labeling: object name + dense id.
@@ -15,9 +16,8 @@ pub(super) type RowKey = (String, usize);
 /// The exact refined partition: one sorted `RowKey` block per class.
 pub(super) type PartitionKey = Vec<Vec<RowKey>>;
 
-/// Sort markers larger than any real class rank: a cell with no target
-/// (dangling) and a row individualized during canonical labeling.
-const DANGLING: usize = usize::MAX - 1;
+/// Sort marker larger than any real class rank: a row individualized
+/// during canonical labeling.
 const INDIVIDUALIZED: usize = usize::MAX;
 
 /// Re-label the model's rows with canonical ids: iterative refinement
@@ -29,13 +29,13 @@ const INDIVIDUALIZED: usize = usize::MAX;
 /// consults structure only, so the result is invariant under any
 /// renaming of rows; the exhaustive tie-break keeps it exact.
 pub(super) fn canonical_relabel(model: &Model) -> Model {
-    let mut cls: BTreeMap<RowKey, usize> = BTreeMap::new();
-    for (object, rows) in &model.instance.rows {
-        for r in 0..rows.len() {
-            cls.insert((object.0.clone(), r), 0);
-        }
-    }
-    solve(model, &mut cls)
+    let cls: BTreeMap<RowKey, usize> = model
+        .instance
+        .rows
+        .iter()
+        .flat_map(|(object, rows)| (0..rows.len()).map(move |r| ((object.0.clone(), r), 0usize)))
+        .collect();
+    solve(model, cls)
 }
 
 /// Refine to fixpoint, then individualize tied classes until every row
@@ -48,29 +48,18 @@ pub(super) fn canonical_relabel(model: &Model) -> Model {
 /// depend on the input's row order, that tie-break could pick different
 /// labelings for renamed presentations. See README "canonical row
 /// ids".)
-fn solve(model: &Model, cls: &mut BTreeMap<RowKey, usize>) -> Model {
-    while refine(model, cls) {}
-    let Some((object, members)) = first_tied_class(model, cls) else {
-        return apply_labeling(model, cls);
+fn solve(model: &Model, mut cls: BTreeMap<RowKey, usize>) -> Model {
+    while refine(model, &mut cls) {}
+    let Some((object, members)) = first_tied_class(model, &cls) else {
+        return apply_labeling(model, &cls);
     };
     let mut best: Option<(String, Model)> = None;
     let mut explored: Vec<PartitionKey> = Vec::new();
     for r in interchangeable_representatives(model, &object, members) {
-        let mut seeded = cls.clone();
-        seeded.insert((object.clone(), r), INDIVIDUALIZED);
-        while refine(model, &mut seeded) {}
-        let key = partition_key(&seeded);
-        // The refined partition ignores the instance map (target names
-        // are external data), so two branches with equal partitions can
-        // still serialize differently once map cells are relabeled. When
-        // a map is present, explore every branch: the serialization
-        // tie-break (which includes the map) picks the canonical
-        // labeling, and the minimum stays rename-invariant.
-        if !has_instance_map(model) && explored.contains(&key) {
+        let Some(candidate) = explore_branch(model, &cls, &(object.clone(), r), &mut explored)
+        else {
             continue;
-        }
-        explored.push(key.clone());
-        let candidate = solve(model, &mut seeded);
+        };
         let bytes = serialize(&candidate);
         if best.as_ref().is_none_or(|(b, _)| bytes < *b) {
             best = Some((bytes, candidate));
@@ -79,23 +68,55 @@ fn solve(model: &Model, cls: &mut BTreeMap<RowKey, usize>) -> Model {
     best.expect("the first branch always runs").1
 }
 
+/// One representative's branch: individualize its row, refine to fixpoint,
+/// and skip (skipped branches carry no serialization) when an equal
+/// refined partition was already explored — `solve` is deterministic in
+/// the model and the partition, so an equal partition has an identical
+/// continuation and cannot change the chosen minimum. The refined
+/// partition ignores the instance map (target names are external data),
+/// so two branches with equal partitions can still serialize differently
+/// once map cells are relabeled: when a map is present, every branch is
+/// explored and the serialization tie-break (which includes the map)
+/// picks the canonical labeling, keeping the minimum rename-invariant.
+fn explore_branch(
+    model: &Model,
+    cls: &BTreeMap<RowKey, usize>,
+    seed: &RowKey,
+    explored: &mut Vec<PartitionKey>,
+) -> Option<Model> {
+    let mut seeded = cls.clone();
+    seeded.insert(seed.clone(), INDIVIDUALIZED);
+    while refine(model, &mut seeded) {}
+    let key = partition_key(&seeded);
+    if !has_instance_map(model) && explored.contains(&key) {
+        return None;
+    }
+    explored.push(key);
+    Some(solve(model, seeded))
+}
+
 /// One member per interchangeability group: a member that swaps with an
 /// already-kept one branches to the same structure under another name, so
 /// exploring it again only multiplies the search. This is what keeps a model
 /// with several objects full of indistinguishable rows from hanging
 /// (catherine-2f6).
 fn interchangeable_representatives(model: &Model, object: &str, members: Vec<usize>) -> Vec<usize> {
-    let mut representatives: Vec<usize> = Vec::new();
-    for r in members {
-        if representatives
-            .iter()
-            .any(|&kept| interchangeable(model, object, kept, r))
-        {
-            continue;
-        }
-        representatives.push(r);
-    }
-    representatives
+    // The scan state is the kept representatives so far: a member that
+    // swaps with an already-kept one is skipped (see the caller contract).
+    members
+        .into_iter()
+        .scan(Vec::new(), |kept, r| {
+            if kept
+                .iter()
+                .any(|&candidate| interchangeable(model, object, candidate, r))
+            {
+                None
+            } else {
+                kept.push(r);
+                Some(r)
+            }
+        })
+        .collect()
 }
 
 /// Whether the model declares an instance map whose source rows the canonical
@@ -141,7 +162,7 @@ fn interchangeable(model: &Model, object: &str, a: usize, b: usize) -> bool {
     model.schema.arrows.iter().all(|(name, arrow)| {
         let cells = model.instance.values.get(name).map(Vec::as_slice);
         if arrow.src.0 == object {
-            outgoing_commutes(cells, arrow.tgt.0 == object, a, b)
+            outgoing_commutes(cells, arrow.tgt.0 == object, Swap { a, b })
         } else if arrow.tgt.0 == object {
             incoming_untouched(cells, a, b)
         } else {
@@ -165,23 +186,27 @@ fn map_targets_agree(model: &Model, object: &str, a: usize, b: usize) -> bool {
 /// The transposition must commute with the cell function on every row. When
 /// the arrow is a self-arrow the target side is swapped too; otherwise the
 /// targets are fixed and no cell may name either member.
-fn outgoing_commutes(
-    cells: Option<&[Option<RowId>]>,
-    self_targeted: bool,
-    a: usize,
-    b: usize,
-) -> bool {
+fn outgoing_commutes(cells: Option<&[Option<RowId>]>, self_targeted: bool, swap: Swap) -> bool {
     let Some(cells) = cells else {
         return true;
     };
     cells.iter().enumerate().all(|(r, cell)| {
         let actual = if self_targeted {
-            cells.get(transposed(r, a, b)).copied().flatten()
+            cells.get(swap.transposed(r)).copied().flatten()
         } else {
             *cell
         };
-        swap_row(*cell, a, b) == actual
+        swap_row(*cell, swap.a, swap.b) == actual
     })
+}
+
+/// The cell with the transposed pair's rows swapped.
+fn swap_row(cell: Option<RowId>, a: usize, b: usize) -> Option<RowId> {
+    match cell {
+        Some(RowId(r)) if r == a => Some(RowId(b)),
+        Some(RowId(r)) if r == b => Some(RowId(a)),
+        other => other,
+    }
 }
 
 /// Sources are untouched by the transposition, so no row may point at
@@ -194,156 +219,23 @@ fn incoming_untouched(cells: Option<&[Option<RowId>]>, a: usize, b: usize) -> bo
     })
 }
 
-/// `r` under the transposition of `a` and `b`.
-fn transposed(r: usize, a: usize, b: usize) -> usize {
-    if r == a {
-        b
-    } else if r == b {
-        a
-    } else {
-        r
-    }
+/// The two rows being transposed.
+#[derive(Clone, Copy)]
+struct Swap {
+    a: usize,
+    b: usize,
 }
 
-/// One cell under the transposition of `a` and `b`.
-fn swap_row(cell: Option<RowId>, a: usize, b: usize) -> Option<RowId> {
-    match cell {
-        Some(RowId(r)) if r == a => Some(RowId(b)),
-        Some(RowId(r)) if r == b => Some(RowId(a)),
-        other => other,
-    }
-}
-
-/// The first tied class in sorted object order: `(object, members)` with
-/// members in ascending row-id order.
-fn first_tied_class(model: &Model, cls: &BTreeMap<RowKey, usize>) -> Option<(String, Vec<usize>)> {
-    for (object, rows) in &model.instance.rows {
-        let mut sizes: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
-        for r in 0..rows.len() {
-            let class = cls[&(object.0.clone(), r)];
-            sizes.entry(class).or_default().push(r);
+impl Swap {
+    /// `r` under the transposition.
+    fn transposed(&self, r: usize) -> usize {
+        if r == self.a {
+            self.b
+        } else if r == self.b {
+            self.a
+        } else {
+            r
         }
-        for members in sizes.values() {
-            if members.len() > 1 {
-                return Some((object.0.clone(), members.clone()));
-            }
-        }
-    }
-    None
-}
-
-/// One refinement round over all objects at once (cross-object cells
-/// reference each other's classes). Returns whether any partition
-/// changed; partitions only refine, so this terminates.
-fn refine(model: &Model, cls: &mut BTreeMap<RowKey, usize>) -> bool {
-    let mut next = cls.clone();
-    for (object, rows) in &model.instance.rows {
-        let n = rows.len();
-        let sigs: Vec<Vec<usize>> = (0..n)
-            .map(|r| row_signature(model, cls, &object.0, r))
-            .collect();
-        apply_ranks(object, &sigs, &mut next);
-    }
-    let changed = *cls != next;
-    *cls = next;
-    changed
-}
-
-/// One row's refinement signature: its previous class, the classes of its
-/// outgoing cells (dangling cells marked [`DANGLING`]), and — per incoming
-/// arrow — the size then the sorted multiset of source-row classes.
-fn row_signature(
-    model: &Model,
-    cls: &BTreeMap<RowKey, usize>,
-    object: &str,
-    r: usize,
-) -> Vec<usize> {
-    let mut sig = vec![cls[&(object.to_string(), r)]];
-    push_outgoing(model, cls, object, r, &mut sig);
-    push_incoming(model, cls, object, r, &mut sig);
-    sig
-}
-
-/// Outgoing cells, per named arrow in sorted order.
-fn push_outgoing(
-    model: &Model,
-    cls: &BTreeMap<RowKey, usize>,
-    object: &str,
-    r: usize,
-    sig: &mut Vec<usize>,
-) {
-    for (name, arrow) in &model.schema.arrows {
-        if arrow.src.0 != object {
-            continue;
-        }
-        let cell = model
-            .instance
-            .values
-            .get(name)
-            .and_then(|v| v.get(r))
-            .copied()
-            .flatten();
-        sig.push(match cell {
-            Some(RowId(t)) => cls[&(arrow.tgt.0.clone(), t)],
-            None => DANGLING,
-        });
-    }
-}
-
-/// Incoming preimages, per named arrow in sorted order: the size of the
-/// sorted multiset of source-row classes, then its elements.
-fn push_incoming(
-    model: &Model,
-    cls: &BTreeMap<RowKey, usize>,
-    object: &str,
-    r: usize,
-    sig: &mut Vec<usize>,
-) {
-    for (name, arrow) in &model.schema.arrows {
-        if arrow.tgt.0 != object {
-            continue;
-        }
-        let mut preimages = preimage_classes(model, cls, name, arrow, r);
-        preimages.sort_unstable();
-        sig.push(preimages.len());
-        sig.extend(preimages);
-    }
-}
-
-/// The classes of the rows that `arrow` maps to row `r` of its target.
-fn preimage_classes(
-    model: &Model,
-    cls: &BTreeMap<RowKey, usize>,
-    name: &Ident,
-    arrow: &crate::model::Arrow,
-    r: usize,
-) -> Vec<usize> {
-    let mut preimages: Vec<usize> = Vec::new();
-    if let Some(cells) = model.instance.values.get(name) {
-        for (s, cell) in cells.iter().enumerate() {
-            if *cell == Some(RowId(r)) {
-                preimages.push(cls[&(arrow.src.0.clone(), s)]);
-            }
-        }
-    }
-    preimages
-}
-
-/// Re-rank one object's rows by signature order and write the new classes.
-fn apply_ranks(object: &Ident, sigs: &[Vec<usize>], next: &mut BTreeMap<RowKey, usize>) {
-    let n = sigs.len();
-    let mut order: Vec<usize> = (0..n).collect();
-    order.sort_by(|a, b| sigs[*a].cmp(&sigs[*b]));
-    let mut ranks = vec![0usize; n];
-    let mut rank = 0;
-    for i in 1..n {
-        if sigs[order[i]] != sigs[order[i - 1]] {
-            rank += 1;
-        }
-        ranks[order[i]] = rank;
-    }
-    for (r, &rank) in ranks.iter().enumerate() {
-        next.insert((object.0.clone(), r), rank);
     }
 }
 
@@ -357,7 +249,7 @@ fn apply_labeling(model: &Model, cls: &BTreeMap<RowKey, usize>) -> Model {
         *rows = (0..n).map(RowId).collect();
     }
     for (arrow, cells) in out.instance.values.iter_mut() {
-        relabel_cells(model, cls, arrow, cells);
+        relabel_cells(&Relabel { model, cls }, arrow, cells);
     }
     relabel_map(cls, &mut out);
     out
@@ -370,29 +262,32 @@ fn relabel_map(cls: &BTreeMap<RowKey, usize>, out: &mut Model) {
         return;
     };
     for (object, rows) in &mut out_map.maps {
-        let mut relabeled: BTreeMap<RowId, crate::model::Ident> = BTreeMap::new();
-        for (row, target) in rows.iter() {
-            let new = cls[&(object.0.clone(), row.0)];
-            relabeled.insert(RowId(new), target.clone());
-        }
+        let relabeled: BTreeMap<RowId, crate::model::Ident> = rows
+            .iter()
+            .map(|(row, target)| {
+                let new = cls[&(object.0.clone(), row.0)];
+                (RowId(new), target.clone())
+            })
+            .collect();
         *rows = relabeled;
     }
 }
 
+/// The relabeling context: the original model and the chosen classes.
+struct Relabel<'a> {
+    model: &'a Model,
+    cls: &'a BTreeMap<RowKey, usize>,
+}
+
 /// Remap one arrow's cells through both endpoints' classes.
-fn relabel_cells(
-    model: &Model,
-    cls: &BTreeMap<RowKey, usize>,
-    arrow: &Ident,
-    cells: &mut Vec<Option<RowId>>,
-) {
-    let spec = &model.schema.arrows[arrow];
+fn relabel_cells(ctx: &Relabel<'_>, arrow: &Ident, cells: &mut Vec<Option<RowId>>) {
+    let spec = &ctx.model.schema.arrows[arrow];
     let (src, tgt) = (spec.src.0.clone(), spec.tgt.0.clone());
-    let n = model.instance.rows[&Ident(src.clone())].len();
+    let n = ctx.model.instance.rows[&Ident(src.clone())].len();
     let mut relabeled = vec![None; n];
     for (r, cell) in cells.iter().enumerate() {
-        let new_r = cls[&(src.clone(), r)];
-        relabeled[new_r] = cell.map(|RowId(t)| RowId(cls[&(tgt.clone(), t)]));
+        let new_r = ctx.cls[&(src.clone(), r)];
+        relabeled[new_r] = cell.map(|RowId(t)| RowId(ctx.cls[&(tgt.clone(), t)]));
     }
     *cells = relabeled;
 }

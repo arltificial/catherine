@@ -33,11 +33,51 @@ mod coprod;
 
 pub(super) use coprod::{assert_coproduct_collision_sound, assert_coproduct_coverage_sound};
 
+/// Per-obligation context: the interned schema, the typed tables, and
+/// the finding's schema index — the shared facts every claim re-derives
+/// from. Grouped so each obligation takes at most four formal
+/// parameters (params cap, app role); the harnesses construct it once
+/// per witness and the claim bodies keep their plain slot reads.
+pub(super) struct Ctx<'a> {
+    schema: &'a EngineSchema,
+    typed: &'a EngineTyped,
+    index: usize,
+}
+
+impl<'a> Ctx<'a> {
+    pub(super) fn new(schema: &'a EngineSchema, typed: &'a EngineTyped, index: usize) -> Self {
+        Self {
+            schema,
+            typed,
+            index,
+        }
+    }
+
+    /// Same tables, a variant's own schema index (pullback witnesses
+    /// carry their index inside the verdict).
+    fn with_index(&self, index: usize) -> Ctx<'a> {
+        Ctx {
+            schema: self.schema,
+            typed: self.typed,
+            index,
+        }
+    }
+}
+
 /// Compose a compiled path starting at source row `start` — rebuilt
 /// independently: each step resolves its cell or the path fails. Same
 /// concrete-bound shape as the kernel walk's `engine_compose` (bounded
 /// path table, flat-guarded reads — ledger `0006`), sharing no code
 /// with it.
+/// One resolved cell value: `tables[arrow][row]`'s id, or `None` when
+/// the cell is unresolved — the flat-guarded read every claim shares.
+fn cell_at(typed: &EngineTyped, arrow: usize, row: usize) -> Option<usize> {
+    typed.tables[arrow]
+        .get(row)
+        .and_then(|cell| cell.as_ref())
+        .map(|cell| cell.0)
+}
+
 fn compose(typed: &EngineTyped, path: &Bounded<Step, ARROWS_CAP>, start: usize) -> Option<usize> {
     let mut current = start;
     let mut i = 0;
@@ -65,36 +105,20 @@ fn compose(typed: &EngineTyped, path: &Bounded<Step, ARROWS_CAP>, start: usize) 
 /// reduction (2026-11-24), so the claim is split per composition side —
 /// each half carries its compose plus the cheap disagreement assert,
 /// and the two harnesses' union carries the family's claim.
-pub(super) fn assert_equation_lhs_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    row: usize,
-    lhs: usize,
-    rhs: usize,
-) {
-    let equation = &schema.equations[index];
-    let left = compose(typed, &equation.lhs, row);
+pub(super) fn assert_equation_lhs_sound(ctx: &Ctx, row: usize, lhs: usize, rhs: usize) {
+    let equation = &ctx.schema.equations[ctx.index];
+    let left = compose(ctx.typed, &equation.lhs, row);
     assert_eq!(left, Some(lhs));
     assert_ne!(lhs, rhs);
-    let _ = schema;
 }
 
 /// The equation claim's right half (see
 /// [`assert_equation_lhs_sound`]).
-pub(super) fn assert_equation_rhs_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    row: usize,
-    lhs: usize,
-    rhs: usize,
-) {
-    let equation = &schema.equations[index];
-    let right = compose(typed, &equation.rhs, row);
+pub(super) fn assert_equation_rhs_sound(ctx: &Ctx, row: usize, lhs: usize, rhs: usize) {
+    let equation = &ctx.schema.equations[ctx.index];
+    let right = compose(ctx.typed, &equation.rhs, row);
     assert_eq!(right, Some(rhs));
     assert_ne!(lhs, rhs);
-    let _ = schema;
 }
 
 /// The key claim: both colliding rows' key tuples fully resolve and
@@ -102,22 +126,15 @@ pub(super) fn assert_equation_rhs_sound(
 /// family's obligation directly — the merged per-finding dispatch is
 /// gone (2026-11-24: the dispatch split per witness kind, Decision 4 at
 /// obligation granularity).
-pub(super) fn assert_key_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    lo: usize,
-    hi: usize,
-) {
-    let key = schema.keys[index].as_ref().unwrap();
+pub(super) fn assert_key_sound(ctx: &Ctx, lo: usize, hi: usize) {
+    let key = ctx.schema.keys[ctx.index].as_ref().unwrap();
     assert!(lo < hi);
     // Both rows' key tuples fully resolve (any unresolved cell fails
     // the claim), and the first arrow's values agree — plain slot
     // reads, no heap tuple (walker arena round 2).
-    let first_lo = key_first_value(typed, key, lo);
-    let first_hi = key_first_value(typed, key, hi);
+    let first_lo = key_first_value(ctx.typed, key, lo);
+    let first_hi = key_first_value(ctx.typed, key, hi);
     assert_eq!(first_lo, first_hi);
-    let _ = schema;
 }
 
 /// The row's key tuple fully resolves (unresolved fails the claim);
@@ -146,124 +163,51 @@ fn key_first_value(typed: &EngineTyped, key: &CompiledKey, row: usize) -> Option
 
 /// The commutes claim: both cospan compositions resolve and disagree
 /// as the witness carried them.
-fn assert_commutes_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    row: usize,
-    lhs: usize,
-    rhs: usize,
-) {
-    let pullback = schema.pullbacks[index].as_ref().unwrap();
+fn assert_commutes_sound(ctx: &Ctx, row: usize, lhs: usize, rhs: usize) {
+    let pullback = ctx.schema.pullbacks[ctx.index].as_ref().unwrap();
     let [p1, p2] = pullback.legs;
     let [f, g] = pullback.cospan;
-    let left = typed.tables[p1]
-        .get(row)
-        .and_then(|cell| cell.as_ref())
-        .map(|cell| cell.0);
-    let right = typed.tables[p2]
-        .get(row)
-        .and_then(|cell| cell.as_ref())
-        .map(|cell| cell.0);
-    match (left, right) {
+    match (cell_at(ctx.typed, p1, row), cell_at(ctx.typed, p2, row)) {
         (Some(left), Some(right)) => {
-            let f_value = typed.tables[f]
-                .get(left)
-                .and_then(|cell| cell.as_ref())
-                .map(|cell| cell.0);
-            let g_value = typed.tables[g]
-                .get(right)
-                .and_then(|cell| cell.as_ref())
-                .map(|cell| cell.0);
-            assert_eq!(f_value, Some(lhs));
-            assert_eq!(g_value, Some(rhs));
+            assert_eq!(cell_at(ctx.typed, f, left), Some(lhs));
+            assert_eq!(cell_at(ctx.typed, g, right), Some(rhs));
             assert_ne!(lhs, rhs);
         }
         _ => panic!(),
     }
-    let _ = schema;
 }
 
 /// The covers claim: the pair shares a cospan target, and no apex row
 /// projects onto it through both legs of the square.
-fn assert_covers_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    a: usize,
-    b: usize,
-) {
-    let pullback = schema.pullbacks[index].as_ref().unwrap();
+fn assert_covers_sound(ctx: &Ctx, a: usize, b: usize) {
+    let pullback = ctx.schema.pullbacks[ctx.index].as_ref().unwrap();
     let [p1, p2] = pullback.legs;
     let [f, g] = pullback.cospan;
-    let f_value = typed.tables[f]
-        .get(a)
-        .and_then(|cell| cell.as_ref())
-        .map(|cell| cell.0);
-    let g_value = typed.tables[g]
-        .get(b)
-        .and_then(|cell| cell.as_ref())
-        .map(|cell| cell.0);
-    assert_eq!(f_value, g_value);
+    let f_value = cell_at(ctx.typed, f, a);
+    assert_eq!(f_value, cell_at(ctx.typed, g, b));
     assert!(f_value.is_some());
-    let apex_rows = typed.row_counts[pullback.apex].unwrap_or(0);
-    let mut row = 0;
-    while row < apex_rows {
-        let left = typed.tables[p1]
-            .get(row)
-            .and_then(|cell| cell.as_ref())
-            .map(|cell| cell.0);
-        let right = typed.tables[p2]
-            .get(row)
-            .and_then(|cell| cell.as_ref())
-            .map(|cell| cell.0);
-        match (left, right) {
-            (Some(left), Some(right)) => {
-                assert!(!(left == a && right == b));
-            }
-            _ => {}
+    let apex_rows = ctx.typed.row_counts[pullback.apex].unwrap_or(0);
+    for row in 0..apex_rows {
+        if let (Some(left), Some(right)) =
+            (cell_at(ctx.typed, p1, row), cell_at(ctx.typed, p2, row))
+        {
+            assert!(!(left == a && right == b));
         }
-        row += 1;
     }
 }
 
 /// The unique claim: two ascending apex rows resolve both leg
 /// projections to the same values — the square is not injective there.
-fn assert_unique_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    index: usize,
-    lo: usize,
-    hi: usize,
-) {
-    let pullback = schema.pullbacks[index].as_ref().unwrap();
+fn assert_unique_sound(ctx: &Ctx, lo: usize, hi: usize) {
+    let pullback = ctx.schema.pullbacks[ctx.index].as_ref().unwrap();
     let [p1, p2] = pullback.legs;
     assert!(lo < hi);
-    let mut lo_left: Option<usize> = None;
-    let mut lo_right: Option<usize> = None;
-    let mut hi_left: Option<usize> = None;
-    let mut hi_right: Option<usize> = None;
-    for row in [lo, hi] {
-        let left = typed.tables[p1]
-            .get(row)
-            .and_then(|cell| cell.as_ref())
-            .map(|cell| cell.0);
-        let right = typed.tables[p2]
-            .get(row)
-            .and_then(|cell| cell.as_ref())
-            .map(|cell| cell.0);
-        assert!(left.is_some() && right.is_some());
-        if row == lo {
-            lo_left = left;
-            lo_right = right;
-        } else {
-            hi_left = left;
-            hi_right = right;
-        }
-    }
+    let (lo_left, lo_right) = (cell_at(ctx.typed, p1, lo), cell_at(ctx.typed, p2, lo));
+    let (hi_left, hi_right) = (cell_at(ctx.typed, p1, hi), cell_at(ctx.typed, p2, hi));
+    assert!(lo_left.is_some() && lo_right.is_some());
+    assert!(hi_left.is_some() && hi_right.is_some());
     assert_eq!(lo_left, hi_left);
     assert_eq!(lo_right, hi_right);
-    let _ = schema;
 }
 
 pub(super) fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usize) {
@@ -275,23 +219,19 @@ pub(super) fn assert_dangling_sound(typed: &EngineTyped, arrow: usize, src: usiz
 }
 
 /// The pullback family's three obligations, one per verdict.
-pub(super) fn assert_pullback_sound(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    pullback: &CompactPullback,
-) {
+pub(super) fn assert_pullback_sound(ctx: &Ctx, pullback: &CompactPullback) {
     match pullback {
         CompactPullback::Commutes {
             index,
             row,
             lhs,
             rhs,
-        } => assert_commutes_sound(schema, typed, *index, *row, *lhs, *rhs),
+        } => assert_commutes_sound(&ctx.with_index(*index), *row, *lhs, *rhs),
         CompactPullback::Covers { index, pair } => {
-            assert_covers_sound(schema, typed, *index, pair[0], pair[1])
+            assert_covers_sound(&ctx.with_index(*index), pair[0], pair[1])
         }
         CompactPullback::Unique { index, rows } => {
-            assert_unique_sound(schema, typed, *index, rows[0], rows[1])
+            assert_unique_sound(&ctx.with_index(*index), rows[0], rows[1])
         }
     }
 }

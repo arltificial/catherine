@@ -130,24 +130,14 @@ fn the_action_arrow_projects_target_row_names() {
 #[test]
 fn the_domain_is_the_observed_set_plus_any_declaration() {
     let (model, rows) = fixture();
-    let (presentation, domain) = project(
-        &model,
-        &rows,
-        &projection("capture_source,capture_edition", None),
-        &[],
-    )
-    .expect("projection succeeds");
-    let observed = vec![
-        vec![
-            Literal::String("ed_1".to_string()),
-            Literal::String("src_a".to_string()),
-        ],
-        vec![
-            Literal::String("ed_2".to_string()),
-            Literal::String("src_b".to_string()),
-        ],
-    ];
-    assert_eq!(domain.inputs(), observed, "deduped, in column-key order");
+    let request = projection("capture_source,capture_edition", None);
+    let (presentation, domain) =
+        project(&model, &rows, &request, &[]).expect("projection succeeds");
+    assert_eq!(
+        domain.inputs(),
+        observed_inputs(),
+        "deduped, in column-key order"
+    );
 
     let (_, declared) = project(
         &model,
@@ -167,6 +157,21 @@ fn the_domain_is_the_observed_set_plus_any_declaration() {
     assert!(presentation
         .columns
         .contains_key(&Ident("capture_source".into())));
+}
+
+/// The two observed capture tuples, canonically ordered by the
+/// projection's column key.
+fn observed_inputs() -> Vec<Vec<Literal>> {
+    vec![
+        vec![
+            Literal::String("ed_1".to_string()),
+            Literal::String("src_a".to_string()),
+        ],
+        vec![
+            Literal::String("ed_2".to_string()),
+            Literal::String("src_b".to_string()),
+        ],
+    ]
 }
 
 /// A schema arrow is not automatically a projection arrow: it must start

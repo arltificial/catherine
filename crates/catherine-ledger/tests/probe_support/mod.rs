@@ -29,18 +29,28 @@ use catherine_ledger::harness::derive_probe_verdict;
 pub const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 
 /// One fixture's model hash, recomputed from its canonical bytes.
-pub fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(format!("{ROOT}/{path}")).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+pub type TestError = Box<dyn std::error::Error>;
+
+/// Unwrap an `Option` as a named test failure: the `?`-propagating
+/// replacement for `Option::unwrap` in test bodies.
+pub fn present<T>(value: Option<T>, what: &str) -> Result<T, TestError> {
+    value.ok_or_else(|| format!("{what} absent").into())
+}
+
+/// One fixture's model hash, recomputed from its canonical bytes.
+pub fn fixture_hash(path: &str) -> Result<String, TestError> {
+    let text = std::fs::read_to_string(format!("{ROOT}/{path}"))?;
+    let document = parse(&text)?;
+    Ok(model_hash(&document))
 }
 
 /// Every claim-bearing pin of one effective probe entry: the registered
 /// id, the pre-registered rows, the committed catalog address, and the
 /// verdict the comparison arithmetic derives from the entry's own
 /// comparison data.
-pub fn assert_entry_cites_the_registration(entry: &Entry, probe_id: &str) {
-    let kata = entry.content.kata.as_ref().expect("kata");
-    assert_eq!(kata.kata_id, probe_id, "the registered probe id");
+pub fn assert_entry_cites_the_registration(entry: &Entry, probe_id: &str) -> Result<(), TestError> {
+    let kata = present(entry.content.kata.as_ref(), "kata record")?;
+    assert_eq!(kata.identity.kata_id, probe_id, "the registered probe id");
     assert_eq!(
         kata.expected,
         probe_expectations(probe_id),
@@ -52,30 +62,28 @@ pub fn assert_entry_cites_the_registration(entry: &Entry, probe_id: &str) {
         "the entry cites the committed catalog"
     );
     let derived = derive_probe_verdict(
-        &kata.kata_id,
-        &kata.comparison.unique_detections,
-        kata.comparison.baseline.as_ref(),
-    )
-    .expect("a registered probe with a comparison derives a verdict");
-    let recorded: Verdict = kata
-        .verdict
-        .parse()
-        .expect("recorded verdict in vocabulary");
+        &kata.identity.kata_id,
+        &kata.derivation.comparison.unique_detections,
+        kata.derivation.comparison.baseline.as_ref(),
+    )?;
+    let recorded: Verdict = kata.derivation.verdict.parse()?;
     assert_eq!(
         recorded, derived,
         "the recorded verdict for `{}` must equal the derivation from its own comparison",
-        kata.name
+        kata.identity.name
     );
+    Ok(())
 }
 
 /// The entry's `fixture_hash` is the canonical model hash of the fixture
 /// it names (`KataRecord::fixture_hash`), recomputed from the current
 /// bytes — a fixture edit must be a new entry, never a silent change.
-pub fn assert_fixture_hash_is_current(entry: &Entry) {
-    let kata = entry.content.kata.as_ref().expect("kata");
+pub fn assert_fixture_hash_is_current(entry: &Entry) -> Result<(), TestError> {
+    let kata = present(entry.content.kata.as_ref(), "kata record")?;
     assert_eq!(
-        kata.fixture_hash,
-        fixture_hash(&kata.fixture),
+        kata.provenance.fixture_hash,
+        fixture_hash(&kata.provenance.fixture)?,
         "the recorded fixture hash is the canonical model hash"
     );
+    Ok(())
 }

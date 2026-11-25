@@ -21,26 +21,51 @@ use catherine_core::parse::parse;
 const GOLDEN_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden");
 
 fn read_fixture(file: &str) -> String {
-    std::fs::read_to_string(format!("{GOLDEN_DIR}/{file}")).expect("fixture exists")
+    match std::fs::read_to_string(format!("{GOLDEN_DIR}/{file}")) {
+        Ok(text) => text,
+        Err(error) => panic!("fixture {file} is unreadable: {error}"),
+    }
+}
+
+/// A fixture P0's parser accepts, parsed or the test fails loudly.
+fn fixture_model(file: &str) -> catherine_core::model::Model {
+    let text = read_fixture(file);
+    match parse(&text) {
+        Ok(model) => model,
+        Err(error) => panic!("fixture {file} does not parse: {error}"),
+    }
 }
 
 /// The full pipeline for a fixture P0's parser accepts.
 fn check_parsed(file: &str) -> Vec<Finding> {
-    let text = read_fixture(file);
-    let model = parse(&text).expect("fixture parses");
+    let model = fixture_model(file);
     let built = TypedInstance::build(&model.schema, &model.instance);
     check(&model.schema, &built)
 }
 
 /// The findings list serialized to its pinned JSON form.
 fn json_of(findings: &[Finding]) -> serde_json::Value {
-    serde_json::to_value(findings).expect("findings serialize")
+    match serde_json::to_value(findings) {
+        Ok(value) => value,
+        Err(error) => panic!("findings do not serialize: {error}"),
+    }
+}
+
+/// The findings list serialized to its string form.
+fn json_str(findings: &[Finding]) -> String {
+    match serde_json::to_string(findings) {
+        Ok(text) => text,
+        Err(error) => panic!("findings do not serialize: {error}"),
+    }
 }
 
 /// The serde round-trip assertion: serialize → deserialize → equal.
 fn round_trips(findings: &[Finding]) {
-    let text = serde_json::to_string(findings).expect("findings serialize");
-    let back: Vec<Finding> = serde_json::from_str(&text).expect("findings deserialize");
+    let text = json_str(findings);
+    let back: Vec<Finding> = match serde_json::from_str(&text) {
+        Ok(findings) => findings,
+        Err(error) => panic!("findings do not deserialize: {error}"),
+    };
     assert_eq!(findings, back.as_slice(), "serde round-trip is lossless");
 }
 
@@ -66,6 +91,13 @@ fn violation_from_a_real_kernel_run_carries_label_and_witness() {
          lhs=b1 rhs=b2"
     );
     // The pinned JSON shape, asserted through parsed fields — no snapshot.
+    for f in &findings {
+        assert_eq!(
+            f.label,
+            EpistemicLabel::Executed,
+            "an accepted equation's violation is executed"
+        );
+    }
     let json = json_of(&findings);
     assert_eq!(json[0]["label"].as_str(), Some("executed"));
     assert_eq!(json[0]["kind"].as_str(), Some("violation"));
@@ -107,6 +139,11 @@ fn dangling_from_a_real_kernel_run_is_recorded_and_the_run_continues() {
         "expected the executed violation (equation 0, row a3, lhs=b1 rhs=b2) before the \
          executed dangling (f@a1) — kind order, then witness ids; the dangling row emits \
          no violation, the others are still checked"
+    );
+    let total = findings.len();
+    assert_eq!(
+        total, 2,
+        "the violation and the dangling finding, in kind order"
     );
     assert!(
         findings
@@ -182,7 +219,8 @@ fn redundant_shape_is_pinned_for_p4() {
         }),
     }];
     let json = json_of(&findings);
-    assert_eq!(json[0]["label"].as_str(), Some("executed"));
+    let label = json[0]["label"].as_str();
+    assert_eq!(label, Some("executed"));
     assert_eq!(json[0]["kind"].as_str(), Some("redundant"));
     assert_eq!(
         json[0]["witness"]["derivable"],
@@ -352,8 +390,8 @@ fn repeated_checks_are_byte_identical() {
         "proposed_hypothesis.json",
         "consistent.json",
     ] {
-        let first = serde_json::to_string(&check_parsed(file)).expect("serialize");
-        let second = serde_json::to_string(&check_parsed(file)).expect("serialize");
+        let first = json_str(&check_parsed(file));
+        let second = json_str(&check_parsed(file));
         assert_eq!(
             first, second,
             "[{file}] repeated checks serialize byte-identically"

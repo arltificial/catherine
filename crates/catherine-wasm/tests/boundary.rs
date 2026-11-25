@@ -16,6 +16,8 @@
 use catherine_wasm::boundary::{analyze, check, MAX_DOCUMENT_BYTES};
 use catherine_wasm::BoundaryError;
 
+mod common;
+
 /// A document that is malformed JSON *and* oversized: if the kernel were
 /// invoked, the parser would answer `Parse` — the cap error's presence
 /// is the proof it never did.
@@ -40,8 +42,7 @@ fn oversized_document_yields_the_typed_cap_error() {
     );
     // And the typed error's JSON encoding carries the stable code the
     // UI matches on.
-    let encoded: serde_json::Value =
-        serde_json::from_str(&error.to_json()).expect("boundary error encoding decodes");
+    let encoded = common::from_json(&error.to_json());
     assert_eq!(encoded["code"], "document_too_large");
 }
 
@@ -54,8 +55,9 @@ fn under_cap_document_reaches_the_kernel() {
         "schema": {"objects": [], "arrows": [], "equations": []},
         "instance": {"rows": {}, "tables": {}}
     }"#;
-    let report = check(document).expect("minimal document parses");
-    let value: serde_json::Value = serde_json::from_str(&report).expect("report is JSON");
+    let value = common::from_json(
+        &check(document).unwrap_or_else(|error| panic!("minimal document parses: {error:?}")),
+    );
     assert_eq!(value["findings"], serde_json::json!([]));
     // The scope rides next to the findings (catherine-kpn.12, mirroring
     // the CLI's `data.scope`): the honest empty scope — keys present,
@@ -81,8 +83,9 @@ fn analyze_reports_the_search_outcome_discriminator() {
         "schema": {"objects": [], "arrows": [], "equations": []},
         "instance": {"rows": {}, "tables": {}}
     }"#;
-    let report = analyze(empty, "{}").expect("minimal document analyzes");
-    let value: serde_json::Value = serde_json::from_str(&report).expect("report is JSON");
+    let report =
+        analyze(empty, "{}").unwrap_or_else(|error| panic!("minimal document analyzes: {error:?}"));
+    let value = common::from_json(&report);
     assert_eq!(value["outcome"], "unknown");
     assert_eq!(value["unknown"]["rows"], serde_json::json!({}));
 
@@ -95,8 +98,9 @@ fn analyze_reports_the_search_outcome_discriminator() {
         "schema": {"objects": ["a"], "arrows": [], "equations": []},
         "instance": {"rows": {"a": ["x"]}, "tables": {}}
     }"#;
-    let report = analyze(one_row, "{}").expect("one-row document analyzes");
-    let value: serde_json::Value = serde_json::from_str(&report).expect("report is JSON");
+    let report = analyze(one_row, "{}")
+        .unwrap_or_else(|error| panic!("one-row document analyzes: {error:?}"));
+    let value = common::from_json(&report);
     assert_eq!(value["outcome"], "witness");
     assert_eq!(value["findings"], serde_json::json!([]));
 }

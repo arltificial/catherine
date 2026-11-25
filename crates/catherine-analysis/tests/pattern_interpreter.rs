@@ -23,9 +23,7 @@ mod expectations;
 // same source under the test crate, with the library's `crate::{bounds,
 // pattern, rule_lens}` roots re-exported so the module's imports resolve
 // unchanged — the behaviour under test is the production file, not a copy.
-mod bounds {
-    pub use catherine_analysis::bounds::*;
-}
+mod bounds {}
 mod pattern {
     pub use catherine_analysis::pattern::*;
 }
@@ -36,7 +34,7 @@ mod rule_lens {
 mod interpreter;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LawKind, LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{LawKind, LensCall, LensInput, LensOutcome, PatternLens};
 use catherine_core::findings::{EpistemicLabel, Finding, FindingKind};
 use catherine_core::model::Model;
 use expectations::{Expectation, EXPECTATIONS};
@@ -98,7 +96,10 @@ fn assert_row(row: &Expectation) {
         model: &model,
         values: &bound,
     };
-    let outcome = interpreter::Lens.run(&input, &ScopeCaps::default());
+    let outcome = interpreter::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    });
     let findings = match outcome {
         LensOutcome::Findings(findings) => findings,
         LensOutcome::Unknown { scope } => panic!(
@@ -177,7 +178,10 @@ fn a_model_without_a_rule_presentation_is_unknown_not_clean() {
         model: &model,
         values: &[],
     };
-    match interpreter::Lens.run(&input, &ScopeCaps::default()) {
+    match interpreter::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("rule_presentation")),
         LensOutcome::Findings(findings) => {
             panic!("an absent surface must not be clean: {findings:?}")
@@ -193,7 +197,10 @@ fn unbound_values_are_an_unknown_scope() {
         model: &model,
         values: &values,
     };
-    match interpreter::Lens.run(&input, &ScopeCaps::default()) {
+    match interpreter::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Unknown { scope } => assert!(scope.contains("does not declare")),
         LensOutcome::Findings(_) => panic!("an unbound domain must not be evaluated"),
     }

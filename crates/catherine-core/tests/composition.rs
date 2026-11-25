@@ -19,7 +19,7 @@
 //! snapshots.
 
 use catherine_core::checks;
-use catherine_core::composition::{glue, parse_document};
+use catherine_core::composition::{glue, parse_document, CompositionError, Document, Glued};
 use catherine_core::error::ParseError;
 use catherine_core::findings::{Finding, FindingKind, ViolationWitness};
 use catherine_core::instance::TypedInstance;
@@ -109,9 +109,35 @@ fn key_ids(findings: &[Finding]) -> Vec<usize> {
         .collect()
 }
 
+/// Parse a fixture document, panicking with its name if the parse fails.
+fn fixture(name: &str, text: &str) -> Document {
+    match parse_document(name, text) {
+        Ok(document) => document,
+        Err(error) => panic!("parsing {name}: {error:?}"),
+    }
+}
+
+/// Glue fixture documents, panicking if the pushout is refused.
+fn ok_glue(documents: &[Document]) -> Glued {
+    match glue(documents) {
+        Ok(glued) => glued,
+        Err(error) => panic!("the pushout is refused: {}", error.message()),
+    }
+}
+
+/// Glue fixture documents that must be refused; hand back the labeled error.
+fn refused_glue(documents: &[Document]) -> CompositionError {
+    match glue(documents) {
+        Ok(_) => panic!("the pushout was accepted"),
+        Err(error) => error,
+    }
+}
+
 /// The 1-based line and character column of `needle`'s first occurrence.
 fn position_of(text: &str, needle: &str) -> (usize, usize) {
-    let offset = text.find(needle).expect("the needle occurs in the fixture");
+    let Some(offset) = text.find(needle) else {
+        panic!("the needle {needle:?} occurs in the fixture");
+    };
     let before = &text[..offset];
     let line = before.matches('\n').count() + 1;
     let column = before.chars().rev().take_while(|c| *c != '\n').count() + 1;
@@ -120,9 +146,9 @@ fn position_of(text: &str, needle: &str) -> (usize, usize) {
 
 #[test]
 fn shared_declarations_glue_by_name() {
-    let a = parse_document("a.ct.json", AGREE_A).expect("document a parses");
-    let b = parse_document("b.ct.json", AGREE_B).expect("document b parses");
-    let glued = glue(&[a, b]).expect("the agreeing overlap glues");
+    let a = fixture("a.ct.json", AGREE_A);
+    let b = fixture("b.ct.json", AGREE_B);
+    let glued = ok_glue(&[a, b]);
     assert_eq!(
         glued.schema.objects.len(),
         2,
@@ -151,9 +177,9 @@ fn shared_declarations_glue_by_name() {
 
 #[test]
 fn agreeing_overlap_checks_clean() {
-    let a = parse_document("a.ct.json", AGREE_A).expect("document a parses");
-    let b = parse_document("b.ct.json", AGREE_B).expect("document b parses");
-    let glued = glue(&[a, b]).expect("the agreeing overlap glues");
+    let a = fixture("a.ct.json", AGREE_A);
+    let b = fixture("b.ct.json", AGREE_B);
+    let glued = ok_glue(&[a, b]);
     let merged = checked(&glued.schema, &glued.instance);
     assert!(
         merged.is_empty(),
@@ -167,9 +193,9 @@ fn agreeing_overlap_checks_clean() {
 
 #[test]
 fn disagreeing_arrow_endpoints_are_a_schema_conflict() {
-    let a = parse_document("a.ct.json", ENDPOINTS_A).expect("document a parses");
-    let b = parse_document("b.ct.json", ENDPOINTS_B).expect("document b parses");
-    let error = glue(&[a, b]).expect_err("disagreeing endpoints are refused");
+    let a = fixture("a.ct.json", ENDPOINTS_A);
+    let b = fixture("b.ct.json", ENDPOINTS_B);
+    let error = refused_glue(&[a, b]);
     assert_eq!(error.code(), "schema_conflict", "stable conflict code");
     assert_eq!(
         error.documents(),
@@ -190,9 +216,9 @@ fn disagreeing_arrow_endpoints_are_a_schema_conflict() {
 
 #[test]
 fn disagreeing_row_values_are_a_row_conflict() {
-    let a = parse_document("a.ct.json", ROWS_A).expect("document a parses");
-    let b = parse_document("b.ct.json", ROWS_B).expect("document b parses");
-    let error = glue(&[a, b]).expect_err("disagreeing values are refused");
+    let a = fixture("a.ct.json", ROWS_A);
+    let b = fixture("b.ct.json", ROWS_B);
+    let error = refused_glue(&[a, b]);
     assert_eq!(error.code(), "row_conflict", "stable conflict code");
     assert_eq!(
         error.documents(),
@@ -211,48 +237,55 @@ fn disagreeing_row_values_are_a_row_conflict() {
     );
 }
 
-#[test]
-fn equations_from_both_documents_are_enforced() {
-    let a = parse_document("a.ct.json", EQUATIONS_A).expect("document a parses");
-    let b = parse_document("b.ct.json", EQUATIONS_B).expect("document b parses");
-    let glued = glue(&[a, b]).expect("the agreeing overlap glues");
-    let merged = checked(&glued.schema, &glued.instance);
-    assert_eq!(
-        equation_ids(&merged),
-        vec![0, 1],
-        "both declarations are enforced (multiset, canonical order)"
-    );
-    assert_eq!(
-        violations(&merged).len(),
-        2,
-        "one violation per declared equation"
-    );
-}
+/// One declared-kind case: its name, the two documents, the ids its
+/// findings name, and the per-declaration message.
+type DeclarationCase<'a> = (
+    &'a str,
+    &'a str,
+    &'a str,
+    fn(&[Finding]) -> Vec<usize>,
+    &'a str,
+);
 
+/// Both documents' declarations of each kind are enforced: the glued
+/// model runs every declaration, once per document, in canonical order.
 #[test]
-fn keys_from_both_documents_are_enforced() {
-    let a = parse_document("a.ct.json", KEYS_A).expect("document a parses");
-    let b = parse_document("b.ct.json", KEYS_B).expect("document b parses");
-    let glued = glue(&[a, b]).expect("the agreeing overlap glues");
-    let merged = checked(&glued.schema, &glued.instance);
-    assert_eq!(
-        key_ids(&merged),
-        vec![0, 1],
-        "both key declarations are enforced (multiset, canonical order)"
-    );
-    assert_eq!(
-        violations(&merged).len(),
-        2,
-        "one collision per declared key"
-    );
+fn declarations_from_both_documents_are_enforced() {
+    let cases: &[DeclarationCase] = &[
+        (
+            "equations",
+            EQUATIONS_A,
+            EQUATIONS_B,
+            equation_ids,
+            "one violation per declared equation",
+        ),
+        (
+            "keys",
+            KEYS_A,
+            KEYS_B,
+            key_ids,
+            "one collision per declared key",
+        ),
+    ];
+    for (kind, a_text, b_text, ids, per_declaration) in cases {
+        let a = fixture(&format!("a-{kind}.ct.json"), a_text);
+        let b = fixture(&format!("b-{kind}.ct.json"), b_text);
+        let glued = ok_glue(&[a, b]);
+        let merged = checked(&glued.schema, &glued.instance);
+        assert_eq!(
+            ids(&merged),
+            vec![0, 1],
+            "both {kind} declarations are enforced (multiset, canonical order)"
+        );
+        assert_eq!(violations(&merged).len(), 2, "{per_declaration}");
+    }
 }
 
 #[test]
 fn cross_document_equation_resolves_after_glue() {
-    let a = parse_document("billing.ct.json", CROSS_A)
-        .expect("a document references a sibling's arrows (syntax-only at document level)");
-    let b = parse_document("dispatch.ct.json", CROSS_B).expect("document b parses");
-    let glued = glue(&[a, b]).expect("the names resolve over the pushout");
+    let a = fixture("billing.ct.json", CROSS_A);
+    let b = fixture("dispatch.ct.json", CROSS_B);
+    let glued = ok_glue(&[a, b]);
     let merged = checked(&glued.schema, &glued.instance);
     assert_eq!(
         equation_ids(&merged),
@@ -272,9 +305,9 @@ fn cross_document_equation_resolves_after_glue() {
 
 #[test]
 fn dangling_cross_document_reference_is_unknown_arrow_at_glue() {
-    let a = parse_document("seam.ct.json", DANGLING).expect("syntax-only at document level");
-    let b = parse_document("dispatch.ct.json", CROSS_B).expect("document b parses");
-    let error = glue(&[a, b]).expect_err("the dangling reference fails at glue time");
+    let a = fixture("seam.ct.json", DANGLING);
+    let b = fixture("dispatch.ct.json", CROSS_B);
+    let error = refused_glue(&[a, b]);
     assert_eq!(
         error.code(),
         "unknown_arrow",
@@ -290,28 +323,27 @@ fn dangling_cross_document_reference_is_unknown_arrow_at_glue() {
         Some(position_of(DANGLING, "\"ghost\"")),
         "the span survives deferral"
     );
+    let message = error.message();
     assert!(
-        error
-            .message()
-            .contains("references undeclared arrow `ghost`"),
-        "the kernel message shape: {}",
-        error.message()
+        message.contains("references undeclared arrow `ghost`"),
+        "the kernel message shape: {message}"
     );
     assert!(
-        error.message().contains("[dispatch_region, ghost]"),
-        "the full path is named: {}",
-        error.message()
+        message.contains("[dispatch_region, ghost]"),
+        "the full path is named: {message}"
     );
 }
 
 #[test]
 fn single_document_unknown_arrow_matches_the_parse_time_error() {
-    let parse_error = parse(UNKNOWN).expect_err("today's parser rejects the dangling path");
+    let Err(parse_error) = parse(UNKNOWN) else {
+        panic!("today's parser accepts the dangling path");
+    };
     let ParseError::Semantic(semantic) = parse_error else {
         panic!("today's error is a semantic unknown_arrow");
     };
-    let document = parse_document("d.ct.json", UNKNOWN).expect("syntax-only parse accepts it");
-    let error = glue(&[document]).expect_err("the singleton pushout resolves it");
+    let document = fixture("d.ct.json", UNKNOWN);
+    let error = refused_glue(&[document]);
     assert_eq!(error.code(), semantic.code.as_str(), "same stable code");
     assert_eq!(
         error.position(),
@@ -327,9 +359,9 @@ fn single_document_unknown_arrow_matches_the_parse_time_error() {
 
 #[test]
 fn disjoint_documents_flag_an_empty_interface() {
-    let a = parse_document("a.ct.json", DISJOINT_A).expect("document a parses");
-    let b = parse_document("b.ct.json", DISJOINT_B).expect("document b parses");
-    let glued = glue(&[a, b]).expect("a disjoint union still glues");
+    let a = fixture("a.ct.json", DISJOINT_A);
+    let b = fixture("b.ct.json", DISJOINT_B);
+    let glued = ok_glue(&[a, b]);
     assert!(
         glued.empty_interface,
         "zero shared names is flagged, never silent"
@@ -348,9 +380,11 @@ fn disjoint_documents_flag_an_empty_interface() {
 
 #[test]
 fn a_single_document_glue_preserves_the_parsed_model() {
-    let model = parse(AGREE_A).expect("the document parses");
-    let document = parse_document("solo.ct.json", AGREE_A).expect("the document parses");
-    let glued = glue(&[document]).expect("a singleton pushout is accepted");
+    let Ok(model) = parse(AGREE_A) else {
+        panic!("the document fails to parse")
+    };
+    let document = fixture("solo.ct.json", AGREE_A);
+    let glued = ok_glue(&[document]);
     assert_eq!(
         glued.schema, model.schema,
         "the merged schema is the document's schema"

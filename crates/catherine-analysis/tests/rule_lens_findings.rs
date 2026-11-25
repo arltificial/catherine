@@ -30,64 +30,63 @@ use catherine_core::model::{
 use catherine_core::parse::parse;
 use catherine_core::rule_lens::{RuleDomain, RuleScope};
 use std::collections::BTreeMap;
+use std::error::Error;
 
-fn fixture(name: &str) -> RulePresentation {
+fn fixture(name: &str) -> Result<RulePresentation, Box<dyn Error>> {
     let path = format!(
         "{}/../../fixtures/rule_lens/{name}",
         env!("CARGO_MANIFEST_DIR")
     );
-    let text = std::fs::read_to_string(path).expect("golden fixture exists");
-    let model = parse(&text).expect("golden fixture parses");
-    model
+    let text = std::fs::read_to_string(path)?;
+    let model = parse(&text).map_err(|e| format!("golden fixture parses: {e:?}"))?;
+    Ok(model
         .rule_presentation
-        .expect("the fixture declares a rule presentation")
+        .ok_or("the fixture declares a rule presentation")?)
 }
 
-fn int_domain(table: &RulePresentation, column: &str, values: &[i64]) -> RuleDomain {
+/// The finite integer domain sampled over one presentation column.
+struct DomainSpec<'a> {
+    column: &'a str,
+    values: &'a [i64],
+}
+
+fn int_domain(
+    table: &RulePresentation,
+    spec: DomainSpec<'_>,
+) -> Result<RuleDomain, Box<dyn Error>> {
     let supplied: BTreeMap<Ident, Vec<Literal>> = [(
-        Ident(column.to_string()),
-        values.iter().copied().map(Literal::Int).collect(),
+        Ident(spec.column.to_string()),
+        spec.values.iter().copied().map(Literal::Int).collect(),
     )]
     .into_iter()
     .collect();
-    RuleDomain::from_presentation(table, supplied).expect("domain matches the presentation")
+    Ok(RuleDomain::from_presentation(table, supplied)?)
 }
 
 fn fixture_outcome(
     name: &str,
-    column: &str,
-    values: &[i64],
-) -> (RulePresentation, RuleDomain, Vec<Finding>) {
-    let table = fixture(name);
-    let domain = int_domain(&table, column, values);
+    spec: DomainSpec<'_>,
+) -> Result<(RulePresentation, RuleDomain, Vec<Finding>), Box<dyn Error>> {
+    let table = fixture(name)?;
+    let domain = int_domain(&table, spec)?;
     let RuleLensOutcome::Findings(findings) = rule_lens(&table, &domain, &ScopeCaps::default())
     else {
         panic!("{name}: the default budget covers the fixture domain");
     };
-    (table, domain, findings)
-}
-
-fn rule(name: &str, predicate: Predicate, action: &str) -> Rule {
-    Rule {
-        name: Ident(name.to_string()),
-        predicate,
-        action: action.to_string(),
-    }
-}
-
-fn cmp(column: &str, op: CmpOp, value: i64) -> Predicate {
-    Predicate::Cmp {
-        column: Ident(column.to_string()),
-        op,
-        value: Literal::Int(value),
-    }
+    Ok((table, domain, findings))
 }
 
 /// gap → underconstraint, hypothesized, with the uncovered input class
 /// and every uncovered input as an example.
 #[test]
-fn gap_fixture_maps_to_a_hypothesized_underconstraint() {
-    let (_, _, findings) = fixture_outcome("gap.ct.json", "age", &[10, 20, 30, 70]);
+fn gap_fixture_maps_to_a_hypothesized_underconstraint() -> Result<(), Box<dyn Error>> {
+    let (_, _, findings) = fixture_outcome(
+        "gap.ct.json",
+        DomainSpec {
+            column: "age",
+            values: &[10, 20, 30, 70],
+        },
+    )?;
     assert_eq!(
         findings,
         vec![Finding {
@@ -101,7 +100,7 @@ fn gap_fixture_maps_to_a_hypothesized_underconstraint() {
             }),
         }]
     );
-    let json = serde_json::to_value(&findings).expect("findings serialize");
+    let json = serde_json::to_value(&findings)?;
     assert_eq!(json[0]["label"].as_str(), Some("hypothesized"));
     assert_eq!(json[0]["kind"].as_str(), Some("underconstraint"));
     assert_eq!(
@@ -116,17 +115,21 @@ fn gap_fixture_maps_to_a_hypothesized_underconstraint() {
         json[0]["witness"]["detail"]["examples"][0].as_u64(),
         Some(3)
     );
-    println!(
-        "gap: {}",
-        serde_json::to_string(&findings[0]).expect("serializes")
-    );
+    println!("gap: {}", serde_json::to_string(&findings[0])?);
+    Ok(())
 }
 
 /// overlap under DeclaredDisjoint → violation, executed, witness encoded
 /// in `EquationWitness` (see `catherine_analysis::rule_lens` docs).
 #[test]
-fn overlap_fixture_maps_to_an_executed_violation() {
-    let (_, _, findings) = fixture_outcome("overlap-disjoint.ct.json", "amount", &[50, 100, 200]);
+fn overlap_fixture_maps_to_an_executed_violation() -> Result<(), Box<dyn Error>> {
+    let (_, _, findings) = fixture_outcome(
+        "overlap-disjoint.ct.json",
+        DomainSpec {
+            column: "amount",
+            values: &[50, 100, 200],
+        },
+    )?;
     assert_eq!(
         findings,
         vec![Finding {
@@ -139,22 +142,26 @@ fn overlap_fixture_maps_to_an_executed_violation() {
             })),
         }]
     );
-    let json = serde_json::to_value(&findings).expect("findings serialize");
+    let json = serde_json::to_value(&findings)?;
     assert_eq!(json[0]["kind"].as_str(), Some("violation"));
     assert_eq!(json[0]["witness"]["row"].as_u64(), Some(1));
     assert_eq!(json[0]["witness"]["lhs"].as_u64(), Some(0));
     assert_eq!(json[0]["witness"]["rhs"].as_u64(), Some(1));
-    println!(
-        "overlap: {}",
-        serde_json::to_string(&findings[0]).expect("serializes")
-    );
+    println!("overlap: {}", serde_json::to_string(&findings[0])?);
+    Ok(())
 }
 
 /// shadow → redundant, executed, the dead rule named with its covering
 /// earlier rule.
 #[test]
-fn shadow_fixture_maps_to_an_executed_redundancy() {
-    let (_, _, findings) = fixture_outcome("shadow.ct.json", "n", &[1, 2, 3, 4, 5, 6]);
+fn shadow_fixture_maps_to_an_executed_redundancy() -> Result<(), Box<dyn Error>> {
+    let (_, _, findings) = fixture_outcome(
+        "shadow.ct.json",
+        DomainSpec {
+            column: "n",
+            values: &[1, 2, 3, 4, 5, 6],
+        },
+    )?;
     assert_eq!(
         findings,
         vec![Finding {
@@ -165,22 +172,26 @@ fn shadow_fixture_maps_to_an_executed_redundancy() {
             }),
         }]
     );
-    let json = serde_json::to_value(&findings).expect("findings serialize");
+    let json = serde_json::to_value(&findings)?;
     assert_eq!(json[0]["kind"].as_str(), Some("redundant"));
     assert_eq!(json[0]["witness"]["derivable"][0].as_str(), Some("even"));
     assert_eq!(json[0]["witness"]["reducing"][0].as_str(), Some("all"));
-    println!(
-        "shadow: {}",
-        serde_json::to_string(&findings[0]).expect("serializes")
-    );
+    println!("shadow: {}", serde_json::to_string(&findings[0])?);
+    Ok(())
 }
 
 /// derivable → redundant, executed, the rule and its two combining
 /// factors.
 #[test]
-fn derivable_fixture_maps_to_an_executed_redundancy() {
+fn derivable_fixture_maps_to_an_executed_redundancy() -> Result<(), Box<dyn Error>> {
     let values: Vec<i64> = (1..=15).collect();
-    let (_, _, findings) = fixture_outcome("derivable.ct.json", "n", &values);
+    let (_, _, findings) = fixture_outcome(
+        "derivable.ct.json",
+        DomainSpec {
+            column: "n",
+            values: &values,
+        },
+    )?;
     assert_eq!(
         findings,
         vec![Finding {
@@ -191,48 +202,83 @@ fn derivable_fixture_maps_to_an_executed_redundancy() {
             }),
         }]
     );
-    let json = serde_json::to_value(&findings).expect("findings serialize");
+    let json = serde_json::to_value(&findings)?;
     assert_eq!(
         json[0]["witness"]["derivable"][0].as_str(),
         Some("fizzbuzz")
     );
     assert_eq!(json[0]["witness"]["reducing"][1].as_str(), Some("buzz"));
-    println!(
-        "derivable: {}",
-        serde_json::to_string(&findings[0]).expect("serializes")
-    );
+    println!("derivable: {}", serde_json::to_string(&findings[0])?);
+    Ok(())
 }
 
 /// The same regions under a priority policy are legal: no overlap finding.
 #[test]
-fn priority_policy_reports_no_overlap_finding() {
-    let mut table = fixture("overlap-disjoint.ct.json");
+fn priority_policy_reports_no_overlap_finding() -> Result<(), Box<dyn Error>> {
+    let mut table = fixture("overlap-disjoint.ct.json")?;
     table.policy = Some(Policy::PriorityOrder);
-    let domain = int_domain(&table, "amount", &[50, 100, 200]);
+    let domain = int_domain(
+        &table,
+        DomainSpec {
+            column: "amount",
+            values: &[50, 100, 200],
+        },
+    )?;
     let RuleLensOutcome::Findings(findings) = rule_lens(&table, &domain, &ScopeCaps::default())
     else {
         panic!("the default budget covers the fixture domain");
     };
     assert!(findings.is_empty(), "priority order resolves the overlap");
+    Ok(())
 }
 
 /// No declared policy: overlap is a diagnostic, mapped to no finding —
 /// Decision 1 pins overlap only under DeclaredDisjoint.
 #[test]
-fn an_absent_policy_reports_no_taxonomy_finding_for_overlap() {
+fn an_absent_policy_reports_no_taxonomy_finding_for_overlap() -> Result<(), Box<dyn Error>> {
     let table = RulePresentation {
         domain: Ident("Input".to_string()),
         columns: [(Ident("age".to_string()), ColumnType::Int)]
             .into_iter()
             .collect(),
         rules: vec![
-            rule("young", cmp("age", CmpOp::Le, 20), "young"),
-            rule("old", cmp("age", CmpOp::Gt, 20), "old"),
-            rule("vip", cmp("age", CmpOp::Ge, 20), "vip"),
+            Rule {
+                name: Ident("young".to_string()),
+                predicate: Predicate::Cmp {
+                    column: Ident("age".to_string()),
+                    op: CmpOp::Le,
+                    value: Literal::Int(20),
+                },
+                action: "young".to_string(),
+            },
+            Rule {
+                name: Ident("old".to_string()),
+                predicate: Predicate::Cmp {
+                    column: Ident("age".to_string()),
+                    op: CmpOp::Gt,
+                    value: Literal::Int(20),
+                },
+                action: "old".to_string(),
+            },
+            Rule {
+                name: Ident("vip".to_string()),
+                predicate: Predicate::Cmp {
+                    column: Ident("age".to_string()),
+                    op: CmpOp::Ge,
+                    value: Literal::Int(20),
+                },
+                action: "vip".to_string(),
+            },
         ],
         policy: None,
     };
-    let domain = int_domain(&table, "age", &[10, 20, 70]);
+    let domain = int_domain(
+        &table,
+        DomainSpec {
+            column: "age",
+            values: &[10, 20, 70],
+        },
+    )?;
     let RuleLensOutcome::Findings(findings) = rule_lens(&table, &domain, &ScopeCaps::default())
     else {
         panic!("the default budget covers the declared domain");
@@ -241,14 +287,21 @@ fn an_absent_policy_reports_no_taxonomy_finding_for_overlap() {
         findings.is_empty(),
         "an undeclared policy never yields an overlap finding"
     );
+    Ok(())
 }
 
 /// A budget smaller than the declared domain is `UNKNOWN` with the exact
 /// scope — never a partial finding set.
 #[test]
-fn a_short_budget_yields_unknown_with_the_explored_scope() {
-    let table = fixture("gap.ct.json");
-    let domain = int_domain(&table, "age", &[10, 20, 30, 70]);
+fn a_short_budget_yields_unknown_with_the_explored_scope() -> Result<(), Box<dyn Error>> {
+    let table = fixture("gap.ct.json")?;
+    let domain = int_domain(
+        &table,
+        DomainSpec {
+            column: "age",
+            values: &[10, 20, 30, 70],
+        },
+    )?;
     let caps = ScopeCaps {
         max_candidates: 3,
         ..ScopeCaps::default()
@@ -262,13 +315,20 @@ fn a_short_budget_yields_unknown_with_the_explored_scope() {
             },
         }
     );
+    Ok(())
 }
 
 /// A zero budget is `UNKNOWN` with the empty scope, never a clean result.
 #[test]
-fn a_zero_budget_yields_unknown_with_the_empty_scope() {
-    let table = fixture("gap.ct.json");
-    let domain = int_domain(&table, "age", &[10, 20, 30, 70]);
+fn a_zero_budget_yields_unknown_with_the_empty_scope() -> Result<(), Box<dyn Error>> {
+    let table = fixture("gap.ct.json")?;
+    let domain = int_domain(
+        &table,
+        DomainSpec {
+            column: "age",
+            values: &[10, 20, 30, 70],
+        },
+    )?;
     let caps = ScopeCaps {
         max_candidates: 0,
         ..ScopeCaps::default()
@@ -282,20 +342,28 @@ fn a_zero_budget_yields_unknown_with_the_empty_scope() {
             },
         }
     );
+    Ok(())
 }
 
 /// Repeated runs serialize identically (sorted findings, ordered sets).
 #[test]
-fn repeated_runs_are_deterministic() {
-    let (table, domain, first) =
-        fixture_outcome("derivable.ct.json", "n", &(1..=15).collect::<Vec<_>>());
+fn repeated_runs_are_deterministic() -> Result<(), Box<dyn Error>> {
+    let values: Vec<i64> = (1..=15).collect();
+    let (table, domain, first) = fixture_outcome(
+        "derivable.ct.json",
+        DomainSpec {
+            column: "n",
+            values: &values,
+        },
+    )?;
     let RuleLensOutcome::Findings(second) = rule_lens(&table, &domain, &ScopeCaps::default())
     else {
         panic!("the default budget covers the fixture domain");
     };
     assert_eq!(first, second);
     assert_eq!(
-        serde_json::to_string(&first).expect("serializes"),
-        serde_json::to_string(&second).expect("serializes")
+        serde_json::to_string(&first)?,
+        serde_json::to_string(&second)?
     );
+    Ok(())
 }

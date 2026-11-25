@@ -17,8 +17,7 @@
 //! cells; the round-trip proof lives in the engine and adds no separate
 //! finding.
 
-use crate::bounds::ScopeCaps;
-use crate::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta};
+use crate::pattern::{LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta};
 use catherine_core::migrate::lost_data;
 
 /// The disposition row's metadata, verbatim.
@@ -38,7 +37,8 @@ impl PatternLens for Lens {
         &MEMENTO_META
     }
 
-    fn run(&self, input: &LensInput<'_>, _caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps: _caps } = call;
         let Some(migrations) = lost_data(input.model) else {
             return LensOutcome::Unknown {
                 scope: "no schema_map section; no save/restore delta was declared".to_string(),

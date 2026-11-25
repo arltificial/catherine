@@ -14,12 +14,16 @@ use catherine_core::model::{Ident, Model, Path, RowId, Schema, SchemaMap};
 use catherine_core::parse::parse;
 use std::collections::BTreeMap;
 
+mod common;
+
+use common::Insist;
+
 const MIGRATION_FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/migration/");
 
 fn fixture(name: &str) -> Model {
     let text =
-        std::fs::read_to_string(format!("{MIGRATION_FIXTURES}{name}")).expect("fixture readable");
-    parse(&text).expect("fixture parses (its schema map is total)")
+        std::fs::read_to_string(format!("{MIGRATION_FIXTURES}{name}")).insist("fixture readable");
+    parse(&text).insist("fixture parses (its schema map is total)")
 }
 
 /// A total map over `schema` into `target` by identity on every declared
@@ -82,7 +86,7 @@ const DROPPED_PULLBACK_LEG_DOC: &str = r#"{
 #[test]
 fn drop_object_enumerates_one_lost_data_finding_per_dropped_row() {
     let model = fixture("drop_object.ct.json");
-    let findings = lost_data(&model).expect("the map drops data, so losses exist");
+    let findings = lost_data(&model).insist("the map drops data, so losses exist");
     assert_eq!(
         findings.len(),
         6,
@@ -128,7 +132,7 @@ fn drop_object_enumerates_one_lost_data_finding_per_dropped_row() {
 #[test]
 fn field_narrowing_enumerates_one_lost_data_finding_per_valued_cell() {
     let model = fixture("field_narrowing.ct.json");
-    let findings = lost_data(&model).expect("the map narrows a valued arrow away");
+    let findings = lost_data(&model).insist("the map narrows a valued arrow away");
     assert_eq!(
         findings.len(),
         2,
@@ -152,13 +156,13 @@ fn field_narrowing_enumerates_one_lost_data_finding_per_valued_cell() {
 
 #[test]
 fn dropping_a_pullback_support_arrow_enumerates_its_valued_cells() {
-    let model = parse(DROPPED_PULLBACK_LEG_DOC).expect("the pullback source parses");
+    let model = parse(DROPPED_PULLBACK_LEG_DOC).insist("the pullback source parses");
     assert_eq!(
         model.schema.pullbacks.len(),
         1,
         "the source declares the square whose leg is under test"
     );
-    let findings = lost_data(&model).expect("the map drops the leg, so losses exist");
+    let findings = lost_data(&model).insist("the map drops the leg, so losses exist");
     let expected = vec![
         MigrationFinding {
             label: EpistemicLabel::Executed,
@@ -184,7 +188,7 @@ fn dropping_a_pullback_support_arrow_enumerates_its_valued_cells() {
 #[test]
 fn reindex_invents_nothing_and_carries_kept_rows_verbatim() {
     let model = fixture("drop_object.ct.json");
-    let outcome = reindex(&model).expect("a total map reindexes");
+    let outcome = reindex(&model).insist("a total map reindexes");
     assert_eq!(
         outcome.instance.rows.get(&Ident("Doc".to_string())),
         model.instance.rows.get(&Ident("Doc".to_string())),
@@ -206,7 +210,7 @@ fn the_collapsing_round_trip_proves_non_invertibility_with_the_offending_row() {
     let forward = source
         .schema_map
         .clone()
-        .expect("the fixture carries its forward map");
+        .insist("the fixture carries its forward map");
     let middle_schema = forward.target.clone();
     // The candidate inverse: Narrow straight back to the source shape —
     // the map that would have to recover both Wide rows from one Narrow
@@ -214,7 +218,7 @@ fn the_collapsing_round_trip_proves_non_invertibility_with_the_offending_row() {
     // composes Δ′∘Δ — the inverse applied after the forward map.)
     let inverse = identity_map(&middle_schema, &source.schema);
     let proof = round_trip(&source, &forward, &inverse)
-        .expect("two Wide rows collapse onto one Narrow row: not invertible");
+        .insist("two Wide rows collapse onto one Narrow row: not invertible");
     assert!(
         proof.detail.contains("not recoverable"),
         "the proof names the non-recovery: {}",
@@ -240,7 +244,7 @@ fn an_identity_round_trip_over_a_kept_object_yields_no_proof() {
     let forward = source
         .schema_map
         .clone()
-        .expect("the fixture carries its forward map");
+        .insist("the fixture carries its forward map");
     // Δ keeps Doc unchanged; a straight-back identity inverse over the
     // middle schema returns every Doc row to itself. Scratch is out of
     // the analyzed scope — Δ already dropped it (lost data, not a

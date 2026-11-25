@@ -20,45 +20,36 @@
 //! text.
 
 use crate::cli::LOST_DATA_EXIT_CODE;
+use crate::dispatch::Ctx;
 use crate::render::{self, LabeledError};
-use crate::run::{emit_error, load_model, write_envelope};
+use crate::run::{load_model, write_envelope};
 use catherine_analysis::bounds::{ScopeCaps, SearchBounds};
 use catherine_analysis::schema_diff;
 use catherine_core::findings::EpistemicLabel;
 use catherine_core::migrate::{self, MigrationFinding, MigrationFindingKind};
 use catherine_core::model::{Ident, Model, SchemaMap};
-use genesis::envelope::Warning;
 use std::collections::BTreeMap;
 use std::io::Write;
 
 /// Execute `model_path`'s declared migration once and render. Returns
 /// the process exit code. `quiet` suppresses the human lost-data lines
 /// (never the exit decision, never errors, never the machine envelope).
-#[allow(clippy::too_many_arguments)]
-pub fn run_migrate(
-    model_path: &str,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
+pub fn run_migrate(model_path: &str, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
     let model = match load_model(model_path) {
         Ok(model) => model,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
-    let Some(outcome) = migrate::reindex(&model) else {
-        return emit_error(&no_schema_map(model_path), json, warnings, stdout, stderr);
+    let Some(mut outcome) = migrate::reindex(&model) else {
+        return ctx.emit_error(&no_schema_map(model_path));
     };
-    let mut outcome = outcome;
     weaken_constraints(&model, &mut outcome);
-    print_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = render::migrate_envelope(&outcome, warnings);
-        write_envelope(&envelope, stdout, stderr, "migrate");
-    } else if !quiet {
+    ctx.print_warnings();
+    if ctx.json {
+        let envelope = render::migrate_envelope(&outcome, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "migrate");
+    } else if !ctx.quiet {
         for line in render::render_migrate(&outcome, &model.schema) {
-            let _ = writeln!(stdout, "{line}");
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     migration_exit(&outcome.lost)
@@ -137,18 +128,6 @@ fn no_schema_map(model_path: &str) -> LabeledError {
         column: None,
         message: format!("`{model_path}` carries no `schema_map` — there is no migration to run"),
         hint: "add a total `schema_map` section (format_version 1.1), or use `catherine check` for plain model checking",
-    }
-}
-
-/// Run-level warnings reach stderr in human mode too — the same
-/// `warning: <message>` line the other runners print (the
-/// catherine-uh0 discipline); JSON mode keeps them on the envelope only.
-fn print_warnings(json: bool, warnings: &[Warning], stderr: &mut impl Write) {
-    if json {
-        return;
-    }
-    for warning in warnings {
-        let _ = writeln!(stderr, "warning: {}", warning.message);
     }
 }
 

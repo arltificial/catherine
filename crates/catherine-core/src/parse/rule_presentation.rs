@@ -17,7 +17,7 @@
 //! malformations (missing `columns`/`rules`/`name` fields) remain serde
 //! `Syntax` errors; the semantic codes are the stable contract.
 
-use super::predicate::compile_predicate;
+use super::predicate::{compile_predicate, PredicateCtx};
 use super::reject;
 use super::schema::check_ident;
 use super::spans::Spans;
@@ -111,21 +111,25 @@ fn declared_columns(
             return Err(reject(spans, &pointer, ErrorCode::DuplicateIdent, message));
         }
         let Some(column_type) = ColumnType::parse(&raw.column_type) else {
-            let message = format!(
-                "invalid type `{}` for column `{}`: must be `int`, `bool`, or `string`",
-                raw.column_type, raw.name
-            );
-            let pointer = format!("{base}/type");
-            return Err(reject(
-                spans,
-                &pointer,
-                ErrorCode::InvalidColumnType,
-                message,
-            ));
+            return Err(invalid_column_type(raw, &base, spans));
         };
         declared.insert(name, column_type);
     }
     Ok(declared)
+}
+
+/// The labeled rejection of a column type outside the three spellings.
+fn invalid_column_type(raw: &RawColumn, base: &str, spans: &Spans) -> ParseError {
+    let message = format!(
+        "invalid type `{}` for column `{}`: must be `int`, `bool`, or `string`",
+        raw.column_type, raw.name
+    );
+    reject(
+        spans,
+        &format!("{base}/type"),
+        ErrorCode::InvalidColumnType,
+        message,
+    )
 }
 
 /// The declared policy: absent means *no* policy (never a default); a
@@ -168,8 +172,9 @@ fn declared_rules(
         }
         let action = declared_action(raw, &base, spans)?;
         let pointer = format!("{base}/predicate");
+        let ctx = PredicateCtx::new(columns, &raw.name, spans);
         declared.push(Rule {
-            predicate: compile_predicate(&raw.predicate, columns, &pointer, &raw.name, spans)?,
+            predicate: compile_predicate(&raw.predicate, &pointer, &ctx)?,
             name,
             action,
         });

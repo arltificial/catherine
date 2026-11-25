@@ -51,15 +51,17 @@ const DOC: &str = r#"{
 const ACCEPTED: &str = r#"{"object": "capture", "arrows": ["capture_source", "capture_edition"], "status": "accepted"}"#;
 const PROPOSED: &str = r#"{"object": "capture", "arrows": ["capture_source", "capture_edition"], "status": "proposed"}"#;
 
-fn document(keys: &str, source: &str, edition: &str) -> String {
+fn document(drawn: (&str, &str, &str)) -> String {
+    let (keys, source, edition) = drawn;
     DOC.replace("__KEYS__", keys)
         .replace("__SOURCE__", source)
         .replace("__EDITION__", edition)
 }
 
 /// Parse → build → check, the kernel's one pipeline.
-fn findings(keys: &str, source: &str, edition: &str) -> Vec<Finding> {
-    let text = document(keys, source, edition);
+fn findings(drawn: (&str, &str, &str)) -> Vec<Finding> {
+    let (keys, source, edition) = drawn;
+    let text = document((keys, source, edition));
     let model = parse(&text).expect("the fixture parses");
     let built = TypedInstance::build(&model.schema, &model.instance);
     check(&model.schema, &built)
@@ -84,11 +86,19 @@ fn key_finding(label: EpistemicLabel, rows: [usize; 2]) -> Finding {
 /// violation for the pair, naming key 0 and both rows ascending.
 #[test]
 fn colliding_tuple_carries_its_witness() {
-    let findings = findings(ACCEPTED, COLLIDING, COLLIDING);
+    let findings = findings((ACCEPTED, COLLIDING, COLLIDING));
     assert_eq!(
         findings,
         vec![key_finding(EpistemicLabel::Executed, [0, 1])]
     );
+    for f in &findings {
+        assert_eq!(
+            f.label,
+            EpistemicLabel::Executed,
+            "a colliding pair is an executed violation"
+        );
+    }
+    assert_eq!(findings.len(), 1, "one finding per colliding pair");
 }
 
 /// Scenario "Three-way collision is three pairs": each unordered pair is
@@ -96,7 +106,7 @@ fn colliding_tuple_carries_its_witness() {
 #[test]
 fn three_way_collision_is_three_pairs() {
     let all_equal = r#""c1": "v1", "c2": "v1", "c3": "v1""#;
-    let findings = findings(ACCEPTED, all_equal, all_equal);
+    let findings = findings((ACCEPTED, all_equal, all_equal));
     assert_eq!(
         findings,
         vec![
@@ -106,6 +116,12 @@ fn three_way_collision_is_three_pairs() {
         ],
         "one finding per unordered pair, rows ascending"
     );
+    assert!(
+        findings.windows(2).all(|w| w[0] < w[1]),
+        "the three pairs are ordered by row"
+    );
+    let pair_count = findings.len();
+    assert_eq!(pair_count, 3, "one finding per unordered pair");
 }
 
 /// Scenario "Dangling key cell is not a collision": the unresolved cell
@@ -114,11 +130,11 @@ fn three_way_collision_is_three_pairs() {
 fn dangling_key_cell_is_not_a_collision() {
     // c1's `capture_source` cell is absent (dangling); the edition cell is
     // resolved, so exactly one dangling finding exists. c2 and c3 differ.
-    let findings = findings(
+    let findings = findings((
         ACCEPTED,
         r#""c2": "v1", "c3": "v2""#,
         r#""c1": "v1", "c2": "v1", "c3": "v2""#,
-    );
+    ));
     assert_eq!(
         findings,
         vec![Finding {
@@ -130,16 +146,18 @@ fn dangling_key_cell_is_not_a_collision() {
         }],
         "the dangling cell is reported once and never as a key collision"
     );
+    let nonempty = !findings.is_empty();
+    assert!(nonempty, "the dangling cell is still reported");
 }
 
 /// Scenario "Clean key emits nothing": distinct tuples yield silence.
 #[test]
 fn clean_key_emits_nothing() {
-    let findings = findings(
+    let findings = findings((
         ACCEPTED,
         r#""c1": "v1", "c2": "v2", "c3": "v1""#,
         r#""c1": "v1", "c2": "v1", "c3": "v2""#,
-    );
+    ));
     assert!(findings.is_empty(), "a clean key emits no finding");
 }
 
@@ -147,10 +165,16 @@ fn clean_key_emits_nothing() {
 /// `hypothesized`.
 #[test]
 fn proposed_key_collision_is_hypothesized() {
-    let findings = findings(PROPOSED, COLLIDING, COLLIDING);
+    let findings = findings((PROPOSED, COLLIDING, COLLIDING));
     assert_eq!(
         findings,
         vec![key_finding(EpistemicLabel::Hypothesized, [0, 1])]
+    );
+    assert!(
+        findings
+            .iter()
+            .all(|f| f.label == EpistemicLabel::Hypothesized),
+        "a proposed key's collision is never executed"
     );
 }
 
@@ -159,7 +183,7 @@ fn proposed_key_collision_is_hypothesized() {
 /// consulting the schema; serde round-trips are lossless.
 #[test]
 fn key_violation_carries_its_rows() {
-    let findings = findings(ACCEPTED, COLLIDING, COLLIDING);
+    let findings = findings((ACCEPTED, COLLIDING, COLLIDING));
     let text = serde_json::to_string(&findings).expect("findings serialize");
     assert_eq!(
         text,
@@ -167,6 +191,7 @@ fn key_violation_carries_its_rows() {
     );
     let back: Vec<Finding> = serde_json::from_str(&text).expect("findings deserialize");
     assert_eq!(back, findings);
+    assert_eq!(back.len(), 1, "the witness names exactly one pair");
 }
 
 /// The equation-witness encoding is unchanged by the untagged union: the
@@ -189,4 +214,5 @@ fn equation_violation_json_is_unchanged() {
     );
     let back: Finding = serde_json::from_str(&text).expect("finding deserializes");
     assert_eq!(back, finding);
+    assert_eq!(back.label, EpistemicLabel::Executed, "the label survives");
 }

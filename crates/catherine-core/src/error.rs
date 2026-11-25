@@ -130,3 +130,31 @@ pub enum ParseError {
     },
     Semantic(SemanticError),
 }
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Syntax {
+                line,
+                column,
+                message,
+            } => write!(f, "{line}:{column}: {message}"),
+            Self::Semantic(error) => error.fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for ParseError {}
+
+impl std::fmt::Display for SemanticError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}:{}: {} ({})",
+            self.line,
+            self.column,
+            self.code.as_str(),
+            self.message
+        )
+    }
+}

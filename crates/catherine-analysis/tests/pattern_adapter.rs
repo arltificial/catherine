@@ -25,13 +25,11 @@
 #[path = "../src/pattern/adapter.rs"]
 mod adapter;
 
-mod bounds {
-    pub use catherine_analysis::bounds::ScopeCaps;
-}
+mod bounds {}
 
 mod pattern {
     pub use catherine_analysis::pattern::{
-        LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta,
+        LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta,
     };
 }
 
@@ -39,7 +37,7 @@ mod pattern {
 mod expectations;
 
 use catherine_analysis::bounds::ScopeCaps;
-use catherine_analysis::pattern::{LensInput, LensOutcome, PatternLens};
+use catherine_analysis::pattern::{LensCall, LensInput, LensOutcome, PatternLens};
 use catherine_core::findings::{EpistemicLabel, FindingKind};
 use catherine_core::model::Model;
 use catherine_core::parse::parse;
@@ -91,8 +89,7 @@ fn every_recorded_adapter_row_replays_exactly() {
     );
     for row in rows {
         let actual = run_keys(row.fixture);
-        let mut expected = row.findings.to_vec();
-        expected.sort_unstable();
+        let expected = sorted_keys(row.findings.iter().copied());
         assert_eq!(
             actual, expected,
             "`adapter` on {} (fault `{}`, parity {})",
@@ -134,22 +131,20 @@ fn the_floor_rows_record_one_element_per_fault_and_aggregate_to_three() {
             row.fixture, FLOOR_CONTROL,
             "C rows name their fault fixture"
         );
-        let mut keys = run_keys(row.fixture);
-        keys.sort_unstable();
-        let mut expected = row.findings.to_vec();
-        expected.sort_unstable();
+        let keys = run_keys(row.fixture);
+        let expected = sorted_keys(row.findings.iter().copied());
         assert_eq!(
             keys, expected,
             "the row's own fixture matches its recorded element"
         );
         aggregate.extend(keys);
     }
-    let mut recorded: Vec<FindingKey> = rows
-        .iter()
-        .flat_map(|row| row.findings.iter().copied())
-        .collect();
-    aggregate.sort_unstable();
-    recorded.sort_unstable();
+    let aggregate = sorted_keys(aggregate);
+    let recorded = sorted_keys(
+        rows.iter()
+            .flat_map(|row| row.findings.iter().copied())
+            .collect::<Vec<_>>(),
+    );
     assert_eq!(
         aggregate, recorded,
         "the three per-fault elements aggregate to the entry's recorded multiset"
@@ -163,7 +158,10 @@ fn an_empty_model_is_a_completed_silence_not_an_unknown() {
         model: &model,
         values: &[],
     };
-    match adapter::Lens.run(&input, &ScopeCaps::default()) {
+    match adapter::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => {
             assert!(findings.checks.is_empty());
             assert!(findings.migrations.is_empty());
@@ -183,21 +181,31 @@ fn run_keys(relative: &str) -> Vec<FindingKey> {
         model: &model,
         values: &[],
     };
-    match adapter::Lens.run(&input, &ScopeCaps::default()) {
+    match adapter::Lens.run(LensCall {
+        input: &input,
+        caps: &ScopeCaps::default(),
+    }) {
         LensOutcome::Findings(findings) => {
             assert!(
                 findings.migrations.is_empty(),
                 "`adapter` has no migration surface: {:?}",
                 findings.migrations
             );
-            let mut keys: Vec<FindingKey> = findings.checks.iter().map(check_key).collect();
-            keys.sort_unstable();
+            let keys = sorted_keys(findings.checks.iter().map(check_key));
             keys
         }
         LensOutcome::Unknown { scope } => {
             panic!("`adapter` on {relative} reported unknown: {scope}")
         }
     }
+}
+
+/// A sorted copy of a `(kind, label)` multiset, for order-insensitive
+/// comparison.
+fn sorted_keys(keys: impl IntoIterator<Item = FindingKey>) -> Vec<FindingKey> {
+    let mut sorted: Vec<FindingKey> = keys.into_iter().collect();
+    sorted.sort_unstable();
+    sorted
 }
 
 /// One check finding as the taxonomy's stable `(kind, label)` spelling.

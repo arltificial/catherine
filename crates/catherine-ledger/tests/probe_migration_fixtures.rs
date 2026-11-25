@@ -15,11 +15,15 @@
 //! findings (probe detections minus baseline-identified elements), so
 //! the findings themselves must be executable assertions, never prose.
 
+mod support;
+
 use catherine_core::findings::EpistemicLabel;
 use catherine_core::migrate::{reindex, round_trip, MigrationFindingKind};
 use catherine_core::model::{Ident, Model, Path, SchemaMap};
 use catherine_core::parse::parse;
 use std::collections::BTreeMap;
+
+use support::{present, TestError};
 
 const PROBE_FIXTURES: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -27,10 +31,9 @@ const PROBE_FIXTURES: &str = concat!(
 );
 
 /// Parse one committed probe fixture.
-fn fixture(name: &str) -> Model {
-    let text =
-        std::fs::read_to_string(format!("{PROBE_FIXTURES}{name}")).expect("fixture readable");
-    parse(&text).expect("probe fixture parses (its schema map is total)")
+fn fixture(name: &str) -> Result<Model, TestError> {
+    let text = std::fs::read_to_string(format!("{PROBE_FIXTURES}{name}"))?;
+    Ok(parse(&text)?)
 }
 
 /// The lost rows of one object, in finding order.
@@ -58,18 +61,18 @@ fn lost_cells(findings: &[catherine_core::migrate::MigrationFinding], arrow: &st
 }
 
 /// One target object's row count.
-fn target_rows(model: &Model, object: &str) -> usize {
-    let outcome = reindex(model).expect("the fixture declares a map");
-    outcome.instance.rows[&Ident(object.to_string())].len()
+fn target_rows(model: &Model, object: &str) -> Result<usize, TestError> {
+    let outcome = present(reindex(model), "the fixture declares a map")?;
+    Ok(outcome.instance.rows[&Ident(object.to_string())].len())
 }
 
 /// The floor control: a whole object drops, every lost row is exactly
 /// the dropped table's row set — the loss the conventional row-count
 /// dry run sees in full, so the probe must buy no unique detection.
 #[test]
-fn floor_control_loses_only_the_fully_visible_table_rows() {
-    let model = fixture("floor-visible-loss.ct.json");
-    let outcome = reindex(&model).expect("the fixture declares a map");
+fn floor_control_loses_only_the_fully_visible_table_rows() -> Result<(), TestError> {
+    let model = fixture("floor-visible-loss.ct.json")?;
+    let outcome = present(reindex(&model), "the fixture declares a map")?;
     assert!(
         outcome
             .lost
@@ -88,18 +91,19 @@ fn floor_control_loses_only_the_fully_visible_table_rows() {
         "the dropped arrow holds no valued cells in this fixture"
     );
     assert_eq!(outcome.lost.len(), 6, "no other loss is claimed");
-    assert_eq!(target_rows(&model, "ServingDocument"), 8);
-    assert_eq!(target_rows(&model, "ServingPage"), 16);
-    assert_eq!(target_rows(&model, "ServingEdition"), 4);
+    assert_eq!(target_rows(&model, "ServingDocument")?, 8);
+    assert_eq!(target_rows(&model, "ServingPage")?, 16);
+    assert_eq!(target_rows(&model, "ServingEdition")?, 4);
+    Ok(())
 }
 
 /// The cell-only loss: every row survives, so the row counts and key
 /// checksums a conventional dry run reads are unchanged; the lost cells
 /// are named arrow by arrow.
 #[test]
-fn cell_only_loss_names_each_valued_cell_with_rows_preserved() {
-    let model = fixture("lost-data-cells.ct.json");
-    let outcome = reindex(&model).expect("the fixture declares a map");
+fn cell_only_loss_names_each_valued_cell_with_rows_preserved() -> Result<(), TestError> {
+    let model = fixture("lost-data-cells.ct.json")?;
+    let outcome = present(reindex(&model), "the fixture declares a map")?;
     assert!(
         lost_rows(&outcome.lost, "RawCapture").is_empty(),
         "rows are preserved: the loss is cell-level"
@@ -115,8 +119,9 @@ fn cell_only_loss_names_each_valued_cell_with_rows_preserved() {
         "the 6 valued captured_page cells are named"
     );
     assert_eq!(outcome.lost.len(), 10, "no other loss is claimed");
-    assert_eq!(target_rows(&model, "ServingPage"), 16);
-    assert_eq!(target_rows(&model, "ServingCapture"), 6);
+    assert_eq!(target_rows(&model, "ServingPage")?, 16);
+    assert_eq!(target_rows(&model, "ServingCapture")?, 6);
+    Ok(())
 }
 
 /// The candidate inverse: the serving schema straight back to the
@@ -156,22 +161,24 @@ fn candidate_inverse(model: &Model) -> SchemaMap {
 /// round-trip proves the smallest capture element unrecoverable by
 /// naming it and the element the candidate inverse returns instead.
 #[test]
-fn collapsing_map_is_proven_non_invertible_with_the_offending_element() {
-    let model = fixture("non-invertible-collapse.ct.json");
-    let outcome = reindex(&model).expect("the fixture declares a map");
+fn collapsing_map_is_proven_non_invertible_with_the_offending_element() -> Result<(), TestError> {
+    let model = fixture("non-invertible-collapse.ct.json")?;
+    let outcome = present(reindex(&model), "the fixture declares a map")?;
     assert!(
         outcome.lost.is_empty(),
         "no lost-data finding: the collapse places every row"
     );
     assert_eq!(
-        target_rows(&model, "ServingPage"),
+        target_rows(&model, "ServingPage")?,
         16,
         "the target is row-based on the page preimage"
     );
-    let forward = model.schema_map.clone().expect("the fixture carries a map");
+    let forward = present(model.schema_map.clone(), "the fixture carries a map")?;
     let inverse = candidate_inverse(&model);
-    let proof = round_trip(&model, &forward, &inverse)
-        .expect("the collapse is not invertible under the candidate inverse");
+    let proof = present(
+        round_trip(&model, &forward, &inverse),
+        "the collapse is not invertible under the candidate inverse",
+    )?;
     assert_eq!(proof.object.0, "RawPageCapture", "the smallest offender");
     assert_eq!(proof.row.0, 0, "its row");
     assert!(
@@ -200,4 +207,5 @@ fn collapsing_map_is_proven_non_invertible_with_the_offending_element() {
             "detail": proof.detail,
         })
     );
+    Ok(())
 }

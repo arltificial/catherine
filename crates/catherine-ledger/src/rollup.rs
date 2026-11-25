@@ -43,7 +43,7 @@ fn verdict_of(entry: &Entry) -> Verdict {
         .content
         .kata
         .as_ref()
-        .and_then(|kata| kata.verdict.parse().ok())
+        .and_then(|kata| kata.derivation.verdict.parse().ok())
         .expect("the validator closed the vocabulary")
 }
 
@@ -51,7 +51,13 @@ fn verdict_of(entry: &Entry) -> Verdict {
 fn positives(katas: &[&Entry]) -> Vec<Verdict> {
     katas
         .iter()
-        .filter(|entry| !entry.content.kata.as_ref().is_some_and(|kata| kata.control))
+        .filter(|entry| {
+            !entry
+                .content
+                .kata
+                .as_ref()
+                .is_some_and(|kata| kata.identity.control)
+        })
         .map(|entry| verdict_of(entry))
         .collect()
 }
@@ -59,8 +65,12 @@ fn positives(katas: &[&Entry]) -> Vec<Verdict> {
 /// The control gate: `passed` iff the FizzBuzz control self-negated
 /// (killed, zero unique detections) — procedure step 2.
 fn control_gate(control_kata: &crate::entry::KataRecord) -> String {
-    let self_negated = control_kata.verdict.as_str() == "killed"
-        && control_kata.comparison.unique_detections.is_empty();
+    let self_negated = control_kata.derivation.verdict.as_str() == "killed"
+        && control_kata
+            .derivation
+            .comparison
+            .unique_detections
+            .is_empty();
     if self_negated {
         "passed".to_string()
     } else {
@@ -74,9 +84,37 @@ fn per_kata(katas: &[&Entry]) -> Vec<(String, String, Verdict)> {
         .iter()
         .map(|entry| {
             let kata = entry.content.kata.as_ref().expect("kata record");
-            (kata.kata_id.clone(), entry.id.clone(), verdict_of(entry))
+            (
+                kata.identity.kata_id.clone(),
+                entry.id.clone(),
+                verdict_of(entry),
+            )
         })
         .collect()
+}
+
+/// Derive the project verdict from validated kata entries, step by step
+/// through [`PROCEDURE`]: control gate first (step 2), invalid-run
+/// propagation (step 3), all-positives-survived (step 4), any-positive-
+/// killed stop condition (step 5), otherwise inconclusive (step 6). The
+/// caller must pass the validated EFFECTIVE kata entries
+/// (`ValidLedger::kata_entries` already drops superseded records); a
+/// superseded kata is a correction, not a second verdict line.
+/// Procedure steps 3–6: the closed vocabulary applied to the recorded
+/// evidence — invalid-run propagation first, then the any-killed stop
+/// condition, then any-inconclusive, otherwise every positive survived.
+fn project_verdict(control_failed: bool, positive_verdicts: &[Verdict]) -> Verdict {
+    if control_failed || positive_verdicts.contains(&Verdict::InvalidRun) {
+        Verdict::InvalidRun
+    } else if positive_verdicts.contains(&Verdict::Killed) {
+        Verdict::Killed
+    } else if positive_verdicts.contains(&Verdict::Inconclusive) {
+        Verdict::Inconclusive
+    } else {
+        // The closed vocabulary: no killed, no inconclusive, no
+        // invalid-run — every positive survived.
+        Verdict::Survived
+    }
 }
 
 /// Derive the project verdict from validated kata entries, step by step
@@ -92,30 +130,20 @@ pub fn derive(entries: &[&Entry]) -> Result<Rollup, String> {
         .filter(|entry| entry.content.kind == "kata")
         .copied()
         .collect();
-    let Some(control) = katas
-        .iter()
-        .find(|entry| entry.content.kata.as_ref().is_some_and(|kata| kata.control))
-    else {
+    let Some(control) = katas.iter().find(|entry| {
+        entry
+            .content
+            .kata
+            .as_ref()
+            .is_some_and(|kata| kata.identity.control)
+    }) else {
         return Err("no negative-control kata entry — the ledger cannot derive".into());
     };
     let gate = control_gate(control.content.kata.as_ref().expect("kata record"));
     let positive_verdicts = positives(&katas);
 
-    let control_failed = gate != "passed";
-    let verdict = if control_failed || positive_verdicts.contains(&Verdict::InvalidRun) {
-        Verdict::InvalidRun
-    } else if positive_verdicts.contains(&Verdict::Killed) {
-        Verdict::Killed
-    } else if positive_verdicts.contains(&Verdict::Inconclusive) {
-        Verdict::Inconclusive
-    } else {
-        // The closed vocabulary: no killed, no inconclusive, no
-        // invalid-run — every positive survived.
-        Verdict::Survived
-    };
-
     Ok(Rollup {
-        verdict,
+        verdict: project_verdict(gate != "passed", &positive_verdicts),
         control_gate: gate,
         per_kata: per_kata(&katas),
     })

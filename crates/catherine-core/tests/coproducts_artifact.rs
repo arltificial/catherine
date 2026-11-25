@@ -13,6 +13,23 @@
 
 use serde_json::{json, Value};
 
+/// The document under test with a given coproduct `arrows` list.
+fn document(arrows: Value) -> Value {
+    json!({
+        "format_version": "1.5",
+        "schema": {
+            "objects": ["C", "V1", "V2"],
+            "arrows": [
+                {"name": "i1", "src": "V1", "tgt": "C"},
+                {"name": "i2", "src": "V2", "tgt": "C"}
+            ],
+            "equations": [],
+            "coproducts": [{"object": "C", "arrows": arrows}]
+        },
+        "instance": {"rows": {"C": [], "V1": [], "V2": []}, "tables": {"i1": {}, "i2": {}}}
+    })
+}
+
 /// Scenario "Editor-side validation": the published artifact covers the
 /// coproduct section's syntactic surface — a well-formed coproduct passes,
 /// an empty or duplicate `arrows` list is rejected without the kernel (the
@@ -23,19 +40,7 @@ fn coproducts_are_covered_by_the_artifact() {
         serde_json::from_str(include_str!("../schema/ct-schema-v1.json")).expect("artifact JSON");
     let validator = jsonschema::draft202012::new(&artifact).expect("the artifact is draft 2020-12");
 
-    let base = json!({
-        "format_version": "1.5",
-        "schema": {
-            "objects": ["C", "V1", "V2"],
-            "arrows": [
-                {"name": "i1", "src": "V1", "tgt": "C"},
-                {"name": "i2", "src": "V2", "tgt": "C"}
-            ],
-            "equations": [],
-            "coproducts": [{"object": "C", "arrows": ["i1", "i2"]}]
-        },
-        "instance": {"rows": {"C": [], "V1": [], "V2": []}, "tables": {"i1": {}, "i2": {}}}
-    });
+    let base = document(json!(["i1", "i2"]));
     assert!(
         validator.is_valid(&base),
         "a well-formed coproduct passes the artifact: {:?}",
@@ -45,15 +50,13 @@ fn coproducts_are_covered_by_the_artifact() {
             .collect::<Vec<_>>()
     );
 
-    let mut empty = base.clone();
-    empty["schema"]["coproducts"][0]["arrows"] = json!([]);
+    let empty = document(json!([]));
     assert!(
         !validator.is_valid(&empty),
         "an empty arrow list is rejected"
     );
 
-    let mut duplicate = base;
-    duplicate["schema"]["coproducts"][0]["arrows"] = json!(["i1", "i1"]);
+    let duplicate = document(json!(["i1", "i1"]));
     assert!(
         !validator.is_valid(&duplicate),
         "a duplicate arrow is rejected"

@@ -84,42 +84,47 @@ impl<'a> Translation<'a> {
         }
     }
 
+    /// One arrow path's image: `None` when any arrow lacks a single-arrow
+    /// image.
+    fn path(&self, path: &Path) -> Option<Path> {
+        let mut image = Vec::new();
+        for arrow in &path.0 {
+            image.push((*self.arrows.get(arrow)?).clone());
+        }
+        Some(Path(image))
+    }
+
+    /// Every named arrow's image, in order; `None` when any is missing.
+    fn arrows_all(&self, names: &[Ident]) -> Option<Vec<Ident>> {
+        names
+            .iter()
+            .map(|name| self.arrows.get(name).map(|image| (*image).clone()))
+            .collect()
+    }
+
     /// A constraint through the map: `Some` when every arrow it names
     /// has a single-arrow image and its object is carried over.
     fn constraint(&self, constraint: &EnforcedConstraint) -> Option<EnforcedConstraint> {
-        let path = |path: &Path| -> Option<Path> {
-            let mut image = Vec::new();
-            for arrow in &path.0 {
-                image.push((*self.arrows.get(arrow)?).clone());
-            }
-            Some(Path(image))
-        };
-        let arrows_all = |names: &[Ident]| -> Option<Vec<Ident>> {
-            names
-                .iter()
-                .map(|name| self.arrows.get(name).map(|image| (*image).clone()))
-                .collect()
-        };
         match constraint {
             EnforcedConstraint::Equation { lhs, rhs } => Some(EnforcedConstraint::Equation {
-                lhs: path(lhs)?,
-                rhs: path(rhs)?,
+                lhs: self.path(lhs)?,
+                rhs: self.path(rhs)?,
             }),
             EnforcedConstraint::Key { object, arrows } => Some(EnforcedConstraint::Key {
                 object: (*self.objects.get(object)?).clone(),
-                arrows: arrows_all(arrows)?,
+                arrows: self.arrows_all(arrows)?,
             }),
             EnforcedConstraint::Coproduct { object, arrows } => {
                 Some(EnforcedConstraint::Coproduct {
                     object: (*self.objects.get(object)?).clone(),
-                    arrows: arrows_all(arrows)?,
+                    arrows: self.arrows_all(arrows)?,
                 })
             }
             EnforcedConstraint::Pullback { apex, legs, cospan } => {
                 Some(EnforcedConstraint::Pullback {
                     apex: (*self.objects.get(apex)?).clone(),
-                    legs: arrows_all(legs)?,
-                    cospan: arrows_all(cospan)?,
+                    legs: self.arrows_all(legs)?,
+                    cospan: self.arrows_all(cospan)?,
                 })
             }
         }
@@ -179,20 +184,27 @@ pub fn dropped_constraints(
 ) -> Vec<DroppedConstraint> {
     let translation = Translation::new(schema, map);
     let enforced_target = enforced(&map.target);
+    let inputs = ClassifyInputs {
+        enforced_target: &enforced_target,
+        instance,
+        target: &map.target,
+        bound,
+    };
     accepted_with_owner(schema)
         .into_iter()
-        .filter_map(|(constraint, owner)| {
-            classify(
-                &translation,
-                constraint,
-                owner,
-                &enforced_target,
-                instance,
-                &map.target,
-                bound,
-            )
-        })
+        .filter_map(|(constraint, owner)| classify(&translation, constraint, owner, &inputs))
         .collect()
+}
+
+/// The target-side comparison inputs one constraint classification
+/// reads: the target's enforced set, the migrated instance, the target
+/// schema, and the scan bounds — bundled so the per-constraint helper
+/// stays within the parameter budget.
+struct ClassifyInputs<'a> {
+    enforced_target: &'a BTreeMap<EnforcedConstraint, usize>,
+    instance: &'a Instance,
+    target: &'a Schema,
+    bound: &'a SearchBounds,
 }
 
 /// One accepted constraint's verdict: `None` when the target still
@@ -204,23 +216,20 @@ fn classify(
     translation: &Translation<'_>,
     constraint: EnforcedConstraint,
     owner: Ident,
-    enforced_target: &BTreeMap<EnforcedConstraint, usize>,
-    instance: &Instance,
-    target: &Schema,
-    bound: &SearchBounds,
+    inputs: &ClassifyInputs<'_>,
 ) -> Option<DroppedConstraint> {
     let translated = translation.constraint(&constraint);
     let still_enforced = translated
         .as_ref()
-        .is_some_and(|c| enforced_target.get(c).copied().unwrap_or(0) > 0);
+        .is_some_and(|c| inputs.enforced_target.get(c).copied().unwrap_or(0) > 0);
     if still_enforced {
         return None;
     }
     let separating = match (&translated, translation.vocabularies_match) {
-        (Some(c), true) => separating_row(c, &translation.schema, target, bound),
+        (Some(c), true) => separating_row(c, &translation.schema, inputs.target, inputs.bound),
         _ => None,
     };
-    let row = separating.or_else(|| first_row(instance, &owner))?;
+    let row = separating.or_else(|| first_row(inputs.instance, &owner))?;
     Some(DroppedConstraint {
         constraint,
         object: owner,
@@ -315,6 +324,24 @@ fn accepted_with_owner(schema: &Schema) -> Vec<(EnforcedConstraint, Ident)> {
     accepted
 }
 
+/// The accepted pullback constraints, each owned by its apex.
+fn pullback_constraints(schema: &Schema) -> Vec<(EnforcedConstraint, Ident)> {
+    let mut accepted = Vec::new();
+    for pullback in &schema.pullbacks {
+        if pullback.status == ConstraintStatus::Accepted {
+            accepted.push((
+                EnforcedConstraint::Pullback {
+                    apex: pullback.apex.clone(),
+                    legs: pullback.legs.clone(),
+                    cospan: pullback.cospan.clone(),
+                },
+                pullback.apex.clone(),
+            ));
+        }
+    }
+    accepted
+}
+
 /// The accepted key, coproduct, and pullback constraints — each with
 /// its object (the owner) carried verbatim from the declaration.
 fn relation_constraints(schema: &Schema) -> Vec<(EnforcedConstraint, Ident)> {
@@ -341,18 +368,7 @@ fn relation_constraints(schema: &Schema) -> Vec<(EnforcedConstraint, Ident)> {
             ));
         }
     }
-    for pullback in &schema.pullbacks {
-        if pullback.status == ConstraintStatus::Accepted {
-            accepted.push((
-                EnforcedConstraint::Pullback {
-                    apex: pullback.apex.clone(),
-                    legs: pullback.legs.clone(),
-                    cospan: pullback.cospan.clone(),
-                },
-                pullback.apex.clone(),
-            ));
-        }
-    }
+    accepted.extend(pullback_constraints(schema));
     accepted
 }
 

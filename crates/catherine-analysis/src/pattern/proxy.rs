@@ -24,8 +24,7 @@
 //! honesty boundary: a complete cross-product sample collapses the unique
 //! set, so the scope names coverage rather than a defect class.
 
-use crate::bounds::ScopeCaps;
-use crate::pattern::{LawKind, LensFindings, LensInput, LensOutcome, PatternLens, PatternMeta};
+use crate::pattern::{LawKind, LensCall, LensFindings, LensOutcome, PatternLens, PatternMeta};
 use catherine_core::checks::check;
 use catherine_core::instance::TypedInstance;
 
@@ -46,7 +45,8 @@ impl PatternLens for Lens {
         &PROXY_META
     }
 
-    fn run(&self, input: &LensInput<'_>, _caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps: _caps } = call;
         if !input.values.is_empty() {
             return LensOutcome::Unknown {
                 scope: "`--values` declares a rule domain, but the proxy law is an \

@@ -46,7 +46,7 @@ fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()
-        .expect("repository root")
+        .unwrap_or_else(|error| panic!("repository root: {error}"))
 }
 
 /// Read and parse the disposition table from disk.
@@ -200,7 +200,8 @@ fn close_note_sections_are_scanned_and_scoped() {
                 ## Close note\n\ninside-marker: optional arrows cannot be declared.\n\n\
                 ### Nested detail\n\nnested-marker: nothing can express this.\n\n\
                 ## After\n\nafter-marker: cannot be declared.\n";
-    std::fs::write(&tasks, body).expect("write synthetic tasks.md");
+    std::fs::write(&tasks, body)
+        .unwrap_or_else(|error| panic!("write synthetic tasks.md: {error}"));
 
     let rejected = run_gate(Some(&root), None);
     let text = gate_text(&rejected);

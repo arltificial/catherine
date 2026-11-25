@@ -19,7 +19,7 @@
 use catherine_analysis::bounds::ScopeCaps;
 use catherine_analysis::pattern::LawKind;
 use catherine_analysis::pattern::{
-    bind_domain, describe_rule_scope, LensFindings, LensInput, LensOutcome, PatternLens,
+    bind_domain, describe_rule_scope, LensCall, LensFindings, LensInput, LensOutcome, PatternLens,
     PatternMeta,
 };
 use catherine_analysis::rule_lens::{rule_lens, RuleLensOutcome};
@@ -51,7 +51,8 @@ impl PatternLens for VisitorLens {
         &VISITOR_META
     }
 
-    fn run(&self, input: &LensInput<'_>, caps: &ScopeCaps) -> LensOutcome {
+    fn run(&self, call: LensCall<'_>) -> LensOutcome {
+        let LensCall { input, caps } = call;
         let Some(presentation) = input.model.rule_presentation.as_ref() else {
             return LensOutcome::Unknown {
                 scope: "no rule_presentation section; nothing evaluated".to_string(),
@@ -103,7 +104,10 @@ mod tests {
             model: &model,
             values: &[],
         };
-        match VISITOR.run(&input, &ScopeCaps::default()) {
+        match VISITOR.run(LensCall {
+            input: &input,
+            caps: &ScopeCaps::default(),
+        }) {
             LensOutcome::Unknown { scope } => assert!(scope.contains("rule_presentation")),
             LensOutcome::Findings(findings) => {
                 panic!("an absent surface must not be clean: {findings:?}")
@@ -124,7 +128,10 @@ mod tests {
             model: &model,
             values: &values,
         };
-        match VISITOR.run(&input, &ScopeCaps::default()) {
+        match VISITOR.run(LensCall {
+            input: &input,
+            caps: &ScopeCaps::default(),
+        }) {
             LensOutcome::Unknown { scope } => assert!(scope.contains("does not declare")),
             LensOutcome::Findings(_) => panic!("an unbound domain must not be evaluated"),
         }

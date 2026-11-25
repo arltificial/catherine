@@ -113,6 +113,35 @@ pub enum Enumeration<T> {
     },
 }
 
+/// The bounded enumeration's plan: the counter's slots and radices over
+/// the effective row counts, plus the scope an exhausted or expired run
+/// reports. `None` when no object has rows — the space is empty, so
+/// nothing is searched anywhere.
+struct CounterPlan {
+    cells: Vec<(Ident, usize, usize)>,
+    radices: Vec<usize>,
+    counts: BTreeMap<Ident, usize>,
+    explored_rows: BTreeMap<Ident, usize>,
+}
+
+/// Build the plan: effective row counts (per schema object, the bound's
+/// value or zero), their nonzero subset, and the mixed-radix counter
+/// over them.
+fn counter_plan(schema: &Schema, bound: &SearchBounds) -> Option<CounterPlan> {
+    let counts = effective_counts(schema, bound);
+    let explored_rows = nonempty_counts(&counts);
+    if explored_rows.is_empty() {
+        return None;
+    }
+    let (cells, radices) = cell_plan(schema, &counts);
+    Some(CounterPlan {
+        cells,
+        radices,
+        counts,
+        explored_rows,
+    })
+}
+
 /// Enumerate candidate instances over `schema`'s bounded shape in the
 /// shared deterministic smallest-first order, handing each candidate to
 /// `probe` until it returns `Some`. Exhaustion and budget expiry are
@@ -123,23 +152,32 @@ pub enum Enumeration<T> {
 pub fn enumerate<T>(
     schema: &Schema,
     bound: &SearchBounds,
+    probe: impl FnMut(&Instance) -> Option<T>,
+) -> Enumeration<T> {
+    let Some(plan) = counter_plan(schema, bound) else {
+        // A zero-size bound has nothing anywhere to search: UNKNOWN with
+        // the empty scope, never a contradiction claim (spec scenario,
+        // anti_goal).
+        return unknown_scope(BTreeMap::new(), 0);
+    };
+    run_counter(plan, bound, probe)
+}
+
+/// Walk the mixed-radix counter over the plan until a probe accepts, the
+/// space wraps, or the budget expires. Budget first: an expired budget
+/// is UNKNOWN over the exact explored scope, never a contradiction.
+fn run_counter<T>(
+    plan: CounterPlan,
+    bound: &SearchBounds,
     mut probe: impl FnMut(&Instance) -> Option<T>,
 ) -> Enumeration<T> {
-    // Effective row counts: per schema object, the bound's value or zero.
-    let counts = effective_counts(schema, bound);
-    // A zero-size bound has nothing anywhere to search: UNKNOWN with the
-    // empty scope, never a contradiction claim (spec scenario, anti_goal).
-    let explored_rows = nonempty_counts(&counts);
-    if explored_rows.is_empty() {
-        return Enumeration::Unknown {
-            scope: scope_of(BTreeMap::new(), 0),
-        };
-    }
-    let (cells, radices) = cell_plan(schema, &counts);
-    let mut digits: Vec<usize> = vec![0; cells.len()];
-    let mut explored: usize = 0;
-    // Budget first: an expired budget is UNKNOWN over the exact explored
-    // scope, never a contradiction.
+    let CounterPlan {
+        cells,
+        radices,
+        counts,
+        explored_rows,
+    } = plan;
+    let (mut digits, mut explored) = (vec![0; cells.len()], 0usize);
     while explored != bound.max_candidates {
         let instance = materialize(&cells, &digits, &counts);
         explored += 1;
@@ -152,8 +190,13 @@ pub fn enumerate<T>(
             };
         }
     }
+    unknown_scope(explored_rows, explored)
+}
+
+/// An `unknown` verdict over the given scope.
+fn unknown_scope<T>(rows: BTreeMap<Ident, usize>, candidates_explored: usize) -> Enumeration<T> {
     Enumeration::Unknown {
-        scope: scope_of(explored_rows, explored),
+        scope: scope_of(rows, candidates_explored),
     }
 }
 
@@ -311,83 +354,4 @@ fn increment(digits: &mut [usize], radices: &[usize]) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::bounds::SearchBounds;
-    use catherine_core::model::{Arrow, Equation, Path};
-
-    /// One object `a` with the endoarrow `f`; the accepted equation
-    /// `f;f;f = f` (holds on the swap, on constants, on identities) and
-    /// the proposed equation `f = f;f` (rejects the swap — it is a
-    /// question, not a constraint).
-    fn swap_schema() -> Schema {
-        let mut objects = BTreeMap::new();
-        objects.insert(Ident("a".to_string()), ());
-        let mut arrows = BTreeMap::new();
-        arrows.insert(
-            Ident("f".to_string()),
-            Arrow {
-                src: Ident("a".to_string()),
-                tgt: Ident("a".to_string()),
-            },
-        );
-        let eq = |lhs: &[&str], rhs: &[&str], status| Equation {
-            lhs: Path(lhs.iter().map(|s| Ident(s.to_string())).collect()),
-            rhs: Path(rhs.iter().map(|s| Ident(s.to_string())).collect()),
-            rationale: String::new(),
-            status,
-        };
-        Schema {
-            objects,
-            arrows,
-            equations: vec![
-                eq(&["f", "f", "f"], &["f"], ConstraintStatus::Accepted),
-                eq(&["f"], &["f", "f"], ConstraintStatus::Proposed),
-            ],
-            keys: Vec::new(),
-            coproducts: Vec::new(),
-            pullbacks: Vec::new(),
-            stored: BTreeMap::new(),
-        }
-    }
-
-    fn two_row_bound() -> SearchBounds {
-        let mut max_rows = BTreeMap::new();
-        max_rows.insert(Ident("a".to_string()), 2);
-        SearchBounds {
-            max_rows,
-            max_candidates: 1000,
-        }
-    }
-
-    /// The swap instance: fully resolved, the accepted equation holds
-    /// (`f³ = f` on an involution), the proposed equation fails
-    /// (`f ≠ f²`). `is_clean` judges satisfiability by the *accepted*
-    /// equations only — a hypothesized violation marks a question under
-    /// review, never a blocked witness.
-    #[test]
-    fn is_clean_accepts_accepted_clean_proposed_dirty() {
-        let schema = swap_schema();
-        let mut values = BTreeMap::new();
-        values.insert(Ident("f".to_string()), vec![Some(RowId(1)), Some(RowId(0))]);
-        let instance = Instance {
-            rows: BTreeMap::from([(Ident("a".to_string()), vec![RowId(0), RowId(1)])]),
-            values,
-        };
-        assert!(is_clean(&schema, &instance));
-    }
-
-    /// End to end: the same schema under search returns a Witness, never
-    /// a Contradiction — a proposed-equation violation must not block
-    /// the outcome even if every enumerated candidate carried one.
-    #[test]
-    fn search_returns_witness_despite_proposed_violations() {
-        let schema = swap_schema();
-        let report = search(&schema, &two_row_bound());
-        assert!(
-            matches!(report.outcome, SearchOutcome::Witness { .. }),
-            "expected a witness, got {:?}",
-            report.outcome
-        );
-    }
-}
+mod tests;

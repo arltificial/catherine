@@ -52,9 +52,17 @@ fn ident(name: &str) -> Ident {
     Ident(name.to_string())
 }
 
+/// One fixture pair: the pre-edit schema and its post-edit counterpart.
+struct Pair<'a> {
+    /// The schema before the edit.
+    v1: &'a Schema,
+    /// The schema after the edit.
+    v2: &'a Schema,
+}
+
 /// The weakening katas: the classification, its single finding, and the
 /// witness's honesty under the real kernel check on both schemas.
-fn assert_weakened(v1: &Schema, v2: &Schema, report: &SchemaDiffReport) {
+fn assert_weakened(pair: &Pair<'_>, report: &SchemaDiffReport) {
     assert_eq!(
         report.findings.len(),
         1,
@@ -85,12 +93,12 @@ fn assert_weakened(v1: &Schema, v2: &Schema, report: &SchemaDiffReport) {
         Some(2),
         "the witness lives inside the declared bounds"
     );
-    let accepted_by_v2 = checks::check(v2, &TypedInstance::build(v2, witness));
+    let accepted_by_v2 = checks::check(pair.v2, &TypedInstance::build(pair.v2, witness));
     assert!(
         accepted_by_v2.is_empty(),
         "v2 accepts the witness: {accepted_by_v2:?}"
     );
-    let rejected_by_v1 = checks::check(v1, &TypedInstance::build(v1, witness));
+    let rejected_by_v1 = checks::check(pair.v1, &TypedInstance::build(pair.v1, witness));
     assert_eq!(
         rejected_by_v1.first(),
         Some(finding),
@@ -167,7 +175,7 @@ fn weakening_pair_is_caught_with_a_v2_valid_v1_invalid_witness() {
     let v2 = fixture("weakened", "v2");
     let bound = rows_bound(&[("Node", 2)], 64);
     let report = diff(&v1, &v2, &bound);
-    assert_weakened(&v1, &v2, &report);
+    assert_weakened(&Pair { v1: &v1, v2: &v2 }, &report);
     assert_eq!(
         diff(&v1, &v2, &bound),
         report,

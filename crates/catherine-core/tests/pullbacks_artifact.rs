@@ -44,8 +44,10 @@ fn base() -> Value {
     })
 }
 
-/// A copy of the document with the node at `pointer` replaced.
-fn mutated(base: &Value, pointer: &str, value: Value) -> Value {
+/// A copy of the document with the node at `at` — the pointer and its
+/// replacement value, drawn as one group — replaced.
+fn mutated(base: &Value, at: (&str, Value)) -> Value {
+    let (pointer, value) = at;
     let mut document = base.clone();
     *document
         .pointer_mut(pointer)
@@ -86,7 +88,7 @@ fn pullbacks_are_covered_by_the_artifact() {
     ];
     for (pointer, value, label) in cases {
         assert!(
-            !validator.is_valid(&mutated(&base, pointer, value)),
+            !validator.is_valid(&mutated(&base, (pointer, value))),
             "{label} is rejected"
         );
     }

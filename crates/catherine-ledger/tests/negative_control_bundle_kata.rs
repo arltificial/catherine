@@ -20,16 +20,20 @@
 //! hash to what it cites, and a null result is recorded as a null, never
 //! rounded up to a detection.
 
+mod support;
+
 use std::path::{Path, PathBuf};
 
-use catherine_core::findings::{FindingKind, ViolationWitness};
+use catherine_core::findings::{Finding, FindingKind, ViolationWitness};
 use catherine_core::hash::model_hash;
 use catherine_core::parse::parse;
 use catherine_ledger::entry::BaselineMode;
 use catherine_ledger::harness::run;
 use catherine_ledger::validate::validate_dir;
+use support::{present, TestError};
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+const LEDGER: &str = "ledger/katas/negative-control-bundle";
 
 const FIXTURES: [(&str, &str); 8] = [
     (
@@ -88,6 +92,16 @@ const POSITIVES: [(&str, &str, &str, usize); 3] = [
     ),
 ];
 
+/// The fixtures that must stay silent (clean or null-by-design).
+const SILENT: [&str; 6] = [
+    "cache-control.ct.json",
+    "flyweight-shared.ct.json",
+    "crud-procedural.ct.json",
+    "decorator-lookalike.ct.json",
+    "flyweight-shared-fault-duplicate.ct.json",
+    "crud-procedural-fault-stale-read.ct.json",
+];
+
 fn fixture_path(name: &str) -> PathBuf {
     Path::new(ROOT)
         .join("fixtures/katas/negative-control-bundle")
@@ -95,34 +109,31 @@ fn fixture_path(name: &str) -> PathBuf {
 }
 
 /// One fixture's canonical model hash, recomputed from its bytes.
-fn fixture_hash(name: &str) -> String {
-    let text = std::fs::read_to_string(fixture_path(name)).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
+fn fixture_hash(name: &str) -> Result<String, TestError> {
+    let text = std::fs::read_to_string(fixture_path(name))?;
+    let document = parse(&text)?;
+    Ok(model_hash(&document))
 }
 
 /// An edit to any committed fixture must become a superseding entry.
 #[test]
-fn negative_control_fixture_hashes_are_pinned() {
+fn negative_control_fixture_hashes_are_pinned() -> Result<(), TestError> {
     let mut mismatches = Vec::new();
     for (name, pin) in FIXTURES {
-        let got = fixture_hash(name);
+        let got = fixture_hash(name)?;
         println!("HASH {name} {got}");
         if got != pin {
             mismatches.push(format!("{name}: {got} != {pin}"));
         }
     }
     assert!(mismatches.is_empty(), "fixture hash drift: {mismatches:?}");
+    Ok(())
 }
 
 /// The clean fixtures are silent: no lens claim is fabricated.
 #[test]
 fn clean_fixtures_are_silent() {
-    for name in [
-        "cache-control.ct.json",
-        "flyweight-shared.ct.json",
-        "crud-procedural.ct.json",
-        "decorator-lookalike.ct.json",
-    ] {
+    for name in &SILENT[..4] {
         let executed = run(&fixture_path(name));
         assert!(executed.parsed, "{name} parses");
         assert!(
@@ -134,9 +145,7 @@ fn clean_fixtures_are_silent() {
 }
 
 /// The equation witness of a violation finding, for exact comparisons.
-fn violation_witness(
-    finding: &catherine_core::findings::Finding,
-) -> Option<(usize, usize, usize, usize)> {
+fn violation_witness(finding: &Finding) -> Option<(usize, usize, usize, usize)> {
     match &finding.kind {
         FindingKind::Violation(ViolationWitness::Equation(witness)) => Some((
             witness.equation,
@@ -154,10 +163,7 @@ fn violation_witness(
 /// drift — never the legitimately differing row.
 #[test]
 fn seeded_faults_emit_exactly_the_preregistered_findings() {
-    for name in [
-        "flyweight-shared-fault-duplicate.ct.json",
-        "crud-procedural-fault-stale-read.ct.json",
-    ] {
+    for name in &SILENT[4..] {
         let executed = run(&fixture_path(name));
         assert!(executed.parsed, "{name} parses");
         assert!(
@@ -191,48 +197,65 @@ fn seeded_faults_emit_exactly_the_preregistered_findings() {
     );
 }
 
+/// The committed bundle ledger, validated; a refusal becomes the test's
+/// error with the violations spelled out.
+fn validated() -> Result<catherine_ledger::validate::ValidLedger, TestError> {
+    validate_dir(Path::new(ROOT).join(LEDGER).as_path())
+        .map_err(|violations| format!("the bundle ledger refused: {violations:?}").into())
+}
+
 /// The ledger validates control-first, the control self-negates, and
 /// each positive carries its executed baseline arm, conventional catch,
 /// and honest gap.
 #[test]
-fn negative_control_ledger_records_the_preregistered_dispositions() {
-    let dir = Path::new(ROOT).join("ledger/katas/negative-control-bundle");
-    let valid = validate_dir(&dir).expect("the bundle ledger validates");
+fn negative_control_ledger_records_the_preregistered_dispositions() -> Result<(), TestError> {
+    let valid = validated()?;
     assert_eq!(valid.entries.len(), 4, "control + three positives");
-    let control = valid.kata_entries()[0].content.kata.clone().expect("kata");
-    assert!(control.control, "the near-floor control is first");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
-    assert!(control.comparison.unique_detections.is_empty());
+    let kata_entries = valid.kata_entries();
+    let control = present(kata_entries[0].content.kata.as_ref(), "kata record")?;
+    assert!(control.identity.control, "the near-floor control is first");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(control.derivation.comparison.unique_detections.is_empty());
     assert_eq!(control.expected[0].fault, "control-stale-cache");
     assert!(control.catalog_hash.is_none(), "non-probe kata, no catalog");
     assert_eq!(control.run.findings.len(), 1);
+    let control_arm = present(
+        control.derivation.comparison.baseline.as_ref(),
+        "the control's conventional arm",
+    )?;
     assert_eq!(
-        control
-            .comparison
-            .baseline
-            .as_ref()
-            .expect("arm")
-            .detections,
+        control_arm.detections,
         vec!["cache:source.current!=cached@Cache#0"]
     );
-    for (entry, (fault, fixture, element, count)) in valid.kata_entries()[1..].iter().zip(POSITIVES)
-    {
-        let kata = entry.content.kata.as_ref().expect("kata");
-        assert_eq!(kata.kata_id, "negative-control-bundle");
-        assert_eq!(kata.verdict, "killed", "{fault} stays a null/parity result");
-        assert!(kata.comparison.unique_detections.is_empty());
+    for (entry, (fault, fixture, element, count)) in kata_entries[1..].iter().zip(POSITIVES) {
+        let kata = present(entry.content.kata.as_ref(), "kata record")?;
+        assert_eq!(kata.identity.kata_id, "negative-control-bundle");
+        assert_eq!(
+            kata.derivation.verdict, "killed",
+            "{fault} stays a null/parity result"
+        );
+        assert!(kata.derivation.comparison.unique_detections.is_empty());
         assert_eq!(kata.expected[0].fault, fault);
         assert!(kata.catalog_hash.is_none(), "{fault} has no catalog");
         assert_eq!(kata.run.findings.len(), count, "{fault} finding count");
         assert_eq!(
-            kata.fixture,
+            kata.provenance.fixture,
             format!("fixtures/katas/negative-control-bundle/{fixture}")
         );
-        let baseline = kata.comparison.baseline.as_ref().expect("executed arm");
-        assert_eq!(baseline.mode, BaselineMode::Executed);
-        assert_eq!(baseline.detections, vec![element.to_string()]);
-        assert_eq!(entry.content.model_hashes, vec![kata.fixture_hash.clone()]);
-        assert_eq!(kata.fixture_hash, fixture_hash(fixture));
+        let arm = present(
+            kata.derivation.comparison.baseline.as_ref(),
+            "the executed arm",
+        )?;
+        assert_eq!(arm.mode, BaselineMode::Executed);
+        assert_eq!(arm.detections, vec![element.to_string()]);
+        assert_eq!(
+            entry.content.model_hashes,
+            vec![kata.provenance.fixture_hash.clone()]
+        );
+        assert_eq!(kata.provenance.fixture_hash, fixture_hash(fixture)?);
         assert!(
             !kata.expressibility_gap.is_empty(),
             "{fault} records the lens gap"
@@ -244,4 +267,5 @@ fn negative_control_ledger_records_the_preregistered_dispositions() {
             "{fault} records the honesty purpose"
         );
     }
+    Ok(())
 }

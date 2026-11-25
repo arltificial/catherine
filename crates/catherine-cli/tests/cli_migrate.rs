@@ -22,9 +22,18 @@
 //! exception — it pins the labeled parse error through the CLI). Exit
 //! codes follow the CLI's exit table: lost data is a finding-bearing
 //! run (8), a lossless migration is clean (0), parse/build and
-//! input errors exit 1 through the labeled-error path.
+//! input errors exit 1 through the labeled-error path. The spawn/parse
+//! plumbing is the shared `tests/common` harness
+//! (`try_run`/`envelope`/`lost`), spelled for `?`.
 
-use std::process::{Command, Output};
+mod common;
+
+#[path = "cli_migrate/bogart_rehearsal.rs"]
+mod bogart_rehearsal;
+
+use common::{code, envelope, lost, stderr, stdout, try_run};
+use serde_json::Value;
+use std::error::Error;
 
 const DROP_OBJECT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -66,50 +75,20 @@ const NO_MAP: &str = concat!(
     "/tests/fixtures/bowling.ct.json"
 );
 
-/// Spawn the `catherine` binary with the given arguments.
-fn run(args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_catherine"))
-        .args(args)
-        .output()
-        .expect("spawn catherine binary")
-}
-
-fn code(out: &Output) -> i32 {
-    out.status.code().unwrap_or(-1)
-}
-
-fn stdout(out: &Output) -> String {
-    String::from_utf8_lossy(&out.stdout).into_owned()
-}
-
-fn stderr(out: &Output) -> String {
-    String::from_utf8_lossy(&out.stderr).into_owned()
-}
-
-fn parse_json(text: &str) -> serde_json::Value {
-    serde_json::from_str(text)
-        .unwrap_or_else(|e| panic!("stdout/stderr is one JSON envelope: {e}\n{text}"))
-}
-
-// ── the lost-data run: envelope verbatim + exit 8 ────────────────────
-
-#[test]
-fn migrate_lost_data_envelope_is_exit_8_with_kernel_findings_verbatim() {
-    let out = run(&["migrate", DROP_OBJECT, "--json"]);
-    assert_eq!(code(&out), 8, "lost data is a finding-bearing run");
-    assert_eq!(
-        stderr(&out),
-        "",
-        "the error stream stays empty on a finding run"
-    );
-
-    let v = parse_json(&stdout(&out));
+/// The success-envelope pins shared by every migration report: the
+/// genesis keys plus the findings-bearing `check` kind.
+fn assert_migration_report_is_a_success_envelope(v: &Value) {
     assert_eq!(v["ok"], true, "the migration report is a success envelope");
     for key in ["ok", "envelope_kind", "data", "warnings", "hints"] {
         assert!(v.get(key).is_some(), "envelope key `{key}` present");
     }
     assert_eq!(v["envelope_kind"], "check", "the payload carries findings");
+}
 
+/// The drop-object report's numeric pins: six lost findings, the
+/// target-row summary, and the kept-row correspondence verbatim.
+fn assert_target_rows_and_correspondence(v: &Value) {
+    assert_eq!(lost(v).len(), 6, "3 dropped Scratch rows + 3 valued cells");
     assert_eq!(
         v["data"]["rows"],
         serde_json::json!({"Doc": 2}),
@@ -120,11 +99,13 @@ fn migrate_lost_data_envelope_is_exit_8_with_kernel_findings_verbatim() {
         serde_json::json!({"Doc": {"0": 0, "1": 1}}),
         "kept source rows → target rows, the kernel correspondence verbatim"
     );
+}
 
-    // The kernel `MigrationFinding` encoding, verbatim: label, kind tag,
-    // witness — sorted (rows first, then the dropped arrow's cells).
-    let lost = v["data"]["lost"].as_array().expect("data.lost array");
-    assert_eq!(lost.len(), 6, "3 dropped Scratch rows + 3 valued cells");
+/// The kernel `MigrationFinding` encoding of `data.lost`, verbatim:
+/// label, kind tag, witness — sorted (rows first, then the dropped
+/// arrow's cells).
+fn assert_lost_findings_verbatim(v: &Value) {
+    let lost = lost(v);
     assert_eq!(
         lost[0],
         serde_json::json!({
@@ -148,15 +129,35 @@ fn migrate_lost_data_envelope_is_exit_8_with_kernel_findings_verbatim() {
     }
 }
 
+// ── the lost-data run: envelope verbatim + exit 8 ────────────────────
+
 #[test]
-fn migrate_lossless_run_is_exit_zero_with_empty_lost() {
-    let out = run(&["migrate", NON_INVERTIBLE, "--json"]);
+fn migrate_lost_data_envelope_is_exit_8_with_kernel_findings_verbatim() -> Result<(), Box<dyn Error>>
+{
+    let out = try_run(&["migrate", DROP_OBJECT, "--json"])?;
+    assert_eq!(code(&out), 8, "lost data is a finding-bearing run");
+    assert_eq!(
+        stderr(&out),
+        "",
+        "the error stream stays empty on a finding run"
+    );
+
+    let v = envelope("stdout", &stdout(&out))?;
+    assert_migration_report_is_a_success_envelope(&v);
+    assert_target_rows_and_correspondence(&v);
+    assert_lost_findings_verbatim(&v);
+    Ok(())
+}
+
+#[test]
+fn migrate_lossless_run_is_exit_zero_with_empty_lost() -> Result<(), Box<dyn Error>> {
+    let out = try_run(&["migrate", NON_INVERTIBLE, "--json"])?;
     assert_eq!(code(&out), 0, "a lossless migration is clean");
     assert_eq!(stderr(&out), "", "the error stream stays empty");
 
-    let v = parse_json(&stdout(&out));
+    let v = envelope("stdout", &stdout(&out))?;
     assert_eq!(v["ok"], true);
-    assert_eq!(v["data"]["lost"].as_array().expect("lost").len(), 0);
+    assert_eq!(lost(&v).len(), 0);
     assert_eq!(
         v["data"]["rows"],
         serde_json::json!({"Narrow": 1}),
@@ -167,61 +168,69 @@ fn migrate_lossless_run_is_exit_zero_with_empty_lost() {
         serde_json::json!({"0": 0, "1": 0}),
         "the collapse is visible in the correspondence, not silent"
     );
+    Ok(())
 }
 
 // ── labeled errors: exit 1, envelope on stderr, stable code ──────────
 
 #[test]
-fn migrate_without_schema_map_is_the_no_schema_map_error() {
-    let out = run(&["migrate", NO_MAP, "--json"]);
+fn migrate_without_schema_map_is_the_no_schema_map_error() -> Result<(), Box<dyn Error>> {
+    let out = try_run(&["migrate", NO_MAP, "--json"])?;
     assert_eq!(code(&out), 1, "no migration declared is an input error");
     assert_eq!(stdout(&out), "", "errors never write stdout");
-    let v = parse_json(&stderr(&out));
+    let v = envelope("stderr", &stderr(&out))?;
     assert_eq!(v["ok"], false);
     assert_eq!(v["envelope_kind"], "error");
     assert_eq!(v["data"]["code"], "no_schema_map");
     assert!(
         !v["data"]["remediation"]
             .as_array()
-            .expect("remediation")
+            .unwrap_or_else(|| panic!("remediation"))
             .is_empty(),
         "remediation is non-empty"
     );
+    Ok(())
 }
 
 #[test]
-fn migrate_partial_map_surfaces_the_labeled_parse_error() {
-    let out = run(&["migrate", PARTIAL_MAP, "--json"]);
+fn migrate_partial_map_surfaces_the_labeled_parse_error() -> Result<(), Box<dyn Error>> {
+    let out = try_run(&["migrate", PARTIAL_MAP, "--json"])?;
     assert_eq!(code(&out), 1, "parse/build failure exit code");
     assert_eq!(stdout(&out), "", "errors never write stdout");
-    let v = parse_json(&stderr(&out));
+    let v = envelope("stderr", &stderr(&out))?;
     assert_eq!(v["data"]["code"], "partial_schema_map", "the stable code");
-    let message = v["data"]["message"].as_str().expect("message");
+    let message = v["data"]["message"]
+        .as_str()
+        .unwrap_or_else(|| panic!("message"));
     assert!(
         message.contains("scratch_note"),
         "the unmapped element is named: {message}"
     );
+    Ok(())
 }
 
 #[test]
-fn migrate_garbage_rows_surfaces_the_labeled_parse_error() {
-    let out = run(&["migrate", GARBAGE_ROWS, "--json"]);
+fn migrate_garbage_rows_surfaces_the_labeled_parse_error() -> Result<(), Box<dyn Error>> {
+    let out = try_run(&["migrate", GARBAGE_ROWS, "--json"])?;
     assert_eq!(code(&out), 1, "parse/build failure exit code");
     assert_eq!(stdout(&out), "", "errors never write stdout");
-    let v = parse_json(&stderr(&out));
+    let v = envelope("stderr", &stderr(&out))?;
     assert_eq!(v["data"]["code"], "syntax", "JSON-structural malformation");
-    let message = v["data"]["message"].as_str().expect("message");
+    let message = v["data"]["message"]
+        .as_str()
+        .unwrap_or_else(|| panic!("message"));
     assert!(
         message.contains("_9"),
         "the undeclared row reference is named: {message}"
     );
+    Ok(())
 }
 
 // ── human rendering ──────────────────────────────────────────────────
 
 #[test]
-fn migrate_human_lines_name_every_lost_element() {
-    let out = run(&["migrate", DROP_OBJECT]);
+fn migrate_human_lines_name_every_lost_element() -> Result<(), Box<dyn Error>> {
+    let out = try_run(&["migrate", DROP_OBJECT])?;
     assert_eq!(code(&out), 8, "the exit decision is mode-independent");
     assert_eq!(stderr(&out), "");
     let text = stdout(&out);
@@ -237,6 +246,7 @@ fn migrate_human_lines_name_every_lost_element() {
         "witness lines are countable"
     );
     assert_eq!(lines[4], "lost-cell: scratch_note at Scratch#0");
+    Ok(())
 }
 
 /// The constraint-level signal (catherine-kpn.8 option (a)): migrate
@@ -246,37 +256,59 @@ fn migrate_human_lines_name_every_lost_element() {
 /// separating witness row — while the rows and cells still migrate
 /// exactly as before (no lost-row/lost-cell findings here).
 #[test]
-fn migrate_target_dropping_an_accepted_constraint_emits_the_weakened_finding() {
-    let out = run(&["migrate", DROPPED_EQUATION, "--json"]);
+fn migrate_target_dropping_an_accepted_constraint_emits_the_weakened_finding(
+) -> Result<(), Box<dyn Error>> {
+    let out = try_run(&["migrate", DROPPED_EQUATION, "--json"])?;
     assert_eq!(
         code(&out),
         8,
         "a weakened migration is a finding-bearing run"
     );
     assert_eq!(stderr(&out), "", "the error stream stays empty");
-    let v = parse_json(&stdout(&out));
-    let lost = v["data"]["lost"].as_array().expect("data.lost array");
+    let v = envelope("stdout", &stdout(&out))?;
+    assert_data_migration_is_lossless(lost(&v));
+    let weakened = weakened_findings(&v);
+    assert_eq!(
+        weakened.len(),
+        1,
+        "exactly one constraint-level finding: {:?}",
+        lost(&v)
+    );
+    assert_weakened_names_the_dropped_triangle(weakened[0]);
+    Ok(())
+}
+
+/// The data migration itself is lossless: no lost-row/lost-cell finding
+/// among the losses (constraint-level drift only).
+fn assert_data_migration_is_lossless(lost: &[Value]) {
     assert!(
         !lost
             .iter()
             .any(|f| f["kind"] == "lost_row" || f["kind"] == "lost_cell"),
         "the data migration itself is lossless: {lost:?}"
     );
-    let weakened: Vec<_> = lost.iter().filter(|f| f["kind"] == "weakened").collect();
-    assert_eq!(
-        weakened.len(),
-        1,
-        "exactly one constraint-level finding: {lost:?}"
-    );
-    assert_eq!(weakened[0]["label"], "executed", "drift is executed fact");
-    let witness = &weakened[0]["witness"];
+}
+
+/// The weakened findings of one migration envelope, in payload order.
+fn weakened_findings(value: &Value) -> Vec<&Value> {
+    lost(value)
+        .iter()
+        .filter(|finding| finding["kind"] == "weakened")
+        .collect()
+}
+
+/// The dropped-equation migration's single weakened finding: the
+/// executed drift names the dropped triangle on its domain object.
+fn assert_weakened_names_the_dropped_triangle(finding: &Value) {
+    assert_eq!(finding["label"], "executed", "drift is executed fact");
+    let witness = &finding["witness"];
     assert_eq!(
         witness["object"], "A",
         "the witness row sits on the dropped equation's domain object"
     );
     let constraint = witness["constraint"]
         .as_str()
-        .expect("the finding names the dropped constraint");
+        .unwrap_or_else(|| panic!("the finding names the dropped constraint"));
     assert!(
         constraint.contains("f") && constraint.contains("g") && constraint.contains("k"),
         "the finding names the dropped triangle `{constraint}`"
@@ -291,42 +323,52 @@ fn migrate_target_dropping_an_accepted_constraint_emits_the_weakened_finding() {
 /// collides at the opening candidate's row 0. The zero-row instance
 /// keeps both scans (four cells) inside the 256-candidate budget.
 #[test]
-fn migrate_dropping_two_constraints_gives_each_its_own_witness_row() {
-    let out = run(&["migrate", DROPPED_TWO_CONSTRAINTS, "--json"]);
+fn migrate_dropping_two_constraints_gives_each_its_own_witness_row() -> Result<(), Box<dyn Error>> {
+    let out = try_run(&["migrate", DROPPED_TWO_CONSTRAINTS, "--json"])?;
     assert_eq!(
         code(&out),
         8,
         "a weakened migration is a finding-bearing run"
     );
-    let v = parse_json(&stdout(&out));
-    let lost = v["data"]["lost"].as_array().expect("data.lost array");
-    assert!(
-        !lost
-            .iter()
-            .any(|f| f["kind"] == "lost_row" || f["kind"] == "lost_cell"),
-        "the data migration itself is lossless: {lost:?}"
-    );
-    let weakened: Vec<_> = lost.iter().filter(|f| f["kind"] == "weakened").collect();
+    let v = envelope("stdout", &stdout(&out))?;
+    assert_data_migration_is_lossless(lost(&v));
+    let weakened = weakened_findings(&v);
     assert_eq!(
         weakened.len(),
         2,
-        "both dropped constraints are named: {lost:?}"
+        "both dropped constraints are named: {:?}",
+        lost(&v)
     );
-    let by_constraint = |needle: &str| {
-        weakened
-            .iter()
-            .find(|f| {
-                f["witness"]["constraint"]
-                    .as_str()
-                    .is_some_and(|c| c.contains(needle))
-            })
-            .expect("the constraint is named")
-    };
     // `f = g`: the scan's first resolved candidate (every cell at row
     // 0) keeps the equation equal — vacuous there — so its scan
     // continues to the next candidate, which first parts f from g at
     // row 1. A shared first-violation shortcut would report row 0.
-    let equation = by_constraint("f = g");
+    let equation = weakening_by_constraint(&weakened, "f = g");
+    // `key A(g)`: the first resolved candidate already maps both rows
+    // to row 0 — the key's own colliding pair starts at row 0.
+    let key = weakening_by_constraint(&weakened, "key A(g)");
+    assert_each_constraint_names_its_own_witness_row(equation, key);
+    Ok(())
+}
+
+/// The weakened finding whose witness names `needle`.
+fn weakening_by_constraint<'a>(weakened: &[&'a Value], needle: &str) -> &'a Value {
+    weakened
+        .iter()
+        .find(|finding| {
+            finding["witness"]["constraint"]
+                .as_str()
+                .is_some_and(|constraint| constraint.contains(needle))
+        })
+        .unwrap_or_else(|| panic!("the constraint is named"))
+}
+
+/// Each dropped constraint gets its own separating witness: `f = g`
+/// separates at row 1 (the scan's first resolved candidate — every cell
+/// at row 0 — keeps the equation equal, vacuous there, so its scan
+/// continues; a shared first-violation shortcut would report row 0),
+/// and the key `A(g)` collides at its own opening candidate's row 0.
+fn assert_each_constraint_names_its_own_witness_row(equation: &Value, key: &Value) {
     assert_eq!(
         equation["witness"]["object"], "A",
         "the witness row sits on the equation's domain object"
@@ -335,9 +377,6 @@ fn migrate_dropping_two_constraints_gives_each_its_own_witness_row() {
         equation["witness"]["row"], 1,
         "the equation's separating row is its own"
     );
-    // `key A(g)`: the first resolved candidate already maps both rows
-    // to row 0 — the key's own colliding pair starts at row 0.
-    let key = by_constraint("key A(g)");
     assert_eq!(key["witness"]["object"], "A");
     assert_eq!(
         key["witness"]["row"], 0,
@@ -346,48 +385,4 @@ fn migrate_dropping_two_constraints_gives_each_its_own_witness_row() {
 }
 
 // ── task 8: the bogart rehearsal fixture, end to end ─────────────────
-
-#[test]
-fn bogart_rehearsal_emits_the_documented_ten_findings_and_exits_8() {
-    let out = run(&["migrate", BOGART, "--json"]);
-    assert_eq!(code(&out), 8, "the rehearsal drops data by design");
-
-    let v = parse_json(&stdout(&out));
-    assert_eq!(
-        v["data"]["rows"],
-        serde_json::json!({"ServingDocument": 2, "ServingPage": 3}),
-        "raw corpus → serving projection"
-    );
-
-    let lost = v["data"]["lost"].as_array().expect("data.lost array");
-    assert_eq!(lost.len(), 10, "4 dropped rows + 6 valued dropped cells");
-
-    let lost_rows: Vec<_> = lost.iter().filter(|f| f["kind"] == "lost_row").collect();
-    assert_eq!(lost_rows.len(), 4, "every RawCapture row is named");
-    for (i, finding) in lost_rows.iter().enumerate() {
-        assert_eq!(finding["witness"]["object"], "RawCapture");
-        assert_eq!(finding["witness"]["row"], i, "rows named in dense order");
-    }
-
-    // Sorted order: captured_page (RawCapture rows 0–3), then prev_page
-    // (RawPage rows 1–2 — `_0` held no value, so it is not a lost cell).
-    assert_eq!(lost[4]["kind"], "lost_cell");
-    assert_eq!(lost[4]["witness"]["arrow"], "captured_page");
-    assert_eq!(lost[4]["witness"]["row"], 0);
-    assert_eq!(lost[7]["witness"]["arrow"], "captured_page");
-    assert_eq!(lost[7]["witness"]["row"], 3);
-    assert_eq!(lost[8]["witness"]["arrow"], "prev_page");
-    assert_eq!(lost[8]["witness"]["row"], 1);
-    assert_eq!(lost[9]["witness"]["arrow"], "prev_page");
-    assert_eq!(lost[9]["witness"]["row"], 2);
-
-    assert_eq!(
-        v["data"]["row_map"]["ServingPage"],
-        serde_json::json!({"0": 0, "1": 1, "2": 2}),
-        "kept RawPage rows transfer verbatim"
-    );
-    assert!(
-        v["data"]["row_map"].get("RawCapture").is_none(),
-        "dropped objects are absent from the correspondence — their loss is in `lost`"
-    );
-}
+// Pinned in the `bogart_rehearsal` submodule.

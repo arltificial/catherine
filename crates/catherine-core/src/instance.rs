@@ -98,30 +98,11 @@ impl TypedInstance {
         for (nid, name) in compiled.arrow_names.iter().enumerate() {
             tables.insert(name.clone(), built.tables[nid].to_option_vec());
         }
-        let typing_violations = built
-            .typing_violations
-            .iter()
-            .flatten()
-            .map(|(nid, idx, value)| TypingViolation {
-                arrow: compiled.arrow_names[*nid].clone(),
-                src: RowId(*idx),
-                value: *value,
-            })
-            .collect();
-        let dangling = built
-            .dangling
-            .iter()
-            .flatten()
-            .map(|(nid, idx)| DanglingCell {
-                arrow: compiled.arrow_names[*nid].clone(),
-                src: RowId(*idx),
-            })
-            .collect();
         Self {
             rows,
             tables,
-            typing_violations,
-            dangling,
+            typing_violations: typing_violations(&compiled, &built),
+            dangling: dangling_cells(&compiled, &built),
         }
     }
 
@@ -163,4 +144,39 @@ impl TypedInstance {
         }
         Some(current)
     }
+}
+
+/// The build's typing violations, materialized against the interned
+/// arrow names.
+fn typing_violations(
+    compiled: &crate::engine::EngineSchema,
+    built: &crate::engine::EngineTyped,
+) -> Vec<TypingViolation> {
+    built
+        .typing_violations
+        .iter()
+        .flatten()
+        .map(|(nid, idx, value)| TypingViolation {
+            arrow: compiled.arrow_names[*nid].clone(),
+            src: RowId(*idx),
+            value: *value,
+        })
+        .collect()
+}
+
+/// The build's dangling cells, materialized against the interned arrow
+/// names.
+fn dangling_cells(
+    compiled: &crate::engine::EngineSchema,
+    built: &crate::engine::EngineTyped,
+) -> Vec<DanglingCell> {
+    built
+        .dangling
+        .iter()
+        .flatten()
+        .map(|(nid, idx)| DanglingCell {
+            arrow: compiled.arrow_names[*nid].clone(),
+            src: RowId(*idx),
+        })
+        .collect()
 }

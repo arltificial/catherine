@@ -13,67 +13,68 @@
 //! drifting away from the fixtures and the catalog it claims to have run
 //! against.
 
+mod probe_support;
+
 use std::path::Path;
 
-use catherine_core::hash::model_hash;
-use catherine_core::parse::parse;
 use catherine_ledger::catalog::{probe_catalog_hash, probe_expectations};
+use catherine_ledger::entry::BaselineMode;
 use catherine_ledger::validate::validate_dir;
 
-const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
-
-/// One fixture's model hash, recomputed from its canonical bytes.
-fn fixture_hash(path: &str) -> String {
-    let text = std::fs::read_to_string(format!("{ROOT}/{path}")).expect("fixture readable");
-    model_hash(&parse(&text).expect("fixture parses"))
-}
+use probe_support::{fixture_hash, present, TestError};
 
 /// The fixtures' identities are pinned: an edit to any committed probe
 /// fixture must be a new ledger entry, never a silent change.
 #[test]
-fn probe_fixture_hashes_are_pinned() {
+fn probe_fixture_hashes_are_pinned() -> Result<(), TestError> {
     assert_eq!(
-        fixture_hash("fixtures/probes/migration/floor-visible-loss.ct.json"),
+        fixture_hash("fixtures/probes/migration/floor-visible-loss.ct.json")?,
         "sha256:66df6081bc0a725a4e7787e47516048aa14a21d05a1c8fc9dbfa01432ebc930e"
     );
     assert_eq!(
-        fixture_hash("fixtures/probes/migration/lost-data-cells.ct.json"),
+        fixture_hash("fixtures/probes/migration/lost-data-cells.ct.json")?,
         "sha256:b0f536e372ffc88bb4eeacba05f2addba0540b26eeb3aae3fa62dfda1111bee2"
     );
     assert_eq!(
-        fixture_hash("fixtures/probes/migration/non-invertible-collapse.ct.json"),
+        fixture_hash("fixtures/probes/migration/non-invertible-collapse.ct.json")?,
         "sha256:39560fd67a3a506cb19d5929c4b237f491edfaba40cbbc9e2ee8bb90df672a23"
     );
+    Ok(())
 }
 
 /// The probe ledger validates, the control went first and self-negated,
 /// and the positives carry executed baseline arms with unique sets.
 #[test]
-fn probe_ledger_records_the_preregistered_evidence() {
-    let dir = Path::new(ROOT).join("ledger/probes/migration");
-    let valid = validate_dir(&dir).expect("the probe ledger validates");
+fn probe_ledger_records_the_preregistered_evidence() -> Result<(), TestError> {
+    let dir = Path::new(probe_support::ROOT).join("ledger/probes/migration");
+    let valid = validate_dir(&dir).map_err(|violations| format!("{violations:?}"))?;
     assert_eq!(valid.entries.len(), 3, "control + two inaugural probes");
-    let control = &valid.kata_entries()[0].content.kata.clone().expect("kata");
-    assert!(control.control, "the floor control is first");
-    assert_eq!(control.verdict, "killed", "the control self-negated");
-    assert!(control.comparison.unique_detections.is_empty());
+    let control = present(
+        valid.kata_entries()[0].content.kata.as_ref(),
+        "control kata record",
+    )?;
+    assert!(control.identity.control, "the floor control is first");
+    assert_eq!(
+        control.derivation.verdict, "killed",
+        "the control self-negated"
+    );
+    assert!(control.derivation.comparison.unique_detections.is_empty());
     for entry in &valid.kata_entries()[1..] {
-        let kata = entry.content.kata.as_ref().expect("kata");
-        assert_eq!(kata.kata_id, "probe-migration", "the registered probe id");
-        assert!(
-            !kata.comparison.unique_detections.is_empty(),
-            "{} buys unique detections",
-            kata.name
-        );
-        let baseline = kata
-            .comparison
-            .baseline
-            .as_ref()
-            .expect("an executed baseline arm carries the unique set");
+        let kata = present(entry.content.kata.as_ref(), "kata record")?;
         assert_eq!(
-            baseline.mode,
-            catherine_ledger::entry::BaselineMode::Executed
+            kata.identity.kata_id, "probe-migration",
+            "the registered probe id"
         );
+        assert!(
+            !kata.derivation.comparison.unique_detections.is_empty(),
+            "{} buys unique detections",
+            kata.identity.name
+        );
+        let baseline = present(
+            kata.derivation.comparison.baseline.as_ref(),
+            "an executed baseline arm carries the unique set",
+        )?;
+        assert_eq!(baseline.mode, BaselineMode::Executed);
         assert_eq!(
             kata.expected,
             probe_expectations("probe-migration"),
@@ -86,13 +87,14 @@ fn probe_ledger_records_the_preregistered_evidence() {
         );
         assert_eq!(
             entry.content.model_hashes,
-            vec![kata.fixture_hash.clone()],
+            vec![kata.provenance.fixture_hash.clone()],
             "the validated model is the fixture it names"
         );
         assert_eq!(
-            kata.fixture_hash,
-            fixture_hash(&kata.fixture),
+            kata.provenance.fixture_hash,
+            fixture_hash(&kata.provenance.fixture)?,
             "the recorded fixture hash is the canonical model hash"
         );
     }
+    Ok(())
 }

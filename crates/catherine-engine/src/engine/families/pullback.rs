@@ -10,6 +10,69 @@ use super::super::{CompactPullback, CompiledPullback, EngineSchema, EngineTyped,
 use super::FindingSink;
 use crate::findings::EpistemicLabel;
 
+/// Per-pullback emission context: the shared report sink plus the
+/// declared pullback's index and its constraint's label.
+struct PullbackEmit<'a, S: FindingSink> {
+    out: &'a mut S,
+    index: usize,
+    label: EpistemicLabel,
+}
+
+impl<S: FindingSink> PullbackEmit<'_, S> {
+    /// One commutes finding for a cospan pair disagreeing on the apex
+    /// row. projection, ascending rows within an ascending-projection
+    /// bucket walk.
+    fn commutes(&mut self, row: usize, lhs: usize, rhs: usize) {
+        self.out.emit((
+            (
+                0,
+                4,
+                0,
+                self.index as u64,
+                row as u64,
+                lhs as u64,
+                rhs as u64,
+                0,
+            ),
+            self.label,
+            CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Commutes {
+                index: self.index,
+                row,
+                lhs,
+                rhs,
+            })),
+        ));
+    }
+
+    /// One missing-cover finding when no apex row projects onto the
+    /// cospan pair through both legs.
+    fn cover_missing(&mut self, projections: &ProjectionBuckets, a: usize, b: usize) {
+        if pair_covered(projections, (a as u64, b as u64)) {
+            return;
+        }
+        self.out.emit((
+            (0, 4, 1, self.index as u64, a as u64, b as u64, 0, 0),
+            self.label,
+            CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Covers {
+                index: self.index,
+                pair: [a, b],
+            })),
+        ));
+    }
+
+    /// One unique finding per ascending row pair sharing a projection.
+    fn unique_pair(&mut self, lo: usize, hi: usize) {
+        self.out.emit((
+            (0, 4, 2, self.index as u64, lo as u64, hi as u64, 0, 0),
+            self.label,
+            CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Unique {
+                index: self.index,
+                rows: [lo, hi],
+            })),
+        ));
+    }
+}
+
 /// The apex rows bucketed by their resolved leg projection — ascending
 /// projection tuples, ascending rows within each bucket, over the arena.
 type ProjectionBuckets = Bounded<((u64, u64), Bounded<usize, ROWS_CAP>), ARROWS_CAP>;
@@ -37,52 +100,53 @@ pub(crate) fn pullback_findings(
         let Some(apex_rows) = typed.row_counts[pullback.apex] else {
             continue;
         };
-        let label = crate::findings::label_for(pullback.status);
-        let (projections, legs_partial) =
-            pullback_projections(typed, out, pullback, index, apex_rows, label);
-        emit_pullback_unique(out, &projections, index, label);
+        let mut em = PullbackEmit {
+            out: &mut *out,
+            index,
+            label: crate::findings::label_for(pullback.status),
+        };
+        let (projections, legs_partial) = pullback_projections(typed, &mut em, pullback, apex_rows);
+        emit_pullback_unique(&mut em, &projections);
         if !legs_partial {
-            emit_pullback_covers(schema, typed, out, &projections, pullback, index, label);
+            let fibers = cospan_fibers(schema, typed, pullback);
+            emit_pullback_covers(&mut em, &projections, &fibers);
         }
     }
-    let _ = schema;
+}
+
+/// One arrow's resolved value at a row, if taken.
+fn resolve_at(typed: &EngineTyped, arrow: Nid, row: usize) -> Option<usize> {
+    typed.tables[arrow].get(row).copied().flatten().map(|v| v.0)
 }
 
 /// Walk the apex rows: the commutes verdict per fully resolved row, and
 /// the projection buckets the other verdicts need. Returns the buckets
 /// (ascending projection tuples, ascending rows within) and whether any
 /// leg cell was unresolved.
-fn pullback_projections(
+fn pullback_projections<S: FindingSink>(
     typed: &EngineTyped,
-    out: &mut impl FindingSink,
+    em: &mut PullbackEmit<S>,
     pullback: &CompiledPullback,
-    index: usize,
     apex_rows: usize,
-    label: EpistemicLabel,
 ) -> (ProjectionBuckets, bool) {
     let [p1, p2] = pullback.legs;
     let [f, g] = pullback.cospan;
     let mut projections = ProjectionBuckets::new();
     let mut legs_partial = false;
-    let mut row = 0;
-    while row < apex_rows {
-        let left = typed.tables[p1].get(row).copied().flatten();
-        let right = typed.tables[p2].get(row).copied().flatten();
-        let (Some(left), Some(right)) = (left, right) else {
+    for row in 0..apex_rows {
+        let (Some(left), Some(right)) = (resolve_at(typed, p1, row), resolve_at(typed, p2, row))
+        else {
             legs_partial = true;
-            row += 1;
             continue;
         };
-        let lhs = typed.tables[f].get(left.0).copied().flatten();
-        let rhs = typed.tables[g].get(right.0).copied().flatten();
+        let lhs = resolve_at(typed, f, left);
+        let rhs = resolve_at(typed, g, right);
         if let (Some(lhs), Some(rhs)) = (lhs, rhs) {
             if lhs != rhs {
-                push_commutes_finding(out, index, row, lhs.0, rhs.0, label);
+                em.commutes(row, lhs, rhs);
             }
         }
-        let projection = (left.0 as u64, right.0 as u64);
-        push_projection(&mut projections, projection, row);
-        row += 1;
+        push_projection(&mut projections, (left as u64, right as u64), row);
     }
     projections.sort_pushed_by(|a, b| a.0.cmp(&b.0));
     (projections, legs_partial)
@@ -93,194 +157,124 @@ fn pullback_projections(
 /// caller's sort; equal projections keep ascending row order). Plain
 /// slot scan — no iterator find chain, no heap bucket.
 fn push_projection(projections: &mut ProjectionBuckets, projection: (u64, u64), row: usize) {
-    let mut i = 0;
-    while i < projections.len() {
+    for i in 0..projections.len() {
         if let Some(Some((key, rows))) = projections.get_mut(i) {
             if *key == projection {
                 rows.push(row);
                 return;
             }
         }
-        i += 1;
     }
     let mut bucket = Bounded::<usize, ROWS_CAP>::new();
     bucket.push(row);
     projections.push((projection, bucket));
 }
 
-/// One commutes finding for a cospan pair disagreeing on the apex row.
-/// projection, ascending rows within an ascending-projection bucket walk.
-fn push_commutes_finding(
-    out: &mut impl FindingSink,
-    index: usize,
-    row: usize,
-    lhs: usize,
-    rhs: usize,
-    label: EpistemicLabel,
-) {
-    out.emit((
-        (0, 4, 0, index as u64, row as u64, lhs as u64, rhs as u64, 0),
-        label,
-        CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Commutes {
-            index,
-            row,
-            lhs,
-            rhs,
-        })),
-    ));
-}
-
 /// Uniqueness: one finding per unordered pair of apex rows sharing a
 /// projection, ascending rows within an ascending-projection bucket walk.
-fn emit_pullback_unique(
-    out: &mut impl FindingSink,
-    projections: &ProjectionBuckets,
-    index: usize,
-    label: EpistemicLabel,
-) {
-    let mut b = 0;
-    while b < projections.len() {
-        if let Some(Some((_, rows))) = projections.get(b) {
-            emit_bucket_pairs(out, rows, index, label);
-        }
-        b += 1;
+fn emit_pullback_unique<S: FindingSink>(em: &mut PullbackEmit<S>, projections: &ProjectionBuckets) {
+    for (_, rows) in projections.iter().flatten() {
+        emit_bucket_pairs(em, rows);
     }
 }
 
 /// One finding per unordered pair within one projection bucket,
 /// ascending rows.
-fn emit_bucket_pairs(
-    out: &mut impl FindingSink,
-    rows: &Bounded<usize, ROWS_CAP>,
-    index: usize,
-    label: EpistemicLabel,
-) {
-    let mut position = 0;
-    while position < rows.len() {
+fn emit_bucket_pairs<S: FindingSink>(em: &mut PullbackEmit<S>, rows: &Bounded<usize, ROWS_CAP>) {
+    for position in 0..rows.len() {
         let Some(&lo) = rows[position].as_ref() else {
             break;
         };
-        let mut hi_index = position + 1;
-        while hi_index < rows.len() {
+        for hi_index in position + 1..rows.len() {
             let Some(&hi) = rows[hi_index].as_ref() else {
                 break;
             };
-            out.emit((
-                (0, 4, 2, index as u64, lo as u64, hi as u64, 0, 0),
-                label,
-                CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Unique {
-                    index,
-                    rows: [lo, hi],
-                })),
-            ));
-            hi_index += 1;
+            em.unique_pair(lo, hi);
         }
-        position += 1;
     }
+}
+
+/// The cospan's two fibers over their source row spaces — the reads the
+/// covers verdict needs, split from its emission.
+fn cospan_fibers(
+    schema: &EngineSchema,
+    typed: &EngineTyped,
+    pullback: &CompiledPullback,
+) -> (Fibers, Fibers) {
+    let [f, g] = pullback.cospan;
+    let a_fiber = fiber(
+        typed,
+        f,
+        typed.row_counts[schema.arrows.src[f]].unwrap_or(0),
+    );
+    let b_fiber = fiber(
+        typed,
+        g,
+        typed.row_counts[schema.arrows.src[g]].unwrap_or(0),
+    );
+    (a_fiber, b_fiber)
 }
 
 /// Coverage: every cospan fiber pair with no apex row projecting onto it
 /// is one missing-cover finding, ascending targets and rows.
-fn emit_pullback_covers(
-    schema: &EngineSchema,
-    typed: &EngineTyped,
-    out: &mut impl FindingSink,
+fn emit_pullback_covers<S: FindingSink>(
+    em: &mut PullbackEmit<S>,
     projections: &ProjectionBuckets,
-    pullback: &CompiledPullback,
-    index: usize,
-    label: EpistemicLabel,
+    fibers: &(Fibers, Fibers),
 ) {
-    let [f, g] = pullback.cospan;
-    let a_fiber = fiber(typed, f, typed.row_counts[schema.arrow_src[f]].unwrap_or(0));
-    let b_fiber = fiber(typed, g, typed.row_counts[schema.arrow_src[g]].unwrap_or(0));
-    let mut a_slot = 0;
-    while a_slot < a_fiber.len() {
-        let Some((target, a_rows)) = a_fiber[a_slot].as_ref() else {
+    let (a_fiber, b_fiber) = fibers;
+    for entry in a_fiber.iter() {
+        let Some((target, a_rows)) = entry.as_ref() else {
             break;
         };
-        let Some(b_rows) = matching_fiber(&b_fiber, target) else {
-            a_slot += 1;
+        let Some(b_rows) = matching_fiber(b_fiber, target) else {
             continue;
         };
-        emit_fiber_pairs(out, projections, index, label, a_rows, b_rows);
-        a_slot += 1;
+        emit_fiber_pairs(em, projections, a_rows, b_rows);
     }
 }
 
 /// The walk's map lookup over the cospan fibers: the bucket holding one
 /// target, as a plain slot scan.
 fn matching_fiber<'a>(b_fiber: &'a Fibers, target: &u64) -> Option<&'a Bounded<usize, ROWS_CAP>> {
-    let mut b_slot = 0;
-    while b_slot < b_fiber.len() {
-        if let Some(Some((b_target, b_rows))) = b_fiber.get(b_slot) {
-            if b_target == target {
-                return Some(b_rows);
-            }
+    for (b_target, b_rows) in b_fiber.iter().flatten() {
+        if b_target == target {
+            return Some(b_rows);
         }
-        b_slot += 1;
     }
     None
 }
 
 /// One missing-cover finding per fiber pair with no projecting apex row,
 /// ascending targets and rows.
-fn emit_fiber_pairs(
-    out: &mut impl FindingSink,
+fn emit_fiber_pairs<S: FindingSink>(
+    em: &mut PullbackEmit<S>,
     projections: &ProjectionBuckets,
-    index: usize,
-    label: EpistemicLabel,
     a_rows: &Bounded<usize, ROWS_CAP>,
     b_rows: &Bounded<usize, ROWS_CAP>,
 ) {
-    let mut ai = 0;
-    while ai < a_rows.len() {
+    for ai in 0..a_rows.len() {
         let Some(&a) = a_rows[ai].as_ref() else {
             break;
         };
-        let mut bi = 0;
-        while bi < b_rows.len() {
+        for bi in 0..b_rows.len() {
             let Some(&b) = b_rows[bi].as_ref() else {
                 break;
             };
-            emit_cover_finding(out, projections, index, label, a, b);
-            bi += 1;
+            em.cover_missing(projections, a, b);
         }
-        ai += 1;
     }
 }
 
-/// One missing-cover finding when no apex row projects onto the cospan
-/// pair through both legs.
-fn emit_cover_finding(
-    out: &mut impl FindingSink,
-    projections: &ProjectionBuckets,
-    index: usize,
-    label: EpistemicLabel,
-    a: usize,
-    b: usize,
-) {
-    let pair = (a as u64, b as u64);
-    let mut covered = false;
-    let mut i = 0;
-    while i < projections.len() {
-        if let Some(Some((key, _))) = projections.get(i) {
-            if *key == pair {
-                covered = true;
-                break;
-            }
+/// Whether any projection bucket covers the cospan pair — the walk's
+/// membership test, as a plain slot scan.
+fn pair_covered(projections: &ProjectionBuckets, pair: (u64, u64)) -> bool {
+    for (key, _) in projections.iter().flatten() {
+        if *key == pair {
+            return true;
         }
-        i += 1;
     }
-    if !covered {
-        out.emit((
-            (0, 4, 1, index as u64, a as u64, b as u64, 0, 0),
-            label,
-            CompactFinding::Violation(CompactViolation::Pullback(CompactPullback::Covers {
-                index,
-                pair: [a, b],
-            })),
-        ));
-    }
+    false
 }
 
 /// One arrow's source rows grouped by resolved target value, ascending
@@ -290,10 +284,8 @@ fn emit_cover_finding(
 /// heap bucket per target.
 fn fiber(typed: &EngineTyped, arrow: Nid, n_src: usize) -> Fibers {
     let mut fibers = Fibers::new();
-    let mut row = 0;
-    while row < n_src {
+    for row in 0..n_src {
         let Some(target) = typed.tables[arrow].get(row).copied().flatten() else {
-            row += 1;
             continue;
         };
         let target = target.0 as u64;
@@ -302,7 +294,6 @@ fn fiber(typed: &EngineTyped, arrow: Nid, n_src: usize) -> Fibers {
             bucket.push(row);
             fibers.push((target, bucket));
         }
-        row += 1;
     }
     fibers.sort_pushed_by(|a, b| a.0.cmp(&b.0));
     fibers
@@ -311,15 +302,13 @@ fn fiber(typed: &EngineTyped, arrow: Nid, n_src: usize) -> Fibers {
 /// Add one row to its target's fiber bucket; false when no bucket holds
 /// the target yet — the walk's bucketed-map insert, plain slot scan.
 fn add_to_fiber(fibers: &mut Fibers, target: u64, row: usize) -> bool {
-    let mut i = 0;
-    while i < fibers.len() {
+    for i in 0..fibers.len() {
         if let Some(Some((t, rows))) = fibers.get_mut(i) {
             if *t == target {
                 rows.push(row);
                 return true;
             }
         }
-        i += 1;
     }
     false
 }

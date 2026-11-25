@@ -18,7 +18,7 @@
 
 mod common;
 
-use common::{code, parse_json, projection_doc, run, scratch, stderr, stdout};
+use common::{code, parse_json, run, scratch, stderr, stdout};
 use std::process::Output;
 
 /// The labeled error of a run that must refuse: exit 1, code, message.
@@ -39,7 +39,7 @@ fn refusal(out: &Output, expected_code: &str) -> String {
 /// the arrow — never a silently dropped row.
 #[test]
 fn projection_null_cell_is_labeled_error_with_row_and_arrow() {
-    let doc = projection_doc(
+    let doc = projection_doc!(
         &[("cap_a", "src_a", "ed_1"), ("cap_b", "src_b", "ed_2")],
         &[("cap_b", "capture_source")],
         &[],
@@ -61,7 +61,7 @@ fn projection_null_cell_is_labeled_error_with_row_and_arrow() {
         "the refusal names the row and the arrow: {message}"
     );
 
-    let doc = projection_doc(
+    let doc = projection_doc!(
         &[("cap_a", "src_a", "ed_1"), ("cap_b", "src_b", "ed_2")],
         &[("cap_b", "capture_batch")],
         &[("cap_a", "b1"), ("cap_b", "b2")],
@@ -90,7 +90,7 @@ fn projection_null_cell_is_labeled_error_with_row_and_arrow() {
 /// vacuous-clean defect.
 #[test]
 fn projection_empty_object_is_labeled_error_not_clean_run() {
-    let doc = projection_doc(&[], &[], &[], false);
+    let doc = projection_doc!(&[], &[], &[], false);
     let path = scratch("empty", &doc);
     let out = run(&[
         "rules",
@@ -112,7 +112,7 @@ fn projection_empty_object_is_labeled_error_not_clean_run() {
 /// implicit preference for the document's `rule_presentation`.
 #[test]
 fn projection_refuses_document_with_rule_presentation() {
-    let doc = projection_doc(&[("cap_a", "src_a", "ed_1")], &[], &[], true);
+    let doc = projection_doc!(&[("cap_a", "src_a", "ed_1")], &[], &[], true);
     let path = scratch("two-sources", &doc);
     let out = run(&[
         "rules",
@@ -136,7 +136,7 @@ fn projection_refuses_document_with_rule_presentation() {
 /// `--action`.
 #[test]
 fn projection_refuses_arrow_not_sourced_at_object() {
-    let doc = projection_doc(&[("cap_a", "src_a", "ed_1")], &[], &[], false);
+    let doc = projection_doc!(&[("cap_a", "src_a", "ed_1")], &[], &[], false);
     let path = scratch("bad-arrows", &doc);
 
     let cases: &[(&[&str], &str)] = &[

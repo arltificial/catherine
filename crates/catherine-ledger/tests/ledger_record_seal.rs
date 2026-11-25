@@ -16,6 +16,8 @@
 //! must not also accept a hand-written address that disagrees with those
 //! bytes: sealing is computation, never a repair of a stated claim.
 
+mod support;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -24,53 +26,31 @@ use catherine_ledger::entry::{entry_id, seal_parsed, DecisionRecord, EntryConten
 use catherine_ledger::validate::{validate_dir, Violation};
 use serde_json::{json, Value};
 
-/// A throwaway ledger directory plus the out-of-tree candidate entry file
-/// the binary consumes (unique suffix, cleaned up).
-struct TempLedger {
-    dir: PathBuf,
-    candidate: PathBuf,
+use support::{present, TempLedger, TestError};
+
+/// The staged candidate file: written OUTSIDE the ledger directory —
+/// the binary moves it into the directory itself.
+fn candidate(ledger: &TempLedger) -> PathBuf {
+    ledger.root.join("candidate.json")
 }
 
-impl TempLedger {
-    fn new(tag: &str) -> Self {
-        let base = format!("catherine-ledger-seal-{tag}-{}", std::process::id());
-        let dir = std::env::temp_dir().join(&base);
-        let candidate = std::env::temp_dir().join(format!("{base}-candidate.json"));
-        let _ = fs::remove_dir_all(&dir);
-        let _ = fs::remove_file(&candidate);
-        fs::create_dir_all(&dir).expect("temp ledger dir created");
-        Self { dir, candidate }
-    }
-
-    /// Write the authored entry JSON OUTSIDE the ledger directory — the
-    /// binary stages it into the directory itself.
-    fn stage(&self, value: &Value) {
-        fs::write(
-            &self.candidate,
-            serde_json::to_string_pretty(value).expect("candidate json"),
-        )
-        .expect("candidate entry written");
-    }
-
-    /// The ledger directory's `.json` files, sorted.
-    fn json_files(&self) -> Vec<PathBuf> {
-        let mut files: Vec<PathBuf> = fs::read_dir(&self.dir)
-            .expect("ledger dir readable")
-            .map(|entry| entry.expect("dir entry readable").path())
-            .filter(|path| {
-                path.extension().and_then(|extension| extension.to_str()) == Some("json")
-            })
-            .collect();
-        files.sort();
-        files
-    }
+/// Write the authored entry JSON OUTSIDE the ledger directory — the
+/// binary stages it into the directory itself.
+fn stage(ledger: &TempLedger, value: &Value) -> Result<(), TestError> {
+    fs::write(candidate(ledger), serde_json::to_string_pretty(value)?)?;
+    Ok(())
 }
 
-impl Drop for TempLedger {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.dir);
-        let _ = fs::remove_file(&self.candidate);
-    }
+/// The ledger directory's `.json` files, sorted.
+fn json_files(dir: &Path) -> Result<Vec<PathBuf>, TestError> {
+    let mut files: Vec<PathBuf> = fs::read_dir(dir)?
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().and_then(|extension| extension.to_str()) == Some("json"))
+        .collect();
+    files.sort();
+    Ok(files)
 }
 
 /// The stop-gate decision record the gate is asked to write down.
@@ -114,25 +94,23 @@ fn decision_content() -> EntryContent {
 
 /// The authored entry JSON: the content alone, with NO `id` field — what
 /// a human writes.
-fn decision_json() -> Value {
-    serde_json::to_value(decision_content()).expect("content json")
+fn decision_json() -> Result<Value, TestError> {
+    Ok(serde_json::to_value(decision_content())?)
 }
 
 /// Run the binary over the ledger directory and the staged candidate.
-fn record(ledger: &TempLedger) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_ledger-record"))
+fn record(ledger: &TempLedger) -> Result<Output, TestError> {
+    Ok(Command::new(env!("CARGO_BIN_EXE_ledger-record"))
         .arg(&ledger.dir)
-        .arg(&ledger.candidate)
-        .output()
-        .expect("ledger-record runs")
+        .arg(candidate(ledger))
+        .output()?)
 }
 
 /// Run the validator binary over the ledger directory.
-fn check(dir: &Path) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_ledger-check"))
+fn check(dir: &Path) -> Result<Output, TestError> {
+    Ok(Command::new(env!("CARGO_BIN_EXE_ledger-check"))
         .arg(dir)
-        .output()
-        .expect("ledger-check runs")
+        .output()?)
 }
 
 /// The library helper: a parsed entry JSON without an id seals under the
@@ -140,15 +118,16 @@ fn check(dir: &Path) -> Output {
 /// validator reads back — the flattened content plus `id`, not a nested
 /// `content` object.
 #[test]
-fn seal_parsed_seals_an_unsealed_value_into_the_entry_shape() {
-    let entry = seal_parsed(decision_json()).expect("an unsealed content seals");
-    assert_eq!(entry.id, entry_id(&decision_content()).unwrap());
+fn seal_parsed_seals_an_unsealed_value_into_the_entry_shape(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let entry = seal_parsed(decision_json()?)?;
+    assert_eq!(entry.id, entry_id(&decision_content())?);
     assert!(
         entry.id.starts_with("sha256:"),
         "the id is content-addressed"
     );
 
-    let value: Value = serde_json::to_value(&entry).expect("the sealed entry serializes");
+    let value: Value = serde_json::to_value(&entry)?;
     assert!(
         value.get("content").is_none(),
         "the entry shape is the flattened content, never nested"
@@ -158,28 +137,27 @@ fn seal_parsed_seals_an_unsealed_value_into_the_entry_shape() {
         value.get("id").and_then(Value::as_str),
         Some(entry.id.as_str())
     );
+    Ok(())
 }
 
 /// An entry file without an `id` is recorded under its computed content
 /// address, the directory validates, and `ledger-check` exits 0.
 #[test]
-fn ledger_record_seals_an_entry_file_without_an_id() {
-    let ledger = TempLedger::new("missing-id");
-    ledger.stage(&decision_json());
+fn ledger_record_seals_an_entry_file_without_an_id() -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("missing-id")?;
+    stage(&ledger, &decision_json()?)?;
 
-    let output = record(&ledger);
+    let output = record(&ledger)?;
     assert!(
         output.status.success(),
         "an unsealed entry is recorded; stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let sealed = entry_id(&decision_content()).unwrap();
-    let files = ledger.json_files();
+    let sealed = entry_id(&decision_content())?;
+    let files = json_files(&ledger.dir)?;
     assert_eq!(files.len(), 1, "exactly one entry was written");
-    let recorded: Value =
-        serde_json::from_str(&fs::read_to_string(&files[0]).expect("entry file readable"))
-            .expect("entry file is json");
+    let recorded: Value = serde_json::from_str(&fs::read_to_string(&files[0])?)?;
     assert_eq!(
         recorded.get("id").and_then(Value::as_str),
         Some(sealed.as_str()),
@@ -190,60 +168,63 @@ fn ledger_record_seals_an_entry_file_without_an_id() {
         "the file is the flattened entry shape, not a nested content object"
     );
 
-    let valid = validate_dir(&ledger.dir).expect("the sealed decision entry validates");
+    let valid = validate_dir(&ledger.dir)
+        .map_err(|v| format!("the sealed decision entry validates: {v:?}"))?;
     assert_eq!(valid.entries.len(), 1);
     assert_eq!(valid.entries[0].id, sealed);
     assert_eq!(valid.entries[0].content.kind, "decision");
 
-    let checked = check(&ledger.dir);
+    let checked = check(&ledger.dir)?;
     assert!(
         checked.status.success(),
         "ledger-check exits 0; stderr: {}",
         String::from_utf8_lossy(&checked.stderr)
     );
+    Ok(())
 }
 
 /// The authoring placeholders say "not sealed yet": an empty id and the
 /// literal `auto` are both sealed, exactly like a missing id.
 #[test]
-fn ledger_record_seals_the_empty_and_auto_id_placeholders() {
-    let sealed = entry_id(&decision_content()).unwrap();
+fn ledger_record_seals_the_empty_and_auto_id_placeholders() -> Result<(), Box<dyn std::error::Error>>
+{
+    let sealed = entry_id(&decision_content())?;
     for (tag, placeholder) in [("empty-id", ""), ("auto-id", "auto")] {
-        let ledger = TempLedger::new(tag);
-        let mut value = decision_json();
+        let ledger = TempLedger::new(tag)?;
+        let mut value = decision_json()?;
         value["id"] = json!(placeholder);
-        ledger.stage(&value);
+        stage(&ledger, &value)?;
 
-        let output = record(&ledger);
+        let output = record(&ledger)?;
         assert!(
             output.status.success(),
             "the `{placeholder}` placeholder is sealed; stderr: {}",
             String::from_utf8_lossy(&output.stderr)
         );
-        let files = ledger.json_files();
+        let files = json_files(&ledger.dir)?;
         assert_eq!(files.len(), 1, "one entry written for `{placeholder}`");
-        let recorded: Value =
-            serde_json::from_str(&fs::read_to_string(&files[0]).expect("entry file readable"))
-                .expect("entry file is json");
+        let recorded: Value = serde_json::from_str(&fs::read_to_string(&files[0])?)?;
         assert_eq!(
             recorded.get("id").and_then(Value::as_str),
             Some(sealed.as_str()),
             "the placeholder is replaced by the content address"
         );
-        validate_dir(&ledger.dir).expect("the sealed placeholder entry validates");
+        validate_dir(&ledger.dir)
+            .map_err(|v| format!("the sealed placeholder entry validates: {v:?}"))?;
     }
+    Ok(())
 }
 
 /// A declared id is a claim, not a placeholder: a wrong one is refused as
 /// `IdMismatch` and nothing is appended.
 #[test]
-fn ledger_record_refuses_a_wrong_declared_id() {
-    let ledger = TempLedger::new("wrong-id");
-    let mut value = decision_json();
+fn ledger_record_refuses_a_wrong_declared_id() -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("wrong-id")?;
+    let mut value = decision_json()?;
     value["id"] = json!(format!("sha256:{}", "0".repeat(64)));
-    ledger.stage(&value);
+    stage(&ledger, &value)?;
 
-    let output = record(&ledger);
+    let output = record(&ledger)?;
     assert_eq!(output.status.code(), Some(1), "a wrong id is refused");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -251,59 +232,58 @@ fn ledger_record_refuses_a_wrong_declared_id() {
         "the rejection is named: {stderr}"
     );
     assert!(
-        ledger.json_files().is_empty(),
+        json_files(&ledger.dir)?.is_empty(),
         "the refused entry was not appended"
     );
+    Ok(())
 }
 
 /// Tampering with the decision content after sealing changes the computed
 /// id, so the sealed file no longer validates — the append-only integrity
 /// contract holds for decision entries too.
 #[test]
-fn tampered_decision_content_changes_the_id_and_is_refused() {
-    let ledger = TempLedger::new("tampered");
-    ledger.stage(&decision_json());
+fn tampered_decision_content_changes_the_id_and_is_refused(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let ledger = TempLedger::new("tampered")?;
+    stage(&ledger, &decision_json()?)?;
     assert!(
-        record(&ledger).status.success(),
+        record(&ledger)?.status.success(),
         "the unsealed entry is recorded first"
     );
 
-    let files = ledger.json_files();
+    let files = json_files(&ledger.dir)?;
     assert_eq!(files.len(), 1);
-    let mut recorded: Value =
-        serde_json::from_str(&fs::read_to_string(&files[0]).expect("entry file readable"))
-            .expect("entry file is json");
-    let sealed_id = recorded
-        .get("id")
-        .and_then(Value::as_str)
-        .expect("the recorded entry carries its id")
-        .to_string();
+    let mut recorded: Value = serde_json::from_str(&fs::read_to_string(&files[0])?)?;
+    let sealed_id = present(
+        recorded.get("id").and_then(Value::as_str),
+        "the recorded entry's id",
+    )?
+    .to_string();
 
     recorded["decision"]["rationale"] = json!("a rationale written after the seal");
-    let tampered_content: EntryContent =
-        serde_json::from_value(recorded.clone()).expect("the tampered content still parses");
+    let tampered_content: EntryContent = serde_json::from_value(recorded.clone())?;
     assert_ne!(
-        entry_id(&tampered_content).unwrap(),
+        entry_id(&tampered_content)?,
         sealed_id,
         "the tampered content hashes to a different address"
     );
-    fs::write(
-        &files[0],
-        serde_json::to_string(&recorded).expect("tampered json"),
-    )
-    .expect("tampered entry written");
+    fs::write(&files[0], serde_json::to_string(&recorded)?)?;
 
-    let violations = validate_dir(&ledger.dir).expect_err("the tampered ledger is refused");
+    let violations = match validate_dir(&ledger.dir) {
+        Ok(_) => return Err("the tampered ledger is refused".into()),
+        Err(violations) => violations,
+    };
     assert!(
         violations
             .iter()
             .any(|violation| matches!(violation, Violation::IdMismatch { .. })),
         "the refusal is the id mismatch: {violations:?}"
     );
-    let checked = check(&ledger.dir);
+    let checked = check(&ledger.dir)?;
     assert_eq!(checked.status.code(), Some(1));
     assert!(
         String::from_utf8_lossy(&checked.stderr).contains("IdMismatch"),
         "ledger-check names the rejection"
     );
+    Ok(())
 }

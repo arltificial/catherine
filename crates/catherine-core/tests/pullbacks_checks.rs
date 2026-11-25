@@ -24,6 +24,11 @@ use catherine_core::instance::TypedInstance;
 use catherine_core::model::{Ident, Model, RowId};
 use catherine_core::parse::parse;
 
+#[path = "pullbacks_checks/helpers.rs"]
+mod helpers;
+
+use helpers::{assert_fields, witness_keys, Insist};
+
 /// A 1.6 document over `P --p1--> A --f--> C` and `P --p2--> B --g--> C`;
 /// the declaration, rows, and tables are spliced in per scenario.
 const DOC: &str = r#"{
@@ -48,33 +53,38 @@ const OMITTED: &str = r#"{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "g"
 const PROPOSED: &str =
     r#"{"apex": "P", "legs": ["p1", "p2"], "cospan": ["f", "g"], "status": "proposed"}"#;
 
-/// Parse → build → check, the kernel's one pipeline.
-fn checked(pullback: &str, rows: &str, tables: &str) -> (Model, Vec<Finding>) {
+/// Parse → build → check, the kernel's one pipeline. The pullback
+/// declaration and the spliced instance — rows and tables drawn as one
+/// group — come in as the scenario's two arguments.
+fn checked(pullback: &str, instance: (&str, &str)) -> (Model, Vec<Finding>) {
+    let (rows, tables) = instance;
     let text = DOC
         .replace("__PULLBACK__", pullback)
         .replace("__ROWS__", rows)
         .replace("__TABLES__", tables);
-    let model = parse(&text).expect("the fixture parses");
+    let model = parse(&text).insist("the fixture parses");
     let built = TypedInstance::build(&model.schema, &model.instance);
     let findings = check(&model.schema, &built);
     (model, findings)
 }
 
 /// The dense id of an object's `index`-th parsed row — never a guessed
-/// name → id map.
-fn row(model: &Model, object: &str, index: usize) -> RowId {
+/// name → id map. The lookup is drawn as one `(object, index)` group.
+fn row(model: &Model, at: (&str, usize)) -> RowId {
+    let (object, index) = at;
     model.instance.rows[&Ident(object.to_string())][index]
 }
 
-fn value(model: &Model, arrow: &str, src: RowId) -> RowId {
-    model.instance.values[&Ident(arrow.to_string())][src.0].expect("cell is resolved")
+fn value(model: &Model, cell: (&str, RowId)) -> RowId {
+    let (arrow, src) = cell;
+    model.instance.values[&Ident(arrow.to_string())][src.0].insist("cell is resolved")
 }
 
 /// `(f ∘ p1, g ∘ p2)` on an apex row, derived from the parsed tables.
 fn composed(model: &Model, apex: RowId) -> (RowId, RowId) {
-    let a = value(model, "p1", apex);
-    let b = value(model, "p2", apex);
-    (value(model, "f", a), value(model, "g", b))
+    let a = value(model, ("p1", apex));
+    let b = value(model, ("p2", apex));
+    (value(model, ("f", a)), value(model, ("g", b)))
 }
 
 fn violation(label: EpistemicLabel, witness: PullbackWitness) -> Finding {
@@ -84,7 +94,12 @@ fn violation(label: EpistemicLabel, witness: PullbackWitness) -> Finding {
     }
 }
 
-fn commutes(label: EpistemicLabel, row: RowId, lhs: RowId, rhs: RowId) -> Finding {
+fn commutes(label: EpistemicLabel, square: (RowId, RowId, RowId)) -> Finding {
+    let (row, lhs, rhs) = square;
+    assert_ne!(
+        lhs, rhs,
+        "a commutes witness names two genuinely different composed values"
+    );
     let witness = PullbackWitness::Commutes {
         pullback: 0,
         row,
@@ -95,6 +110,11 @@ fn commutes(label: EpistemicLabel, row: RowId, lhs: RowId, rhs: RowId) -> Findin
 }
 
 fn covers(pair: [RowId; 2]) -> Finding {
+    assert_eq!(
+        pair.len(),
+        2,
+        "a covers witness names one (A-row, B-row) fiber pair"
+    );
     violation(
         EpistemicLabel::Executed,
         PullbackWitness::Covers { pullback: 0, pair },
@@ -102,6 +122,15 @@ fn covers(pair: [RowId; 2]) -> Finding {
 }
 
 fn unique(rows: [RowId; 2]) -> Finding {
+    assert_eq!(
+        rows.len(),
+        2,
+        "a uniqueness witness names the duplicated apex-row pair"
+    );
+    assert_ne!(
+        rows[0], rows[1],
+        "the duplicated projections come from two distinct apex rows"
+    );
     violation(
         EpistemicLabel::Executed,
         PullbackWitness::Unique { pullback: 0, rows },
@@ -131,13 +160,13 @@ fn non_commuting_apex_row_carries_both_composed_values() {
       "f": {"a1": "c1"},
       "g": {"b1": "c2"}
     }"#;
-    let (model, findings) = checked(ACCEPTED, rows, tables);
-    let apex = row(&model, "P", 0);
+    let (model, findings) = checked(ACCEPTED, (rows, tables));
+    let apex = row(&model, ("P", 0));
     let (lhs, rhs) = composed(&model, apex);
     assert_ne!(lhs, rhs, "the fixture is genuinely non-commuting");
     assert_eq!(
         findings,
-        vec![commutes(EpistemicLabel::Executed, apex, lhs, rhs)],
+        vec![commutes(EpistemicLabel::Executed, (apex, lhs, rhs))],
         "exactly one violation, naming the apex row and both composed values"
     );
 }
@@ -154,9 +183,9 @@ fn missing_fiber_pair_is_a_coverage_violation() {
       "f": {"a1": "c1", "a2": "c1"},
       "g": {"b1": "c1", "b2": "c1"}
     }"#;
-    let (model, findings) = checked(ACCEPTED, rows, tables);
-    let (a0, a1) = (row(&model, "A", 0), row(&model, "A", 1));
-    let (b0, b1) = (row(&model, "B", 0), row(&model, "B", 1));
+    let (model, findings) = checked(ACCEPTED, (rows, tables));
+    let (a0, a1) = (row(&model, ("A", 0)), row(&model, ("A", 1)));
+    let (b0, b1) = (row(&model, ("B", 0)), row(&model, ("B", 1)));
     assert_eq!(
         findings,
         vec![covers([a0, b1]), covers([a1, b0]), covers([a1, b1])],
@@ -176,8 +205,8 @@ fn duplicated_projection_is_a_uniqueness_violation() {
       "f": {"a1": "c1"},
       "g": {"b1": "c1"}
     }"#;
-    let (model, findings) = checked(ACCEPTED, rows, tables);
-    let (p0, p1) = (row(&model, "P", 0), row(&model, "P", 1));
+    let (model, findings) = checked(ACCEPTED, (rows, tables));
+    let (p0, p1) = (row(&model, ("P", 0)), row(&model, ("P", 1)));
     assert_eq!(
         findings,
         vec![unique([p0, p1])],
@@ -196,7 +225,7 @@ fn dangling_leg_square() -> (Model, Vec<Finding>) {
       "f": {"a1": "c1"},
       "g": {"b1": "c1", "b2": "c1"}
     }"#;
-    checked(ACCEPTED, rows, tables)
+    checked(ACCEPTED, (rows, tables))
 }
 
 /// The dangling-cospan square: `a2`'s `f` cell is unresolved, so `a2` is
@@ -210,7 +239,7 @@ fn dangling_cospan_square() -> (Model, Vec<Finding>) {
       "f": {"a1": "c1"},
       "g": {"b1": "c1", "b2": "c1"}
     }"#;
-    checked(ACCEPTED, rows, tables)
+    checked(ACCEPTED, (rows, tables))
 }
 
 /// Scenario "Dangling cells keep verdicts undecidable": a dangling leg
@@ -221,7 +250,7 @@ fn dangling_cells_keep_verdicts_undecidable() {
     let (model, findings) = dangling_leg_square();
     assert_eq!(
         findings,
-        vec![dangling("p1", row(&model, "P", 1))],
+        vec![dangling("p1", row(&model, ("P", 1)))],
         "the unresolved leg is reported as dangling, never as a verdict"
     );
     assert!(
@@ -232,8 +261,8 @@ fn dangling_cells_keep_verdicts_undecidable() {
     );
 
     let (model, findings) = dangling_cospan_square();
-    let (a0, a1) = (row(&model, "A", 0), row(&model, "A", 1));
-    let b1 = row(&model, "B", 1);
+    let (a0, a1) = (row(&model, ("A", 0)), row(&model, ("A", 1)));
+    let b1 = row(&model, ("B", 1));
     assert_eq!(
         findings,
         vec![covers([a0, b1]), dangling("f", a1)],
@@ -266,7 +295,7 @@ fn evaluated_pullback_silence_is_real_success() {
       "f": {"a1": "c1", "a2": "c2"},
       "g": {"b1": "c1", "b2": "c2"}
     }"#;
-    let (_, findings) = checked(ACCEPTED, rows, tables);
+    let (_, findings) = checked(ACCEPTED, (rows, tables));
     assert!(
         findings.is_empty(),
         "a clean pullback square emits no finding"
@@ -281,7 +310,7 @@ fn evaluated_pullback_silence_is_real_success() {
       "f": {"a1": "c1"},
       "g": {"b1": "c2"}
     }"#;
-    let (_, findings) = checked(ACCEPTED, rows, tables);
+    let (_, findings) = checked(ACCEPTED, (rows, tables));
     assert!(
         findings.is_empty(),
         "a zero-row apex over an empty fiber is clean"
@@ -294,8 +323,8 @@ fn evaluated_pullback_silence_is_real_success() {
 fn zero_apex_over_nonempty_fiber_covers_every_pair() {
     let rows = r#"{"P": [], "A": ["a1"], "B": ["b1"], "C": ["c1"]}"#;
     let tables = r#"{"p1": {}, "p2": {}, "f": {"a1": "c1"}, "g": {"b1": "c1"}}"#;
-    let (model, findings) = checked(ACCEPTED, rows, tables);
-    let pair = [row(&model, "A", 0), row(&model, "B", 0)];
+    let (model, findings) = checked(ACCEPTED, (rows, tables));
+    let pair = [row(&model, ("A", 0)), row(&model, ("B", 0))];
     assert_eq!(findings, vec![covers(pair)], "the whole fiber is uncovered");
 }
 
@@ -311,18 +340,18 @@ fn pullback_status_defaults_to_accepted_and_proposed_fails_as_hypothesized() {
       "f": {"a1": "c1"},
       "g": {"b1": "c2"}
     }"#;
-    let (model, omitted) = checked(OMITTED, rows, tables);
-    let apex = row(&model, "P", 0);
+    let (model, omitted) = checked(OMITTED, (rows, tables));
+    let apex = row(&model, ("P", 0));
     let (lhs, rhs) = composed(&model, apex);
     assert_eq!(
         omitted,
-        vec![commutes(EpistemicLabel::Executed, apex, lhs, rhs)],
+        vec![commutes(EpistemicLabel::Executed, (apex, lhs, rhs))],
         "an omitted status defaults to accepted (executed)"
     );
-    let (_, proposed) = checked(PROPOSED, rows, tables);
+    let (_, proposed) = checked(PROPOSED, (rows, tables));
     assert_eq!(
         proposed,
-        vec![commutes(EpistemicLabel::Hypothesized, apex, lhs, rhs)],
+        vec![commutes(EpistemicLabel::Hypothesized, (apex, lhs, rhs))],
         "a proposed failure is a question with the same witness"
     );
     assert_eq!(
@@ -335,63 +364,30 @@ fn pullback_status_defaults_to_accepted_and_proposed_fails_as_hypothesized() {
     );
 }
 
-fn witness_keys(finding: &Finding) -> (Vec<String>, serde_json::Value) {
-    let json = serde_json::to_value(finding).expect("finding serializes");
-    let witness = json["witness"].clone();
-    let mut keys: Vec<String> = witness
-        .as_object()
-        .expect("the witness is an object")
-        .keys()
-        .cloned()
-        .collect();
-    keys.sort_unstable();
-    (keys, witness)
-}
-
-fn round_trips(finding: &Finding) {
-    let text = serde_json::to_string(finding).expect("finding serializes");
-    let back: Finding = serde_json::from_str(&text).expect("finding deserializes");
-    assert_eq!(&back, finding, "serde round-trip is lossless");
-}
-
-/// Assert a witness's exact field set and numeric fields, then that it
-/// round-trips — structural, never output-text assertions.
-fn assert_fields(finding: &Finding, expected_keys: &[&str], values: &[(&str, u64)]) {
-    let (keys, witness) = witness_keys(finding);
-    let mut expected: Vec<String> = expected_keys.iter().map(|key| key.to_string()).collect();
-    expected.sort_unstable();
-    assert_eq!(
-        keys, expected,
-        "the witness field set is the shape's contract"
-    );
-    for (field, value) in values {
-        assert_eq!(witness[*field].as_u64(), Some(*value), "field `{field}`");
-    }
-    round_trips(finding);
-}
-
 /// Scenario "Pullback violation carries the square and the offender": the
 /// three witness shapes serialize to disjoint structural field sets —
 /// `pullback`/`row`/`lhs`/`rhs`, `pullback`/`pair`, `pullback`/`rows`.
 #[test]
 fn pullback_violation_carries_the_square_and_the_offender() {
-    let commutes = commutes(EpistemicLabel::Executed, RowId(5), RowId(6), RowId(7));
+    let commutes = commutes(EpistemicLabel::Executed, (RowId(5), RowId(6), RowId(7)));
     assert_fields(
         &commutes,
-        &["pullback", "row", "lhs", "rhs"],
-        &[("pullback", 0), ("row", 5), ("lhs", 6), ("rhs", 7)],
+        (
+            &["pullback", "row", "lhs", "rhs"],
+            &[("pullback", 0), ("row", 5), ("lhs", 6), ("rhs", 7)],
+        ),
     );
     let (_, witness) = witness_keys(&commutes);
     assert!(witness.get("pair").is_none() && witness.get("rows").is_none());
 
     let covers = covers([RowId(1), RowId(2)]);
-    assert_fields(&covers, &["pullback", "pair"], &[("pullback", 0)]);
+    assert_fields(&covers, (&["pullback", "pair"], &[("pullback", 0)]));
     let (_, witness) = witness_keys(&covers);
     assert_eq!(witness["pair"][0].as_u64(), Some(1));
     assert_eq!(witness["pair"][1].as_u64(), Some(2));
 
     let unique = unique([RowId(3), RowId(4)]);
-    assert_fields(&unique, &["pullback", "rows"], &[("pullback", 0)]);
+    assert_fields(&unique, (&["pullback", "rows"], &[("pullback", 0)]));
     let (_, witness) = witness_keys(&unique);
     assert_eq!(witness["rows"][0].as_u64(), Some(3));
     assert_eq!(witness["rows"][1].as_u64(), Some(4));

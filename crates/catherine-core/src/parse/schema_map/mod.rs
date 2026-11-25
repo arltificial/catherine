@@ -14,13 +14,12 @@
 //! labeled `partial_schema_map` build error naming the offending
 //! element.
 
-use super::coproducts::check_coproducts;
-use super::keys::check_keys;
-use super::pullbacks::check_pullbacks;
-use super::schema::{check_arrows, check_equations, check_objects, RawSchema};
+use super::equations::check_equations;
+use super::schema::{check_arrows, check_objects, RawSchema};
 use super::spans::Spans;
+use super::{check_structure, Decl};
 use crate::error::ErrorCode;
-use crate::model::{Ident, Path, Schema, SchemaMap};
+use crate::model::{Coproduct, Ident, Key, Path, Pullback, Schema, SchemaMap};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -43,9 +42,7 @@ fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::err
     let objects = check_objects(raw, &spans)?;
     let arrows = check_arrows(raw, &objects, &spans)?;
     let equations = check_equations(&raw.equations, &arrows, &spans)?;
-    let keys = check_keys(raw, &objects, &arrows, &spans)?;
-    let coproducts = check_coproducts(raw, &objects, &arrows, &spans)?;
-    let pullbacks = check_pullbacks(raw, &objects, &arrows, &spans)?;
+    let (keys, coproducts, pullbacks) = structural_checks(raw, &objects, &arrows, &spans)?;
     Ok(Schema {
         objects,
         arrows,
@@ -61,6 +58,28 @@ fn validated_target(raw: &RawSchema, spans: &Spans) -> Result<Schema, crate::err
             .map(|(arrow, column)| (Ident(arrow.clone()), column.clone()))
             .collect(),
     })
+}
+
+/// The structural relations of a schema, checked in document order.
+type Structural = (Vec<Key>, Vec<Coproduct>, Vec<Pullback>);
+
+/// The keys, coproducts, and pullbacks over the target's checked objects
+/// and arrows — the same triple behind every structural pass, so the
+/// target reuses the document schema's `check_structure` verbatim.
+fn structural_checks(
+    raw: &RawSchema,
+    objects: &BTreeMap<Ident, ()>,
+    arrows: &BTreeMap<Ident, crate::model::Arrow>,
+    spans: &Spans,
+) -> Result<Structural, crate::error::ParseError> {
+    check_structure(
+        raw,
+        &Decl {
+            objects,
+            arrows,
+            spans,
+        },
+    )
 }
 
 /// The target schema's span view, re-rooted at `/schema`: the target runs
@@ -85,6 +104,37 @@ fn target_spans(spans: &Spans) -> Spans {
     target
 }
 
+/// The schema map's source-side inputs: the document schema's declared
+/// objects and arrows, and the span source the assignment checks report
+/// through. Built once by the caller and shared by every assignment pass.
+pub(super) struct SourceMap<'a> {
+    pub(super) objects: &'a BTreeMap<Ident, ()>,
+    pub(super) arrows: &'a BTreeMap<Ident, crate::model::Arrow>,
+    pub(super) spans: &'a Spans,
+}
+
+/// The Δ target under assignment: the validated target schema and the
+/// span source of its nodes.
+struct TargetSchema<'a> {
+    schema: &'a Schema,
+    spans: &'a Spans,
+}
+
+/// The map's raw target schema: a migration has nowhere to go without
+/// one, so its absence is the labeled `partial_schema_map` at the map.
+fn required_target<'a>(
+    raw: &'a RawSchemaMap,
+    source: &SourceMap,
+) -> Result<&'a RawSchema, crate::error::ParseError> {
+    raw.target_schema.as_ref().ok_or_else(|| {
+        source.spans.semantic(
+            "/schema_map",
+            ErrorCode::PartialSchemaMap,
+            "a schema map needs a `target_schema` — the destination of the migration".to_string(),
+        )
+    })
+}
+
 /// Build the typed schema map from the raw 1.1 section: totality over
 /// the declared source objects and arrows (a missing entry is the
 /// labeled `partial_schema_map` error naming the unmapped element),
@@ -94,157 +144,157 @@ fn target_spans(spans: &Spans) -> Spans {
 /// execution).
 pub(super) fn build_schema_map(
     raw: &RawSchemaMap,
-    objects: &BTreeMap<Ident, ()>,
-    arrows: &BTreeMap<Ident, crate::model::Arrow>,
-    spans: &Spans,
+    source: &SourceMap,
 ) -> Result<SchemaMap, crate::error::ParseError> {
-    let Some(target_raw) = &raw.target_schema else {
-        return Err(spans.semantic(
-            "/schema_map",
-            ErrorCode::PartialSchemaMap,
-            "a schema map needs a `target_schema` — the destination of the migration".to_string(),
-        ));
+    let target_raw = required_target(raw, source)?;
+    let target = validated_target(target_raw, source.spans)?;
+    let into_target = &TargetSchema {
+        schema: &target,
+        spans: source.spans,
     };
-    let target = validated_target(target_raw, spans)?;
-    let mapped_objects = mapped_objects(raw, objects, &target, spans)?;
-    let mapped_arrows = mapped_arrows(raw, arrows, &target, spans)?;
-    check_arrow_typing(&mapped_objects, arrows, &mapped_arrows, &target, spans)?;
+    let objects = mapped_objects(raw, source, into_target)?;
+    let arrows = mapped_arrows(raw, source, into_target)?;
+    check_arrow_typing(
+        &arrows,
+        &MapTyping {
+            mapped_objects: &objects,
+            arrows: source.arrows,
+            target: &target,
+            spans: source.spans,
+        },
+    )?;
     Ok(SchemaMap {
         target,
-        objects: mapped_objects,
-        arrows: mapped_arrows,
+        objects,
+        arrows,
     })
+}
+
+/// The typing context of one built schema map: the mapped objects, the
+/// source arrows, the validated target, and the span source.
+struct MapTyping<'a> {
+    mapped_objects: &'a BTreeMap<Ident, Option<Ident>>,
+    arrows: &'a BTreeMap<Ident, crate::model::Arrow>,
+    target: &'a Schema,
+    spans: &'a Spans,
+}
+
+/// The per-arrow check bundle: the arrow's pointer, name, source arrow,
+/// mapped path, the object images, and the span source.
+struct PathCheck<'a> {
+    pointer: &'a str,
+    name: &'a Ident,
+    source: &'a crate::model::Arrow,
+    path: &'a Path,
+    typed: &'a [&'a crate::model::Arrow],
+    mapped_objects: &'a BTreeMap<Ident, Option<Ident>>,
+    spans: &'a Spans,
 }
 
 /// The composable-path typing check (catherine-kpn.7): every mapped
 /// arrow's path must compose from the source object's image to the
-/// target object's image in the target schema. An endpoint or
-/// composition mismatch is the labeled `partial_schema_map` error
-/// naming the arrow and the objects involved.
+/// target object's image in the target schema.
 fn check_arrow_typing(
-    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
-    arrows: &BTreeMap<Ident, crate::model::Arrow>,
     mapped_arrows: &BTreeMap<Ident, Option<Path>>,
-    target: &Schema,
-    spans: &Spans,
+    typing: &MapTyping,
 ) -> Result<(), crate::error::ParseError> {
     for (name, path) in mapped_arrows {
         let Some(path) = path else {
             continue;
         };
+        typing.check_arrow(name, path)?;
+    }
+    Ok(())
+}
+
+impl MapTyping<'_> {
+    /// One mapped arrow: endpoint and composition typing over its path.
+    fn check_arrow(&self, name: &Ident, path: &Path) -> Result<(), crate::error::ParseError> {
         let typed: Vec<&crate::model::Arrow> = path
             .0
             .iter()
-            .map(|element| &target.arrows[element])
+            .map(|element| &self.target.arrows[element])
             .collect();
         let pointer = format!("/schema_map/arrows/{}", name.0);
-        check_path_source(
-            &pointer,
+        let check = PathCheck {
+            pointer: &pointer,
             name,
-            &arrows[name],
+            source: &self.arrows[name],
             path,
-            &typed,
-            mapped_objects,
-            spans,
-        )?;
-        check_path_composes(&pointer, name, path, &typed, spans)?;
-        check_path_target(
-            &pointer,
-            name,
-            &arrows[name],
-            path,
-            &typed,
-            mapped_objects,
-            spans,
-        )?;
+            typed: &typed,
+            mapped_objects: self.mapped_objects,
+            spans: self.spans,
+        };
+        check.check_source()?;
+        check.check_composes()?;
+        check.check_target()
     }
-    Ok(())
 }
 
-/// The path's source endpoint: the first path arrow must be sourced at
-/// the source object's image — skipped when the source object is
-/// dropped explicitly (`null`), whose image does not exist.
-fn check_path_source(
-    pointer: &str,
-    name: &Ident,
-    source: &crate::model::Arrow,
-    path: &Path,
-    typed: &[&crate::model::Arrow],
-    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
-    spans: &Spans,
-) -> Result<(), crate::error::ParseError> {
-    let Some(image) = image_of(mapped_objects, &source.src) else {
-        return Ok(());
-    };
-    let first = typed[0].src.0.as_str();
-    let path_head = path.0[0].0.as_str();
-    if first == image.0 {
-        return Ok(());
-    }
-    Err(spans.semantic(
-        pointer,
-        ErrorCode::PartialSchemaMap,
-        format!(
-            "arrow `{}` maps `{}` -> `{}` onto [`{}`], whose source endpoint `{first}` is not `{}`, the image of `{}` — the schema map is not functorial",
-            name.0, source.src.0, source.tgt.0, path_head, image.0, source.src.0
-        ),
-    ))
-}
-
-/// The path's target endpoint: the last path arrow must land at the
-/// target object's image — skipped when the target object is dropped
-/// explicitly (`null`).
-fn check_path_target(
-    pointer: &str,
-    name: &Ident,
-    source: &crate::model::Arrow,
-    path: &Path,
-    typed: &[&crate::model::Arrow],
-    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
-    spans: &Spans,
-) -> Result<(), crate::error::ParseError> {
-    let Some(image) = image_of(mapped_objects, &source.tgt) else {
-        return Ok(());
-    };
-    let last = typed[typed.len() - 1].tgt.0.as_str();
-    let path_tail = path.0[path.0.len() - 1].0.as_str();
-    if last == image.0 {
-        return Ok(());
-    }
-    Err(spans.semantic(
-        pointer,
-        ErrorCode::PartialSchemaMap,
-        format!(
-            "arrow `{}` maps `{}` -> `{}` onto [`{}`], whose target endpoint `{last}` is not `{}`, the image of `{}` — the schema map is not functorial",
-            name.0, source.src.0, source.tgt.0, path_tail, image.0, source.tgt.0
-        ),
-    ))
-}
-
-/// The path composes element-wise: each path arrow's target is the next
-/// one's source.
-fn check_path_composes(
-    pointer: &str,
-    name: &Ident,
-    path: &Path,
-    typed: &[&crate::model::Arrow],
-    spans: &Spans,
-) -> Result<(), crate::error::ParseError> {
-    for (index, window) in typed.windows(2).enumerate() {
-        let (here, next) = (&window[0].tgt.0, &window[1].src.0);
-        if here == next {
-            continue;
+impl PathCheck<'_> {
+    /// The path's source endpoint: the first path arrow must be sourced
+    /// at the source object's image — skipped when the source object is
+    /// dropped explicitly (`null`), whose image does not exist.
+    fn check_source(&self) -> Result<(), crate::error::ParseError> {
+        let Some(image) = image_of(self.mapped_objects, &self.source.src) else {
+            return Ok(());
+        };
+        let head = self.path.0[0].0.as_str();
+        let endpoint = self.typed[0].src.0.as_str();
+        if endpoint == image.0 {
+            return Ok(());
         }
-        return Err(spans.semantic(
-            pointer,
+        Err(self.spans.semantic(
+            self.pointer,
             ErrorCode::PartialSchemaMap,
             format!(
-                "arrow `{}` maps onto a path that does not compose: element `{}`'s target `{here}` is not element `{}`'s source `{next}`",
-                name.0, path.0[index].0, path.0[index + 1].0
+                "arrow `{}` maps `{}` -> `{}` onto [`{head}`], whose source endpoint `{endpoint}` is not `{}`, the image of `{}` — the schema map is not functorial",
+                self.name.0, self.source.src.0, self.source.tgt.0, image.0, self.source.src.0
             ),
-        ));
+        ))
     }
-    Ok(())
+
+    /// The path's target endpoint: the last path arrow must land at the
+    /// target object's image — skipped when the target object is dropped
+    /// explicitly (`null`).
+    fn check_target(&self) -> Result<(), crate::error::ParseError> {
+        let Some(image) = image_of(self.mapped_objects, &self.source.tgt) else {
+            return Ok(());
+        };
+        let tail = self.path.0[self.path.0.len() - 1].0.as_str();
+        let endpoint = self.typed[self.typed.len() - 1].tgt.0.as_str();
+        if endpoint == image.0 {
+            return Ok(());
+        }
+        Err(self.spans.semantic(
+            self.pointer,
+            ErrorCode::PartialSchemaMap,
+            format!(
+                "arrow `{}` maps `{}` -> `{}` onto [`{tail}`], whose target endpoint `{endpoint}` is not `{}`, the image of `{}` — the schema map is not functorial",
+                self.name.0, self.source.src.0, self.source.tgt.0, image.0, self.source.tgt.0
+            ),
+        ))
+    }
+
+    /// The path composes element-wise: each path arrow's target is the
+    /// next one's source.
+    fn check_composes(&self) -> Result<(), crate::error::ParseError> {
+        for (index, window) in self.typed.windows(2).enumerate() {
+            let (here, next) = (&window[0].tgt.0, &window[1].src.0);
+            if here == next {
+                continue;
+            }
+            return Err(self.spans.semantic(
+                self.pointer,
+                ErrorCode::PartialSchemaMap,
+                format!(
+                    "arrow `{}` maps onto a path that does not compose: element `{}`'s target `{here}` is not element `{}`'s source `{next}`",
+                    self.name.0, self.path.0[index].0, self.path.0[index + 1].0
+                ),
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// A source object's image in the target — `None` when the object is
@@ -257,41 +307,47 @@ fn image_of(mapped_objects: &BTreeMap<Ident, Option<Ident>>, object: &Ident) -> 
 /// entry — `null` drops it explicitly; a target must be declared.
 fn mapped_objects(
     raw: &RawSchemaMap,
-    objects: &BTreeMap<Ident, ()>,
-    target: &Schema,
-    spans: &Spans,
+    source: &SourceMap,
+    target: &TargetSchema,
 ) -> Result<BTreeMap<Ident, Option<Ident>>, crate::error::ParseError> {
     let mut mapped = BTreeMap::new();
-    for name in objects.keys() {
-        let Some(assignment) = raw.objects.get(&name.0) else {
-            return Err(spans.semantic(
-                &format!("/schema_map/objects/{}", name.0),
-                ErrorCode::PartialSchemaMap,
-                format!("schema map is partial: object `{}` has no assignment — map it, or map it to null to drop it explicitly", name.0),
-            ));
-        };
-        match assignment {
-            Some(target_name) => {
-                let target_ident = Ident(target_name.clone());
-                if !target.objects.contains_key(&target_ident) {
-                    return Err(spans.semantic(
-                        &format!("/schema_map/objects/{}", name.0),
-                        ErrorCode::PartialSchemaMap,
-                        format!(
-                            "object `{}` maps to `{target_name}`, which the target schema does not declare",
-                            name.0
-                        ),
-                    ));
-                }
-                mapped.insert(name.clone(), Some(target_ident));
-            }
-            None => {
-                mapped.insert(name.clone(), None);
-            }
-        };
+    for name in source.objects.keys() {
+        mapped.insert(name.clone(), object_image(raw, name, target)?);
     }
-    reject_foreign_objects(raw, objects, spans)?;
+    reject_foreign_objects(raw, source.objects, source.spans)?;
     Ok(mapped)
+}
+
+/// One source object's assignment: required, and `null` drops it
+/// explicitly; a target must be declared in the target schema.
+fn object_image(
+    raw: &RawSchemaMap,
+    name: &Ident,
+    target: &TargetSchema,
+) -> Result<Option<Ident>, crate::error::ParseError> {
+    let pointer = format!("/schema_map/objects/{}", name.0);
+    let Some(assignment) = raw.objects.get(&name.0) else {
+        return Err(target.spans.semantic(
+            &pointer,
+            ErrorCode::PartialSchemaMap,
+            format!("schema map is partial: object `{}` has no assignment — map it, or map it to null to drop it explicitly", name.0),
+        ));
+    };
+    let Some(target_name) = assignment else {
+        return Ok(None);
+    };
+    let target_ident = Ident(target_name.clone());
+    if !target.schema.objects.contains_key(&target_ident) {
+        return Err(target.spans.semantic(
+            &pointer,
+            ErrorCode::PartialSchemaMap,
+            format!(
+                "object `{}` maps to `{target_name}`, which the target schema does not declare",
+                name.0
+            ),
+        ));
+    }
+    Ok(Some(target_ident))
 }
 
 /// Refuse assignments for source objects the document does not declare

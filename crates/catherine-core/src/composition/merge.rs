@@ -18,15 +18,26 @@ use std::collections::BTreeMap;
 /// The schema union with the conflict-checked arrow insertions and the
 /// per-arrow declaring documents.
 pub(super) fn merge_schema(documents: &[Document]) -> Result<SchemaParts, CompositionError> {
-    let mut objects = BTreeMap::new();
-    let mut arrows = BTreeMap::new();
-    let mut arrow_sources: BTreeMap<Ident, Vec<String>> = BTreeMap::new();
-    for doc in documents {
-        objects.extend(doc.model.schema.objects.clone());
-        for (name, arrow) in &doc.model.schema.arrows {
-            insert_arrow(doc, name, arrow, &mut arrows, &mut arrow_sources)?;
-        }
-    }
+    let objects: BTreeMap<Ident, ()> = documents
+        .iter()
+        .flat_map(|doc| doc.model.schema.objects.clone())
+        .collect();
+    let (arrows, arrow_sources) = documents.iter().try_fold(
+        (
+            BTreeMap::<Ident, Arrow>::new(),
+            BTreeMap::<Ident, Vec<String>>::new(),
+        ),
+        |(mut arrows, mut sources), doc| {
+            for (name, arrow) in &doc.model.schema.arrows {
+                insert_arrow(
+                    &DeclaredArrow { doc, name, arrow },
+                    &mut arrows,
+                    &mut sources,
+                )?;
+            }
+            Ok((arrows, sources))
+        },
+    )?;
     Ok(SchemaParts {
         objects,
         arrows,
@@ -34,15 +45,22 @@ pub(super) fn merge_schema(documents: &[Document]) -> Result<SchemaParts, Compos
     })
 }
 
+/// One document's declared arrow: the declaring document, its name, and
+/// its endpoints.
+struct DeclaredArrow<'a> {
+    doc: &'a Document,
+    name: &'a Ident,
+    arrow: &'a Arrow,
+}
+
 /// Insert one declared arrow: an agreeing repeat records the second
 /// declaring document, a disagreeing one is `schema_conflict`.
 fn insert_arrow(
-    doc: &Document,
-    name: &Ident,
-    arrow: &Arrow,
+    declared: &DeclaredArrow<'_>,
     arrows: &mut BTreeMap<Ident, Arrow>,
     sources: &mut BTreeMap<Ident, Vec<String>>,
 ) -> Result<(), CompositionError> {
+    let (doc, name, arrow) = (declared.doc, declared.name, declared.arrow);
     let Some(existing) = arrows.get(name) else {
         arrows.insert(name.clone(), arrow.clone());
         sources.insert(name.clone(), vec![doc.name.clone()]);
@@ -55,16 +73,34 @@ fn insert_arrow(
             .push(doc.name.clone());
         return Ok(());
     }
-    let mut documents = sources.get(name).cloned().unwrap_or_default();
-    documents.push(doc.name.clone());
-    Err(CompositionError::new(
-        "schema_conflict",
-        format!(
+    Err(schema_conflict(declared, (existing, arrow), sources))
+}
+
+/// The labeled `schema_conflict`: the arrow's two disagreeing endpoint
+/// pairs, both declaring documents, and the offending node position.
+fn schema_conflict(
+    declared: &DeclaredArrow<'_>,
+    endpoints: (&Arrow, &Arrow),
+    sources: &BTreeMap<Ident, Vec<String>>,
+) -> CompositionError {
+    let (existing, arrow) = endpoints;
+    let (doc, name) = (declared.doc, declared.name);
+    let documents = sources
+        .get(name)
+        .cloned()
+        .map(|mut declared_by| {
+            declared_by.push(doc.name.clone());
+            declared_by
+        })
+        .unwrap_or_else(|| vec![doc.name.clone()]);
+    CompositionError::new(super::ErrorSpec {
+        code: "schema_conflict".to_string(),
+        message: format!(
             "arrow `{}` is declared with endpoints {} -> {} and {} -> {}",
             name.0, existing.src.0, existing.tgt.0, arrow.src.0, arrow.tgt.0
         ),
         documents,
-        doc.arrow_positions.get(&name.0).copied(),
-        Some(name.0.clone()),
-    ))
+        position: doc.arrow_positions.get(&name.0).copied(),
+        node: Some(name.0.clone()),
+    })
 }

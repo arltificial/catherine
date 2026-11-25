@@ -35,7 +35,7 @@
 //! no edge.
 
 use catherine_core::instance::TypedInstance;
-use catherine_core::model::{Ident, RowId, Schema};
+use catherine_core::model::{Arrow, Ident, RowId, Schema};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Which way the closure walks the morphism values: forward follows
@@ -119,6 +119,35 @@ pub fn check(
     }
 }
 
+/// One morphism's defined cells as adjacency edges: the arrow's source
+/// rows point at their images, in the query's direction. Dangling cells
+/// contribute no edge (`dangling_not_followed`).
+fn morphism_edges(
+    direction: Direction,
+    arrow: &Arrow,
+    cells: &[Option<RowId>],
+    adj: &mut BTreeMap<NodeRef, BTreeSet<NodeRef>>,
+) {
+    for (index, cell) in cells.iter().enumerate() {
+        let Some(to) = cell else {
+            continue; // dangling: no edge
+        };
+        let from = NodeRef {
+            object: arrow.src.clone(),
+            row: RowId(index),
+        };
+        let to = NodeRef {
+            object: arrow.tgt.clone(),
+            row: *to,
+        };
+        let (a, b) = match direction {
+            Direction::Forward => (from, to),
+            Direction::Backward => (to, from),
+        };
+        adj.entry(a).or_default().insert(b);
+    }
+}
+
 /// The adjacency over the named morphisms, in the query's direction —
 /// built from the instance's stored tables; `None` (dangling) values
 /// contribute no edge (`dangling_not_followed`). BTreeMap of BTreeSets:
@@ -137,24 +166,7 @@ fn adjacency(
         let Some(cells) = typed.tables().get(name) else {
             continue;
         };
-        for (index, cell) in cells.iter().enumerate() {
-            let Some(to) = cell else {
-                continue; // dangling: no edge
-            };
-            let from = NodeRef {
-                object: arrow.src.clone(),
-                row: RowId(index),
-            };
-            let to = NodeRef {
-                object: arrow.tgt.clone(),
-                row: *to,
-            };
-            let (a, b) = match direction {
-                Direction::Forward => (from, to),
-                Direction::Backward => (to, from),
-            };
-            adj.entry(a).or_default().insert(b);
-        }
+        morphism_edges(direction, arrow, cells, &mut adj);
     }
     adj
 }
@@ -222,6 +234,13 @@ pub fn backward_closure(
     )
 }
 
+/// The documents one closure pass reads: bundled so the internal
+/// helpers stay within the parameter budget.
+struct ClosureInputs<'a> {
+    schema: &'a Schema,
+    typed: &'a TypedInstance,
+}
+
 /// Closure over an already-validated seed set — the internal step the
 /// mixed blast radius iterates (`seeds_exist` is pre-checked by the
 /// first `run`, so the seeds are all instance nodes).
@@ -229,8 +248,7 @@ fn closure(
     direction: Direction,
     seeds: &BTreeSet<NodeRef>,
     morphisms: &[&str],
-    schema: &Schema,
-    typed: &TypedInstance,
+    inputs: &ClosureInputs<'_>,
 ) -> Result<BTreeSet<NodeRef>, Vec<QueryError>> {
     run(
         &Query {
@@ -238,8 +256,8 @@ fn closure(
             seeds: seeds.clone(),
             morphisms: morphisms.iter().map(|m| Ident(m.to_string())).collect(),
         },
-        schema,
-        typed,
+        inputs.schema,
+        inputs.typed,
     )
 }
 
@@ -260,15 +278,50 @@ pub fn blast_radius(
     morphisms: &[&str],
 ) -> Result<BTreeSet<NodeRef>, Vec<QueryError>> {
     let seeds: BTreeSet<NodeRef> = touched.iter().cloned().collect();
-    let mut current = closure(Direction::Backward, &seeds, morphisms, schema, typed)?;
+    let inputs = ClosureInputs { schema, typed };
+    let mut current = closure(Direction::Backward, &seeds, morphisms, &inputs)?;
     loop {
-        let reached = closure(Direction::Forward, &current, morphisms, schema, typed)?;
-        let closed = closure(Direction::Backward, &reached, morphisms, schema, typed)?;
+        let reached = closure(Direction::Forward, &current, morphisms, &inputs)?;
+        let closed = closure(Direction::Backward, &reached, morphisms, &inputs)?;
         if closed == current {
             return Ok(current);
         }
         current = closed;
     }
+}
+
+/// One morphism's nodes on a cycle: for every defined cell `s → t`, the
+/// source node `s` is cyclic when `t` reaches `s` forward (trivial
+/// self-edges included); dangling cells contribute no cycle.
+fn morphism_cycles(
+    schema: &Schema,
+    typed: &TypedInstance,
+    morphisms: &[&str],
+    name: &Ident,
+) -> Result<BTreeSet<NodeRef>, Vec<QueryError>> {
+    let Some((arrow, cells)) = schema.arrows.get(name).zip(typed.tables().get(name)) else {
+        return Ok(BTreeSet::new());
+    };
+    let inputs = ClosureInputs { schema, typed };
+    let mut cyclic = BTreeSet::new();
+    for (index, cell) in cells.iter().enumerate() {
+        let Some(to) = cell else {
+            continue; // dangling: no edge, no cycle through it
+        };
+        let from = NodeRef {
+            object: arrow.src.clone(),
+            row: RowId(index),
+        };
+        let seed = BTreeSet::from([NodeRef {
+            object: arrow.tgt.clone(),
+            row: *to,
+        }]);
+        let reached = closure(Direction::Forward, &seed, morphisms, &inputs)?;
+        if reached.contains(&from) {
+            cyclic.insert(from);
+        }
+    }
+    Ok(cyclic)
 }
 
 /// The nodes on at least one cycle through the morphism set M
@@ -281,32 +334,10 @@ pub fn cyclic_nodes(
     typed: &TypedInstance,
     morphisms: &[&str],
 ) -> Result<BTreeSet<NodeRef>, Vec<QueryError>> {
-    let names: Vec<Ident> = morphisms.iter().map(|m| Ident(m.to_string())).collect();
     let mut cyclic: BTreeSet<NodeRef> = BTreeSet::new();
-    for name in &names {
-        let Some(arrow) = schema.arrows.get(name) else {
-            continue;
-        };
-        let Some(cells) = typed.tables().get(name) else {
-            continue;
-        };
-        for (index, cell) in cells.iter().enumerate() {
-            let Some(to) = cell else {
-                continue; // dangling: no edge, no cycle through it
-            };
-            let from = NodeRef {
-                object: arrow.src.clone(),
-                row: RowId(index),
-            };
-            let seed = BTreeSet::from([NodeRef {
-                object: arrow.tgt.clone(),
-                row: *to,
-            }]);
-            let reached = closure(Direction::Forward, &seed, morphisms, schema, typed)?;
-            if reached.contains(&from) {
-                cyclic.insert(from);
-            }
-        }
+    for name in morphisms {
+        let name = Ident(name.to_string());
+        cyclic.extend(morphism_cycles(schema, typed, morphisms, &name)?);
     }
     Ok(cyclic)
 }

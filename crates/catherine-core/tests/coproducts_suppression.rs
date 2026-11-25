@@ -122,7 +122,8 @@ fn findings(text: &str) -> Vec<Finding> {
     check(&model.schema, &built)
 }
 
-fn coproduct_finding(label: EpistemicLabel, row: usize, injections: &[&str]) -> Finding {
+fn coproduct_finding(drawn: (EpistemicLabel, usize), injections: &[&str]) -> Finding {
+    let (label, row) = drawn;
     Finding {
         label,
         kind: FindingKind::Violation(ViolationWitness::Coproduct(CoproductWitness {
@@ -156,7 +157,7 @@ fn decidable_disjointness_survives_an_unresolved_sibling() {
     assert_eq!(
         found,
         vec![
-            coproduct_finding(EpistemicLabel::Executed, 3, &["i1", "i2"]),
+            coproduct_finding((EpistemicLabel::Executed, 3), &["i1", "i2"]),
             dangling("i3", 1),
             dangling("i3", 2),
         ],
@@ -197,7 +198,7 @@ fn proposed_disjointness_survives_an_unresolved_sibling() {
     assert_eq!(
         found,
         vec![
-            coproduct_finding(EpistemicLabel::Hypothesized, 3, &["i1", "i2"]),
+            coproduct_finding((EpistemicLabel::Hypothesized, 3), &["i1", "i2"]),
             dangling("i3", 1),
             dangling("i3", 2),
         ],

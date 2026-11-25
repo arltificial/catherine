@@ -7,6 +7,7 @@ use super::super::{
 };
 use super::FindingSink;
 use crate::findings::EpistemicLabel;
+use crate::model::RowId;
 
 pub(crate) fn coproduct_findings(
     schema: &EngineSchema,
@@ -20,7 +21,16 @@ pub(crate) fn coproduct_findings(
         };
         let label = crate::findings::label_for(coproduct.status);
         let (images, complete) = coproduct_images(typed, &coproduct.arrows);
-        coproduct_row_findings(out, &images, complete, index, rows, label);
+        coproduct_row_findings(
+            out,
+            &images,
+            CoproductRowScope {
+                complete,
+                index,
+                rows,
+                label,
+            },
+        );
     }
     let _ = schema;
 }
@@ -34,14 +44,7 @@ type CoproductImages = Bounded<(Nid, Bounded<u64, ROWS_CAP>), ARROWS_CAP>;
 /// Arena membership in one image — the walk's `BTreeSet`/`Vec` `contains`
 /// as a plain slot scan.
 fn image_has(image: &Bounded<u64, ROWS_CAP>, row: u64) -> bool {
-    let mut i = 0;
-    while i < image.len() {
-        if image[i] == Some(row) {
-            return true;
-        }
-        i += 1;
-    }
-    false
+    image.iter().any(|slot| *slot == Some(row))
 }
 
 /// The coproduct's complete injection images, resolved target values in
@@ -55,33 +58,38 @@ fn image_has(image: &Bounded<u64, ROWS_CAP>, row: u64) -> bool {
 /// 300 s wall at unwind 8 and 9).
 fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (CoproductImages, bool) {
     let mut images = CoproductImages::new();
-    let mut complete = true;
-    let mut a = 0;
-    while a < arrows.len() {
-        let table = &typed.tables[arrows[a]];
-        // Plain resolve loop — the `collect::<Option<Vec<_>>>()` form
-        // pulled the iterator/Option monad machinery into the formula.
-        let mut values = Bounded::<u64, ROWS_CAP>::new();
-        let mut resolved = true;
-        let mut idx = 0;
-        while idx < table.len() {
-            match table.get(idx).copied().flatten() {
-                Some(value) => values.push(value.0 as u64),
-                None => {
-                    resolved = false;
-                    break;
-                }
-            }
-            idx += 1;
+    for &arrow in arrows {
+        if let Some(image) = arrow_image(&typed.tables[arrow]) {
+            images.push((arrow, image));
         }
-        if resolved {
-            images.push((arrows[a], values));
-        } else {
-            complete = false;
-        }
-        a += 1;
     }
+    // An arrow with any unresolved cell contributes no image, so a
+    // complete image set is exactly one image per declared injection.
+    let complete = images.len() == arrows.len();
     (images, complete)
+}
+
+/// One injection's resolved image, ascending target values each — `None`
+/// when any of the arrow's cells is unresolved (the walk's partial
+/// image). Plain resolve loop over concrete slots: the
+/// `collect::<Option<Vec<_>>>()` form pulled the iterator/Option monad
+/// machinery into the formula.
+fn arrow_image(table: &Bounded<RowId, ROWS_CAP>) -> Option<Bounded<u64, ROWS_CAP>> {
+    let mut values = Bounded::<u64, ROWS_CAP>::new();
+    for idx in 0..table.len() {
+        let value = table.get(idx).copied().flatten()?;
+        values.push(value.0 as u64);
+    }
+    Some(values)
+}
+
+/// One coproduct's emission scope: the declaration index, its row space,
+/// the completeness verdict, and the constraint's label.
+struct CoproductRowScope {
+    complete: bool,
+    index: usize,
+    rows: usize,
+    label: EpistemicLabel,
 }
 
 /// Coverage and disjointness verdicts over one coproduct's rows: with a
@@ -91,20 +99,17 @@ fn coproduct_images(typed: &EngineTyped, arrows: &[Nid]) -> (CoproductImages, bo
 fn coproduct_row_findings(
     out: &mut impl FindingSink,
     images: &CoproductImages,
-    complete: bool,
-    index: usize,
-    rows: usize,
-    label: EpistemicLabel,
+    scope: CoproductRowScope,
 ) {
-    let mut row = 0;
-    while row < rows {
+    let CoproductRowScope {
+        complete,
+        index,
+        rows,
+        label,
+    } = scope;
+    for row in 0..rows {
         let covering = row_covering(images, row);
-        let emit = if complete {
-            covering.len() != 1
-        } else {
-            covering.len() >= 2
-        };
-        if emit {
+        if coproduct_row_verdict(complete, covering.len()) {
             out.emit((
                 (0, 3, 0, index as u64, row as u64, 0, 0, 0),
                 label,
@@ -115,21 +120,28 @@ fn coproduct_row_findings(
                 }),
             ));
         }
-        row += 1;
+    }
+}
+
+/// One row's coproduct verdict: with a complete image set, a row must be
+/// covered exactly once; with any partial image, coverage is
+/// undecidable and only a collision of two or more complete images is
+/// decidable.
+fn coproduct_row_verdict(complete: bool, covered: usize) -> bool {
+    if complete {
+        covered != 1
+    } else {
+        covered >= 2
     }
 }
 
 /// The complete images covering one row — the walk's coverage scan.
 fn row_covering(images: &CoproductImages, row: usize) -> Bounded<Nid, ARROWS_CAP> {
     let mut covering = Bounded::<Nid, ARROWS_CAP>::new();
-    let mut i = 0;
-    while i < images.len() {
-        if let Some(Some((arrow, image))) = images.get(i) {
-            if image_has(image, row as u64) {
-                covering.push(*arrow);
-            }
+    for (arrow, image) in images.iter().flatten() {
+        if image_has(image, row as u64) {
+            covering.push(*arrow);
         }
-        i += 1;
     }
     covering
 }

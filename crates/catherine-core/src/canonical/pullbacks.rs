@@ -15,14 +15,13 @@
 use crate::model::{Pullback, Schema};
 use serde_json::Value;
 
-use super::value::{obj, string};
+use super::value::{obj, sorted, string};
 
 /// The canonical pullback entries, sorted by
 /// `(apex, legs, cospan, status)`.
 pub(super) fn pullback_values(schema: &Schema) -> Vec<Value> {
-    let mut pullbacks: Vec<&Pullback> = schema.pullbacks.iter().collect();
-    pullbacks.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-    pullbacks
+    let ordered = sorted(&schema.pullbacks, |a, b| a.sort_key().cmp(&b.sort_key()));
+    ordered
         .iter()
         .map(|pullback| pullback_value(pullback))
         .collect()

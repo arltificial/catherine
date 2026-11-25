@@ -60,14 +60,28 @@ pub(crate) fn findings(model: &Model) -> Vec<Finding> {
     if arrows <= cap {
         return Vec::new();
     }
+    let mut out = vec![over_cap_finding(model, cap, rows)];
+    if let Some(finding) = unnamed_finding(model, arrows) {
+        out.push(finding);
+    }
+    out
+}
+
+/// The cap finding: every declared arrow named, canonical id order.
+fn over_cap_finding(model: &Model, cap: usize, rows: usize) -> Finding {
     let all: Vec<_> = model.schema.arrows.keys().cloned().collect();
-    let mut out = vec![Finding {
+    Finding {
         label: EpistemicLabel::Executed,
         kind: FindingKind::Granularity(GranularityWitness {
             case: GranularityCase::OverCap { cap, rows },
-            arrows: all.clone(),
+            arrows: all,
         }),
-    }];
+    }
+}
+
+/// The stored-column finding when more than a third of the arrows lack
+/// a `stored` entry (canonical id order); silence below that share.
+fn unnamed_finding(model: &Model, arrows: usize) -> Option<Finding> {
     let unnamed: Vec<_> = model
         .schema
         .arrows
@@ -75,18 +89,18 @@ pub(crate) fn findings(model: &Model) -> Vec<Finding> {
         .filter(|arrow| !model.schema.stored.contains_key(arrow))
         .cloned()
         .collect();
-    if unnamed_shares_majority(arrows, unnamed.len()) {
-        out.push(Finding {
-            label: EpistemicLabel::Executed,
-            kind: FindingKind::Granularity(GranularityWitness {
-                case: GranularityCase::Unnamed {
-                    stored: arrows - unnamed.len(),
-                },
-                arrows: unnamed,
-            }),
-        });
+    if !unnamed_shares_majority(arrows, unnamed.len()) {
+        return None;
     }
-    out
+    Some(Finding {
+        label: EpistemicLabel::Executed,
+        kind: FindingKind::Granularity(GranularityWitness {
+            case: GranularityCase::Unnamed {
+                stored: arrows - unnamed.len(),
+            },
+            arrows: unnamed,
+        }),
+    })
 }
 
 #[cfg(test)]

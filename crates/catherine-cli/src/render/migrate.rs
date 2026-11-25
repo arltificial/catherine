@@ -73,36 +73,39 @@ pub fn migrate_envelope(
 /// count).
 pub fn render_migrate(outcome: &MigrationOutcome, source: &Schema) -> Vec<String> {
     let target_rows: usize = outcome.instance.rows.values().map(|rows| rows.len()).sum();
-    let mut lines = vec![format!(
+    let head = format!(
         "migrate: {} target row(s) across {} object(s), {} lost data finding(s)",
         target_rows,
         outcome.instance.rows.len(),
         outcome.lost.len()
-    )];
-    for finding in &outcome.lost {
-        match &finding.kind {
-            MigrationFindingKind::LostRow { object, row } => {
-                lines.push(format!("lost-row: {}#{}", object.0, row.0));
-            }
-            MigrationFindingKind::LostCell { arrow, row } => {
-                let owner = source
-                    .arrows
-                    .get(arrow)
-                    .map(|decl| format!("{}#{}", decl.src.0, row.0))
-                    .unwrap_or_else(|| row.0.to_string());
-                lines.push(format!("lost-cell: {} at {}", arrow.0, owner));
-            }
-            MigrationFindingKind::Weakened {
-                constraint,
-                object,
-                row,
-            } => {
-                lines.push(format!(
-                    "weakened: {constraint} — witness {}#{}",
-                    object.0, row.0
-                ));
-            }
+    );
+    let lines = outcome
+        .lost
+        .iter()
+        .map(|finding| lost_line(finding, source));
+    std::iter::once(head).chain(lines).collect()
+}
+
+/// One line per lost-data finding: `lost-row: Object#n`, `lost-cell:
+/// arrow at owner#n` (the owner's declared source, or the bare row when
+/// the arrow is not declared), or the weakened constraint's witness.
+fn lost_line(finding: &catherine_core::migrate::MigrationFinding, source: &Schema) -> String {
+    match &finding.kind {
+        MigrationFindingKind::LostRow { object, row } => {
+            format!("lost-row: {}#{}", object.0, row.0)
         }
+        MigrationFindingKind::LostCell { arrow, row } => {
+            let owner = source
+                .arrows
+                .get(arrow)
+                .map(|decl| format!("{}#{}", decl.src.0, row.0))
+                .unwrap_or_else(|| row.0.to_string());
+            format!("lost-cell: {} at {}", arrow.0, owner)
+        }
+        MigrationFindingKind::Weakened {
+            constraint,
+            object,
+            row,
+        } => format!("weakened: {constraint} — witness {}#{}", object.0, row.0),
     }
-    lines
 }

@@ -69,6 +69,20 @@ function arrowEdge(arrow: ArrowDecl, positions: ReadonlyMap<string, { cx: number
   ]);
 }
 
+/** The shared arrowhead marker: one `<defs>` block appended to every schema SVG. */
+function arrowheadDefs(): SVGElementTagNameMap["defs"] {
+  return svg("defs", {}, [
+    svg("marker", {
+      id: "arrowhead",
+      markerWidth: 8,
+      markerHeight: 8,
+      refX: 7,
+      refY: 3,
+      orient: "auto",
+    }, [svg("path", { d: "M0,0 L0,6 L7,3 z" })]),
+  ]);
+}
+
 /**
  * Render the schema's graph into `svgElement` (cleared first): sorted
  * object idents on a circle, one labeled directed edge per arrow.
@@ -77,18 +91,7 @@ function arrowEdge(arrow: ArrowDecl, positions: ReadonlyMap<string, { cx: number
 export function renderSchemaGraph(schema: SchemaSection, svgElement: SVGSVGElement): void {
   clear(svgElement);
   svgElement.setAttribute("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
-  svgElement.append(
-    svg("defs", {}, [
-      svg("marker", {
-        id: "arrowhead",
-        markerWidth: 8,
-        markerHeight: 8,
-        refX: 7,
-        refY: 3,
-        orient: "auto",
-      }, [svg("path", { d: "M0,0 L0,6 L7,3 z" })]),
-    ]),
-  );
+  svgElement.append(arrowheadDefs());
   const objects = [...schema.objects].sort();
   const positions = new Map(
     objects.map((name, index) => [name, nodePosition(index, objects.length)] as const),

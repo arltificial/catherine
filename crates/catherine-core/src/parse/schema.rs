@@ -10,7 +10,7 @@ use super::rule_presentation::RawRulePresentation;
 use super::schema_map::RawSchemaMap;
 use super::spans::Spans;
 use crate::error::ErrorCode;
-use crate::model::{Arrow, ConstraintStatus, Equation, Ident, Path, Version};
+use crate::model::{Arrow, ConstraintStatus, Ident, Version};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
@@ -123,21 +123,32 @@ pub(super) fn check_version(
             format!("malformed `format_version` `{text}`: expected `MAJOR.MINOR`"),
         ));
     };
-    if major != 1 {
+    let found = Version { major, minor };
+    known_version(spans, found, text)?;
+    Ok(found)
+}
+
+/// The known-version gate: major 1 only, minor within [`KNOWN_MINOR`].
+fn known_version(
+    spans: &Spans,
+    found: Version,
+    text: &str,
+) -> Result<(), crate::error::ParseError> {
+    if found.major != 1 {
         return Err(spans.semantic(
             "/format_version",
             ErrorCode::UnsupportedVersion,
             format!("unsupported `format_version` `{text}`: known major is 1"),
         ));
     }
-    if minor > KNOWN_MINOR {
+    if found.minor > KNOWN_MINOR {
         return Err(spans.semantic(
             "/format_version",
             ErrorCode::UnsupportedVersion,
             format!("unsupported `format_version` `{text}`: known version is 1.{KNOWN_MINOR}"),
         ));
     }
-    Ok(Version { major, minor })
+    Ok(())
 }
 
 /// Schema objects: ident charset and duplicate idents (second occurrence).
@@ -173,24 +184,9 @@ pub(super) fn check_arrows(
         check_ident(spans, &format!("/schema/arrows/{i}/name"), &raw.name)?;
         let name = Ident(raw.name.clone());
         if arrows.contains_key(&name) {
-            return Err(spans.semantic(
-                &format!("/schema/arrows/{i}/name"),
-                ErrorCode::DuplicateIdent,
-                format!("duplicate arrow ident `{}`", raw.name),
-            ));
+            return Err(duplicate_arrow(&ArrowCheck { raw, index: i }, spans));
         }
-        for (field, endpoint) in [("src", &raw.src), ("tgt", &raw.tgt)] {
-            check_ident(spans, &format!("/schema/arrows/{i}/{field}"), endpoint)?;
-            if !objects.contains_key(&Ident(endpoint.clone())) {
-                return Err(spans.syntax(
-                    &format!("/schema/arrows/{i}/{field}"),
-                    format!(
-                        "arrow `{}`: {field} object `{endpoint}` is not declared",
-                        raw.name
-                    ),
-                ));
-            }
-        }
+        check_arrow_endpoints(&ArrowCheck { raw, index: i }, objects, spans)?;
         arrows.insert(
             name,
             Arrow {
@@ -202,78 +198,79 @@ pub(super) fn check_arrows(
     Ok(arrows)
 }
 
-/// Equations: path idents, declared arrows, endpoint typing, status.
-pub(super) fn check_equations(
-    raw_equations: &[RawEquation],
-    arrows: &BTreeMap<Ident, Arrow>,
-    spans: &Spans,
-) -> Result<Vec<Equation>, crate::error::ParseError> {
-    let mut equations = Vec::new();
-    for (i, raw) in raw_equations.iter().enumerate() {
-        let base = format!("/schema/equations/{i}");
-        let lhs = check_path(spans, &format!("{base}/lhs"), &raw.lhs, arrows)?;
-        let rhs = check_path(spans, &format!("{base}/rhs"), &raw.rhs, arrows)?;
-        check_endpoints(raw, &lhs, &rhs, &base, arrows, spans)?;
-        let status = check_status(raw.status.as_deref(), &base, spans, "equation")?;
-        equations.push(Equation {
-            lhs,
-            rhs,
-            rationale: raw.rationale.clone(),
-            status,
-        });
-    }
-    // Canonical order: equation list order in the file is presentation
-    // (design Decision 4).
-    equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-    Ok(equations)
+/// One raw arrow under validation: the entry and its `/schema/arrows/{i}`
+/// pointer base, passed as one bundle.
+struct ArrowCheck<'a> {
+    raw: &'a RawArrow,
+    index: usize,
 }
 
-/// Endpoint typing: both paths must span the same src → tgt pair.
-fn check_endpoints(
-    raw: &RawEquation,
-    lhs: &Path,
-    rhs: &Path,
-    base: &str,
-    arrows: &BTreeMap<Ident, Arrow>,
+/// The labeled rejection of a repeated arrow ident, at the repeat.
+fn duplicate_arrow(arrow: &ArrowCheck, spans: &Spans) -> crate::error::ParseError {
+    spans.semantic(
+        &format!("/schema/arrows/{}/name", arrow.index),
+        ErrorCode::DuplicateIdent,
+        format!("duplicate arrow ident `{}`", arrow.raw.name),
+    )
+}
+
+/// One arrow's endpoints: idents naming declared objects.
+fn check_arrow_endpoints(
+    arrow: &ArrowCheck,
+    objects: &BTreeMap<Ident, ()>,
     spans: &Spans,
 ) -> Result<(), crate::error::ParseError> {
-    let lhs_end = path_endpoints(lhs, arrows);
-    let rhs_end = path_endpoints(rhs, arrows);
-    if lhs_end != rhs_end {
-        return Err(spans.semantic(
-            base,
-            ErrorCode::IllTypedEquation,
-            format!(
-                "equation paths [{}] ({} -> {}) and [{}] ({} -> {}) have mismatched endpoints",
-                raw.lhs.join(", "),
-                lhs_end.0,
-                lhs_end.1,
-                raw.rhs.join(", "),
-                rhs_end.0,
-                rhs_end.1
-            ),
-        ));
+    let raw = arrow.raw;
+    for (field, endpoint) in [("src", &raw.src), ("tgt", &raw.tgt)] {
+        let node = format!("/schema/arrows/{}/{field}", arrow.index);
+        check_ident(spans, &node, endpoint)?;
+        if !objects.contains_key(&Ident(endpoint.clone())) {
+            return Err(spans.syntax(
+                &node,
+                format!(
+                    "arrow `{}`: {field} object `{endpoint}` is not declared",
+                    raw.name
+                ),
+            ));
+        }
     }
     Ok(())
 }
 
+/// The arrow table the equation checks report through: the declared
+/// arrows and the span source, passed as one bundle.
+pub(super) struct ArrowTable<'a> {
+    pub(super) arrows: &'a BTreeMap<Ident, Arrow>,
+    pub(super) spans: &'a Spans,
+}
+
+/// The inputs of one constraint-status check: the raw `status` field, the
+/// constrained element's pointer base, the span source, and the element
+/// kind named in the message. Shared by equations, keys, coproducts, and
+/// pullbacks.
+pub(super) struct StatusCheck<'a> {
+    pub(super) status: Option<&'a str>,
+    pub(super) base: &'a str,
+    pub(super) spans: &'a Spans,
+    pub(super) subject: &'a str,
+}
+
 /// Constraint status: absent defaults to `accepted`; anything but
-/// `proposed`/`accepted` is rejected. Shared by equations and keys, with
-/// `subject` naming the constrained element in the message.
+/// `proposed`/`accepted` is rejected.
 pub(super) fn check_status(
-    status: Option<&str>,
-    base: &str,
-    spans: &Spans,
-    subject: &str,
+    check: &StatusCheck<'_>,
 ) -> Result<ConstraintStatus, crate::error::ParseError> {
-    match status {
+    match check.status {
         None => Ok(ConstraintStatus::Accepted),
         Some("proposed") => Ok(ConstraintStatus::Proposed),
         Some("accepted") => Ok(ConstraintStatus::Accepted),
-        Some(other) => Err(spans.semantic(
-            &format!("{base}/status"),
+        Some(other) => Err(check.spans.semantic(
+            &format!("{}/status", check.base),
             ErrorCode::InvalidStatus,
-            format!("invalid {subject} status `{other}`: must be `proposed` or `accepted`"),
+            format!(
+                "invalid {} status `{other}`: must be `proposed` or `accepted`",
+                check.subject
+            ),
         )),
     }
 }
@@ -315,41 +312,4 @@ pub(super) fn check_ident(
             format!("invalid ident `{name}`: must match [A-Za-z_][A-Za-z0-9_]*"),
         ))
     }
-}
-
-/// Validate one equation path: non-empty, every element an ident naming a
-/// declared arrow. The unknown-arrow error names the whole path and points
-/// at the offending element.
-fn check_path(
-    spans: &Spans,
-    base: &str,
-    path: &[String],
-    arrows: &BTreeMap<Ident, Arrow>,
-) -> Result<Path, crate::error::ParseError> {
-    if path.is_empty() {
-        return Err(spans.syntax(base, "equation path must be non-empty"));
-    }
-    for (j, name) in path.iter().enumerate() {
-        let node = format!("{base}/{j}");
-        check_ident(spans, &node, name)?;
-        if !arrows.contains_key(&Ident(name.clone())) {
-            return Err(spans.semantic(
-                &node,
-                ErrorCode::UnknownArrow,
-                format!(
-                    "equation path [{}] references undeclared arrow `{name}`",
-                    path.join(", ")
-                ),
-            ));
-        }
-    }
-    Ok(Path(path.iter().map(|s| Ident(s.clone())).collect()))
-}
-
-/// Path endpoints: the src of the first arrow and the tgt of the last.
-/// Every element is declared by [`check_path`], so the lookups are total.
-fn path_endpoints(path: &Path, arrows: &BTreeMap<Ident, Arrow>) -> (String, String) {
-    let first = &arrows[&path.0[0]];
-    let last = &arrows[&path.0[path.0.len() - 1]];
-    (first.src.0.clone(), last.tgt.0.clone())
 }

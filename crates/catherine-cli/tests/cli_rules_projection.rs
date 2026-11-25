@@ -21,7 +21,7 @@
 
 mod common;
 
-use common::{code, findings, kinds, parse_json, projection_doc, run, scratch, stderr, stdout};
+use common::{code, findings, kinds, parse_json, run, scratch, stderr, stdout};
 use serde_json::Value;
 
 /// Two rows sharing both projected columns are one overlap per shared
@@ -29,7 +29,7 @@ use serde_json::Value;
 /// both capture rows.
 #[test]
 fn projection_collision_emits_one_violation_with_both_rows() {
-    let doc = projection_doc(
+    let doc = projection_doc!(
         &[
             ("cap_a", "src_a", "ed_1"),
             ("cap_b", "src_a", "ed_1"),
@@ -91,7 +91,7 @@ fn projection_collision_emits_one_violation_with_both_rows() {
 /// observed tuple set.
 #[test]
 fn projection_undeclared_absent_input_is_silent() {
-    let doc = projection_doc(
+    let doc = projection_doc!(
         &[
             ("cap_a", "src_a", "ed_1"),
             ("cap_b", "src_b", "ed_2"),
@@ -126,7 +126,7 @@ fn projection_undeclared_absent_input_is_silent() {
 /// genuine gap: the declared scope, not a claim about the data.
 #[test]
 fn projection_declared_absent_input_yields_gap() {
-    let doc = projection_doc(
+    let doc = projection_doc!(
         &[
             ("cap_a", "src_a", "ed_1"),
             ("cap_b", "src_b", "ed_2"),
@@ -175,7 +175,7 @@ fn projection_declared_absent_input_yields_gap() {
 /// findings — the projection itself must not manufacture a diagnosis.
 #[test]
 fn projection_clean_rows_are_exit_zero() {
-    let doc = projection_doc(
+    let doc = projection_doc!(
         &[
             ("cap_a", "src_a", "ed_1"),
             ("cap_b", "src_b", "ed_2"),
@@ -207,7 +207,7 @@ fn projection_clean_rows_are_exit_zero() {
 /// that arrow's target row name and the analysis is unchanged.
 #[test]
 fn projection_action_arrow_is_accepted() {
-    let doc = projection_doc(
+    let doc = projection_doc!(
         &[("cap_a", "src_a", "ed_1"), ("cap_b", "src_b", "ed_2")],
         &[],
         &[("cap_a", "b1"), ("cap_b", "b2")],

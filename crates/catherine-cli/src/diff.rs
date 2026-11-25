@@ -20,9 +20,10 @@
 //! on `search`.
 
 use crate::args::parse_rows;
+use crate::dispatch::Ctx;
 use crate::render::{self, LabeledError};
-use crate::run::{emit_error, exit_code, load_model, write_envelope};
-use crate::runners::{print_run_warnings, prune_undeclared_rows};
+use crate::run::{exit_code, load_model, write_envelope};
+use crate::runners::prune_undeclared_rows;
 use catherine_analysis::bounds::SearchBounds;
 use catherine_analysis::schema_diff::{self, SchemaDiffOutcome};
 use catherine_core::model::{Ident, Model, Schema};
@@ -30,41 +31,54 @@ use genesis::envelope::Warning;
 use std::collections::BTreeMap;
 use std::io::Write;
 
+/// The diff invocation's own flags: the two documents and the scan
+/// bounds (`--rows`, `--max-candidates`); the output plumbing travels
+/// in the run context.
+pub(crate) struct DiffRun<'a> {
+    /// The v1 document, the edit's left side.
+    pub(crate) model_path: &'a str,
+    /// The v2 document, the edit's right side.
+    pub(crate) second_path: &'a str,
+    /// The `--rows` bounds, unparsed.
+    pub(crate) rows: &'a [String],
+    /// The `--max-candidates` budget.
+    pub(crate) max_candidates: usize,
+}
+
 /// Execute the schema diff once and render. Returns the process exit
 /// code. `quiet` suppresses the human lines (never the exit decision,
 /// never errors, never the machine envelope).
-#[allow(clippy::too_many_arguments)]
-pub fn run_diff(
-    model_path: &str,
-    second_path: &str,
-    rows: &[String],
-    max_candidates: usize,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
-) -> i32 {
-    let (v1, v2) = match load_pair(model_path, second_path) {
+pub fn run_diff(run: DiffRun<'_>, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
+    let (v1, v2) = match load_pair(run.model_path, run.second_path) {
         Ok(pair) => pair,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
-    let max_rows = match parse_rows(rows) {
+    let max_rows = match parse_rows(run.rows) {
         Ok(max_rows) => max_rows,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
-    let (bound, warnings) = prune_and_bound(&v1.schema, max_rows, max_candidates, warnings);
+    let bound = prune_and_bound(&v1.schema, max_rows, run.max_candidates, &mut ctx.warnings);
     let report = schema_diff::diff(&v1.schema, &v2.schema, &bound);
     if matches!(report.outcome, SchemaDiffOutcome::Incomparable) {
-        return emit_error(&incomparable(second_path), json, warnings, stdout, stderr);
+        return ctx.emit_error(&incomparable(run.second_path));
     }
-    print_run_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = render::diff_envelope(&report, warnings);
-        write_envelope(&envelope, stdout, stderr, "diff");
-    } else if !quiet {
-        for line in render::render_diff(&report, &v1.schema) {
-            let _ = writeln!(stdout, "{line}");
+    render_diff_outcome(&report, &v1.schema, ctx)
+}
+
+/// The render tail of [`run_diff`]: run warnings, the `--json` envelope
+/// or the §5 human lines, then the exit decision over the findings.
+fn render_diff_outcome(
+    report: &schema_diff::SchemaDiffReport,
+    schema: &Schema,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> i32 {
+    ctx.print_warnings();
+    if ctx.json {
+        let envelope = render::diff_envelope(report, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "diff");
+    } else if !ctx.quiet {
+        for line in render::render_diff(report, schema) {
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     exit_code(&report.findings)
@@ -83,14 +97,13 @@ fn prune_and_bound(
     schema: &Schema,
     mut max_rows: BTreeMap<Ident, usize>,
     max_candidates: usize,
-    mut warnings: Vec<Warning>,
-) -> (SearchBounds, Vec<Warning>) {
-    prune_undeclared_rows(schema, &mut max_rows, &mut warnings);
-    let bound = SearchBounds {
+    warnings: &mut Vec<Warning>,
+) -> SearchBounds {
+    prune_undeclared_rows(schema, &mut max_rows, warnings);
+    SearchBounds {
         max_rows,
         max_candidates,
-    };
-    (bound, warnings)
+    }
 }
 
 /// A vocabulary difference is a labeled input error: instance spaces

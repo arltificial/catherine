@@ -2,9 +2,11 @@
 //! verbatim (mechanical lint refactor); no behavior change.
 
 use crate::model::{
-    Coproduct, Equation, InstanceMap, Key, Model, RowId, Rule, RulePresentation, Schema, SchemaMap,
+    Coproduct, Equation, Ident, InstanceMap, Key, Model, RowId, Rule, RulePresentation, Schema,
+    SchemaMap,
 };
 use serde_json::{Map, Value};
+use std::collections::BTreeMap;
 
 use super::predicate::predicate_value;
 use super::pullbacks::pullback_values;
@@ -61,10 +63,10 @@ fn instance_map_value(map: &InstanceMap) -> Value {
         .iter()
         .filter(|(_, rows)| !rows.is_empty())
         .map(|(object, rows)| {
-            let mut emitted = Map::new();
-            for (row, target) in rows {
-                emitted.insert(row_name(row.0), string(&target.0));
-            }
+            let emitted: Map<String, Value> = rows
+                .iter()
+                .map(|(row, target)| (row_name(row.0), string(&target.0)))
+                .collect();
             obj([
                 ("object", string(&object.0)),
                 ("rows", Value::Object(emitted)),
@@ -77,15 +79,21 @@ fn instance_map_value(map: &InstanceMap) -> Value {
 /// The canonical `instance` section: dense per-object row names and total
 /// per-arrow tables.
 fn instance_value(model: &Model) -> Value {
-    let mut rows = Map::new();
-    for (object, ids) in &model.instance.rows {
-        let names: Vec<Value> = (0..ids.len()).map(|i| string(&row_name(i))).collect();
-        rows.insert(object.0.clone(), Value::Array(names));
-    }
-    let mut tables = Map::new();
-    for (arrow, cells) in &model.instance.values {
-        tables.insert(arrow.0.clone(), table_value(cells));
-    }
+    let rows: Map<String, Value> = model
+        .instance
+        .rows
+        .iter()
+        .map(|(object, ids)| {
+            let names: Vec<Value> = (0..ids.len()).map(|i| string(&row_name(i))).collect();
+            (object.0.clone(), Value::Array(names))
+        })
+        .collect();
+    let tables: Map<String, Value> = model
+        .instance
+        .values
+        .iter()
+        .map(|(arrow, cells)| (arrow.0.clone(), table_value(cells)))
+        .collect();
     obj([
         ("rows", Value::Object(rows)),
         ("tables", Value::Object(tables)),
@@ -95,14 +103,17 @@ fn instance_value(model: &Model) -> Value {
 /// One arrow's canonical table: keys and values spelled as dense row
 /// names, dangling cells as `null`.
 fn table_value(cells: &[Option<RowId>]) -> Value {
-    let mut emitted = Map::new();
-    for (i, cell) in cells.iter().enumerate() {
-        let value = match cell {
-            Some(RowId(j)) => string(&row_name(*j)),
-            None => Value::Null,
-        };
-        emitted.insert(row_name(i), value);
-    }
+    let emitted: Map<String, Value> = cells
+        .iter()
+        .enumerate()
+        .map(|(i, cell)| {
+            let value = match cell {
+                Some(RowId(j)) => string(&row_name(*j)),
+                None => Value::Null,
+            };
+            (row_name(i), value)
+        })
+        .collect();
     Value::Object(emitted)
 }
 
@@ -120,10 +131,8 @@ fn schema_value(model: &Model) -> Value {
 /// empty key/coproduct/pullback/stored lists omitted — hash-neutral,
 /// design Decision 1).
 fn schema_section(schema: &Schema) -> Value {
-    let mut equations: Vec<&Equation> = schema.equations.iter().collect();
-    equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-    let mut keys: Vec<&Key> = schema.keys.iter().collect();
-    keys.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    let equations = sorted(&schema.equations, |a, b| a.sort_key().cmp(&b.sort_key()));
+    let keys = sorted(&schema.keys, |a, b| a.sort_key().cmp(&b.sort_key()));
     let coproducts = coproduct_values(schema);
     let pullbacks = pullback_values(schema);
     let arrows = arrow_values(schema);
@@ -200,12 +209,20 @@ fn arrow_values(schema: &Schema) -> Vec<Value> {
 /// — the parser's storage order, applied defensively to constructed
 /// schemas.
 fn coproduct_values(schema: &Schema) -> Vec<Value> {
-    let mut coproducts: Vec<&Coproduct> = schema.coproducts.iter().collect();
-    coproducts.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    let coproducts = sorted(&schema.coproducts, |a, b| a.sort_key().cmp(&b.sort_key()));
     coproducts
         .iter()
         .map(|coproduct| coproduct_value(coproduct))
         .collect()
+}
+
+/// The slice's items in canonical sort-key order (the parser stores them
+/// sorted, but constructed values must serialize the same way —
+/// specodelic's `schema_export` discipline).
+pub(super) fn sorted<T>(items: &[T], key: impl Fn(&T, &T) -> std::cmp::Ordering) -> Vec<&T> {
+    let mut ordered: Vec<&T> = items.iter().collect();
+    ordered.sort_by(|a, b| key(a, b));
+    ordered
 }
 
 /// One canonical coproduct entry: the object, its injection arrows in
@@ -247,35 +264,29 @@ fn schema_map_value(map: &SchemaMap) -> Value {
         ("target_schema", schema_section(&map.target)),
         (
             "objects",
-            Value::Object(
-                map.objects
-                    .iter()
-                    .map(|(object, assignment)| {
-                        let value = match assignment {
-                            Some(target) => string(&target.0),
-                            None => Value::Null,
-                        };
-                        (object.0.clone(), value)
-                    })
-                    .collect(),
-            ),
+            assignments_value(&map.objects, |target| string(&target.0)),
         ),
-        (
-            "arrows",
-            Value::Object(
-                map.arrows
-                    .iter()
-                    .map(|(arrow, assignment)| {
-                        let value = match assignment {
-                            Some(assignment_path) => path(assignment_path),
-                            None => Value::Null,
-                        };
-                        (arrow.0.clone(), value)
-                    })
-                    .collect(),
-            ),
-        ),
+        ("arrows", assignments_value(&map.arrows, path)),
     ])
+}
+
+/// One assignment map as a JSON object, `None` mapped to `null`.
+fn assignments_value<T, U>(assignments: &BTreeMap<Ident, Option<T>>, value: U) -> Value
+where
+    U: Fn(&T) -> Value,
+{
+    Value::Object(
+        assignments
+            .iter()
+            .map(|(key, assignment)| {
+                let value = match assignment {
+                    Some(assignment) => value(assignment),
+                    None => Value::Null,
+                };
+                (key.0.clone(), value)
+            })
+            .collect(),
+    )
 }
 
 /// The canonical `rule_presentation` section: columns sorted by name, the

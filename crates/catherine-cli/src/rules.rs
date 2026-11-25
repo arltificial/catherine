@@ -28,59 +28,67 @@
 
 use crate::args::{bad_arg, parse_domain_values};
 use crate::cli::default_scope_caps;
+use crate::dispatch::Ctx;
 use crate::projection::{self, Projection};
 use crate::render::{self, LabeledError};
-use crate::run::{emit_error, exit_code, load_model_with_rows, write_envelope};
+use crate::run::{exit_code, load_model_with_rows, write_envelope};
 use catherine_analysis::bounds::ScopeCaps;
 use catherine_analysis::rule_lens::{rule_lens, RuleLensOutcome};
 use catherine_core::model::{Model, RulePresentation};
 use catherine_core::parse::RowNames;
 use catherine_core::rule_lens::{RuleDomain, RuleDomainError};
-use genesis::envelope::Warning;
 use std::borrow::Cow;
 use std::io::Write;
+
+/// The rule-lens invocation's own flags; the model document and the
+/// output plumbing are separate arguments.
+pub(crate) struct LensOptions<'a> {
+    /// The `--values` specs, unparsed.
+    pub(crate) values: &'a [String],
+    /// The `--max-candidates` budget.
+    pub(crate) max_candidates: usize,
+    /// The `--project` object, when the presentation is synthesized.
+    pub(crate) project: Option<&'a str>,
+    /// The `--columns` arrows of a projected presentation.
+    pub(crate) columns: Option<&'a str>,
+    /// The `--action` arrow of a projected presentation.
+    pub(crate) action: Option<&'a str>,
+}
 
 /// Execute the rule lens over `model_path`'s `rule_presentation` — or,
 /// with `project`, over a rule table synthesized from that object's
 /// instance rows (see [`crate::projection`]) — and render. Returns the
 /// process exit code. `quiet` suppresses the human finding lines (never
 /// the exit decision, never errors, never the machine envelope).
-#[allow(clippy::too_many_arguments)]
 pub fn run_rules(
     model_path: &str,
-    values: &[String],
-    max_candidates: usize,
-    project: Option<&str>,
-    columns: Option<&str>,
-    action: Option<&str>,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    lens: &LensOptions<'_>,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
     let (model, rows) = match load_model_with_rows(model_path) {
         Ok(loaded) => loaded,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+        Err(labeled) => return ctx.emit_error(&labeled),
     };
-    let (presentation, domain) =
-        match bind_presentation(model_path, &model, &rows, project, columns, action, values) {
-            Ok(bound) => bound,
-            Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
-        };
+    let (presentation, domain) = match bind_presentation(model_path, &model, &rows, lens) {
+        Ok(bound) => bound,
+        Err(labeled) => return ctx.emit_error(&labeled),
+    };
+    report_bound(presentation.as_ref(), &domain, lens.max_candidates, ctx)
+}
+
+/// The bounded outcome tail: the scan runs under the `--max-candidates`
+/// cap with the defaults elsewhere.
+fn report_bound(
+    presentation: &RulePresentation,
+    domain: &RuleDomain,
+    max_candidates: usize,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
+) -> i32 {
     let caps = ScopeCaps {
         max_candidates,
         ..default_scope_caps()
     };
-    report_outcome(
-        rule_lens(presentation.as_ref(), &domain, &caps),
-        presentation.as_ref(),
-        json,
-        quiet,
-        warnings,
-        stdout,
-        stderr,
-    )
+    report_outcome(rule_lens(presentation, domain, &caps), presentation, ctx)
 }
 
 /// Choose the presentation and domain: the document's declared table
@@ -90,30 +98,27 @@ fn bind_presentation<'a>(
     model_path: &str,
     model: &'a Model,
     rows: &RowNames,
-    project: Option<&str>,
-    columns: Option<&str>,
-    action: Option<&str>,
-    values: &[String],
+    lens: &LensOptions<'_>,
 ) -> Result<(Cow<'a, RulePresentation>, RuleDomain), LabeledError> {
-    if project.is_none() && (columns.is_some() || action.is_some()) {
+    if lens.project.is_none() && (lens.columns.is_some() || lens.action.is_some()) {
         return Err(bad_arg(
             "`--columns`/`--action` require `--project <Object>`".to_string(),
             "project an object's instance rows with `--project <Object>`, or analyze the document's `rule_presentation` with `--values`",
         ));
     }
-    if let Some(object) = project {
+    if let Some(object) = lens.project {
         let request = Projection {
             object,
-            columns,
-            action,
+            columns: lens.columns,
+            action: lens.action,
         };
-        let (presentation, domain) = projection::project(model, rows, &request, values)?;
+        let (presentation, domain) = projection::project(model, rows, &request, lens.values)?;
         return Ok((Cow::Owned(presentation), domain));
     }
     let Some(presentation) = model.rule_presentation.as_ref() else {
         return Err(no_rule_presentation(model_path));
     };
-    let domain = bind_domain(presentation, values)?;
+    let domain = bind_domain(presentation, lens.values)?;
     Ok((Cow::Borrowed(presentation), domain))
 }
 
@@ -122,25 +127,11 @@ fn bind_presentation<'a>(
 fn report_outcome(
     outcome: RuleLensOutcome,
     presentation: &catherine_core::model::RulePresentation,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
     match outcome {
-        RuleLensOutcome::Findings(findings) => report_findings(
-            &findings,
-            presentation,
-            json,
-            quiet,
-            warnings,
-            stdout,
-            stderr,
-        ),
-        RuleLensOutcome::Unknown { scope } => {
-            report_unknown(&scope, json, quiet, warnings, stdout, stderr)
-        }
+        RuleLensOutcome::Findings(findings) => report_findings(&findings, presentation, ctx),
+        RuleLensOutcome::Unknown { scope } => report_unknown(&scope, ctx),
     }
 }
 
@@ -160,19 +151,15 @@ fn bind_domain(
 fn report_findings(
     findings: &[catherine_core::findings::Finding],
     presentation: &catherine_core::model::RulePresentation,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
-    print_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = render::rules_envelope(findings, None, warnings);
-        write_envelope(&envelope, stdout, stderr, "rules");
-    } else if !quiet {
+    ctx.print_warnings();
+    if ctx.json {
+        let envelope = render::rules_envelope(findings, None, ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "rules");
+    } else if !ctx.quiet {
         for line in render::render_rules(findings, presentation) {
-            let _ = writeln!(stdout, "{line}");
+            let _ = writeln!(ctx.stdout, "{line}");
         }
     }
     exit_code(findings)
@@ -182,19 +169,15 @@ fn report_findings(
 /// or the one honest human line. A completed bounded run exits 0.
 fn report_unknown(
     scope: &catherine_core::rule_lens::RuleScope,
-    json: bool,
-    quiet: bool,
-    warnings: Vec<Warning>,
-    stdout: &mut impl Write,
-    stderr: &mut impl Write,
+    ctx: &mut Ctx<'_, impl Write, impl Write>,
 ) -> i32 {
-    print_warnings(json, &warnings, stderr);
-    if json {
-        let envelope = render::rules_envelope(&[], Some(scope), warnings);
-        write_envelope(&envelope, stdout, stderr, "rules");
-    } else if !quiet {
+    ctx.print_warnings();
+    if ctx.json {
+        let envelope = render::rules_envelope(&[], Some(scope), ctx.take_warnings());
+        write_envelope(&envelope, ctx.stdout, ctx.stderr, "rules");
+    } else if !ctx.quiet {
         let _ = writeln!(
-            stdout,
+            ctx.stdout,
             "rules: unknown — explored {} candidate(s) within bounds",
             scope.candidates_explored
         );
@@ -227,18 +210,6 @@ pub(crate) fn bad_values(error: &RuleDomainError) -> LabeledError {
         column: None,
         message: format!("cannot bind the rule presentation's input domain: {error}"),
         hint: "supply `--values column=v1,v2,...` for every declared column, with values of the column's type",
-    }
-}
-
-/// Run-level warnings reach stderr in human mode too — the same
-/// `warning: <message>` line the other runners print; JSON mode keeps
-/// them on the envelope only.
-fn print_warnings(json: bool, warnings: &[Warning], stderr: &mut impl Write) {
-    if json {
-        return;
-    }
-    for warning in warnings {
-        let _ = writeln!(stderr, "warning: {}", warning.message);
     }
 }
 

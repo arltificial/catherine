@@ -31,21 +31,25 @@ fn ints_of(values: &[i64]) -> Vec<Vec<catherine_core::model::Literal>> {
 #[test]
 fn gap_age_matches_the_oracle() {
     let table = presentation(
-        Some(Policy::PriorityOrder),
+        (
+            Some(Policy::PriorityOrder),
+            vec![
+                rule("kid", (cmp("age", (CmpOp::Lt, integer(18))), "kid")),
+                rule(
+                    "adult",
+                    (
+                        conjunction(vec![
+                            cmp("age", (CmpOp::Ge, integer(18))),
+                            cmp("age", (CmpOp::Lt, integer(65))),
+                        ]),
+                        "adult",
+                    ),
+                ),
+            ],
+        ),
         &[("age", ColumnType::Int)],
-        vec![
-            rule("kid", cmp("age", CmpOp::Lt, integer(18)), "kid"),
-            rule(
-                "adult",
-                conjunction(vec![
-                    cmp("age", CmpOp::Ge, integer(18)),
-                    cmp("age", CmpOp::Lt, integer(65)),
-                ]),
-                "adult",
-            ),
-        ],
     );
-    let domain = int_domain(&table, "age", &[10, 20, 30, 70]);
+    let domain = int_domain(&table, ("age", &[10, 20, 30, 70]));
     let analysis = analyze(&table, &domain);
     let regions = vec![
         set(&domain, &[ints(10)]),
@@ -67,14 +71,16 @@ fn gap_age_matches_the_oracle() {
 #[test]
 fn overlap_under_declared_disjoint_matches_the_oracle() {
     let table = presentation(
-        Some(Policy::DeclaredDisjoint),
+        (
+            Some(Policy::DeclaredDisjoint),
+            vec![
+                rule("small", (cmp("amount", (CmpOp::Le, integer(100))), "small")),
+                rule("large", (cmp("amount", (CmpOp::Ge, integer(100))), "large")),
+            ],
+        ),
         &[("amount", ColumnType::Int)],
-        vec![
-            rule("small", cmp("amount", CmpOp::Le, integer(100)), "small"),
-            rule("large", cmp("amount", CmpOp::Ge, integer(100)), "large"),
-        ],
     );
-    let domain = int_domain(&table, "amount", &[50, 100, 200]);
+    let domain = int_domain(&table, ("amount", &[50, 100, 200]));
     let analysis = analyze(&table, &domain);
     let regions = vec![
         set(&domain, &[ints(50), ints(100)]),
@@ -105,14 +111,16 @@ fn overlap_under_declared_disjoint_matches_the_oracle() {
 #[test]
 fn priority_resolved_overlap_matches_the_oracle() {
     let table = presentation(
-        Some(Policy::PriorityOrder),
+        (
+            Some(Policy::PriorityOrder),
+            vec![
+                rule("small", (cmp("amount", (CmpOp::Le, integer(100))), "small")),
+                rule("large", (cmp("amount", (CmpOp::Ge, integer(100))), "large")),
+            ],
+        ),
         &[("amount", ColumnType::Int)],
-        vec![
-            rule("small", cmp("amount", CmpOp::Le, integer(100)), "small"),
-            rule("large", cmp("amount", CmpOp::Ge, integer(100)), "large"),
-        ],
     );
-    let domain = int_domain(&table, "amount", &[50, 100, 200]);
+    let domain = int_domain(&table, ("amount", &[50, 100, 200]));
     let analysis = analyze(&table, &domain);
     assert_eq!(
         analysis.effective,
@@ -135,14 +143,16 @@ fn priority_resolved_overlap_matches_the_oracle() {
 #[test]
 fn shadow_first_match_matches_the_oracle() {
     let table = presentation(
-        Some(Policy::FirstMatch),
+        (
+            Some(Policy::FirstMatch),
+            vec![
+                rule("all", (cmp("n", (CmpOp::Ge, integer(1))), "default")),
+                rule("even", (modulus("n", (2, 0)), "even")),
+            ],
+        ),
         &[("n", ColumnType::Int)],
-        vec![
-            rule("all", cmp("n", CmpOp::Ge, integer(1)), "default"),
-            rule("even", modulus("n", 2, 0), "even"),
-        ],
     );
-    let domain = int_domain(&table, "n", &[1, 2, 3, 4, 5, 6]);
+    let domain = int_domain(&table, ("n", &[1, 2, 3, 4, 5, 6]));
     let analysis = analyze(&table, &domain);
     assert_eq!(
         analysis.effective,
@@ -160,20 +170,22 @@ fn shadow_first_match_matches_the_oracle() {
 
 fn fizzbuzz_table() -> catherine_core::model::RulePresentation {
     presentation(
-        Some(Policy::FirstMatch),
+        (
+            Some(Policy::FirstMatch),
+            vec![
+                rule("fizzbuzz", (modulus("n", (15, 0)), "FizzBuzz")),
+                rule("fizz", (modulus("n", (3, 0)), "Fizz")),
+                rule("buzz", (modulus("n", (5, 0)), "Buzz")),
+                rule("plain", (cmp("n", (CmpOp::Ge, integer(1))), "n")),
+            ],
+        ),
         &[("n", ColumnType::Int)],
-        vec![
-            rule("fizzbuzz", modulus("n", 15, 0), "FizzBuzz"),
-            rule("fizz", modulus("n", 3, 0), "Fizz"),
-            rule("buzz", modulus("n", 5, 0), "Buzz"),
-            rule("plain", cmp("n", CmpOp::Ge, integer(1)), "n"),
-        ],
     )
 }
 
 fn fifteen() -> catherine_core::rule_lens::RuleDomain {
     let table = fizzbuzz_table();
-    int_domain(&table, "n", &(1..=15).collect::<Vec<_>>())
+    int_domain(&table, ("n", &(1..=15).collect::<Vec<_>>()))
 }
 
 /// `derivable_fizzbuzz`: R_fizzbuzz = {15} = R_fizz ∩ R_buzz.
@@ -218,24 +230,27 @@ fn derivable_fizzbuzz_matches_the_oracle() {
 
 fn bool_string_table() -> catherine_core::model::RulePresentation {
     presentation(
-        Some(Policy::PriorityOrder),
+        (
+            Some(Policy::PriorityOrder),
+            vec![
+                rule(
+                    "gold",
+                    (
+                        conjunction(vec![
+                            cmp("member", (CmpOp::Eq, boolean(true))),
+                            cmp("tier", (CmpOp::Eq, text("gold"))),
+                        ]),
+                        "gold",
+                    ),
+                ),
+                rule("basic", (cmp("tier", (CmpOp::Lt, text("gold"))), "basic")),
+                rule(
+                    "guest",
+                    (negation(cmp("member", (CmpOp::Eq, boolean(true)))), "guest"),
+                ),
+            ],
+        ),
         &[("member", ColumnType::Bool), ("tier", ColumnType::String)],
-        vec![
-            rule(
-                "gold",
-                conjunction(vec![
-                    cmp("member", CmpOp::Eq, boolean(true)),
-                    cmp("tier", CmpOp::Eq, text("gold")),
-                ]),
-                "gold",
-            ),
-            rule("basic", cmp("tier", CmpOp::Lt, text("gold")), "basic"),
-            rule(
-                "guest",
-                negation(cmp("member", CmpOp::Eq, boolean(true))),
-                "guest",
-            ),
-        ],
     )
 }
 
@@ -304,15 +319,17 @@ fn bool_and_string_effective_regions_match_the_oracle() {
 #[test]
 fn no_policy_overlap_diagnostic_matches_the_oracle() {
     let table = presentation(
-        None,
+        (
+            None,
+            vec![
+                rule("young", (cmp("age", (CmpOp::Le, integer(20))), "young")),
+                rule("old", (cmp("age", (CmpOp::Gt, integer(20))), "old")),
+                rule("vip", (cmp("age", (CmpOp::Ge, integer(20))), "vip")),
+            ],
+        ),
         &[("age", ColumnType::Int)],
-        vec![
-            rule("young", cmp("age", CmpOp::Le, integer(20)), "young"),
-            rule("old", cmp("age", CmpOp::Gt, integer(20)), "old"),
-            rule("vip", cmp("age", CmpOp::Ge, integer(20)), "vip"),
-        ],
     );
-    let domain = int_domain(&table, "age", &[10, 20, 70]);
+    let domain = int_domain(&table, ("age", &[10, 20, 70]));
     let analysis = analyze(&table, &domain);
     assert_eq!(analysis.effective, None, "no policy means no precedence");
     assert!(analysis.gap.is_empty());
@@ -340,11 +357,13 @@ fn no_policy_overlap_diagnostic_matches_the_oracle() {
 #[test]
 fn modulo_uses_a_non_negative_remainder() {
     let table = presentation(
-        Some(Policy::PriorityOrder),
+        (
+            Some(Policy::PriorityOrder),
+            vec![rule("two", (modulus("n", (3, 2)), "two"))],
+        ),
         &[("n", ColumnType::Int)],
-        vec![rule("two", modulus("n", 3, 2), "two")],
     );
-    let domain = int_domain(&table, "n", &[-1, 0, 1, 2, 3]);
+    let domain = int_domain(&table, ("n", &[-1, 0, 1, 2, 3]));
     assert_eq!(
         analyze(&table, &domain).regions,
         vec![set(&domain, &[ints(-1), ints(2)])]
@@ -362,9 +381,11 @@ fn analysis_regions(
 #[test]
 fn the_domain_builder_rejects_a_literal_of_the_wrong_type() {
     let table = presentation(
-        Some(Policy::PriorityOrder),
+        (
+            Some(Policy::PriorityOrder),
+            vec![rule("all", (cmp("n", (CmpOp::Ge, integer(1))), "all"))],
+        ),
         &[("n", ColumnType::Int)],
-        vec![rule("all", cmp("n", CmpOp::Ge, integer(1)), "all")],
     );
     let supplied = [(ident("n"), vec![text("nope")])].into_iter().collect();
     assert!(matches!(
