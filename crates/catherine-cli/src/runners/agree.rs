@@ -62,6 +62,7 @@ pub fn run_agree(
 /// The emit/envelope tail of [`run_agree`]: the warning channel, the
 /// `--json` envelope or the §5 human lines, and the exit decision —
 /// any disagreement exits through the violation class (3).
+#[allow(clippy::too_many_arguments)]
 fn emit_agreement(
     disagreements: &[Disagreement],
     model_path: &str,

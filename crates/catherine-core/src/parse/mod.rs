@@ -103,19 +103,17 @@ fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> Par
 /// Split out of `validate_with` (mechanical lint refactor; no behavior
 /// change) so `validate_with`'s forwarding calls stay inside the
 /// function-size gate.
-fn required_sections(
-    doc: RawDoc,
-    spans: &Spans,
-) -> Result<
-    (
-        RawSchema,
-        schema::RawInstance,
-        Option<schema_map::RawSchemaMap>,
-        Option<rule_presentation::RawRulePresentation>,
-        Option<instance_map::RawInstanceMap>,
-    ),
-    ParseError,
-> {
+/// The required `schema`/`instance` pair plus the three optional additive
+/// sections, in document order.
+type RawSections = (
+    RawSchema,
+    schema::RawInstance,
+    Option<schema_map::RawSchemaMap>,
+    Option<rule_presentation::RawRulePresentation>,
+    Option<instance_map::RawInstanceMap>,
+);
+
+fn required_sections(doc: RawDoc, spans: &Spans) -> Result<RawSections, ParseError> {
     let RawDoc {
         schema,
         instance,
@@ -216,12 +214,15 @@ fn validate_with(
 /// The three structural checks over the same (schema, objects, arrows)
 /// triple, gathered so `validate_with` stays inside the file-size gate's
 /// per-function cap without changing check order or messages.
+/// Keys, coproducts, and pullbacks discovered in one schema, in check order.
+type RawStructure = (Vec<Key>, Vec<Coproduct>, Vec<Pullback>);
+
 fn check_structure(
     schema: &RawSchema,
     objects: &BTreeMap<Ident, ()>,
     arrows: &BTreeMap<Ident, Arrow>,
     spans: &Spans,
-) -> Result<(Vec<Key>, Vec<Coproduct>, Vec<Pullback>), ParseError> {
+) -> Result<RawStructure, ParseError> {
     let keys = check_keys(schema, objects, arrows, spans)?;
     let coproducts = check_coproducts(schema, objects, arrows, spans)?;
     let pullbacks = check_pullbacks(schema, objects, arrows, spans)?;

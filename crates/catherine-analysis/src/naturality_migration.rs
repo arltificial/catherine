@@ -275,9 +275,7 @@ fn path_image(target: &Model, path: &[Ident], start: Option<RowId>) -> Option<Ro
     let mut current = start;
     for arrow in path {
         current = arrow_image(target, arrow, current);
-        if current.is_none() {
-            return None;
-        }
+        current?;
     }
     current
 }

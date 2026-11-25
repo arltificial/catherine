@@ -30,7 +30,7 @@ pub(crate) fn dispatch_command(
         C::Distinguish { .. } => distinguish_command(command, ctx),
         C::Naturality { model, second } => naturality::run(model, second, ctx),
         C::Agree { model, second } => agree::run(model, second, ctx),
-        C::Merge { left, right } => merge_command(&left, &right, ctx),
+        C::Merge { left, right } => merge_command(left, right, ctx),
         C::Diff { .. } => diff_command(command, ctx),
         C::Query { .. } => query_command(command, ctx),
         C::Migrate { model } => migrate_command(model, ctx),

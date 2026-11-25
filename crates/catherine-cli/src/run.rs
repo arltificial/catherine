@@ -112,6 +112,7 @@ pub fn run(
 
 /// The render tail of [`run`]: the `--json` findings envelope or the §5
 /// human lines to stdout, stderr reserved for errors.
+#[allow(clippy::too_many_arguments)]
 fn emit_findings(
     findings: &[Finding],
     schema: &catherine_core::model::Schema,

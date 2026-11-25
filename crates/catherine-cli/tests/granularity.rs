@@ -104,7 +104,7 @@ fn kata_corpus_stays_silent() {
 fn bogart_slice_stays_silent() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../fixtures/probes/granularity-bogart/fts-anchor-slice.ct.json");
-    let out = run_check(&path.to_str().unwrap());
+    let out = run_check(path.to_str().unwrap());
     assert_eq!(out.status.code(), Some(0), "the bogart slice is clean");
     assert!(!kinds(&out).iter().any(|k| k == "granularity"));
 }
