@@ -144,8 +144,7 @@ fn analysis_search_zero_size_bound_yields_unknown_empty_scope() {
     assert!(rows.is_empty(), "the empty scope is the empty row map");
     assert_eq!(v["data"]["scope"]["candidates_explored"], 0);
     assert_eq!(
-        v["data"]["hint"],
-        "no rows bound; pass --rows OBJECT=N",
+        v["data"]["hint"], "no rows bound; pass --rows OBJECT=N",
         "the empty-scope unknown names the --rows flag"
     );
     assert!(

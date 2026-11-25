@@ -262,10 +262,7 @@ fn migrate_target_dropping_an_accepted_constraint_emits_the_weakened_finding() {
             .any(|f| f["kind"] == "lost_row" || f["kind"] == "lost_cell"),
         "the data migration itself is lossless: {lost:?}"
     );
-    let weakened: Vec<_> = lost
-        .iter()
-        .filter(|f| f["kind"] == "weakened")
-        .collect();
+    let weakened: Vec<_> = lost.iter().filter(|f| f["kind"] == "weakened").collect();
     assert_eq!(
         weakened.len(),
         1,
@@ -309,10 +306,7 @@ fn migrate_dropping_two_constraints_gives_each_its_own_witness_row() {
             .any(|f| f["kind"] == "lost_row" || f["kind"] == "lost_cell"),
         "the data migration itself is lossless: {lost:?}"
     );
-    let weakened: Vec<_> = lost
-        .iter()
-        .filter(|f| f["kind"] == "weakened")
-        .collect();
+    let weakened: Vec<_> = lost.iter().filter(|f| f["kind"] == "weakened").collect();
     assert_eq!(
         weakened.len(),
         2,

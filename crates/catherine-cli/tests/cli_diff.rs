@@ -126,8 +126,7 @@ fn weakened_edit_exits_3_with_witness_and_budget_expiry_is_unknown() {
     let empty = envelope(&unbounded);
     assert_eq!(empty["data"]["outcome"], "unknown");
     assert_eq!(
-        empty["data"]["hint"],
-        "no rows bound; pass --rows OBJECT=N",
+        empty["data"]["hint"], "no rows bound; pass --rows OBJECT=N",
         "an unknown classification with no rows bound names the --rows flag"
     );
 }

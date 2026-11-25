@@ -131,9 +131,25 @@ fn check_arrow_typing(
             .map(|element| &target.arrows[element])
             .collect();
         let pointer = format!("/schema_map/arrows/{}", name.0);
-        check_path_source(&pointer, name, &arrows[name], path, &typed, mapped_objects, spans)?;
+        check_path_source(
+            &pointer,
+            name,
+            &arrows[name],
+            path,
+            &typed,
+            mapped_objects,
+            spans,
+        )?;
         check_path_composes(&pointer, name, path, &typed, spans)?;
-        check_path_target(&pointer, name, &arrows[name], path, &typed, mapped_objects, spans)?;
+        check_path_target(
+            &pointer,
+            name,
+            &arrows[name],
+            path,
+            &typed,
+            mapped_objects,
+            spans,
+        )?;
     }
     Ok(())
 }
@@ -226,10 +242,7 @@ fn check_path_composes(
 
 /// A source object's image in the target — `None` when the object is
 /// dropped explicitly (`null` assignment).
-fn image_of(
-    mapped_objects: &BTreeMap<Ident, Option<Ident>>,
-    object: &Ident,
-) -> Option<Ident> {
+fn image_of(mapped_objects: &BTreeMap<Ident, Option<Ident>>, object: &Ident) -> Option<Ident> {
     mapped_objects.get(object).cloned().flatten()
 }
 

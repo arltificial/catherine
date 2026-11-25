@@ -305,7 +305,11 @@ fn assert_scope_keys(scope: &serde_json::Value, where_: &str) {
     keys.sort_unstable();
     assert_eq!(
         keys,
-        ["constraints_checked", "equations_over_zero_rows", "rows_evaluated"],
+        [
+            "constraints_checked",
+            "equations_over_zero_rows",
+            "rows_evaluated"
+        ],
         "{where_}: exactly the three snake_case keys"
     );
 }

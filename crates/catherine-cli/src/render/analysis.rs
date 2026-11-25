@@ -113,8 +113,7 @@ pub fn unknown_hint(scope: &ScopeView) -> String {
     if scope.rows.is_empty() {
         "no rows bound; pass --rows OBJECT=N".to_string()
     } else {
-        "bound exhausted; pass --rows OBJECT=N or --max-candidates=N to explore further"
-            .to_string()
+        "bound exhausted; pass --rows OBJECT=N or --max-candidates=N to explore further".to_string()
     }
 }
 
@@ -140,9 +139,13 @@ pub struct SearchData<'a> {
 /// The one search-envelope path.
 pub fn search_envelope(report: &SearchReport, warnings: Vec<Warning>) -> Envelope<SearchData<'_>> {
     let (outcome, scope, hint, witness, findings) = match &report.outcome {
-        SearchOutcome::Witness { instance } => {
-            ("witness", None, None, Some(InstanceView::of(instance)), &[][..])
-        }
+        SearchOutcome::Witness { instance } => (
+            "witness",
+            None,
+            None,
+            Some(InstanceView::of(instance)),
+            &[][..],
+        ),
         SearchOutcome::Contradiction { finding } => (
             "contradiction",
             None,

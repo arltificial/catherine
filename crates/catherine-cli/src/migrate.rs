@@ -110,10 +110,7 @@ fn weaken_constraints(model: &Model, outcome: &mut migrate::MigrationOutcome) {
 /// single-arrow-path constraint violation, never grown by the engine.
 /// The candidate budget is the analysis default, the same one the
 /// `diff` surface starts from.
-fn weaken_bound(
-    instance: &catherine_core::model::Instance,
-    map: &SchemaMap,
-) -> SearchBounds {
+fn weaken_bound(instance: &catherine_core::model::Instance, map: &SchemaMap) -> SearchBounds {
     let mut max_rows: BTreeMap<Ident, usize> = BTreeMap::new();
     for target_object in map.target.objects.keys() {
         let source_rows = map

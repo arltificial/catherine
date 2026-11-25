@@ -103,7 +103,10 @@ fn nonfunctorial_refusal(name: &str) -> Observation {
         code, "partial_schema_map",
         "{name}: the parser's schema-map typing check is the fix"
     );
-    let text = format!("{code}: {}", value["data"]["message"].as_str().unwrap_or_default());
+    let text = format!(
+        "{code}: {}",
+        value["data"]["message"].as_str().unwrap_or_default()
+    );
     assert_diagnostic_names(name, &text, &["f", "A", "B", "X", "Y", "endpoint"]);
     Observation::Cleared
 }

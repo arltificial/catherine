@@ -124,14 +124,12 @@ fn execution_scope(compiled: &EngineSchema, typed: &EngineTyped) -> ExecutionSco
         .equations
         .iter()
         .filter(|equation| {
-            equation.status == crate::model::ConstraintStatus::Accepted
-                && equation.domain.is_some()
+            equation.status == crate::model::ConstraintStatus::Accepted && equation.domain.is_some()
         })
         .collect::<Vec<_>>();
-    let accepted =
-        count_accepted(&compiled.keys, |key| &key.status)
-            + count_accepted(&compiled.coproducts, |c| &c.status)
-            + count_accepted(&compiled.pullbacks, |pb| &pb.status);
+    let accepted = count_accepted(&compiled.keys, |key| &key.status)
+        + count_accepted(&compiled.coproducts, |c| &c.status)
+        + count_accepted(&compiled.pullbacks, |pb| &pb.status);
     ExecutionScope {
         constraints_checked: equations.len() + accepted,
         rows_evaluated: typed.row_counts.iter().map(|rows| rows.unwrap_or(0)).sum(),
@@ -150,9 +148,7 @@ fn count_accepted<T>(
 ) -> usize {
     list.iter()
         .flatten()
-        .filter(|constraint| {
-            *status_of(constraint) == crate::model::ConstraintStatus::Accepted
-        })
+        .filter(|constraint| *status_of(constraint) == crate::model::ConstraintStatus::Accepted)
         .count()
 }
 

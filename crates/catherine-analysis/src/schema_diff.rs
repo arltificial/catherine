@@ -311,5 +311,4 @@ fn violation(schema: &Schema, typed: &TypedInstance) -> Option<Finding> {
 
 mod dropped;
 
-pub use dropped::{DroppedConstraint, dropped_constraints};
-
+pub use dropped::{dropped_constraints, DroppedConstraint};

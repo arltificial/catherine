@@ -202,11 +202,9 @@ fn outcome_parts(outcome: &SchemaDiffOutcome) -> Parts {
             Some(InstanceView::of(witness)),
             Vec::new(),
         ),
-        SchemaDiffOutcome::StrengthenedInScope { added, scope } => scoped_parts(
-            "strengthened-in-scope",
-            scope,
-            constraint_views(added),
-        ),
+        SchemaDiffOutcome::StrengthenedInScope { added, scope } => {
+            scoped_parts("strengthened-in-scope", scope, constraint_views(added))
+        }
         SchemaDiffOutcome::EquivalentInScope { scope } => {
             scoped_parts("equivalent-in-scope", scope, Vec::new())
         }

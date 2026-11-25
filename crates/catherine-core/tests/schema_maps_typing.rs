@@ -75,7 +75,9 @@ const WELL_TYPED_MAP_DOC: &str = r#"{
 /// arrow, its source object, and both images (catherine-kpn.7).
 #[test]
 fn a_nonfunctorial_schema_map_is_a_labeled_refusal_naming_the_arrow_and_objects() {
-    let ParseError::Semantic(error) = parse(NONFUNCTORIAL_MAP_DOC).expect_err("non-functorial map refused") else {
+    let ParseError::Semantic(error) =
+        parse(NONFUNCTORIAL_MAP_DOC).expect_err("non-functorial map refused")
+    else {
         panic!("the endpoint mismatch is a labeled semantic error");
     };
     assert_eq!(error.code, ErrorCode::PartialSchemaMap);
@@ -103,7 +105,8 @@ fn a_non_composable_mapped_path_is_a_labeled_refusal() {
     let document = NONFUNCTORIAL_MAP_DOC
         .replace(r#""A": "X""#, r#""A": "Y""#)
         .replace(r#""f": ["h"]"#, r#""f": ["h", "g"]"#);
-    let ParseError::Semantic(error) = parse(&document).expect_err("non-composable path refused") else {
+    let ParseError::Semantic(error) = parse(&document).expect_err("non-composable path refused")
+    else {
         panic!("the composition mismatch is a labeled semantic error");
     };
     assert_eq!(error.code, ErrorCode::PartialSchemaMap);
@@ -119,7 +122,10 @@ fn a_non_composable_mapped_path_is_a_labeled_refusal() {
 #[test]
 fn a_target_endpoint_mismatch_is_a_labeled_refusal() {
     let document = NONFUNCTORIAL_MAP_DOC
-        .replace(r#""objects": {"A": "X", "B": "Y"}"#, r#""objects": {"A": "X", "B": "X"}"#)
+        .replace(
+            r#""objects": {"A": "X", "B": "Y"}"#,
+            r#""objects": {"A": "X", "B": "X"}"#,
+        )
         .replace(r#""f": ["h"]"#, r#""f": ["g"]"#);
     let ParseError::Semantic(error) = parse(&document).expect_err("target mismatch refused") else {
         panic!("the target-endpoint mismatch is a labeled semantic error");

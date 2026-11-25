@@ -182,7 +182,11 @@ fn outcome_of(output: &str) -> String {
 /// contract drift and fails loudly (the same ratchet rule as `Finding`).
 fn harvest_migration(kinds: &mut BTreeSet<String>) {
     for (prefix, name) in MIGRATION_COVERAGE_RUNS {
-        let output = run(&["migrate", &format!("{MIGRATION_FIXTURES}{prefix}{name}"), "--json"]);
+        let output = run(&[
+            "migrate",
+            &format!("{MIGRATION_FIXTURES}{prefix}{name}"),
+            "--json",
+        ]);
         let value = serde_json::from_str::<Value>(&output).expect("migrate envelope parses");
         let lost = value["data"]["lost"].as_array().expect("data.lost array");
         assert!(
