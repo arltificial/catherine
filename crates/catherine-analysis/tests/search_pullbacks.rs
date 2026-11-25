@@ -62,6 +62,7 @@ fn schema() -> Schema {
         keys: Vec::new(),
         coproducts: Vec::new(),
         pullbacks: vec![pullback()],
+        stored: BTreeMap::new(),
     }
 }
 

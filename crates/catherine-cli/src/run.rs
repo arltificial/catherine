@@ -59,6 +59,9 @@ pub fn class_code(kind: &FindingKind) -> i32 {
         FindingKind::Contradiction(_) => 5,
         FindingKind::Underconstraint(_) => 6,
         FindingKind::Redundant(_) => 7,
+        // Below every kernel class: the granularity lint questions the
+        // model's shape (ticket `catherine-kw9.3`), never a row.
+        FindingKind::Granularity(_) => 8,
     }
 }
 
@@ -89,10 +92,38 @@ pub fn run(
     };
 
     let typed = TypedInstance::build(&model.schema, &model.instance);
-    let (findings, scope) = checks::check_with_scope(&model.schema, &typed);
+    let (mut findings, scope) = checks::check_with_scope(&model.schema, &typed);
+    // The stored-granularity lint (ticket `catherine-kw9.3`) rides the
+    // shared check path, sorted last by the taxonomy's kind order.
+    findings.extend(crate::granularity::findings(&model));
 
+    emit_findings(
+        &findings,
+        &model.schema,
+        &scope,
+        json,
+        quiet,
+        warnings,
+        stdout,
+        stderr,
+    );
+    exit_code(&findings)
+}
+
+/// The render tail of [`run`]: the `--json` findings envelope or the §5
+/// human lines to stdout, stderr reserved for errors.
+fn emit_findings(
+    findings: &[Finding],
+    schema: &catherine_core::model::Schema,
+    scope: &checks::ExecutionScope,
+    json: bool,
+    quiet: bool,
+    warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) {
     if json {
-        let envelope = render::findings_envelope(&findings, Some(&scope), warnings);
+        let envelope = render::findings_envelope(findings, Some(scope), warnings);
         let line = serde_json::to_string(&envelope)
             .map_err(|error| error.to_string())
             .and_then(|text| writeln!(stdout, "{text}").map_err(|error| error.to_string()));
@@ -100,12 +131,10 @@ pub fn run(
             let _ = writeln!(stderr, "catherine: cannot write findings envelope: {error}");
         }
     } else if !quiet {
-        for line in render::render_findings(&findings, &model.schema) {
+        for line in render::render_findings(findings, schema) {
             let _ = writeln!(stdout, "{line}");
         }
     }
-
-    exit_code(&findings)
 }
 
 /// The joint (composition) check: load and glue every input, execute the

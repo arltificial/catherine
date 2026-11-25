@@ -43,14 +43,19 @@ You are about to implement a feature described in prose. Before writing code:
 1. Restate the domain as objects and arrows ("Assignment has `staff` and
    `equipment`; each belongs to a `Unit`"). Record ambiguities as UNKNOWN —
    do not resolve them silently.
-   **Arrow granularity (PROPOSED, structural claims only):** declare one
+   **Arrow granularity (EXECUTED, structural claims only):** declare one
    arrow per **stored, independently writable** reference. Before you model,
    name the storing column for each arrow; if more than a third have none,
    you are modeling the plan, not the system — stop. This governs
    *structural* claims: a storage-only model is blind to derivation and
    selection defects (executed negative test, 2026-11-13), so declare those
    relations explicitly instead of dropping them. Full rule, limits and the
-   measurement: `ref/ct_methodology_playbook.md` §2.
+   measurement: `ref/ct_methodology_playbook.md` §2. Sealed 2026-11-25
+   (ticket `catherine-kw9.3`): the `granularity` lint enforces the
+   calibrated form — arrows over `ceil(4.5·√rows)` triggers the cap finding,
+   and over a third of arrows without a `schema.stored` entry names them —
+   enforced in `catherine check` (crates/catherine-cli/src/granularity.rs),
+   kata-calibrated silent.
 2. Write the smallest schema that captures the *claims* the requirements
    make, plus a tiny instance of what they *imply* (3–10 rows, including
    one deliberately awkward row).

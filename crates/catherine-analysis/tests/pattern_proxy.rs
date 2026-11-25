@@ -240,6 +240,7 @@ fn check_key(finding: &Finding) -> FindingKey {
         FindingKind::Contradiction(_) => "contradiction",
         FindingKind::Underconstraint(_) => "underconstraint",
         FindingKind::Redundant(_) => "redundant",
+        FindingKind::Granularity(_) => "granularity",
     };
     let label = match finding.label {
         EpistemicLabel::Executed => "executed",

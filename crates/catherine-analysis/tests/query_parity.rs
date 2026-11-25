@@ -221,6 +221,7 @@ fn parity_schema() -> Schema {
         keys: Vec::new(),
         coproducts: Vec::new(),
         pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
     }
 }
 

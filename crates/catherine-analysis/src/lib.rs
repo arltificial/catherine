@@ -33,9 +33,11 @@
 //! "results are a witness or `UNKNOWN { scope }` — never a naked 'no
 //! violation found'".
 
+pub mod agree;
 pub mod bounds;
 pub mod distinguish;
 pub mod naturality;
+mod naturality_migration;
 pub mod parallel;
 pub mod pattern;
 pub mod query;

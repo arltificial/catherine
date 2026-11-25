@@ -17,7 +17,9 @@
 //! `violation` kind and witness shape; only the third case is new, and it
 //! is returned beside the findings rather than folded into them.
 
-use catherine_analysis::naturality::{naturality, NaturalityOutcome, UndefinedSquare};
+use catherine_analysis::naturality::{
+    migration_naturality, naturality, MigrationOutcome, NaturalityOutcome, UndefinedSquare,
+};
 use catherine_core::findings::{FindingKind, ViolationWitness};
 use catherine_core::model::{Ident, RowId};
 
@@ -161,4 +163,169 @@ fn defined_commuting_square_is_clean() {
         "every square was verified: {:?}",
         outcome.undefined
     );
+}
+
+// --- migration naturality (catherine-kw9.2): migrate-then-operate must
+// --- equal operate-then-migrate; a broken square emits a witness.
+
+/// A v1 document whose single `setName` operation moves `p1` to `p2`,
+/// whose schema map (Δ) renames the whole schema isomorphically
+/// (`Person` → `Party`, `setName` → `setNamePrime`), and whose
+/// instance map renames the rows in step.
+const MIGRATION_COMMUTING: &str = r#"{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Person"],
+    "arrows": [{"name": "setName", "src": "Person", "tgt": "Person"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Person": ["p1", "p2"]},
+    "tables": {"setName": {"p1": "p2", "p2": "p2"}}
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["Party"],
+      "arrows": [{"name": "setNamePrime", "src": "Party", "tgt": "Party"}],
+      "equations": []
+    },
+    "objects": {"Person": "Party"},
+    "arrows": {"setName": ["setNamePrime"]}
+  },
+  "instance_map": {
+    "maps": [{"object": "Person", "rows": {"p1": "q1", "p2": "q2"}}]
+  }
+}"#;
+
+/// The migrated v2 instance the commuting map lands on: the rename is
+/// faithful, so every square commutes.
+const MIGRATION_COMMUTING_TARGET: &str = r#"{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Party"],
+    "arrows": [{"name": "setNamePrime", "src": "Party", "tgt": "Party"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Party": ["q1", "q2"]},
+    "tables": {"setNamePrime": {"q1": "q2", "q2": "q2"}}
+  }
+}"#;
+
+/// The same v1 document, but Δ splits `setName` into the composable path
+/// `setFirstName ; setLastName` over a v2 schema whose split ops swap the
+/// two rows — migrating then operating does not reproduce the v1 op.
+const MIGRATION_NONCOMMUTING: &str = r#"{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Person"],
+    "arrows": [{"name": "setName", "src": "Person", "tgt": "Person"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Person": ["p1", "p2"]},
+    "tables": {"setName": {"p1": "p2", "p2": "p2"}}
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["Person"],
+      "arrows": [
+        {"name": "setFirstName", "src": "Person", "tgt": "Person"},
+        {"name": "setLastName", "src": "Person", "tgt": "Person"}
+      ],
+      "equations": []
+    },
+    "objects": {"Person": "Person"},
+    "arrows": {"setName": ["setFirstName", "setLastName"]}
+  },
+  "instance_map": {
+    "maps": [{"object": "Person", "rows": {"p1": "q1", "p2": "q2"}}]
+  }
+}"#;
+
+/// The migrated v2 instance whose split operations swap: applying
+/// `setFirstName ; setLastName` to migrated `q1` lands on `q1`, while
+/// the migrated `setName` image is `q2` — the square breaks.
+const MIGRATION_NONCOMMUTING_TARGET: &str = r#"{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Person"],
+    "arrows": [
+      {"name": "setFirstName", "src": "Person", "tgt": "Person"},
+      {"name": "setLastName", "src": "Person", "tgt": "Person"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Person": ["q1", "q2"]},
+    "tables": {
+      "setFirstName": {"q1": "q2", "q2": "q1"},
+      "setLastName": {"q1": "q1", "q2": "q2"}
+    }
+  }
+}"#;
+
+/// Run the migration-naturality sweep over a v1 document and its
+/// migrated v2 instance.
+fn migration_outcome(source_text: &str, target_text: &str) -> MigrationOutcome {
+    let (source, source_names) =
+        catherine_core::parse::parse_with_rows(source_text).expect("the v1 document parses");
+    let (target, target_names) =
+        catherine_core::parse::parse_with_rows(target_text).expect("the v2 instance parses");
+    migration_naturality(&source, &target, &source_names, &target_names)
+        .expect("the migration maps resolve")
+}
+
+/// An isomorphic-rename migration commutes in both directions for every
+/// operation: zero findings, zero undefined squares.
+#[test]
+fn isomorphic_rename_migration_commutes() {
+    let outcome = migration_outcome(MIGRATION_COMMUTING, MIGRATION_COMMUTING_TARGET);
+    assert!(
+        outcome.findings.is_empty(),
+        "a rename migration commutes: {:?}",
+        outcome.findings
+    );
+    assert!(
+        outcome.undefined.is_empty(),
+        "every square was verified: {:?}",
+        outcome.undefined
+    );
+}
+
+/// Migrating then operating with the split ops does not reproduce the
+/// v1 operation: on migrated `q2` the `setFirstName ; setLastName` path
+/// swaps back to `q1` while the migrated `setName` image stays `q2` —
+/// one witnessed break naming the operation pair (`setName` vs the Δ
+/// path) and both composed result rows.
+#[test]
+fn split_operation_migration_breaks_with_witness() {
+    let outcome = migration_outcome(MIGRATION_NONCOMMUTING, MIGRATION_NONCOMMUTING_TARGET);
+    assert!(
+        outcome.undefined.is_empty(),
+        "every square is decidable here: {:?}",
+        outcome.undefined
+    );
+    assert_eq!(outcome.findings.len(), 1, "only the `p1` square breaks");
+    match &outcome.findings[0].kind {
+        FindingKind::Violation(ViolationWitness::MigrationNaturality(witness)) => {
+            assert_eq!(witness.operation, ident("setName"));
+            assert_eq!(
+                witness.path,
+                vec![ident("setFirstName"), ident("setLastName")]
+            );
+            assert_eq!(witness.source_row, RowId(1));
+            assert_eq!(
+                witness.lhs,
+                Some(RowId(1)),
+                "operate-then-migrate: `setName(p2) = p2`, migrated to `q2`"
+            );
+            assert_eq!(
+                witness.rhs,
+                Some(RowId(0)),
+                "migrate-then-operate: the split ops swap migrated `q2` onto `q1`"
+            );
+        }
+        other => panic!("a broken migration square is a violation, not {other:?}"),
+    }
 }

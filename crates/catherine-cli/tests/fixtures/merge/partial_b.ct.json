@@ -1,0 +1,12 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Beta", "Gamma"],
+    "arrows": [{"name": "g", "src": "Beta", "tgt": "Gamma"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Beta": ["b1"], "Gamma": ["g1"]},
+    "tables": {"g": {"b1": "g1"}}
+  }
+}

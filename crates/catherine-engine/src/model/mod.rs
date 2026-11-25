@@ -129,6 +129,14 @@ pub struct Schema {
     pub keys: Vec<Key>,
     pub coproducts: Vec<Coproduct>,
     pub pullbacks: Vec<Pullback>,
+    /// The declared storing column/table per arrow (additive
+    /// `schema.stored`, ticket `catherine-kw9.3`): presentation metadata
+    /// the CLI's granularity lint reads, absent in every pre-existing
+    /// document and omitted from canonical bytes when empty
+    /// (hash-neutral), so old fixtures keep loading and keep their hash.
+    /// Keys are declared arrow names; the value names the storing
+    /// column(s) — composite references list both columns.
+    pub stored: BTreeMap<Ident, String>,
 }
 
 /// The instance presentation: per-object dense row ids and one partial

@@ -54,6 +54,10 @@
 //! The pullback arm is an additive member of the same union
 //! (`add-pullback-checks`, format 1.6), not a new kind.
 
+mod granularity;
+
+pub use granularity::{GranularityCase, GranularityWitness};
+
 use crate::model::{Ident, Path, RowId};
 use serde::{Deserialize, Serialize};
 
@@ -108,6 +112,27 @@ pub struct NaturalityWitness {
     /// `map ∘ arrow` on the source row — `None` when unresolved.
     pub lhs: Option<RowId>,
     /// `arrow ∘ map` on the source row — `None` when unresolved.
+    pub rhs: Option<RowId>,
+}
+
+/// The migration-naturality witness (catherine-kw9.2): a declared Δ
+/// migration's commutation square failed for one operation on one row —
+/// migrate-then-operate does not reproduce operate-then-migrate. The
+/// source operation, the Δ target path it was declared as, the source
+/// row, and both composed result rows (each `None` when unresolved) are
+/// carried, so the witness names the failing operation pair and both
+/// sides of the square.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct MigrationNaturalityWitness {
+    /// The source-schema operation whose commutation square breaks.
+    pub operation: Ident,
+    /// The Δ target path the operation was declared as, in path order.
+    pub path: Vec<Ident>,
+    /// The source row of the operation's source object.
+    pub source_row: RowId,
+    /// `migrate ∘ operation` on the source row — `None` when unresolved.
+    pub lhs: Option<RowId>,
+    /// `path ∘ migrate` on the source row — `None` when unresolved.
     pub rhs: Option<RowId>,
 }
 
@@ -186,20 +211,23 @@ impl PullbackWitness {
 }
 
 /// The violation witness's shapes: an equation failure, a key collision,
-/// a naturality square, a coproduct coverage/disjointness failure, or a
+/// a naturality square, a migration-naturality square, a coproduct
+/// coverage/disjointness failure, or a
 /// pullback square's commutes/covers/unique failure (design Decision 3;
 /// the naturality arm is the additive 1.4 shape from
 /// `add-instance-morphism`, the coproduct arm the additive 1.5 shape from
 /// `add-coproduct-exhaustiveness`, the pullback arm the additive 1.6
-/// shape from `add-pullback-checks`). Serialized untagged — the
+/// shape from `add-pullback-checks`, the migration-naturality arm the
+/// additive catherine-kw9.2 shape). Serialized untagged — the
 /// serialized field sets are disjoint (`equation`/`row`/`lhs`/`rhs`,
 /// `key`/`rows`, `arrow`/`source_row`/`lhs`/`rhs`,
+/// `operation`/`path`/`source_row`/`lhs`/`rhs`,
 /// `coproduct`/`row`/`injections`,
 /// `pullback`/`row`/`lhs`/`rhs`, `pullback`/`pair`,
 /// `pullback`/`rows`), so the equation JSON stays byte-identical and
 /// deserialization is unambiguous. The variant order is the taxonomy's
 /// kind-internal order: equations before keys before naturality before
-/// coproducts before pullbacks.
+/// migration naturality before coproducts before pullbacks.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ViolationWitness {
@@ -209,6 +237,9 @@ pub enum ViolationWitness {
     Key(KeyWitness),
     /// An instance map's commutation square failed.
     Naturality(NaturalityWitness),
+    /// A Δ migration's commutation square failed: migrate-then-operate
+    /// differs from operate-then-migrate for one operation on one row.
+    MigrationNaturality(MigrationNaturalityWitness),
     /// A declared coproduct's coverage or disjointness claim failed.
     Coproduct(CoproductWitness),
     /// A declared pullback's commutes, covers, or unique verdict failed.
@@ -324,7 +355,14 @@ pub enum FindingKind {
     /// The schema underconstrains its domain — a question, not a failure
     /// (P4 producer; shape only here).
     Underconstraint(UnderconstraintWitness),
+    /// The schema's arrow granularity exceeds the stored-reference rule
+    /// (ticket `catherine-kw9.3`): arrows over the calibrated cap and/or
+    /// more than a third of arrows with no declared storing column.
+    /// Declared last so the existing kinds' total order — and every
+    /// pre-existing fixture's finding sequence — is unchanged.
+    Granularity(GranularityWitness),
 }
+
 
 /// A finding: the public diagnostic. The label rides on the finding as
 /// independent data (violation is the one kind that maps to two labels);

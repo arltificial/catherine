@@ -8,6 +8,8 @@ use catherine_core::findings::{
     ContradictionWitness, DanglingWitness, RedundantWitness, UnderconstraintWitness,
 };
 use catherine_core::model::{Arrow, ConstraintStatus, Equation, Ident, Key};
+use catherine_core::findings::EpistemicLabel;
+use catherine_core::model::Path;
 use std::collections::BTreeMap;
 
 fn finding(kind: FindingKind, label: EpistemicLabel) -> Finding {
@@ -50,6 +52,7 @@ fn bowling_schema() -> Schema {
         keys: Vec::new(),
         coproducts: Vec::new(),
         pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
     }
 }
 

@@ -47,6 +47,7 @@ fn endo_schema(keys: Vec<Key>) -> Schema {
         keys,
         coproducts: Vec::new(),
         pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
     }
 }
 

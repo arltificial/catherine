@@ -1,0 +1,24 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Person"],
+    "arrows": [{"name": "setName", "src": "Person", "tgt": "Person"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Person": ["p1", "p2"]},
+    "tables": {"setName": {"p1": "p2", "p2": "p2"}}
+  },
+  "schema_map": {
+    "target_schema": {
+      "objects": ["Party"],
+      "arrows": [{"name": "setNamePrime", "src": "Party", "tgt": "Party"}],
+      "equations": []
+    },
+    "objects": {"Person": "Party"},
+    "arrows": {"setName": ["setNamePrime"]}
+  },
+  "instance_map": {
+    "maps": [{"object": "Person", "rows": {"p1": "q1", "p2": "q2"}}]
+  }
+}

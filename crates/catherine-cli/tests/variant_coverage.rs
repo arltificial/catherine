@@ -38,12 +38,13 @@ const MIGRATION_COVERAGE_RUNS: [(&str, &str); 3] = [
         "dropped_equation_migration.ct.json",
     ),
 ];
-const ALL_KINDS: [&str; 5] = [
+const ALL_KINDS: [&str; 6] = [
     "violation",
     "dangling",
     "redundant",
     "contradiction",
     "underconstraint",
+    "granularity",
 ];
 const ALL_MIGRATION_KINDS: [&str; 3] = ["lost_row", "lost_cell", "weakened"];
 const ALL_LABELS: [&str; 3] = ["executed", "hypothesized", "unknown"];
@@ -68,6 +69,7 @@ fn kind_name(kind: &FindingKind) -> &'static str {
         FindingKind::Redundant(_) => "redundant",
         FindingKind::Contradiction(_) => "contradiction",
         FindingKind::Underconstraint(_) => "underconstraint",
+        FindingKind::Granularity(_) => "granularity",
     }
 }
 
@@ -307,6 +309,26 @@ fn statuses_both() -> BTreeSet<String> {
     statuses
 }
 
+/// The granularity kind's producer run (ticket `catherine-kw9.3`): the
+/// lint fires over the committed over-cap fixture, which lives in the
+/// repo fixture corpus rather than `tests/fixtures/`, so it is driven
+/// here the same way the migration runs drive their repo fixtures.
+fn harvest_granularity(kinds: &mut BTreeSet<String>) {
+    let output = run(&[
+        "check",
+        &format!("{MIGRATION_FIXTURES}fixtures/granularity/over_cap.ct.json"),
+        "--json",
+    ]);
+    let harvested = findings_of(&output).expect("the over-cap run yields a findings envelope");
+    assert!(
+        !harvested.is_empty(),
+        "the over-cap run produced no findings — granularity coverage would be vacuous"
+    );
+    for finding in harvested {
+        kinds.insert(kind_name(&finding.kind).to_string());
+    }
+}
+
 /// Every inventory entry must appear in the harvested set — the failure
 /// names the uncovered variant.
 fn assert_all_covered(enum_name: &str, inventory: &[&str], got: &BTreeSet<String>) {
@@ -324,6 +346,7 @@ fn every_contract_enum_variant_is_constructed_by_an_executed_fixture() {
     let mut labels: BTreeSet<String> = BTreeSet::new();
     let underconstraint = harvest_corpus_producers(&mut kinds, &mut labels);
     let outcomes = harvest_search(&mut kinds, &mut labels);
+    harvest_granularity(&mut kinds);
 
     let mut questions: BTreeSet<String> = BTreeSet::new();
     harvest_questions(&underconstraint, &mut questions);

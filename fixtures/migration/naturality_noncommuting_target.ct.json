@@ -1,0 +1,18 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Person"],
+    "arrows": [
+      {"name": "setFirstName", "src": "Person", "tgt": "Person"},
+      {"name": "setLastName", "src": "Person", "tgt": "Person"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Person": ["q1", "q2"]},
+    "tables": {
+      "setFirstName": {"q1": "q2", "q2": "q1"},
+      "setLastName": {"q1": "q2", "q2": "q1"}
+    }
+  }
+}

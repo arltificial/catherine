@@ -39,6 +39,7 @@ mod envelope;
 mod errors;
 mod migrate;
 mod rules;
+mod text;
 
 #[allow(unused_imports)] // pub surface kept stable at `render::`
 pub use crate::render::analysis::{
@@ -62,10 +63,17 @@ pub use crate::render::migrate::{migrate_envelope, render_migrate, MigrateData};
 pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, RulesData};
 
 use catherine_core::findings::{
-    CoproductWitness, DanglingWitness, DomainQuestion, EpistemicLabel, EquationWitness, Finding,
-    FindingKind, KeyWitness, NaturalityWitness, PullbackWitness, ViolationWitness,
+    CoproductWitness, DanglingWitness, DomainQuestion, EquationWitness, Finding,
+    FindingKind, GranularityCase, GranularityWitness, KeyWitness, NaturalityWitness,
+    PullbackWitness, UnderconstraintWitness, ViolationWitness,
 };
-use catherine_core::model::{Ident, Path, Pullback, RowId, Schema};
+use catherine_core::model::{Ident, Pullback, RowId, Schema};
+
+use self::text::{
+    arrows_string, arrow_list, label_suffix, naturality_value, path_codomain, path_domain, row_at,
+};
+/// The public surface keeps the stable `render::path_string` path.
+pub use self::text::path_string;
 
 /// The CLI version carried in every envelope's `cli_version`.
 pub const CLI_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -94,26 +102,55 @@ pub(super) fn render_one(finding: &Finding, schema: &Schema) -> Vec<String> {
         FindingKind::Contradiction(w) => {
             vec![format!("{}{label}", rules::contradiction_head(w))]
         }
-        FindingKind::Underconstraint(w) => {
-            let head = match &w.case {
-                DomainQuestion::ParallelPaths { lhs, rhs } => format!(
-                    "underconstraint: parallel paths {} / {}{}",
-                    path_string(lhs),
-                    path_string(rhs),
-                    label
-                ),
-                DomainQuestion::UncoveredInputs { class, examples } => {
-                    let rows = examples
-                        .iter()
-                        .map(|row| row.0.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    format!("underconstraint: uncovered inputs {class} (rows {rows}){label}")
-                }
-            };
-            vec![head, format!("  {}", w.question)]
-        }
+        FindingKind::Underconstraint(w) => render_underconstraint(w, &label),
+        FindingKind::Granularity(w) => render_granularity(w, &label),
     }
+}
+
+/// The underconstraint block: the case's head line and the open question.
+fn render_underconstraint(w: &UnderconstraintWitness, label: &str) -> Vec<String> {
+    let head = match &w.case {
+        DomainQuestion::ParallelPaths { lhs, rhs } => format!(
+            "underconstraint: parallel paths {} / {}{}",
+            path_string(lhs),
+            path_string(rhs),
+            label
+        ),
+        DomainQuestion::UncoveredInputs { class, examples } => {
+            let rows = examples
+                .iter()
+                .map(|row| row.0.to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("underconstraint: uncovered inputs {class} (rows {rows}){label}")
+        }
+    };
+    vec![head, format!("  {}", w.question)]
+}
+
+/// The granularity block: the case's head line and the offending arrows.
+fn render_granularity(w: &GranularityWitness, label: &str) -> Vec<String> {
+    let names = |arrows: &[Ident]| {
+        arrows
+            .iter()
+            .map(|a| a.0.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let head = match &w.case {
+        GranularityCase::OverCap { cap, rows } => format!(
+            "granularity: {} arrows over {rows} rows exceeds the stored-granularity cap {cap}{}",
+            w.arrows.len(),
+            label
+        ),
+        GranularityCase::Unnamed { stored } => format!(
+            "granularity: {} of {} arrows declare no stored column{}",
+            w.arrows.len(),
+            w.arrows.len() + stored,
+            label
+        ),
+    };
+    vec![head, format!("  arrows: {}", names(&w.arrows))]
 }
 
 /// The §5 violation block, one branch per witness shape. The equation
@@ -136,6 +173,33 @@ fn render_violation(w: &ViolationWitness, schema: &Schema, label: &str) -> Vec<S
         }
         ViolationWitness::Coproduct(witness) => render_coproduct_violation(witness, schema, label),
         ViolationWitness::Pullback(witness) => render_pullback_violation(witness, schema, label),
+        // Interim honest arm so the binary builds for every suite while
+        // the `add-migration-naturality` render polish lands: the head
+        // names the broken square, the witness row carries the values.
+        ViolationWitness::MigrationNaturality(witness) => {
+            let row = |v: &Option<RowId>| {
+                v.map(|r| r.0.to_string())
+                    .unwrap_or_else(|| "none".to_string())
+            };
+            let path = witness
+                .path
+                .iter()
+                .map(|a| a.0.as_str())
+                .collect::<Vec<_>>()
+                .join(" ; ");
+            vec![
+                format!(
+                    "violation: migration naturality {} ; {} ≠ {} ; migrate{label}",
+                    witness.operation.0, path, path
+                ),
+                format!(
+                    "  at row #{}: lhs={} rhs={}",
+                    witness.source_row.0,
+                    row(&witness.lhs),
+                    row(&witness.rhs)
+                ),
+            ]
+        }
     }
 }
 
@@ -256,16 +320,6 @@ fn render_naturality_violation(w: &NaturalityWitness, schema: &Schema, label: &s
     ]
 }
 
-/// A composed naturality value as the transcript spells it: `Object#n`
-/// when resolved, `unresolved` when the composition has no value.
-fn naturality_value(object: Option<&str>, value: Option<RowId>) -> String {
-    match (object, value) {
-        (Some(name), Some(row)) => format!("{name}#{}", row.0),
-        (_, Some(row)) => row.0.to_string(),
-        _ => "unresolved".to_string(),
-    }
-}
-
 /// The §5 equation-violation block.
 fn render_equation_violation(w: &EquationWitness, schema: &Schema, label: &str) -> Vec<String> {
     let equation = schema.equations.get(w.equation);
@@ -322,61 +376,6 @@ fn render_dangling(w: &DanglingWitness, schema: &Schema, label: &str) -> Vec<Str
     let head = format!("dangling: arrow {}{}", w.arrow.0, label);
     let src_object = schema.arrows.get(&w.arrow).map(|a| a.src.0.as_str());
     vec![head, format!("  at row {}", row_at(src_object, w.src))]
-}
-
-/// The epistemic label as rendered text: the kernel-computed default
-/// (`executed`) stays off the human line so the §5 transcript is
-/// byte-reproducible; the other weights append their label.
-fn label_suffix(label: EpistemicLabel) -> String {
-    match label {
-        EpistemicLabel::Executed => String::new(),
-        EpistemicLabel::Hypothesized => " (hypothesized)".to_string(),
-        EpistemicLabel::Unknown => " (unknown)".to_string(),
-    }
-}
-
-/// A path as the transcript spells it: the arrow names in composition
-/// order joined with `∘`.
-pub fn path_string(path: &Path) -> String {
-    arrows_string(&path.0)
-}
-
-/// An arrow sequence as the transcript spells it: names joined with `∘`.
-fn arrows_string(arrows: &[Ident]) -> String {
-    arrows
-        .iter()
-        .map(|ident| ident.0.as_str())
-        .collect::<Vec<_>>()
-        .join("∘")
-}
-
-/// An arrow list as a declaration spells it: names joined with `, ` (a
-/// leg/cospan list is a relation, not a composed path).
-fn arrow_list(arrows: &[Ident]) -> String {
-    arrows
-        .iter()
-        .map(|ident| ident.0.as_str())
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-/// A row as the transcript spells it: `Object#n` when the object is
-/// known from the schema, the bare number otherwise (totality).
-fn row_at(object: Option<&str>, row: RowId) -> String {
-    match object {
-        Some(name) => format!("{name}#{}", row.0),
-        None => row.0.to_string(),
-    }
-}
-
-/// The composed path's domain: its lead arrow's src.
-fn path_domain<'a>(schema: &'a Schema, path: &Path) -> Option<&'a str> {
-    schema.arrows.get(path.0.first()?).map(|a| a.src.0.as_str())
-}
-
-/// The composed path's codomain: its last arrow's tgt.
-fn path_codomain<'a>(schema: &'a Schema, path: &Path) -> Option<&'a str> {
-    schema.arrows.get(path.0.last()?).map(|a| a.tgt.0.as_str())
 }
 
 #[cfg(test)]

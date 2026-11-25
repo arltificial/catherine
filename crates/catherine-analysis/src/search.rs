@@ -347,6 +347,7 @@ mod tests {
             keys: Vec::new(),
             coproducts: Vec::new(),
             pullbacks: Vec::new(),
+            stored: BTreeMap::new(),
         }
     }
 

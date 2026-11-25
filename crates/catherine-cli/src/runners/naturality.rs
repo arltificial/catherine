@@ -16,7 +16,7 @@
 use super::{print_run_warnings, schema_mismatch};
 use crate::render::{self, LabeledError};
 use crate::run::{emit_error, exit_code, load_model_with_rows, write_envelope};
-use catherine_analysis::naturality::{self, NaturalityError, NaturalityOutcome};
+use catherine_analysis::naturality::{self, MigrationError, NaturalityError};
 use catherine_core::findings::Finding;
 use catherine_core::model::{Model, Schema};
 use catherine_core::parse::RowNames;
@@ -38,28 +38,97 @@ pub fn run_naturality(
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> i32 {
-    crate::composition::warn_duplicate_inputs(
-        &[model_path, second_path],
-        json,
-        &mut warnings,
-        stderr,
-    );
-    let (source, source_names) = match load_model_with_rows(model_path) {
-        Ok(pair) => pair,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
+    crate::composition::warn_duplicate_inputs(&[model_path, second_path], json, &mut warnings, stderr);
+    let Ok((source, source_names, target, target_names, warnings)) =
+        load_both_documents(model_path, second_path, json, warnings, stdout, stderr)
+    else {
+        return 1;
     };
-    let (target, target_names) = match load_model_with_rows(second_path) {
-        Ok(pair) => pair,
-        Err(labeled) => return emit_error(&labeled, json, warnings, stdout, stderr),
-    };
+    // Migration mode (catherine-kw9.2): a source with a declared
+    // `schema_map` is a Δ migration — the second document must match the
+    // map's declared target schema, and the sweep commutes operations
+    // through the row migration. Without a `schema_map`, the classic
+    // same-schema instance-map naturality applies unchanged.
+    if let Some(schema_map) = &source.schema_map {
+        return run_migration_naturality(
+            &source, &source_names, &target, &target_names, second_path,
+            schema_map, json, quiet, warnings, stdout, stderr,
+        );
+    }
     if let Some(labeled) = schema_mismatch(&target.schema, &source.schema, second_path) {
         return emit_error(&labeled, json, warnings, stdout, stderr);
     }
     naturality_outcome(
-        &source,
-        &source_names,
-        &target,
-        &target_names,
+        &source, &source_names, &target, &target_names, second_path,
+        json, quiet, warnings, stdout, stderr,
+    )
+}
+
+/// Loads both documents up front (the classic path's paired loads).
+/// A load failure emits its labeled error through the shared
+/// `emit_error` path — which consumes the warnings — and yields `Err`;
+/// success hands the warnings back untouched (exit code identical:
+/// `emit_error` always exits 1).
+#[allow(clippy::type_complexity)]
+fn load_both_documents(
+    model_path: &str,
+    second_path: &str,
+    json: bool,
+    warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> Result<
+    (
+        catherine_core::model::Model,
+        catherine_core::parse::RowNames,
+        catherine_core::model::Model,
+        catherine_core::parse::RowNames,
+        Vec<Warning>,
+    ),
+    (),
+> {
+    let (source, source_names) = match load_model_with_rows(model_path) {
+        Ok(pair) => pair,
+        Err(labeled) => {
+            emit_error(&labeled, json, warnings, stdout, stderr);
+            return Err(());
+        }
+    };
+    let (target, target_names) = match load_model_with_rows(second_path) {
+        Ok(pair) => pair,
+        Err(labeled) => {
+            emit_error(&labeled, json, warnings, stdout, stderr);
+            return Err(());
+        }
+    };
+    Ok((source, source_names, target, target_names, warnings))
+}
+
+/// The migration dispatch branch (catherine-kw9.2): the second document
+/// must match the declared `schema_map`'s target schema, then the sweep
+/// commutes operations through the row migration.
+#[allow(clippy::too_many_arguments)]
+fn run_migration_naturality(
+    source: &Model,
+    source_names: &RowNames,
+    target: &Model,
+    target_names: &RowNames,
+    second_path: &str,
+    schema_map: &catherine_core::model::SchemaMap,
+    json: bool,
+    quiet: bool,
+    warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> i32 {
+    if let Some(labeled) = schema_mismatch(&target.schema, &schema_map.target, second_path) {
+        return emit_error(&labeled, json, warnings, stdout, stderr);
+    }
+    migration_naturality_outcome(
+        source,
+        source_names,
+        target,
+        target_names,
         second_path,
         json,
         quiet,
@@ -67,6 +136,45 @@ pub fn run_naturality(
         stdout,
         stderr,
     )
+}
+
+/// The migration-mode post-load outcome (catherine-kw9.2): absent
+/// instance map → warning, resolution failure → labeled error,
+/// otherwise migration findings through the shared render path.
+#[allow(clippy::too_many_arguments)]
+fn migration_naturality_outcome(
+    source: &Model,
+    source_names: &RowNames,
+    target: &Model,
+    target_names: &RowNames,
+    second_path: &str,
+    json: bool,
+    quiet: bool,
+    mut warnings: Vec<Warning>,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> i32 {
+    if source.instance_map.is_none() {
+        return missing_map(source, json, quiet, warnings, stdout, stderr);
+    }
+    match naturality::migration_naturality(source, target, source_names, target_names) {
+        Ok(outcome) => {
+            warn_undefined_squares(&outcome.undefined, &mut warnings);
+            render_findings(
+                &outcome.findings,
+                &source.schema,
+                json,
+                quiet,
+                warnings,
+                stdout,
+                stderr,
+            )
+        }
+        Err(error) => {
+            let labeled = migration_naturality_error(&error, second_path);
+            emit_error(&labeled, json, warnings, stdout, stderr)
+        }
+    }
 }
 
 /// The post-load outcome: absent map → warning, resolution failure →
@@ -89,7 +197,7 @@ fn naturality_outcome(
     }
     match naturality::naturality(source, target, source_names, target_names) {
         Ok(outcome) => {
-            warn_undefined_squares(&outcome, &mut warnings);
+            warn_undefined_squares(&outcome.undefined, &mut warnings);
             render_findings(
                 &outcome.findings,
                 &source.schema,
@@ -112,8 +220,8 @@ fn naturality_outcome(
 
 /// Name every square undefined on both sides on the warnings channel; the
 /// warning never changes the exit class (findings alone decide it).
-fn warn_undefined_squares(outcome: &NaturalityOutcome, warnings: &mut Vec<Warning>) {
-    for square in &outcome.undefined {
+fn warn_undefined_squares(undefined: &[naturality::UndefinedSquare], warnings: &mut Vec<Warning>) {
+    for square in undefined {
         warnings.push(render::unresolved_naturality_square_warning(
             &square.arrow.0,
             square.source_row.0,
@@ -159,41 +267,97 @@ fn render_findings(
     exit_code(findings)
 }
 
-/// A construction-time resolution failure as the CLI's labeled error:
-/// `unknown_map_target` naming the object, the mapped source row, and the
-/// missing target row.
+/// The migration-mode labeled errors (catherine-kw9.2): the same
+/// map-resolution refusals as the same-schema sweep, plus the absent
+/// `schema_map` refusal (unreachable through the dispatch branch, which
+/// requires the map — kept for totality of the analysis error type).
+fn migration_naturality_error(error: &MigrationError, second_path: &str) -> LabeledError {
+    match error {
+        MigrationError::UnknownMapTarget {
+            object,
+            source_row,
+            target_row,
+        } => unknown_map_target_error(object, source_row, target_row, second_path),
+        MigrationError::IncompleteInstanceMap { object, row } => {
+            incomplete_instance_map_error(object, row)
+        }
+        MigrationError::MissingSchemaMap => missing_schema_map_error(),
+        MigrationError::MissingInstanceMap => missing_instance_map_error(),
+    }
+}
+
+/// The shared `unknown_map_target` arm constructor: the same wording for
+/// the same-schema sweep and the migration sweep.
+fn unknown_map_target_error(
+    object: &catherine_core::model::Ident,
+    source_row: &str,
+    target_row: &str,
+    second_path: &str,
+) -> LabeledError {
+    LabeledError {
+        code: "unknown_map_target".to_string(),
+        line: None,
+        column: None,
+        message: format!(
+            "instance map cell for `{}` row `{source_row}` names target row `{target_row}`, which `{second_path}` does not declare",
+            object.0
+        ),
+        hint: "map every source row to a row the target instance declares, or fix the target document",
+    }
+}
+
+/// The shared `incomplete_instance_map` arm constructor.
+fn incomplete_instance_map_error(
+    object: &catherine_core::model::Ident,
+    row: &catherine_core::model::RowId,
+) -> LabeledError {
+    LabeledError {
+        code: "incomplete_instance_map".to_string(),
+        line: None,
+        column: None,
+        message: format!(
+            "instance map does not cover row #{} of `{}`",
+            row.0, object.0
+        ),
+        hint: "map every row of every schema object; the map must be total",
+    }
+}
+
+/// The shared `missing_instance_map` arm constructor.
+fn missing_instance_map_error() -> LabeledError {
+    LabeledError {
+        code: "missing_instance_map".to_string(),
+        line: None,
+        column: None,
+        message: "the source document declares no `instance_map`".to_string(),
+        hint: "add an `instance_map` section to the source document (format 1.4)",
+    }
+}
+
+/// The migration-only `missing_schema_map` arm: the source document
+/// declares no `schema_map`.
+fn missing_schema_map_error() -> LabeledError {
+    LabeledError {
+        code: "missing_schema_map".to_string(),
+        line: None,
+        column: None,
+        message: "the source document declares no `schema_map`".to_string(),
+        hint: "add a `schema_map` section to the source document (format 1.1) naming the Δ migration",
+    }
+}
+
+/// The labeled errors for the same-schema sweep: `unknown_map_target`
+/// naming the object, the mapped source row, and the missing target row.
 fn naturality_error(error: &NaturalityError, second_path: &str) -> LabeledError {
     match error {
         NaturalityError::UnknownMapTarget {
             object,
             source_row,
             target_row,
-        } => LabeledError {
-            code: "unknown_map_target".to_string(),
-            line: None,
-            column: None,
-            message: format!(
-                "instance map cell for `{}` row `{source_row}` names target row `{target_row}`, which `{second_path}` does not declare",
-                object.0
-            ),
-            hint: "map every source row to a row the target instance declares, or fix the target document",
-        },
-        NaturalityError::MissingInstanceMap => LabeledError {
-            code: "missing_instance_map".to_string(),
-            line: None,
-            column: None,
-            message: "the source document declares no `instance_map`".to_string(),
-            hint: "add an `instance_map` section to the source document (format 1.4)",
-        },
-        NaturalityError::IncompleteInstanceMap { object, row } => LabeledError {
-            code: "incomplete_instance_map".to_string(),
-            line: None,
-            column: None,
-            message: format!(
-                "instance map does not cover row #{} of `{}`",
-                row.0, object.0
-            ),
-            hint: "map every row of every schema object; the map must be total",
-        },
+        } => unknown_map_target_error(object, source_row, target_row, second_path),
+        NaturalityError::MissingInstanceMap => missing_instance_map_error(),
+        NaturalityError::IncompleteInstanceMap { object, row } => {
+            incomplete_instance_map_error(object, row)
+        }
     }
 }

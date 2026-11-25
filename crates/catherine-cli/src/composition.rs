@@ -6,7 +6,12 @@
 //! maps a kernel composition failure onto the CLI's labeled error, and
 //! returns the [`Glued`] model; [`sourced`] pairs each finding with the
 //! documents that declared its violated constraint and referenced paths;
-//! [`render_sourced`] renders those findings with a source line.
+//! [`render_sourced`] renders those findings with a source line; the
+//! [`merge`] submodule merges two models along their shared sub-schema,
+//! downgrading shared-entity identity conflicts to UNKNOWN-labeled merge
+//! cells whose witnesses name both conflicting sides (anti-goal: never
+//! silently place an unplaceable cell — the UNKNOWN witness is the
+//! feature, and clean merges carry no spurious labels).
 //!
 //! Rationale: composition is one execution path over the kernel's checked
 //! pushout (design Decision 1) — the CLI never re-implements the merge.
@@ -23,6 +28,8 @@ use catherine_core::findings::{DomainQuestion, Finding, FindingKind, ViolationWi
 use catherine_core::model::Schema;
 use genesis::envelope::Warning;
 use std::io::Write;
+
+pub mod merge;
 
 /// Read, parse, and glue every input path once. Read failures are
 /// `read_error`; document failures keep the kernel's code and position;
@@ -105,25 +112,7 @@ pub(crate) fn sourced(findings: Vec<Finding>, glued: &Glued) -> Vec<SourcedFindi
 /// referenced paths.
 fn sources_for(finding: &Finding, glued: &Glued) -> Option<Vec<String>> {
     let sources = match &finding.kind {
-        FindingKind::Violation(ViolationWitness::Equation(witness)) => glued
-            .equation_sources
-            .get(witness.equation)
-            .map(equation_docs),
-        FindingKind::Violation(ViolationWitness::Key(witness)) => {
-            glued.key_sources.get(witness.key).map(key_docs)
-        }
-        FindingKind::Violation(ViolationWitness::Naturality(witness)) => glued
-            .arrow_sources
-            .get(&witness.arrow)
-            .map(|sources| dedup(sources)),
-        FindingKind::Violation(ViolationWitness::Coproduct(witness)) => glued
-            .coproduct_sources
-            .get(witness.coproduct)
-            .map(coproduct_docs),
-        FindingKind::Violation(ViolationWitness::Pullback(witness)) => glued
-            .pullback_sources
-            .get(witness.pullback())
-            .map(pullback_docs),
+        FindingKind::Violation(witness) => violation_sources(witness, glued),
         FindingKind::Dangling(witness) => glued
             .arrow_sources
             .get(&witness.arrow)
@@ -136,8 +125,39 @@ fn sources_for(finding: &Finding, glued: &Glued) -> Option<Vec<String>> {
             Some(path_docs(&witness.derivable, &witness.reducing, glued))
         }
         FindingKind::Contradiction(witness) => Some(contradiction_docs(&witness.scope, glued)),
+        // The granularity lint questions the whole glued model's shape
+        // (ticket `catherine-kw9.3`), not one declaring document.
+        FindingKind::Granularity(_) => None,
     };
     sources.filter(|documents| !documents.is_empty())
+}
+
+/// The violation witness's sources, one arm per witness shape; the
+/// lookup is by the violated declaration's canonical index.
+fn violation_sources(witness: &ViolationWitness, glued: &Glued) -> Option<Vec<String>> {
+    match witness {
+        ViolationWitness::Equation(witness) => glued
+            .equation_sources
+            .get(witness.equation)
+            .map(equation_docs),
+        ViolationWitness::Key(witness) => glued.key_sources.get(witness.key).map(key_docs),
+        ViolationWitness::Naturality(witness) => glued
+            .arrow_sources
+            .get(&witness.arrow)
+            .map(|sources| dedup(sources)),
+        ViolationWitness::Coproduct(witness) => glued
+            .coproduct_sources
+            .get(witness.coproduct)
+            .map(coproduct_docs),
+        ViolationWitness::Pullback(witness) => glued
+            .pullback_sources
+            .get(witness.pullback())
+            .map(pullback_docs),
+        // The migration-naturality witness has no glue side table yet; its
+        // attribution belongs to the migration-naturality surface, so no
+        // source line is fabricated here.
+        ViolationWitness::MigrationNaturality(_) => None,
+    }
 }
 
 /// An equation's declaring document plus the documents behind each path.

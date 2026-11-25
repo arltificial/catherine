@@ -185,6 +185,36 @@ pub enum Commands {
         /// Path to the target model document (same schema).
         second: String,
     },
+    /// Agreement: compare two instance documents over their shared
+    /// sub-schema. Rows are matched by presentation name per shared
+    /// object; arrows are shared only when name, source, and target all
+    /// match. Equal keys with equal projected values are silent — as is
+    /// partial overlap (rows or keys present on only one side are NOT
+    /// findings; agreement is not completeness). Every mismatch emits one
+    /// disagreement witness naming entity, key, arrow, and both values
+    /// (exit 3). Never merges or mutates either instance.
+    #[command(after_help = EXIT_CODE_TABLE)]
+    Agree {
+        /// Path to the first .ct.json instance document.
+        model: String,
+        /// Path to the second .ct.json instance document.
+        second: String,
+    },
+    /// Merge: glue two model documents along their shared sub-schema
+    /// (kernel pushout). A clean or partial merge (one side lacks the
+    /// shared entity) reports the merged model and exits 0. A shared
+    /// identity conflict — the same arrow or object name declared with
+    /// incompatible endpoints/types on both sides — is never silently
+    /// placed: it yields one UNKNOWN-labeled merge cell whose witness
+    /// names both conflicting declarations (exit 3). The tool never
+    /// auto-resolves a conflict.
+    #[command(after_help = EXIT_CODE_TABLE)]
+    Merge {
+        /// Path to the left .ct.json model document.
+        left: String,
+        /// Path to the right .ct.json model document.
+        right: String,
+    },
     /// Schema diff: classify a v1→v2 schema edit on the *enforced*
     /// constraints — cosmetic (presentation only: zero findings),
     /// accreted (constraints only added), weakened (a constraint is no

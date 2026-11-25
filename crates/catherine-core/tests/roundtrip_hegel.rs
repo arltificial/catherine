@@ -31,6 +31,7 @@
 mod model_fixture;
 
 use catherine_core::canonical::{canonical_bytes, serialize};
+use std::collections::BTreeMap;
 use catherine_core::hash::model_hash;
 use catherine_core::model::{Ident, Instance, Model, RowId, Schema, Version};
 use catherine_core::parse::parse;
@@ -133,6 +134,7 @@ fn cycle_model(n: usize) -> Model {
             keys: Vec::new(),
             coproducts: Vec::new(),
             pullbacks: Vec::new(),
+            stored: BTreeMap::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("a", n)]),
@@ -158,6 +160,7 @@ fn involution_model(n: usize) -> Model {
             keys: Vec::new(),
             coproducts: Vec::new(),
             pullbacks: Vec::new(),
+            stored: BTreeMap::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("p", n), ("q", n)]),
@@ -187,6 +190,7 @@ fn twins_model(n: usize) -> Model {
             keys: Vec::new(),
             coproducts: Vec::new(),
             pullbacks: Vec::new(),
+            stored: BTreeMap::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("a", n)]),
@@ -210,6 +214,7 @@ fn collapse_model(n: usize) -> Model {
             keys: Vec::new(),
             coproducts: Vec::new(),
             pullbacks: Vec::new(),
+            stored: BTreeMap::new(),
         },
         instance: Instance {
             rows: dense_rows(&[("a", n)]),

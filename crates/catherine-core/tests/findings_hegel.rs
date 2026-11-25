@@ -148,6 +148,10 @@ fn assert_kernel_witness_sound(schema: &Schema, built: &TypedInstance, finding: 
             panic!("check never emits naturality witnesses");
         }
 
+        FindingKind::Violation(ViolationWitness::MigrationNaturality(_)) => {
+            panic!("check never emits migration-naturality witnesses");
+        }
+
         FindingKind::Violation(ViolationWitness::Coproduct(w)) => {
             assert_coproduct_witness_sound(schema, built, finding.label, w)
         }
@@ -167,7 +171,10 @@ fn assert_kernel_witness_sound(schema: &Schema, built: &TypedInstance, finding: 
         }
         FindingKind::Redundant(_)
         | FindingKind::Contradiction(_)
-        | FindingKind::Underconstraint(_) => {
+        | FindingKind::Underconstraint(_)
+        // The granularity lint is CLI-side over the loaded model
+        // (ticket `catherine-kw9.3`); the kernel `check` never emits it.
+        | FindingKind::Granularity(_) => {
             panic!(
                 "the analysis kinds have no kernel producer (P4's), got {:?}",
                 finding.kind

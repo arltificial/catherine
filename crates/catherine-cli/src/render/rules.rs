@@ -19,7 +19,8 @@
 
 use super::{path_string, CLI_VERSION};
 use catherine_core::findings::{
-    ContradictionWitness, DomainQuestion, Finding, FindingKind, PullbackWitness, ViolationWitness,
+    ContradictionWitness, DomainQuestion, Finding, FindingKind, GranularityCase, PullbackWitness,
+    ViolationWitness,
 };
 use catherine_core::model::RulePresentation;
 use catherine_core::rule_lens::RuleScope;
@@ -112,8 +113,24 @@ fn finding_line(finding: &Finding, presentation: &RulePresentation) -> String {
             "dangling: arrow {} at row #{}",
             witness.arrow.0, witness.src.0
         ),
+        FindingKind::Granularity(witness) => granularity_head(&witness.case, witness.arrows.len()),
     };
     format!("{head}{}", label_suffix(finding))
+}
+
+/// The rule-lens line's granularity head (ticket `catherine-kw9.3`):
+/// the calibrated shape facts, so the line stays total over every
+/// finding kind the shared path can deliver.
+fn granularity_head(case: &GranularityCase, arrows: usize) -> String {
+    match case {
+        GranularityCase::OverCap { cap, rows } => {
+            format!("granularity: {arrows} arrows over {rows} rows exceeds the cap {cap}")
+        }
+        GranularityCase::Unnamed { stored } => format!(
+            "granularity: {arrows} of {} arrows declare no stored column",
+            arrows + stored
+        ),
+    }
 }
 
 /// One violation's line head: an arm per witness shape. The rule lens
@@ -145,6 +162,13 @@ fn violation_head(witness: &ViolationWitness, presentation: &RulePresentation) -
             "violation: pullback-{} {}",
             witness.pullback(),
             pullback_offender(witness)
+        ),
+        // Interim honest arm (see render.rs's matching arm): the rule
+        // lens never emits migration-naturality witnesses, but the line
+        // stays total.
+        ViolationWitness::MigrationNaturality(witness) => format!(
+            "violation: migration naturality {} ; migrate",
+            witness.operation.0
         ),
     }
 }

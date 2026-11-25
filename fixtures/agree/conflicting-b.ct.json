@@ -1,0 +1,12 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["person", "org"],
+    "arrows": [{"name": "works_at", "src": "person", "tgt": "org"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"person": ["p1", "p2", "q9"], "org": ["o1", "o2"]},
+    "tables": {"works_at": {"p1": "o2", "p2": "o2"}}
+  }
+}

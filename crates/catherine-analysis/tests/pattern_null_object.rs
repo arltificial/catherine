@@ -95,6 +95,7 @@ fn check_key(finding: &Finding) -> FindingKey {
         FindingKind::Violation(_) => "violation",
         FindingKind::Dangling(_) => "dangling",
         FindingKind::Redundant(_) => "redundant",
+        FindingKind::Granularity(_) => "granularity",
         FindingKind::Contradiction(_) => "contradiction",
         FindingKind::Underconstraint(_) => "underconstraint",
     };

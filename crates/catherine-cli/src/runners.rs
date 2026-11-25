@@ -25,8 +25,10 @@ use genesis::envelope::Warning;
 use std::collections::BTreeMap;
 use std::io::Write;
 
+mod agree;
 mod naturality;
 mod underconstraint;
+pub use agree::run_agree;
 pub use naturality::run_naturality;
 
 /// catherine-uh0: run-level warnings reach stderr in human mode too —

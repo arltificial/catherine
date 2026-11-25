@@ -1,0 +1,27 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Book", "Copy", "Loan", "Member"],
+    "arrows": [
+      {"name": "copy_of", "src": "Copy", "tgt": "Book"},
+      {"name": "loan_copy", "src": "Loan", "tgt": "Copy"},
+      {"name": "loan_book", "src": "Loan", "tgt": "Book"},
+      {"name": "loan_member", "src": "Loan", "tgt": "Member"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {
+      "Book": ["b1", "b2"],
+      "Copy": ["c1", "c2"],
+      "Loan": ["l1"],
+      "Member": ["m1"]
+    },
+    "tables": {
+      "copy_of": {"c1": "b1", "c2": "b2"},
+      "loan_copy": {"l1": "c1"},
+      "loan_book": {"l1": "b1"},
+      "loan_member": {"l1": "m1"}
+    }
+  }
+}

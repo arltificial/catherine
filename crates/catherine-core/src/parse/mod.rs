@@ -51,7 +51,8 @@ mod spans;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
 use crate::model::{
-    Arrow, Equation, Ident, InstanceMap, Model, RowId, RulePresentation, SchemaMap,
+    Arrow, Coproduct, Equation, Ident, InstanceMap, Key, Model, Pullback, RowId,
+    RulePresentation, SchemaMap,
 };
 use rows::check_rows;
 pub use rows::RowNames;
@@ -61,7 +62,7 @@ use coproducts::check_coproducts;
 pub(crate) use deferred::{parse_deferred, PendingEquations};
 use keys::check_keys;
 use pullbacks::check_pullbacks;
-use schema::{check_arrows, check_equations, check_objects, check_version, RawDoc};
+use schema::{check_arrows, check_equations, check_objects, check_version, RawDoc, RawSchema};
 use serde_error::doc_err;
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
@@ -148,29 +149,64 @@ fn validate_with(
     let objects = check_objects(&schema, spans)?;
     let arrows = check_arrows(&schema, &objects, spans)?;
     let (equations, pending) = resolved_equations(&schema, &arrows, spans, defer_equations)?;
-    let keys = check_keys(&schema, &objects, &arrows, spans)?;
-    let coproducts = check_coproducts(&schema, &objects, &arrows, spans)?;
-    let pullbacks = check_pullbacks(&schema, &objects, &arrows, spans)?;
     let row_index = check_rows(&instance, &objects, spans)?;
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
-    let instance_map = declared_instance_map(&doc.instance_map, &objects, &row_index, spans)?;
-    let schema_map = declared_schema_map(&doc.schema_map, &objects, &arrows, spans)?;
-    let rule_presentation = declared_rule_presentation(&doc.rule_presentation, &objects, spans)?;
-    let (model, rows) = build_model(
-        version,
-        objects,
-        arrows,
-        equations,
-        keys,
-        coproducts,
-        pullbacks,
-        row_index,
-        values,
-        schema_map,
-        rule_presentation,
-        instance_map,
+    let (keys, coproducts, pullbacks) = check_structure(&schema, &objects, &arrows, spans)?;
+    let (instance_map, schema_map, rule_presentation) = declared_additives(
+        &doc.instance_map, &doc.schema_map, &doc.rule_presentation,
+        &objects, &arrows, &row_index, spans,
+    )?;
+    let (mut model, rows) = build_model(
+        version, objects, arrows, equations, keys, coproducts, pullbacks,
+        row_index, values, schema_map, rule_presentation, instance_map,
     );
+    apply_stored(&mut model, schema.stored);
     Ok((model, rows, pending))
+}
+
+/// The three structural checks over the same (schema, objects, arrows)
+/// triple, gathered so `validate_with` stays inside the file-size gate's
+/// per-function cap without changing check order or messages.
+fn check_structure(
+    schema: &RawSchema,
+    objects: &BTreeMap<Ident, ()>,
+    arrows: &BTreeMap<Ident, Arrow>,
+    spans: &Spans,
+) -> Result<(Vec<Key>, Vec<Coproduct>, Vec<Pullback>), ParseError> {
+    let keys = check_keys(schema, objects, arrows, spans)?;
+    let coproducts = check_coproducts(schema, objects, arrows, spans)?;
+    let pullbacks = check_pullbacks(schema, objects, arrows, spans)?;
+    Ok((keys, coproducts, pullbacks))
+}
+
+/// The additive declared sections (1.1 schema map, 1.2 rule presentation,
+/// 1.4 instance map): each checked against the already-validated schema
+/// and row index.
+fn declared_additives(
+    doc_instance_map: &Option<instance_map::RawInstanceMap>,
+    doc_schema_map: &Option<schema_map::RawSchemaMap>,
+    doc_rule_presentation: &Option<rule_presentation::RawRulePresentation>,
+    objects: &BTreeMap<Ident, ()>,
+    arrows: &BTreeMap<Ident, Arrow>,
+    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
+    spans: &Spans,
+) -> Result<(Option<InstanceMap>, Option<SchemaMap>, Option<RulePresentation>), ParseError> {
+    let instance_map = declared_instance_map(doc_instance_map, objects, row_index, spans)?;
+    let schema_map = declared_schema_map(doc_schema_map, objects, arrows, spans)?;
+    let rule_presentation = declared_rule_presentation(doc_rule_presentation, objects, spans)?;
+    Ok((instance_map, schema_map, rule_presentation))
+}
+
+/// Additive `schema.stored` (ticket `catherine-kw9.3`): presentation
+/// metadata for the CLI's granularity lint. Keys naming undeclared
+/// arrows are carried as declared data — the lint reads only the
+/// declared-arrow intersection, so a stale key can never mask a
+/// finding by accident.
+fn apply_stored(model: &mut Model, stored: BTreeMap<String, String>) {
+    model.schema.stored = stored
+        .into_iter()
+        .map(|(arrow, column)| (Ident(arrow), column))
+        .collect();
 }
 
 /// The equation phase: standalone documents run the parser's own resolver

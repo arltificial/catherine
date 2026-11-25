@@ -53,6 +53,7 @@ pub(crate) fn schema(
         keys: Vec::new(),
         coproducts: Vec::new(),
         pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
     }
 }
 

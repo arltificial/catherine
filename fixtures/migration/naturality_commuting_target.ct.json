@@ -1,0 +1,12 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Party"],
+    "arrows": [{"name": "setNamePrime", "src": "Party", "tgt": "Party"}],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Party": ["q1", "q2"]},
+    "tables": {"setNamePrime": {"q1": "q2", "q2": "q2"}}
+  }
+}

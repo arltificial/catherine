@@ -116,6 +116,7 @@ fn schema_for_properties() -> Schema {
         keys: Vec::new(),
         coproducts: Vec::new(),
         pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
     }
 }
 

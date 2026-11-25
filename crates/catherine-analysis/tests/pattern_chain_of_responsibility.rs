@@ -193,6 +193,7 @@ fn check_key(finding: &Finding) -> FindingKey {
         FindingKind::Contradiction(_) => "contradiction",
         FindingKind::Underconstraint(_) => "underconstraint",
         FindingKind::Redundant(_) => "redundant",
+        FindingKind::Granularity(_) => "granularity",
     };
     (kind, label_name(finding.label))
 }

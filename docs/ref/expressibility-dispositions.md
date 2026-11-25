@@ -80,3 +80,23 @@ that lands it, and the suite asserts the live split, never this sentence.
   `add-pullback-checks` were authored with these rows as their flip
   targets; the fixtures for those rows use the planned surface shapes so
   the flip is one table cell, not a fixture rewrite.
+
+## Refused capabilities (ct-math-foundations wave)
+
+Registered 2026-11-25 from the ct-math-foundations wave refuse-list: CT
+formalisms with no known production system, no known production need, or
+an annotation burden that outruns the value. These five rows are `gap`
+rows registered as prose on purpose — the runner parses every `|`-line
+in this file as an executable-case row, and a refusal ships no case, so
+a pipe row here would fail the suite it cannot serve. The evidence
+anchor of each row is the refuse-list entry it registers; re-opening
+follows the flip protocol with the probes registry's floor-control
+precedent (`ledger/probes/composition/0001-21c04966.json`): land the
+capability, register a control that self-negates, then move the row
+into the table above.
+
+- `temporal-agreement-machinery` | 2026-11-25 | ct-math-foundations wave, `ak/ryan archive/catitas/data/raw/ct-math-foundations/WAVE.md` + provider report | temporal/bitemporal agreement machinery | gap | Missing: a temporal/bitemporal agreement declaration the checker executes; refused by the wave, no case ships (anchor: `WAVE.md` refuse-list entry "temporal/bitemporal agreement machinery")
+- `ltl-transition-contracts` | 2026-11-25 | ct-math-foundations wave, `ak/ryan archive/catitas/data/raw/ct-math-foundations/WAVE.md` + provider report | LTL transition contracts | gap | Missing: a linear-temporal transition contract language over schema paths and instance rows; refused by the wave, no case ships (anchor: `WAVE.md` refuse-list entry "LTL transition contracts")
+- `provenance-semirings` | 2026-11-25 | ct-math-foundations wave, `ak/ryan archive/catitas/data/raw/ct-math-foundations/WAVE.md` + provider report | provenance semirings | gap | Missing: a provenance semiring over computed cells with executable algebraic laws; refused by the wave, no case ships (anchor: `WAVE.md` refuse-list entry "provenance semirings")
+- `sheaf-site-machinery` | 2026-11-25 | ct-math-foundations wave, `ak/ryan archive/catitas/data/raw/ct-math-foundations/WAVE.md` + provider report | full sheaf/site-theoretic machinery (speculative over compatible-local-knowledge) | gap | Missing: sheaf/site-theoretic machinery (sections, gluing, site coverage) over instance knowledge; refused by the wave as speculative, no case ships (anchor: `WAVE.md` refuse-list entry "full sheaf/site-theoretic machinery")
+- `dependent-refinement-types` | 2026-11-25 | ct-math-foundations wave, `ak/ryan archive/catitas/data/raw/ct-math-foundations/WAVE.md` + provider report | dependent/refinement types for schema constraints | gap | Missing: dependent/refinement types for schema constraints with checked refinement predicates; refused by the wave, no case ships (anchor: `WAVE.md` refuse-list entry "dependent/refinement types for schema constraints")

@@ -184,6 +184,7 @@ pub fn assemble(case: &FixtureCase) -> (Schema, Instance) {
             keys: Vec::new(),
             coproducts: Vec::new(),
             pullbacks: Vec::new(),
+            stored: BTreeMap::new(),
         },
         Instance {
             rows: rows_of(&case.row_counts),

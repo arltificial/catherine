@@ -261,6 +261,15 @@ pub fn glue(documents: &[Document]) -> Result<Glued, CompositionError> {
     let (coproducts, coproduct_sources) =
         resolve::merge_coproducts(documents, &parts.arrow_sources);
     let (pullbacks, pullback_sources) = resolve::merge_pullbacks(documents, &parts.arrow_sources);
+    // The declared storing columns merge as declared data (ticket
+    // `catherine-kw9.3`): first declaration wins, in input declaration
+    // order, so the union is deterministic.
+    let mut stored = BTreeMap::new();
+    for document in documents {
+        for (arrow, column) in &document.model.schema.stored {
+            stored.entry(arrow.clone()).or_insert_with(|| column.clone());
+        }
+    }
     Ok(Glued {
         schema: Schema {
             objects: parts.objects,
@@ -269,6 +278,7 @@ pub fn glue(documents: &[Document]) -> Result<Glued, CompositionError> {
             keys,
             coproducts,
             pullbacks,
+            stored,
         },
         instance,
         empty_interface: interface::empty_interface(documents),

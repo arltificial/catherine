@@ -1,7 +1,11 @@
 //! Purpose: the declared instance-map commutation check (openspec change
 //! `add-instance-morphism`, task 6) — execute a source document's
-//! `instance_map` against a target instance of the identical schema and
-//! report each failing commutation square as a witness-bearing finding.
+//! [`naturality`], and the declared Δ-migration commutation check
+//! (catherine-kw9.2) — verify that migrate-then-operate equals
+//! operate-then-migrate: for every source operation `o` and its Δ
+//! target path `m`, `migrate ∘ o` must equal `m ∘ migrate` on every
+//! migrated row ([`migration_naturality`]), each breaking square
+//! reported as a witness-bearing finding.
 //!
 //! Responsibilities: require the source map (an absent one is a caller
 //! concern, reported as [`NaturalityError::MissingInstanceMap`]), resolve
@@ -14,7 +18,10 @@
 //! sides — a dangling cell lies on each composition — is not a clean
 //! result: it is reported separately in [`NaturalityOutcome::undefined`]
 //! so the caller can warn instead of claiming a verified clean. No new
-//! finding kinds are introduced.
+//! finding kinds are introduced; the migration sweep emits the additive
+//! `MigrationNaturality` violation witness, naming the failing
+//! operation pair (the source operation and its Δ path) and both
+//! composed result rows.
 //!
 //! Rationale: design Decisions 2-4 — malformed claims are labeled errors
 //! before any check runs, breaks are violations with a witness (the
@@ -24,7 +31,8 @@
 //! the parser deliberately preserves them as data.
 
 use catherine_core::findings::{
-    EpistemicLabel, Finding, FindingKind, NaturalityWitness, ViolationWitness,
+    EpistemicLabel, Finding, FindingKind, NaturalityWitness,
+    ViolationWitness,
 };
 use catherine_core::model::{Ident, InstanceMap, Model, RowId};
 use catherine_core::parse::RowNames;
@@ -144,7 +152,7 @@ fn resolve_map(
 }
 
 /// One source row's presentation name, for the construction-time error.
-fn source_row_name(source_names: &RowNames, object: &Ident, row: RowId) -> String {
+pub(crate) fn source_row_name(source_names: &RowNames, object: &Ident, row: RowId) -> String {
     source_names
         .get(object)
         .and_then(|names| names.get(row.0))
@@ -234,7 +242,7 @@ fn square(
 
 /// One arrow's image at a row of another instance's object; `None` for a
 /// dangling cell or an out-of-space row.
-fn arrow_image(document: &Model, arrow_name: &Ident, row: Option<RowId>) -> Option<RowId> {
+pub(crate) fn arrow_image(document: &Model, arrow_name: &Ident, row: Option<RowId>) -> Option<RowId> {
     row.and_then(|row| {
         document
             .instance
@@ -245,3 +253,6 @@ fn arrow_image(document: &Model, arrow_name: &Ident, row: Option<RowId>) -> Opti
             .flatten()
     })
 }
+
+pub use crate::naturality_migration::{migration_naturality, MigrationError, MigrationOutcome};
+

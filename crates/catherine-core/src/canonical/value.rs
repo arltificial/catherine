@@ -31,26 +31,25 @@ pub fn canonical_value(model: &Model) -> Value {
         ("instance", instance_value(model)),
         ("schema", schema_value(model)),
     ];
-    // The additive 1.1 section is emitted only when present: absent
-    // sections are invisible to canonical bytes, so pre-map documents
-    // keep their pre-map identity (the ledger's content addressing).
+    add_additive_sections(model, &mut sections);
+    obj_vec(sections)
+}
+
+/// The additive sections (1.1 `schema_map`, 1.2 `rule_presentation`, 1.4
+/// `instance_map`), emitted only when present (non-empty for the map):
+/// earlier documents keep their identity (the ledger's content addressing).
+fn add_additive_sections(model: &Model, sections: &mut Vec<(&str, Value)>) {
     if let Some(map) = &model.schema_map {
         sections.push(("schema_map", schema_map_value(map)));
     }
-    // The additive 1.2 section is likewise emitted only when present, so
-    // pre-rule documents keep their pre-rule identity.
     if let Some(presentation) = &model.rule_presentation {
         sections.push(("rule_presentation", rule_presentation_value(presentation)));
     }
-    // The additive 1.4 section is emitted only when present and non-empty:
-    // an absent or empty map is invisible to canonical bytes, so
-    // pre-instance-map documents keep their identity.
     if let Some(map) = &model.instance_map {
         if !map.maps.is_empty() {
             sections.push(("instance_map", instance_map_value(map)));
         }
     }
-    obj_vec(sections)
 }
 
 /// The canonical `instance_map` section: entries in object order, each
@@ -117,13 +116,9 @@ fn schema_value(model: &Model) -> Value {
 }
 
 /// The canonical `schema` section: sorted objects, arrows, equations,
-/// keys, coproducts, and pullbacks (equations, keys, coproducts, and
-/// pullbacks sorted by their canonical sort keys — the parser already
-/// stores them sorted, but constructed values must serialize the same
-/// way, specodelic's `schema_export` discipline). An empty key, coproduct,
-/// or pullback list is omitted entirely: pre-1.3, pre-1.5, and pre-1.6
-/// documents keep their exact canonical bytes and hash (design
-/// Decision 1).
+/// keys, coproducts, and pullbacks (sorted by canonical sort key;
+/// empty key/coproduct/pullback/stored lists omitted — hash-neutral,
+/// design Decision 1).
 fn schema_section(schema: &Schema) -> Value {
     let mut equations: Vec<&Equation> = schema.equations.iter().collect();
     equations.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
@@ -141,11 +136,22 @@ fn schema_section(schema: &Schema) -> Value {
         ("arrows", Value::Array(arrows)),
         ("equations", Value::Array(equation_values)),
     ];
+    entries.extend(optional_entries(&keys, coproducts, pullbacks));
+    // Additive `schema.stored` (ticket `catherine-kw9.3`); omitted when empty.
+    entries.extend(stored_entry(schema));
+    obj_vec(entries)
+}
+
+/// The canonical key, coproduct, and pullback entries (omitted when
+/// empty).
+fn optional_entries(
+    keys: &[&Key],
+    coproducts: Vec<Value>,
+    pullbacks: Vec<Value>,
+) -> Vec<(&'static str, Value)> {
+    let mut entries = Vec::new();
     if !keys.is_empty() {
-        entries.push((
-            "keys",
-            Value::Array(keys.iter().map(|key| key_value(key)).collect()),
-        ));
+        entries.push(("keys", Value::Array(keys.iter().map(|key| key_value(key)).collect())));
     }
     if !coproducts.is_empty() {
         entries.push(("coproducts", Value::Array(coproducts)));
@@ -153,7 +159,23 @@ fn schema_section(schema: &Schema) -> Value {
     if !pullbacks.is_empty() {
         entries.push(("pullbacks", Value::Array(pullbacks)));
     }
-    obj_vec(entries)
+    entries
+}
+
+/// The additive `schema.stored` entry (`None` when empty).
+fn stored_entry(schema: &Schema) -> Option<(&'static str, Value)> {
+    (!schema.stored.is_empty()).then(|| {
+        (
+            "stored",
+            Value::Object(
+                schema
+                    .stored
+                    .iter()
+                    .map(|(arrow, column)| (arrow.0.clone(), string(column)))
+                    .collect(),
+            ),
+        )
+    })
 }
 
 /// The canonical arrow entries, in sorted name order.

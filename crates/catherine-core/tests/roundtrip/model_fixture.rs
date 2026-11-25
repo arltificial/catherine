@@ -26,6 +26,7 @@ use catherine_core::model::{
     Arrow, ConstraintStatus, Equation, Ident, Instance, Model, Path, RowId, Schema, Version,
 };
 use hegel::generators as gs;
+use std::collections::BTreeMap;
 
 /// Object names: `[A-Za-z_][A-Za-z0-9_]{0,7}`, made unique by the set
 /// draw in `arb_model`.
@@ -135,6 +136,7 @@ fn build_model(
             keys: Vec::new(),
             coproducts: Vec::new(),
             pullbacks: Vec::new(),
+            stored: BTreeMap::new(),
         },
         instance: Instance { rows, values },
         schema_map: None,

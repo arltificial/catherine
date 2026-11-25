@@ -68,6 +68,7 @@ fn schema(coproducts: Vec<Coproduct>) -> Schema {
         keys: Vec::new(),
         coproducts,
         pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
     }
 }
 

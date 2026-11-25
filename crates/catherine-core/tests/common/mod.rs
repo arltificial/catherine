@@ -90,6 +90,7 @@ fn schema_of(doc: &Value) -> Result<Schema, String> {
         keys: Vec::new(),
         coproducts: Vec::new(),
         pullbacks: Vec::new(),
+        stored: BTreeMap::new(),
     })
 }
 

@@ -1,0 +1,37 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Book", "Copy", "Loan", "Member"],
+    "arrows": [
+      {"name": "copy_of", "src": "Copy", "tgt": "Book"},
+      {"name": "loan_copy", "src": "Loan", "tgt": "Copy"},
+      {"name": "loan_book", "src": "Loan", "tgt": "Book"},
+      {"name": "loan_member", "src": "Loan", "tgt": "Member"}
+    ],
+    "equations": [
+      {"lhs": ["loan_book"], "rhs": ["loan_copy", "copy_of"], "status": "accepted", "rationale": "revision 2: the prose rule 'the book a loan counts against is exactly the book of the copy handed out' is the path equation loan_book = loan_copy . copy_of, closing the parallel-path question raised on draft v1"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Book": ["b1", "b2"],
+      "Copy": ["c1", "c2"],
+      "Loan": ["l1"],
+      "Member": ["m1"]
+    },
+    "tables": {
+      "copy_of": {"c1": "b1", "c2": "b2"},
+      "loan_copy": {"l1": "c1"},
+      "loan_book": {"l1": "b1"},
+      "loan_member": {"l1": "m1"}
+    }
+  },
+  "instance_map": {
+    "maps": [
+      {"object": "Book", "rows": {"b1": "B1", "b2": "B2"}},
+      {"object": "Copy", "rows": {"c1": "C1", "c2": "C2"}},
+      {"object": "Loan", "rows": {"l1": "L1"}},
+      {"object": "Member", "rows": {"m1": "M1"}}
+    ]
+  }
+}

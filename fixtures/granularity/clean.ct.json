@@ -1,0 +1,37 @@
+{
+  "format_version": "1.6",
+  "schema": {
+    "objects": [
+      "read_pages",
+      "read_documents",
+      "edition_date"
+    ],
+    "arrows": [
+      { "name": "document", "src": "read_pages", "tgt": "read_documents" },
+      { "name": "edition_date", "src": "read_documents", "tgt": "edition_date" }
+    ],
+    "equations": [],
+    "stored": {
+      "document": "backfill_read_pages.document_id + backfill_read_pages.version",
+      "edition_date": "backfill_read_documents.edition_date"
+    }
+  },
+  "instance": {
+    "rows": {
+      "read_pages": ["page_1", "page_2"],
+      "read_documents": [
+        "doc_bfc_169f43a52d97c00a6291138e9bb73d657273201aea15892fa698138571217e23__v_v_268ced8d7dbb4f78b682ab7297cbf18b"
+      ],
+      "edition_date": ["ed_2026_11_11"]
+    },
+    "tables": {
+      "document": {
+        "page_1": "doc_bfc_169f43a52d97c00a6291138e9bb73d657273201aea15892fa698138571217e23__v_v_268ced8d7dbb4f78b682ab7297cbf18b",
+        "page_2": "doc_bfc_169f43a52d97c00a6291138e9bb73d657273201aea15892fa698138571217e23__v_v_268ced8d7dbb4f78b682ab7297cbf18b"
+      },
+      "edition_date": {
+        "doc_bfc_169f43a52d97c00a6291138e9bb73d657273201aea15892fa698138571217e23__v_v_268ced8d7dbb4f78b682ab7297cbf18b": "ed_2026_11_11"
+      }
+    }
+  }
+}

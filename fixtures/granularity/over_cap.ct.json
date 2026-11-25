@@ -1,0 +1,90 @@
+{
+  "format_version": "1.6",
+  "schema": {
+    "objects": [
+      "capture",
+      "document",
+      "edition",
+      "partition",
+      "selector"
+    ],
+    "arrows": [
+      { "name": "document", "src": "capture", "tgt": "document" },
+      { "name": "hit_edition_date", "src": "capture", "tgt": "edition" },
+      { "name": "selector_match", "src": "capture", "tgt": "selector" },
+      { "name": "capture_partition", "src": "capture", "tgt": "partition" },
+      { "name": "hit_selector", "src": "capture", "tgt": "selector" },
+      { "name": "capture_batch", "src": "capture", "tgt": "capture" },
+      { "name": "capture_hit", "src": "capture", "tgt": "capture" },
+      { "name": "partition_capture", "src": "partition", "tgt": "capture" },
+      { "name": "partition_state", "src": "partition", "tgt": "partition" },
+      { "name": "selector_event", "src": "selector", "tgt": "selector" },
+      { "name": "selector_partition", "src": "selector", "tgt": "partition" },
+      { "name": "document_edition", "src": "document", "tgt": "edition" },
+      { "name": "document_source", "src": "document", "tgt": "document" }
+    ],
+    "equations": [],
+    "stored": {
+      "document": "capture.document_id",
+      "document_edition": "document.edition_date",
+      "document_source": "document.source"
+    }
+  },
+  "instance": {
+    "rows": {
+      "capture": ["cap_001", "cap_002"],
+      "document": ["doc_bfc_slice_1"],
+      "edition": ["ed_2026_11_11"],
+      "partition": ["part_planned_nacional"],
+      "selector": ["sel_nacional_primera"]
+    },
+    "tables": {
+      "document": {
+        "cap_001": "doc_bfc_slice_1",
+        "cap_002": "doc_bfc_slice_1"
+      },
+      "hit_edition_date": {
+        "cap_001": "ed_2026_11_11",
+        "cap_002": "ed_2026_11_11"
+      },
+      "selector_match": {
+        "cap_001": "sel_nacional_primera",
+        "cap_002": "sel_nacional_primera"
+      },
+      "capture_partition": {
+        "cap_001": "part_planned_nacional",
+        "cap_002": "part_planned_nacional"
+      },
+      "hit_selector": {
+        "cap_001": "sel_nacional_primera",
+        "cap_002": "sel_nacional_primera"
+      },
+      "capture_batch": {
+        "cap_001": "cap_002",
+        "cap_002": "cap_001"
+      },
+      "capture_hit": {
+        "cap_001": "cap_001",
+        "cap_002": "cap_002"
+      },
+      "partition_capture": {
+        "part_planned_nacional": "cap_001"
+      },
+      "partition_state": {
+        "part_planned_nacional": "part_planned_nacional"
+      },
+      "selector_event": {
+        "sel_nacional_primera": "sel_nacional_primera"
+      },
+      "selector_partition": {
+        "sel_nacional_primera": "part_planned_nacional"
+      },
+      "document_edition": {
+        "doc_bfc_slice_1": "ed_2026_11_11"
+      },
+      "document_source": {
+        "doc_bfc_slice_1": "doc_bfc_slice_1"
+      }
+    }
+  }
+}

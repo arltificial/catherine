@@ -69,5 +69,8 @@ fn normalized_schema(
         keys,
         coproducts,
         pullbacks,
+        // Attached by `validate_with` from the raw document's
+        // `schema.stored` (ticket `catherine-kw9.3`); empty here.
+        stored: BTreeMap::new(),
     }
 }

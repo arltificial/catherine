@@ -23,3 +23,31 @@ rows per object), `data.lost` (the `MigrationFinding` encoding
 verbatim), and `data.row_map`; lost data exits 8, a lossless migration
 exits 0, and a document without a `schema_map` is the labeled
 `no_schema_map` error (exit 1).
+
+## Migration naturality fixtures (catherine-kw9.2)
+
+Two documents pin the migration-naturality commutation square
+(migrate-then-operate must equal operate-then-migrate); the companion
+v2 *instance* each one lands on lives in
+`crates/catherine-analysis/tests/naturality.rs`, since the check needs
+both documents:
+
+| Fixture | Δ shape | Expected naturality outcome |
+|---|---|---|
+| `naturality_commuting.ct.json` | isomorphic rename: `Person` → `Party`, `setName` → `setNamePrime` (`["setNamePrime"]`), rows renamed in step | zero findings — every square commutes |
+| `naturality_noncommuting.ct.json` | operation split: `setName` → `["setFirstName", "setLastName"]` over a v2 schema whose split ops swap the two rows | one witnessed break at row `p2`: `migrate ∘ setName = q2` but `setFirstName ; setLastName` on migrated `q2` lands on `q1` — a `MigrationNaturality` witness naming the operation pair and both result rows |
+
+CLI companions (ticket `catherine-kw9.2`, added with the `schema_map`
+dispatch in the `naturality` runner): each source fixture pairs with a
+runnable target document, so the verb path is exercised end to end:
+
+```
+catherine naturality naturality_commuting.ct.json naturality_commuting_target.ct.json     # exit 0
+catherine naturality naturality_noncommuting.ct.json naturality_noncommuting_target.ct.json  # exit 3, one witness at row p1
+```
+
+| Target document | Instance shape | Expected pairing outcome |
+|---|---|---|
+| `naturality_commuting_target.ct.json` | `Party` rows `q1`/`q2`; `setNamePrime` = `{q1: q2, q2: q2}` — exactly the migrated `setName` table | zero findings, exit 0 |
+| `naturality_noncommuting_target.ct.json` | `Person` rows `q1`/`q2`; `setFirstName` = `setLastName` = `{q1: q2, q2: q1}` — the split paths swap, so the square breaks at `p1` (`lhs q2` vs `rhs q1`) | one `MigrationNaturality` witness, exit 3 |
+

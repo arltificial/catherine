@@ -1,0 +1,29 @@
+{
+  "format_version": "1.4",
+  "schema": {
+    "objects": ["Book", "Copy", "Loan", "Member"],
+    "arrows": [
+      {"name": "copy_of", "src": "Copy", "tgt": "Book"},
+      {"name": "loan_copy", "src": "Loan", "tgt": "Copy"},
+      {"name": "loan_book", "src": "Loan", "tgt": "Book"},
+      {"name": "loan_member", "src": "Loan", "tgt": "Member"}
+    ],
+    "equations": [
+      {"lhs": ["loan_book"], "rhs": ["loan_copy", "copy_of"], "status": "accepted", "rationale": "NEGATIVE CONTROL: clean draft v2 with one deliberately injected overconstraint; loan l2 is recorded against book b1 while its copy c2 is a copy of b2, so the equation is false on the instance"}
+    ]
+  },
+  "instance": {
+    "rows": {
+      "Book": ["b1", "b2"],
+      "Copy": ["c1", "c2"],
+      "Loan": ["l1", "l2"],
+      "Member": ["m1"]
+    },
+    "tables": {
+      "copy_of": {"c1": "b1", "c2": "b2"},
+      "loan_copy": {"l1": "c1", "l2": "c2"},
+      "loan_book": {"l1": "b1", "l2": "b1"},
+      "loan_member": {"l1": "m1", "l2": "m1"}
+    }
+  }
+}

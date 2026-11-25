@@ -49,6 +49,13 @@ pub(super) struct RawSchema {
     pub(super) coproducts: Vec<RawCoproduct>,
     #[serde(default)]
     pub(super) pullbacks: Vec<RawPullback>,
+    /// Additive `schema.stored` (ticket `catherine-kw9.3`): declared
+    /// arrow → storing column(s). Deliberately not version-gated: it is
+    /// presentation metadata the CLI's granularity lint reads and
+    /// changes no kernel semantics, so it parses under any known 1.x
+    /// minor and is absent (hash-neutral) in every older document.
+    #[serde(default)]
+    pub(super) stored: BTreeMap<String, String>,
 }
 
 #[derive(Deserialize)]
