@@ -21,6 +21,7 @@
 - [Olog mapping (Spivak–Kent)](./ref/olog-mapping.md)
 - [Pattern-kata dispositions](./ref/pattern-kata-dispositions.md)
 - [Expressibility dispositions](./ref/expressibility-dispositions.md)
+- [kw9 wave report — ct-math-foundations outcomes](./ref/kw9-wave-report.md)
 - [ploeh grounding](./ref/ploeh-grounding.md)
 - [Rule-of-5 checklist](./ro5u-checklist.md)
 
