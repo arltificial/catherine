@@ -1,0 +1,16 @@
+# Pinned Verus release (openspec capability `verus-verification-lane`).
+# Same discipline as kani-version.toml and rust-toolchain.toml: installs
+# are pinned, never `latest` — a checker drift on a rolling release must
+# not silently change recorded proof outcomes (Standardization §4). The
+# zip carries the verifier, its bundled z3, and the prebuilt vstd rlib;
+# provisioning is scripts/check-verus-lane.sh (see docs/verus-lane.md),
+# which records which release produced each proof result.
+[verus]
+release = "0.2026.11.22.1ce6a59"
+url = "https://github.com/verus-lang/verus/releases/download/release/0.2026.11.22.1ce6a59/verus-0.2026.11.22.1ce6a59-x86-linux.zip"
+# sha256 of the zip; provisioning refuses any other bytes.
+sha256 = "c955d5958877f4f907cce80aa996d4239a481984829d82e325938c7bf242b0db"
+# The rustup toolchain the release's driver requires (informational:
+# reproduces the verifying environment; verus refuses to run under any
+# other toolchain name).
+toolchain = "1.100.0"

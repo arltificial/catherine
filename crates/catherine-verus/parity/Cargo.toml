@@ -1,0 +1,21 @@
+[package]
+name = "verus-parity"
+version = "0.5.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Verus lane parity driver: trusted plain-Rust twin of the verified model walk, diffed against the kernel check"
+
+# Detached from the workspace on purpose (design Decision 4): this
+# binary is the Verus lane's parity harness, compiled only by the
+# pinned `cargo verus`/plain cargo inside the lane script — never part
+# of `cargo build`/`just ci`. The empty [workspace] table keeps cargo
+# from walking up into the catherine workspace when built in place.
+[workspace]
+
+[dependencies]
+serde_json = "1"
+
+[profile.release]
+# Deterministic, no-path artifacts: the parity diff compares stdout
+# lines only, but a stable build keeps reruns comparable.
+debug = false

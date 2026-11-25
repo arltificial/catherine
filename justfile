@@ -73,6 +73,17 @@ lean:
 verify:
     scripts/check-kani-lane.sh
 
+# Verus functional-proof lane (openspec change
+# `add-verus-verification-lane`): provisioning-checked pinned verus run
+# over the model proof units (three-valued VERIFIED / ERROR / EXHAUSTED),
+# the kernel-vs-model parity diff over the fixture corpus with the
+# non-vacuity witness gate, and the guide tripwire corpus against
+# measured expectations (docs/verus-lane.md). Deliberately NOT part of
+# `just ci` — same treatment as `verify`: a pinned external toolchain
+# every checkout cannot assume.
+verify-verus:
+    scripts/check-verus-lane.sh
+
 # Everything .github/workflows/ci.yml runs, for local pre-push parity. The
 # bd-export freshness gate lives inside `cargo test --workspace` (the
 # standard_conformance test) — CI never runs dolt.

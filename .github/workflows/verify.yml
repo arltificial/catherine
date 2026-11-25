@@ -41,3 +41,25 @@ jobs:
 
       - name: Verify — bounded model checking over the declared harnesses
         run: just verify
+
+  verus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable (rustup)
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Install just (gate runner)
+        run: cargo install just --version 1.59.0
+
+      - name: Cache pinned Verus release (verus-version.toml)
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/verus
+          key: verus-${{ hashFiles('verus-version.toml') }}
+
+      - name: Verify — Verus lane (model units, parity, guide tripwire)
+        run: just verify-verus

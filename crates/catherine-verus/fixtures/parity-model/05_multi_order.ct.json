@@ -1,0 +1,26 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["A", "B", "C"],
+    "arrows": [
+      {"name": "ab1", "src": "A", "tgt": "B"},
+      {"name": "ab2", "src": "A", "tgt": "B"},
+      {"name": "bc1", "src": "B", "tgt": "C"},
+      {"name": "bc2", "src": "B", "tgt": "C"}
+    ],
+    "equations": [
+      {"lhs": ["ab1", "bc1"], "rhs": ["ab2", "bc1"], "status": "accepted"},
+      {"lhs": ["ab2", "bc2"], "rhs": ["ab1", "bc2"], "status": "accepted"},
+      {"lhs": ["ab1", "bc1"], "rhs": ["ab1", "bc2"], "status": "accepted"}
+    ]
+  },
+  "instance": {
+    "rows": {"A": ["a0", "a1"], "B": ["b0", "b1"], "C": ["c0", "c1"]},
+    "tables": {
+      "ab1": {"a0": "b0", "a1": "b1"},
+      "ab2": {"a0": "b0", "a1": "b1"},
+      "bc1": {"b0": "c0", "b1": "c1"},
+      "bc2": {"b0": "c1", "b1": "c0"}
+    }
+  }
+}

@@ -1,7 +1,12 @@
 [pretender]
 mode = "gate"
 languages = ["auto"]
-exclude = ["**/vendor/**", "**/node_modules/**", "**/book/**", "**/web/pkg/**", "**/lean/**", "**/target/**", "**/app.js", "**/*_generated.*"]
+# The Verus lane is excluded for the same reason lean/ is: external-checker
+# source outside the Cargo build (design Decision 2) — vendored upstream
+# guide examples and proof units the 400-line cap cannot hold (a Verus
+# proof unit is single-file by construction). The shipped workspace the
+# gate protects is untouched.
+exclude = ["**/vendor/**", "**/node_modules/**", "**/book/**", "**/web/pkg/**", "**/lean/**", "**/target/**", "**/app.js", "**/*_generated.*", "**/catherine-verus/**", "**/probe-seed/**"]
 
 [roles.test]
 paths = ["tests/**", "**/*_test.*", "spec/**"]
