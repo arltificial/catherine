@@ -1,0 +1,286 @@
+---
+reviews: 2026-11-24-design-the-three-axis-gate-what-catherine-wil.md
+verdict: needs-work
+severity: {critical: 0, high: 3, medium: 12, low: 2}
+---
+
+#+TITLE: Rule of 5 — review of the session's conclusion and proposal
+#+DATE: 2026-11-24
+#+OPTIONS: toc:2
+
+* Work reviewed
+Artifact: the session's conclusion set and the proposal built on it —
+~notes/catherine-evaluation-2026-11-24.org~, ~notes/rule-of-5-value-proposition-2026-11-24.org~,
+~notes/keep-backlog-necessity-review-2026-11-24.org~, ~notes/practical-models-and-value-2026-11-24.org~,
+~notes/can-catherine-model-catherine-2026-11-24.org~ (all uncommitted), plus the
+proposal they carry: the five-item revised backlog and the repository-asset
+follow-up.
+
+Mode: universal Rule of 5, advisory. Validation: ~TYPESAFE_API_KEY~ set → all
+CRITICAL/HIGH findings went through the TypeSafe pass (one parallel
+~jev-latest~ request, 6 findings). MEDIUM/LOW are self-reported (UNVERIFIED).
+
+* STAGE 1: DRAFT
+
+Assessment: the conclusion set is well evidenced and unusually honest about its
+own limits, but the *proposal* is an archipelago — five items in one note, an
+asset in another, doc corrections in a third — with no decision, no sequencing
+and no stopping rule. The strongest single idea (catherine's limits are
+themselves tested) is buried in the last section of one note instead of being
+the headline.
+
+[DRAFT-001] [HIGH - REVIEW_REQUIRED, TypeSafe 0.45] - across the five notes
+Description: There is no single artifact stating the decision, the evidence
+pointers, the sequencing, the exit criteria and the explicit non-goals. The
+owner must reconstruct the proposal from five files.
+Recommendation: one decision memo (decision · evidence commands · sequencing ·
+done-when · not-doing), with the other notes demoted to linked evidence.
+
+[DRAFT-002] [MEDIUM] - the five notes overlap without hierarchy
+Description: The identity-path drop appears in two notes; the "three named
+axes" (referential agreement / schema evolution / executable limits) is coined
+in the value-proposition review and reused in the backlog memo without a
+definition anyone can point to; the honest-boundary claim appears in four
+notes with three different phrasings.
+Recommendation: one note owns the axes and the non-goals; the rest link to it.
+
+[DRAFT-003] [MEDIUM] - the proposal mixes three kinds of work
+Description: Doc corrections (the ~search~ semantics mismatch; "model this
+conventionally"), capability work (five items), and a new asset (the
+architecture model) are presented under one "keep" heading with no cost or
+risk column. The cheapest, highest-value work (doc corrections) is not first.
+Recommendation: order by (cost × axis value): docs first, then the two
+capability items, then the asset.
+
+Shape Quality: GOOD
+
+* STAGE 2: CORRECTNESS
+
+[CORR-001] [HIGH - VERIFIED, TypeSafe 0.96] - notes/can-catherine-model-catherine-2026-11-24.org ("The current tree passes") + the demo builder
+Description: **The self-model's clean result is self-confirming.** The demo's
+"declared layering policy" was produced by `policy=list(actual)` — copied from
+the dependency list it is supposed to constrain. So "the current tree passes"
+demonstrates the *mechanism* (coverage + agreement over a policy) and nothing
+about a policy. If the proposed repository asset were authored the same way,
+the CI gate would be a tautology that can never fail.
+Evidence: the builder line `policy=list(actual)  # the declared layering policy`;
+the note's "The current tree passes: the seven workspace crates and their eight
+internal dependency edges match the declared layering exactly."
+Recommendation: (a) describe the demo as a mechanism demonstration, not a
+certification; (b) author the real policy from design intent — DESIGN §2
+non-goals and the §3 reuse map ("kernel stays fixed-scope", crate layering) —
+not from Cargo.toml; (c) add the repo's own discipline: a negative control
+(a fixture with a forbidden edge that the gate must reject) and a test for the
+extractor.
+
+[CORR-002] [MEDIUM - UNVERIFIED; was HIGH, dropped by verification] - the five-item backlog
+Description: The proposal does not mention the repository's flip protocol
+(expressibility-dispositions.md:30-33): landing mapped-arrow endpoint typing
+must flip the ~non-functorial-schema-map~ row to ~closed~ with sealing
+evidence in the *same* change, because the gap suite parses that table; and
+the scope-count item does **not** close ~vacuous-clean-instances~, whose claim
+is "checks clean with no warning" — a payload field is not a warning.
+Recommendation: state the flip per item; state explicitly which item leaves a
+row open and why.
+
+[CORR-003] [MEDIUM - UNVERIFIED; was HIGH, contradicted by verification] - backlog item 1
+Description: Item 1 ("scope count on every answer") was described as "one
+payload change". It is catherine-local (the envelope constructors live in
+~crates/catherine-cli/src/render/envelope.rs~; genesis-vibes supplies CLI
+plumbing, not the payload shape), so the blast radius is smaller than first
+claimed — but it is not one file: the wasm consumer and the openspec
+cli/findings specs read the payload, and ~ah check --changes~ is the gate.
+Recommendation: re-scope as "catherine-local payload field + wasm + specs",
+and gate it with ~ah check~.
+
+[CORR-004] [MEDIUM] - the notes' own citations and counts
+Description: The session's artifacts contain the same defect class the
+session was reviewing — documentation that misstates the artifact:
+- notes/practical-models-and-value-2026-11-24.org:147 says "13 registered
+  expressibility rows"; the table has **14**.
+- notes/can-catherine-model-catherine-2026-11-24.org:59 says "the 116 fixture
+  documents"; there are **123** ~.ct.json~ fixtures, of which 116 declare arrows.
+- notes/rule-of-5-value-proposition-2026-11-24.org cites "README.md:130-140
+  (comparison table)"; README has no comparison table (the alternatives table
+  is PROPOSAL.md:126-140).
+- notes/keep-backlog-necessity-review-2026-11-24.org cites
+  ~schema_map.rs:203-205~ for the "phase B" comment; it is at 205-207.
+Recommendation: fix all four before the notes are committed (they are
+uncommitted, so the fix is free), and re-read the notes once with the same
+rigour applied to the repo's docs.
+
+Correctness Quality: FAIR
+
+Convergence check (after Stage 2)
+- New CRITICAL issues: 0
+- Total new issues: 4 (stage 2) vs 3 (stage 1)
+- New issues vs previous stage: +33%
+- Estimated false positive rate (TypeSafe-measured): **75%** (3 of 6 HIGH findings dropped or contradicted)
+- Status: CONTINUE → and ESCALATE_TO_HUMAN (FP rate > 30%)
+
+* STAGE 3: CLARITY
+
+[CLAR-001] [HIGH - REVIEW_REQUIRED, TypeSafe 0.71] - the Revised backlog section
+Description: The proposal states no exit criteria — no "done when". The
+repository's own pattern is an explicit stop condition (DESIGN.md:71-75, P6's
+"killed means stop"), so a proposal without one is the exact shape of drift
+the session was convened to prevent.
+Recommendation: a checkable stopping rule in the project's own idiom, e.g.
+"the five items land; three disposition rows flip to ~closed~ with sealing
+evidence; ~catherine check~ reports its execution scope so 'clean' is
+distinguishable from 'unchecked'; the identity row's cell states the
+workaround" — and a matching "not doing" list (identity path form,
+cardinality/existence predicates, general value types, default bounds) with
+the reason each was refused.
+
+[CLAR-002] [MEDIUM] - the axes are used but never defined in one place
+Description: "Referential agreement / schema evolution / executable limits" is
+the gate the whole proposal leans on, and it is nowhere defined as a table
+(axis → which items → which evidence → done-when). The earlier review's
+"state-shape domain" definition is still missing, and it is the term the axes'
+first member depends on.
+Recommendation: a three-row table in the decision memo; define
+"state-shape domain" once, in the same memo.
+
+[CLAR-003] [LOW] - "the current tree passes"
+Description: "passes" invites the reading "the architecture is correct",
+which the self-confirming policy cannot support (CORR-001).
+Recommendation: "the mechanism reproduces the current structure".
+
+Clarity Quality: GOOD
+
+Convergence check (after Stage 3)
+- New CRITICAL issues: 0
+- Total new issues: 3 vs 7 previous (+43%)
+- False positive rate: 75% (measured)
+- Status: ESCALATE_TO_HUMAN
+
+* STAGE 4: EDGE CASES
+
+[EDGE-001] [MEDIUM - UNVERIFIED; was HIGH, dropped by verification] - the architecture-asset follow-up
+Description: The proposed gate introduces two new trust surfaces: the policy
+file (a second source of truth that can drift from Cargo.toml) and the
+extractor (unverified code in the repository's most trusted path). A developer
+who adds a dependency and edits the policy in the same change turns the gate
+green with no signal; a developer who forgets the policy gets a red gate whose
+failure looks like "the tool is broken".
+Recommendation: the policy is a *design artifact* (reviewed like a spec, with
+an amendment path), the extractor gets its own tests, and the failure message
+names the offending edge. The repo's negative-control discipline
+(~ledger/katas/negative-control-bundle/) is the precedent.
+
+[EDGE-002] [MEDIUM] - coproduct-based absence constraints do not scale for free
+Description: The "absence = coverage against a declared complement" recipe
+requires an *authored pairing* between policy edges and actual edges. At seven
+crates that is fine; at a hundred declared edges the pairing becomes
+unmaintainable — and if the pairing is generated mechanically the check
+degrades to "the extractor agrees with itself", which is still worth having but
+must be named honestly.
+Recommendation: cap the policy's size or state the mechanical-generation
+variant explicitly as a different (weaker) claim.
+
+[EDGE-003] [MEDIUM] - item 1 changes bytes other consumers read
+Description: Adding a field to the JSON payload touches the wasm UI and the
+openspec cli/findings specs; the repository's contract gate is ~ah check~, and
+the ledger records model hashes. Edge: a payload change lands green in the
+test suite and red in ~ah check~.
+Recommendation: sequence item 1 behind an openspec change with an
+~ah check --changes~ overlay, and run the wasm check (~just check-wasm~).
+
+Edge Case Coverage: GOOD
+
+Convergence check (after Stage 4)
+- New CRITICAL issues: 0
+- Total new issues: 3 vs 10 previous (+30%)
+- False positive rate: 75% (measured)
+- Status: ESCALATE_TO_HUMAN
+
+* STAGE 5: EXCELLENCE
+
+[EXCL-001] [MEDIUM] - make the conclusion itself executable
+Description: Every conclusion in this session came with a command and an
+output. The decision memo should carry those commands inline, so a reader can
+reproduce the conclusion without the session — the same discipline the tool
+applies to claims.
+Recommendation: the memo's evidence section = the exact invocations
+(~check~/~migrate~/~rules~/~search~ + the gap-suite and ~check-gap-claims~ runs).
+
+[EXCL-002] [MEDIUM] - the anti-generic gate needs a home in the repo, not in a note
+Description: The "three named axes" gate is the session's most transferable
+output, but it lives in an uncommitted note. A proposal that guards drift
+with a note is not a guard.
+Recommendation: land it as part of the normative constraints surface the
+earlier review asked for — one file, referenced by PROPOSAL/DESIGN/USING, with
+the expressibility registry linked as its executable half.
+
+[EXCL-003] [LOW] - the notes should be indexed
+Description: Five notes, no index, no README pointer.
+Recommendation: one index line each (or a single combined note) — the
+repository's own documentation map (README.md:156-165) is the model.
+
+Excellence Assessment:
+- Structure: GOOD (evidence-rich, proposal dispersed)
+- Correctness: FAIR (one HIGH stands; four citation/count defects in my own artifacts; three HIGH findings did not survive verification)
+- Clarity: GOOD (the axes and the exit criteria are the missing pieces)
+- Edge Cases: GOOD (trust surfaces, scaling, and contract surfaces identified)
+- Overall: GOOD
+
+Production Ready: WITH_NOTES
+
+* Final Report
+
+**Work Reviewed:** conclusion set and proposal (five uncommitted notes + the five-item backlog + the repository-asset follow-up)
+**Convergence:** Stage 5, with ESCALATE_TO_HUMAN triggered by a measured 75% false-positive rate on HIGH findings
+
+**Summary**
+
+Total Issues by Severity (post-verification):
+- CRITICAL: 0
+- HIGH: 1 verified (CORR-001) + 2 REVIEW_REQUIRED (DRAFT-001 0.45, CLAR-001 0.71)
+- MEDIUM: 9 (CORR-002/003/004, DRAFT-002/003, CLAR-002, EDGE-001/002/003, EXCL-001/002/003)
+- LOW: 2 (CLAR-003, EXCL-003)
+- Dropped by verification: 3 of 6 HIGH (one contradicted, two unsupported) — measured FP rate 75%
+
+**What's Working Well**
+1. Every conclusion carries a command and an output — notes/keep-backlog-necessity-review-2026-11-24.org (evidence lines per item); reproducible without the session.
+2. The backlog was filtered *down*, not up: four proposed items became two code changes, one reuse, two hints and zero constraint-language changes — the shape a non-generic tool's backlog should have.
+3. The self-model found its own boundary honestly: structure yes, semantics no — and it pointed at the existing Lean/Kani answer instead of proposing a duplicate mechanism (notes/can-catherine-model-catherine-2026-11-24.org).
+4. The proposal kept the registry as the arbiter of expressibility, so "what we cannot do" stayed a published, testable artifact.
+
+**Top 3 findings**
+
+1. [CORR-001] HIGH (verified 0.96) — The architecture demo is self-confirming: the policy was copied from the actual dependencies, so "the current tree passes" proves the mechanism, not a policy; a CI gate built the same way would always pass — notes/can-catherine-model-catherine-2026-11-24.org
+   Impact: the one proposed *new asset* would be a tautological gate — the most dangerous kind of CI check.
+   Fix: author the policy from design intent, add a negative-control fixture the gate must reject, test the extractor, and re-word the claim.
+
+2. [DRAFT-001] HIGH (REVIEW_REQUIRED 0.45) — no single decision artifact: decision, evidence, sequencing, done-when, and the not-doing list live in five notes — notes/*.org
+   Impact: an owner cannot act without reconstructing; the drift the session was convened to prevent starts with an ungated backlog.
+   Fix: one decision memo; the rest become evidence links.
+
+3. [CLAR-001] HIGH (REVIEW_REQUIRED 0.71) — no exit criteria — notes/keep-backlog-necessity-review-2026-11-24.org
+   Impact: a backlog without a stopping rule is the exact mechanism by which a bounded tool becomes a generic one; the repo's own precedent (P6 stop condition) is the model.
+   Fix: a checkable "done when" in the project's idiom, plus the explicit not-doing list.
+
+**Stage-by-stage quality**
+- Stage 1 (Draft): GOOD — proposal dispersed
+- Stage 2 (Correctness): FAIR — one HIGH stands; four defects in my own artifacts; three HIGH did not survive verification
+- Stage 3 (Clarity): GOOD — axes undefined, exit criteria absent
+- Stage 4 (Edge Cases): GOOD — trust surfaces and scaling identified
+- Stage 5 (Excellence): GOOD — the fix is one memo plus one re-worded demo
+
+**Recommended Actions**
+1. Fix the four factual defects in the notes before they are committed (14 rows not 13; 123 fixtures of which 116 declare arrows; the comparison table is PROPOSAL.md:126-140; the "phase B" comment is schema_map.rs:205-207).
+2. Re-do the architecture demo honestly: policy from design intent + negative control + extractor test; otherwise describe it as a mechanism demonstration.
+3. Write the decision memo: decision · evidence commands · sequencing (docs first) · done-when · not-doing; define the three axes and "state-shape domain" in it.
+4. Attach the flip protocol to the items that touch registered gaps (item 2 flips ~non-functorial-schema-map~; item 3 touches the two dropped-constraint rows; item 1 leaves ~vacuous-clean-instances~ open and should say so).
+5. Re-scope item 1 to catherine-local payload + wasm + openspec specs, gated by ~ah check --changes~ and ~just check-wasm~.
+
+**Verdict**
+
+NEEDS_REVISION (of the proposal's packaging and one demo), with the conclusions themselves standing.
+
+**Rationale:** the session's reasoning holds up under verification — one HIGH finding survived at 0.96 and it is the right one (the self-confirming demo). What does not hold up is the packaging: the proposal is dispersed, has no exit criteria, and my own notes reproduce the citation/numbering defect class the session was reviewing. Three of six HIGH findings failed verification, which is itself the finding: **severity was assigned too aggressively** — across two consecutive reviews, most HIGH findings did not survive the verification pass. The fix is calibration (reserve HIGH for claims that would ship a wrong statement) plus one decision memo.
+
+* Escalation note (protocol)
+FP rate 75% > 30% → ESCALATE_TO_HUMAN. Two findings are REVIEW_REQUIRED (DRAFT-001, CLAR-001) and need the owner's judgment; the three dropped HIGH findings are re-filed MEDIUM/UNVERIFIED where they still carry substance, and are marked as such rather than silently dropped. No finding is asserted above its evidence.
+

@@ -1,0 +1,187 @@
+#+TITLE: Can catherine model catherine? — a worked answer
+#+DATE: 2026-11-24
+#+OPTIONS: toc:2
+
+* Status
+Evidence for the decision memo (~notes/decision-memo-2026-11-24.org~). Where
+this note and the memo differ, the memo governs.
+
+* Short answer
+Yes for *structure*, no for *semantics* — and the repository already answered
+the "no" half: the kernel's semantics are modelled in Lean
+(~lean/Catherine/{Schema,Instance,EvalPath,Check,Findings,Mirror,Parity}.lean~
+plus ~Proofs/~) and bounded in the Kani lane, because they cannot be modelled
+in catherine's own language.
+
+Two experiments below: one that works (catherine certifies its own dependency
+architecture), one that fails informatively (a corpus-wide self-sweep produces
+noise).
+
+* Experiment 1 — catherine certifies its own dependency architecture (works)
+** The model
+- objects: ~Crate~ (7 workspace crates), ~Dep~ (one row per *actual*
+  internal dependency edge), ~AllowedEdge~ (one row per edge of the *declared
+  layering policy*).
+- arrows: ~dep_from~/~dep_to~ (edge → crate), ~allowed_from~/~allowed_to~
+  (policy edge → crate), ~inject~ (policy edge → actual edge).
+- equations (two, both path agreements):
+  - ~inject∘dep_to = allowed_to~ — "the paired edge targets the crate the
+    policy allows"
+  - ~inject∘dep_from = allowed_from~ — "…and starts at the crate the policy
+    allows"
+- coproduct: ~Dep~ with injection ~inject~ (accepted) — so every *actual*
+  dependency edge must be covered by exactly one policy edge.
+
+** The policy is authored from design intent, not from Cargo.toml
+The first version of this demo was *self-confirming* — the "policy" was copied
+from the dependency list it was supposed to constrain (~policy=list(actual)~),
+so "the tree passes" proved only that the mechanism works, and a CI gate built
+that way could never fail. Corrected: the permitted-edge list is written from
+the documents, by hand:
+
+- DESIGN.md:156-159 — dependency direction ~cli/wasm → inquiry → analysis →
+  core~; ~genesis-vibes~ is "envelope/guide only — never leaks into the kernel".
+- README.md:205 — "kernel stays suite-dep-free".
+- docs/kani-lane.md — the lane crate depends on the engine only (lane
+  isolation).
+
+That yields nine permitted edges (~core→engine~, ~analysis→core~,
+~cli→core~, ~cli→analysis~, ~cli→genesis_vibes~, ~wasm→core~, ~wasm→analysis~,
+~ledger→core~, ~kani→engine~). The extractor reads only each crate's
+~[dependencies]~ (dev-dependencies excluded) and pairs actual edges with
+policy edges by key. The demo extractor and the four models are throwaway
+files under ~/tmp/self/~ (~policy.py~, ~arch_actual.ct.json~,
+~arch_bad_core_cli.ct.json~, ~arch_bad_suite_leak.ct.json~,
+~arch_bad_kani_isolation.ct.json~, ~arch_missing_edge.ct.json~) — they are not
+repository assets, and the note's "Concrete follow-up" says what landing them
+would require.
+
+** The runs — the tree, and four ways it can fail
+#+begin_example
+$ catherine check arch_actual.ct.json
+exit 0                                         # the tree complies with the policy
+
+$ catherine check arch_bad_core_cli.ct.json    # forbidden: core -> cli
+violation: coproduct-0 Dep(inject)
+  at row Dep#4: uncovered — no declared injection covers it
+exit 3
+
+$ catherine check arch_bad_suite_leak.ct.json  # forbidden: core -> genesis_vibes
+violation: coproduct-0 Dep(inject)
+  at row Dep#5: uncovered — no declared injection covers it
+exit 3
+
+$ catherine check arch_bad_kani_isolation.ct.json  # forbidden: kani -> core
+violation: coproduct-0 Dep(inject)
+  at row Dep#5: uncovered — no declared injection covers it
+exit 3
+
+$ catherine check arch_missing_edge.ct.json    # a policy edge the tree lacks
+dangling: arrow inject
+  at row AllowedEdge#1
+exit 4
+#+end_example
+So catherine states a *negative* architectural rule ("core must not depend on
+cli", "genesis-vibes must not leak into the kernel", "the lane sees the engine
+only") only by way of a declared complement: the policy is data, the coproduct
+gives coverage, the equations check that each pairing really is the edge the
+policy meant.
+
+** What this demonstrates — stated honestly
+- catherine's language can carry a *policy* (a set of permitted edges) and
+  execute the conformance relation over *actual data*, with a witness row and
+  an exit code, offline and deterministic.
+- The three negative controls show the gate has teeth: it rejects an upward
+  edge, a suite-plumbing leak into the kernel, and a broken lane isolation.
+- **What catherine does not add here is cleverness**: the pairing is mechanical
+  and the comparison is a set relation. catherine's contribution is the
+  *declarative, reviewable* form of the policy plus witness rows and a
+  deterministic exit code — not a better comparison. A shell script could
+  compare the sets; what it could not do is make the policy a reviewable data
+  artifact that a reviewer reads as a model.
+- The general recipe for self-modelling: any *derived* fact can be
+  materialised as an arrow during extraction, after which it becomes a path
+  agreement — and any *absence* becomes coverage against a declared
+  complement.
+
+** What this demonstrates
+- catherine's language can carry a *policy* (a set of permitted edges) and
+  check *actual data* against it — a real conformance check on the tool's own
+  repository, with a witness row and an exit code, offline and deterministic.
+- The general recipe for self-modelling: any *derived* fact can be
+  materialised as an arrow during extraction, after which it becomes a path
+  agreement — and any *absence* becomes coverage against a declared
+  complement.
+
+* Experiment 2 — a corpus-wide self-sweep (fails, informatively)
+Extracting every arrow from the 123 fixture documents — 116 of which declare
+arrows — gives 2463 same-name pairs
+across documents) and checking "an arrow name declared in two documents has
+the same endpoints" produced **1092 apparent violations** — e.g. ~f: a→b~ in
+one fixture versus ~f: A→B~ in another.
+
+That is not a defect in catherine; it is the correct finding that *fixtures are
+unrelated models*. The kernel glues documents only when a composition set is
+declared (the joint `check` surface), and only there does "same name ⇒ same
+endpoints" mean anything. Self-modelling therefore needs the same discipline
+the tool already teaches: **the set of things being compared must be a
+declared composition, not a directory listing.**
+
+* What catherine cannot say about itself
+| Wanted | Why not |
+|---|---|
+| "check computes the right finding" | The kernel evaluates path agreement over stored data; a self-model of `check` is a *re-implementation*, and catherine cannot establish that the re-implementation is correct. That is the Lean twin's job (~Proofs/EquationCompleteness.lean~, ~Proofs/Soundness.lean~) and the Kani lane's. |
+| "there is no dependency core→cli" (without a policy) | Absence is not expressible; it becomes coverage against a declared complement (experiment 1). |
+| "every equation's evaluation is complete" | Quantification over rows and function evaluation are outside the language; completeness is a theorem, not a path agreement. |
+| "this document is a valid instance of the format" | The kernel *constructs* validity at parse time — the model would be a restatement, not a check. |
+| "run the model of catherine on catherine's own execution" | Self-application needs the evaluator to be data; the evaluator is code. |
+
+* Where catherine is at its strongest against itself
+- **Artifacts**: model documents, findings, ledger entries, the fixture corpus
+  — relational structure, checkable.
+- **Architecture**: dependency edges against a declared layering (experiment 1),
+  with coverage and witnesses.
+- **Its own outputs**: findings can be modelled (each finding names an
+  equation, a row, and both values) and audited — "every finding's witness
+  names a declared equation and an existing row" is a checkable invariant over
+  a corpus of runs.
+- **Its own limits**: the expressibility registry is already a model of
+  catherine's capabilities, with an executable case per row.
+
+* The honest conclusion
+catherine can model *everything about itself except its own semantics*. Its
+structural layer — documents, artifacts, architecture, findings, limits — is
+fully expressible and checkable with witnesses. Its semantic layer — what
+`check` computes and whether that is right — is not, and the project already
+solved that outside the language (Lean + Kani) instead of pretending
+otherwise. That is the shape of a non-generic tool: it knows which of its own
+layers it can inspect, and it does not claim the others.
+
+* Concrete follow-up worth considering (with its trust surfaces named)
+Land the architecture model as a repository asset: a ~policy.ct.json~ holding
+the nine permitted edges (with their source citations in comments), the
+extractor that reads each crate's ~[dependencies]~, and a CI step that fails
+when the workspace gains an edge the policy does not allow. It dogfoods the
+tool on the tool, and it is the kind of check conventional tooling does not do
+(Cargo has no notion of "this dependency is architecturally forbidden").
+
+Three things must come with it, or the gate is theatre:
+1. **The policy is a design artifact, not a mirror.** It is authored from
+   DESIGN.md:156-159 / README.md:205 / docs/kani-lane.md and reviewed like a
+   spec, with an amendment path (a policy change is a design change, not a
+   convenience edit). A policy regenerated from Cargo.toml would make the gate
+   a tautology — the failure this review caught.
+2. **The extractor is code and needs its own test**, and the gate needs the
+   repo's negative-control discipline: the four runs above (clean, three
+   forbidden edges, one missing edge) are that control bundle.
+3. **The failure message names the offending edge**, so a red gate reads as
+   "core→cli is not permitted" rather than "the tool is broken". The second
+   trust surface is drift between the policy file and Cargo.toml: the gate
+   catches undeclared edges, but a developer who amends the policy in the same
+   commit as the dependency defeats it — which is why the policy needs the
+   review path above.
+
+* What the follow-up would *not* prove
+It would not prove the architecture is right — only that it matches a policy
+someone wrote down. The policy's correctness is a design decision, and the
+gate's value is making that decision explicit, reviewable, and enforced.

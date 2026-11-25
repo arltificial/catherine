@@ -1,0 +1,177 @@
+#+TITLE: Keep-backlog necessity review (catherine)
+#+DATE: 2026-11-24
+#+OPTIONS: toc:2
+
+* Status
+Evidence for the decision memo (~notes/decision-memo-2026-11-24.org~). Where
+this review and the memo differ, the memo governs.
+
+* Question
+The capability evaluation proposed a "keep" list of four items. Before any
+proposal lands, each must survive: (a) does it serve one of the three named
+axes — referential agreement / schema evolution / executable limits; (b) is
+there *evidence* of demand, or only an argument from symmetry; (c) is there a
+cheaper sufficient alternative (doc, hint, reuse); (d) does it move the tool
+toward a generic constraint checker.
+
+Verdict summary: of four items, **one is dropped, one is folded into another,
+one is demoted to a hint, one is split into a cheap version and a preventive
+version.** Net: two code changes, one reuse, two hints, zero constraint-language
+changes.
+
+* Evidence gathered (all live, 0.4.1)
+- ~grep -rn "model this conventionally" crates/~ → no matches; ~check
+  fixtures/katas/fizzbuzz.ct.json~ → exit 0, empty, ~warnings=[]~.
+- ~migrate crates/catherine-cli/tests/fixtures/gap_suite/nonfunctorial_schema_map.ct.json~ →
+  exit 0, "3 target row(s) across 2 object(s), 0 lost data finding(s)" while
+  ~f: A→B~ maps to ~h: Y→Y~ under ~A↦X, B↦Y~ — *silent* wrong mapping.
+  Parser comment (crates/catherine-core/src/parse/schema_map.rs:205-207):
+  "target-declaredness only — the composable-path typing check is phase B".
+- ~migrate .../dropped_equation_migration.ct.json~ → ~lost: []~; the migrate
+  engine (crates/catherine-core/src/migrate.rs) has no notion of
+  equations/coproducts/pullbacks — it is a *data* reindexer by construction.
+- ~diff fixtures/schema_diff/weakened/v1.ct.json v2.ct.json~ → "weakened — a
+  v1-enforced constraint is not enforced by v2" *with a witness* — the
+  capability exists, but the migrate document embeds ~schema_map.target_schema~,
+  so a user must hand-split it to use ~diff~.
+- Identity-law workaround in shipped katas: composite/null-object state their
+  nil-identity law as idempotence/fixed-point over a concrete arrow
+  (~parent∘top = top~, ~top∘top = top~ in
+  ~fixtures/katas/composite-null-object/~), not as an identity path; the memento
+  lens gets its inverse law from delta/lost-cell enumeration, not from ~id~.
+- Pilot-scale migration probe (fixtures/probes/migration/README.md): all three
+  committed documents are *total* format-1.1 maps that are functorial and
+  constraint-preserving → **no observed demand** for the two migrate gaps.
+- ~bd list~ → 2 open beads, both on the Kani lane; **no tracked demand** for
+  any of the four items.
+
+* K1 — identity path form  ⟶ **DROP**
+What it buys: stating ~f∘g = id~ directly.
+Demand: none. The shipped lenses already state identity-ish laws via
+concrete fixed-point arrows, and the memento inverse law via delta
+enumeration. No probe, kata, or pilot document needs it.
+Cost: parser + kernel + format-version change; identity semantics require a
+*synthetic* per-object identity function (or an empty path side), i.e. new
+semantics for rows-as-values.
+Drift: **highest of the four** — equational algebra is the classic route to
+"generic checker".
+Verdict: not needed. Cheapest sufficient action: **document the workaround**
+in the registry row's "Missing:" cell (one sentence: *state identity laws as
+idempotence/fixed-point over a concrete arrow*), so the limitation is
+actionable rather than merely recorded.
+Revisit trigger: a real requirement that cannot be stated as a fixed-point
+law (e.g. a genuine inverse over a non-singleton carrier).
+
+* K2 — vacuity diagnostic  ⟶ **FOLD into EDGE-001 (scope count)**
+What it buys: distinguishing "clean" from "nothing was checked" (zero-row
+instances, constraint-free documents).
+Demand: registered gap ~vacuous-clean-instances~; live silent exit-0.
+Cost: as a standalone finding kind, medium (new taxonomy class, spec change).
+Cheaper sufficient alternative: **one payload addition on every answer** —
+~data.scope = {constraints_checked, rows_evaluated, equations_over_zero_rows}~
+— which subsumes vacuity, constraint-free documents, and the "below the floor"
+case in one change, with no new finding kind and no new exit code.
+Verdict: keep the *problem*, drop the standalone diagnostic; implement as the
+scope count (EDGE-001). This is the honesty axis, so it is the one change that
+most directly supports the proposition.
+
+* K3 — migrate: map functoriality + dropped constraints  ⟶ **SPLIT**
+**K3a — endpoint typing of mapped arrow paths: KEEP.**
+Demand: no observed demand (pilot maps were functorial), but the failure mode
+is *silent wrong output* on the flagship axis — precisely what the product
+claims to eliminate ("no silent anything", USING.md). Evidence above: a
+non-functorial map migrates with exit 0 and no signal.
+Cost: low-moderate; the check is local (path composability + endpoint match
+under the object map) and the code already names it ("phase B").
+Drift: none — it constrains the existing Δ axis, it does not widen the
+language.
+Verdict: **keep, preventive.** Test shape: parse-level — a map whose arrow
+path's endpoints do not match the mapped objects is a labeled refusal
+(~nonfunctorial_schema_map~), and a well-typed map is unchanged.
+
+**K3b — dropped constraints in a migration document: KEEP, cheap form.**
+Demand: no observed demand, but the gap is *silence* on a class of loss the
+tool already claims to detect on a different surface (~diff~ → "weakened with
+witness").
+Cost: the capability exists; what is missing is *wiring*. Two options:
+(b1) reuse the diff classifier inside ~migrate~ over the embedded
+~schema_map.target_schema~ and emit the same weakened finding; (b2) emit a
+hint: "target schema drops N accepted constraints — run ~catherine diff~ to
+classify".
+Verdict: keep **b1** if cheap, else **b2**. Either is far cheaper than
+extending ~migrate~ with new constraint semantics.
+
+* K4 — default row bounds for ~search~/~diff~  ⟶ **DEMOTE to a hint**
+Demand: none beyond first-contact ergonomics (my own observation).
+Analysis: the search space is a *shape*, while a document's instance is a
+*sample*; silently using the sample's row counts as the default bound changes
+the meaning of "within bounds" and would make the outcome non-reproducible
+against the documented contract. The honest non-answer is correct; the defect
+is only that the payload does not say what would make it answerable.
+Cost of the fix: one field in the ~unknown~ payload naming the flag and a
+suggested bound (e.g. "no rows bound; pass --rows Object=N").
+Verdict: **hint, not defaults.** Priority: lowest of the four.
+
+* Revised backlog (what I would actually schedule)
+1. ~scope count on every answer~ (constraints checked, rows evaluated,
+   equations over zero rows) — honesty axis. **Scope corrected**: the envelope
+   constructors live in ~crates/catherine-cli/src/render/envelope.rs~, so the
+   payload is catherine-local (genesis-vibes supplies CLI plumbing, not the
+   payload shape) — but it is not one file: the wasm consumer and the
+   openspec cli/findings specs read it, so the change goes through an
+   openspec change with ~ah check --changes~ and ~just check-wasm~.
+   **Does not close** the ~vacuous-clean-instances~ row (its claim is "checks
+   clean with no warning"; a payload field is not a warning) — the row stays
+   open unless a warning is added. Test shape: a zero-row document and a
+   constraint-free document both report their (empty) scope instead of an
+   indistinguishable "clean".
+2. ~mapped-arrow endpoint typing~ in the schema-map parser — evolution axis,
+   prevents silent wrong output. **Flip protocol**: the same change must flip
+   the ~non-functorial-schema-map~ row to ~closed~ with sealing evidence
+   (expressibility-dispositions.md:30-33; the gap suite parses that table).
+   Test shape: parse refusal + unchanged well-typed migration.
+3. ~migrate reuses the diff classifier / hints at it~ for constraint-level
+   change — evolution axis, reuse over new semantics. **Flip protocol**: the
+   two rows ~dropped-equations-on-migrate~ and ~dropped-pullbacks-on-migrate~
+   flip to ~closed~ in the same change (or the change lands only as the cheap
+   hint and the rows stay open — say which).
+4. ~unknown payload names the bound to pass~ — ergonomics, one field.
+5. ~registry cell for the identity gap states the workaround~ — docs.
+
+Dropped: identity path form (workaround exists; highest drift risk).
+Parked: cardinality/existence predicates (needs the "state-shape domain"
+definition first).
+
+* Done-when (the stopping rule this backlog was missing)
+The backlog is finished when: (a) items 1–5 have landed; (b) the three
+registry rows that the landed capabilities close are ~closed~ with sealing
+evidence, and the rows they do not close are still ~gap~ and say why; (c)
+~catherine check~ reports its execution scope, so "clean" is distinguishable
+from "unchecked"; (d) the identity row's cell states the workaround. Beyond
+that, the backlog does not grow by default: a new item must name the axis it
+serves (see the decision memo) or be refused.
+
+* Not doing (the anti-generic list, with the reason for each)
+- identity path form — a working workaround exists in the shipped katas, and
+  equational algebra is the classic route to a generic checker.
+- cardinality/existence predicates — real state-shape claims, but they widen
+  the constraint language toward a constraint solver; admissible only after
+  "state-shape domain" is defined.
+- a general value / multi-valued-cell type — that is a data model, not a
+  kernel.
+- default row bounds for ~search~/~diff~ — a hint in the ~unknown~ payload
+  says what to pass; deriving bounds from the instance would change what
+  "within bounds" means.
+
+* Cross-cutting observation
+The four original "keep" items were proposed from *symmetry* (the tool should
+be able to say X), not from demand. After the filter, **nothing on the
+backlog touches the constraint language** — the two code changes are an
+honesty payload and a typing refusal, both of which *narrow* what the tool
+silently accepts. That is the shape a non-generic tool's backlog should have:
+almost every item makes the tool say no more often, not yes.
+
+* Escalation / ratification needed
+Two judgment calls in this memo need the owner's nod: (a) dropping K1 on the
+strength of a workaround rather than a request; (b) preferring a hint over
+default bounds on ~search~/~diff~ (a semantic decision about "within bounds").

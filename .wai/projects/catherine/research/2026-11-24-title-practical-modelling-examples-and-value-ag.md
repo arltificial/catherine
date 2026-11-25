@@ -1,0 +1,170 @@
+#+TITLE: Practical modelling examples and value against the alternatives
+#+DATE: 2026-11-24
+#+OPTIONS: toc:2
+
+* Status
+Evidence for the decision memo (~notes/decision-memo-2026-11-24.org~). Where
+this note and the memo differ, the memo governs.
+
+* Method
+Three fresh scenarios, modelled and executed against the shipped CLI (0.4.1)
+today. Each is compared with what the incumbent alternative actually does —
+not with what it could do in principle. Documents are throwaway
+(/tmp/practical/*.ct.json); every command below is reproducible.
+
+* Scenario 1 — the seam between two independently owned services
+** The model
+~checkout.ct.json~ (checkout service): Order → Customer → Region; equation
+~order_customer∘customer_region = order_region~ ("an order is billed in its
+customer's region").
+~fulfilment.ct.json~ (fulfilment service): Order → Warehouse → Region;
+equation ~order_warehouse∘warehouse_region = dispatch_region~ ("an order
+dispatches from its warehouse's region").
+~seam.ct.json~ (the cross-service claim): ~order_region = dispatch_region~ —
+"an order is invoiced in the region it dispatches from".
+
+The instance disagrees on exactly one order: checkout bills ord_1003 in ~eu~
+(customer cus_a), fulfilment ships it from ~wh_us~ → dispatch ~us~.
+
+** What runs
+#+begin_example
+$ catherine check checkout.ct.json                  # exit 0 — clean
+$ catherine check fulfilment.ct.json                # exit 0 — clean
+$ catherine check checkout.ct.json fulfilment.ct.json seam.ct.json
+violation: eq-1 order_region ≠ dispatch_region
+  at row Order#2: lhs=Region#0 rhs=Region#1
+  source: seam.ct.json, checkout.ct.json, fulfilment.ct.json
+#+end_example
+
+** Against the alternatives
+| Alternative | What it does here |
+|---|---|
+| Per-service unit/integration tests | Both suites pass — each service is internally consistent. The seam bug is invisible: no test in either repo asserts across the boundary. |
+| A hand-written cross-service test | Catches *this* field disagreement only if someone thought of it; it is a hand-picked assertion, not an equation over composed paths, and it produces "assert expected eu got us" with no path algebra or source attribution. |
+| API contract tests (Pact-style) | Can catch a disagreement on a field both sides declare; cannot express "the *composed* path invoice_region∘… must equal dispatch_region", cannot attribute the violation to the three documents, and needs the contract and a running system. |
+| DB foreign keys / CHECK constraints | Live inside one database; a cross-service claim has no place here, and the constraint fires at write time, not against the extracted instance you actually ship. |
+| JSON Schema | Shape only — no cross-document path algebra, no instance-level witness row. |
+| Alloy/Quint | Can express relational invariants, but as a bounded model of a *separate* specification in a separate language and toolchain; the counterexample is a state trace, not "order row 2 disagrees on region". |
+| catherine | The seam is a declared equation over shared declared names; each service keeps its own document; the joint run names the row, both values, and which documents created the obligation. |
+
+Value: **the seam claim is a first-class, reviewable, versioned artifact** — it
+lives beside the two services' models, and CI can branch on exit 3. Nothing in
+the conventional column can hold a claim that spans two owners.
+
+Where catherine loses: it cannot tell you *why* the two services disagree (a
+business decision, not a path algebra), it needs an extracted instance (grounding
+is somebody else's job — C4/E2), and a shared *object name* is the only glue.
+
+* Scenario 2 — schema evolution: dropping a column
+** The model
+~orders_v1.ct.json~: Order → Promo → Region, with ~order_promo~ carrying
+"promo_summer", null, "promo_vip". The ~schema_map~ declares the target schema
+without ~order_promo~, with the arrow explicitly mapped to ~null~.
+
+** What runs
+#+begin_example
+$ catherine migrate orders_v1.ct.json
+migrate: 7 target row(s) across 3 object(s), 2 lost data finding(s)
+lost-cell: order_promo at Order#0
+lost-cell: order_promo at Order#2
+# exit 8
+#+end_example
+Note what is *not* reported: Order#1 (the null cell) — no value, no loss.
+
+** Against the alternatives
+| Alternative | What it does here |
+|---|---|
+| Schema diff (Flyway/ghorm-style) | "column order_promo dropped" — the schema difference. It cannot say *which values* were in it, and it does not care that the values were business-meaningful (promo codes). |
+| Row-count / checksum dry run | **Nothing.** The row counts are identical (3 orders, 2 promos, 2 regions → same), so a count- or checksum-based migration check sees no loss at all. Column loss is invisible to it. |
+| dbt / schema lint | Same as schema diff: names the column, not the elements. |
+| A hand-written migration test | Catches it if written for this migration; usually isn't, and doesn't generalise to the next dropped column. |
+| catherine | Names the two lost *cells* (element-level), distinguishes them from the null cell, and exits 8 so CI can branch. The pilot-scale probe measured this against a committed conventional baseline: 10 named cell losses + 1 round-trip counterexample the baseline cannot identify (README.md:25; ledger/probes/migration/). |
+
+Value: on this axis there is **no conventional counterpart** — the evidence is
+element-level loss, not schema difference and not counts.
+
+Where catherine loses: it is data-level only. A dropped *constraint* is not
+data loss and is `diff`'s job (the migrate document embeds
+~schema_map.target_schema~, so today you must hand-split it to use `diff` —
+the K3b item from the backlog memo). It also doesn't verify your migration
+*code*; it verifies the declared map against the extracted data.
+
+* Scenario 3 — a decision table above the triviality floor
+** The model
+~pricing_rules.ct.json~: columns ~tier~ (string), ~qty~ (int); rules
+~gold_bulk~ (gold ∧ qty≥10 → 15%), ~gold_any~ (gold → 10%), ~bulk_any`
+(qty≥10 → 5%); policy ~PriorityOrder~; declared domain tier∈{gold,silver} ×
+qty∈{1,10}.
+
+** What runs
+#+begin_example
+$ catherine rules pricing_rules.ct.json --values tier=gold,silver --values qty=1,10
+redundant: gold_bulk derives from gold_any∘bulk_any
+underconstraint: uncovered inputs qty = 1, tier = "silver" (examples 1) (hypothesized)
+# exit 6
+#+end_example
+
+Reading: the 15% rule is **dead** under priority order (the 10% rule always
+fires first for gold customers), and silver customers ordering one item fall
+through every rule — a coverage gap nobody wrote a test for.
+
+** Against the alternatives
+| Alternative | What it does here |
+|---|---|
+| A unit test per rule | Tests each rule in isolation; never notices that one rule is shadowed, nor that one combination of the declared domain is uncovered, unless someone enumerated the cross-product by hand. |
+| Table-driven test framework | Same — it executes cases someone enumerated; the enumeration is the part catherine does. |
+| dmn / DMN engines (Camunda, etc.) | Strong on *execution* of authored tables; the authoring of tables is a separate tool. Authored decision tables are commodity (Calvanese et al.; Signavio/OpenRules) — this lens is scoped to **extracted** prose/PDF tables no DMN analyzer ingests. |
+| catherine | Enumerates the declared finite domain and reports gap / overlap / shadow / derivable per rule. |
+
+Where catherine loses: below the triviality floor it says nothing useful and
+conventional code wins outright — that is the release-gated FizzBuzz negative
+control (~check fixtures/katas/fizzbuzz.ct.json~ → exit 0, empty: the silence
+is the feature). And on GoF-pattern-style laws the repo's own table records
+several rows as **killed** (parity: a conventional suite caught the same
+faults) — e.g. Prototype, Bridge, Command, Observer, Flyweight
+(docs/ref/pattern-kata-dispositions.md).
+
+* Where catherine loses overall (from the same day, not from theory)
+- **Below the triviality floor** — rule logic, formatting, scoring: silence.
+- **Cardinality, existence, arithmetic, time** — not statable: uniqueness
+  ("one owner per order") is invisible; cells hold row references, so scalars
+  must be modelled as objects; there is no fold over history.
+- **Detection rate** — parity with a competent test suite is the expectation,
+  not a win; several pattern rows were killed on exactly that basis.
+- **Missing requirements** — a model can be satisfiable and still omit a real
+  rule. No checker finds absent requirements; catherine's discovery
+  underconstraint is the nearest thing, and it asks rather than answers.
+- **It needs an extracted instance** — grounding (the hard part in practice)
+  happens outside the kernel.
+
+* The honest value statement
+The value is narrow, and it is narrow in two moments where conventional
+tooling *structurally* cannot go, plus one asset nobody else has:
+1. **Before code exists** — the model forces domain questions and rejects
+   invalid states at construction time, for every future reader of the model
+   (the discovery axis: kata-8's holdout failure exposed a genuine spec
+   ambiguity; the seam scenario above is the same mechanism between services).
+2. **When the schema changes** — element-level data-loss evidence with
+   witnesses, exit-code-addressable, offline and deterministic; the
+   conventional column offers schema diffs and counts, neither of which names
+   a lost cell.
+3. **The limits are themselves tested** — 14 registered expressibility rows
+   (8 open gaps, 6 closed), each with a live CLI case and a CI gate; the tool
+   says what it cannot do, and the claim is executable.
+
+It does **not** replace your test suite, your database constraints, your
+contract tests, or your reviewers. It is a pre-implementation and
+evolution-time instrument, not a runtime monitor, and it is deliberately
+silent where a conventional approach is correct.
+
+* Cheap next experiments, if the value thesis is to be tested further
+1. Run the seam scenario against a *real* two-repo corpus (the bogart pilot
+   shape) and measure how many real seams are expressible without hand-tuning
+   — the honest question is not "does it work" but "how much of the real seam
+   set is expressible".
+2. Re-run the migration probe on a second pilot corpus (the probe ledger is
+   designed for exactly this: pre-registered, baseline-armed).
+3. Ask the negative question the design demands: on the same corpus, would a
+   competent conventional suite have found the same elements? The current
+   answer is "the baseline cannot name them" — one corpus, not a general claim.
+

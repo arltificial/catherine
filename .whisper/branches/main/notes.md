@@ -1682,3 +1682,106 @@
   release (6 archives, checksums, provenance) via run 45470672401. First run
   failed at publish (engine dep unpinned + missing from publish order); fixed
   in 1fd33fe, tag moved per user call. Nothing to resume. (supersedes 2185bd192d32f634854ae12876dbdb4fb3703ee2167f887308feedae3040817b)
+- 2026-11-24T21:51:41Z [id:1bcde7b1b2457a072526dbabe267fca0178ba19e4b11a1f300a0de740a119c03] (#resume-catherine-kpn) Format: 1
+  Timestamp: 2026-11-24T20:06:00Z
+  Repo: /var/home/sasha/para/areas/dev/gh/at/catherine (at/catherine)
+  Branch: main
+  HEAD: 8080a9c
+  Session: 01a20f23-d1f2-7596-b9d9-f1a0e03fa90a
+  Task: the three-axis gate (epic catherine-kpn) — catherine's next moves
+  
+  Objective
+  Decide and record what catherine does next without widening what it can
+  express, then make the three axes it already serves (A referential agreement,
+  B schema evolution, C executable limits) honest and enforceable. Done as of
+  this entry: decision, plan, review, and a 16-ticket set (epic + 15 children)
+  with every issue-review finding applied.
+  
+  Phase
+  Plan complete, pre-execution. The design and plan artifacts are recorded in
+  wai; the tickets are ready except for the owner's HITL gates.
+  
+  Current state
+  - wai artifacts (design "the three-axis gate", plan "landing the three-axis
+  gate", 4 research notes, 2 review artifacts) exist under
+  .wai/projects/catherine/ but are UNCOMMITTED.
+  - Working notes live in notes/ (8 .org files), also uncommitted, and are
+  duplicated inside the wai artifacts.
+  - beads: epic catherine-kpn + 15 children (kpn.1-kpn.15), all open, none
+  claimed by this session. Committed in 3d379d7, 9070f8c, 8078b65, 8e3fef2,
+  8080a9c.
+  - No source file was modified in this session; the tool's behavior is
+  unchanged. The only code executed was read-only verification and two
+  throwaway experiments under /tmp (the architecture-gate demo: policy.py +
+  five models).
+  
+  Exact next action
+  The owner records the two decisions and reviews three design artifacts:
+  1. bd update catherine-kpn.2 --notes "<option a|b> and why"   (decide:
+  implement the "model this conventionally" hint, or restate the claim
+  as the process rule it is)
+  2. bd update catherine-kpn.8 --notes "<option a|b> and why"   (decide:
+  migrate reuses the diff classifier, or emits a hint)
+  3. review kpn.3 (docs/VALUE.md: axes + gate + the "state-shape domain"
+  definition), kpn.13 (the openspec change for the scope field), kpn.15
+  (the nine permitted dependency edges, authored from the design docs)
+  Then the AFK chain starts: kpn.1, kpn.4, kpn.6 (independent), then
+  kpn.13 -> kpn.5 -> kpn.12, kpn.4 -> kpn.7 -> kpn.14, kpn.15 -> kpn.9.
+  
+  Decisions and constraints (do not relitigate without the owner)
+  - The constraint language does NOT move: no new finding kinds, no new
+  constraint forms, same exit-code table, same epistemic labels.
+  - A capability that serves none of axes A/B/C is refused by default.
+  - Identity path form, cardinality/existence predicates, a general value or
+  multi-valued-cell type, and default row bounds for search/diff are
+  explicitly NOT doing (reasons in the wai design artifact).
+  - The registry is the executable half of the constraint set: a capability
+  change flips its row to closed in the same change, with sealing evidence.
+  kpn.5 does NOT close vacuous-clean-instances (a payload field is not a
+  warning).
+  - The architecture gate's policy must be authored from the design documents,
+  never regenerated from Cargo.toml (a mirrored policy is a tautology).
+  
+  Authorization limits
+  - No push, no release, no deploy. Beads commits happened (the tracked-export
+  invariant mandates export+commit after a bd change) but nothing was pushed.
+  - The untracked .wai/ and notes/ artifacts await the owner's decision to
+  commit them (suggested: one chore(wai) commit; drop notes/ since wai holds
+  the content).
+  
+  Validation run this session
+  - cargo test -p catherine-cli --test expressibility_gaps -> 6 passed
+  - just check-gap-claims -> every limitation claim names a disposition row id
+  - ah check -> ok, 0 findings
+  - deterministic + fast: 2000-row model check in ~10 ms, byte-identical reruns
+  - issue-review PASS 0 re-run over 16 tickets -> no missing files, estimates,
+  base_commits, meters, red gates, anti-goals, plan lines or lane anomalies;
+  no dependency cycles
+  
+  Unresolved / blockers
+  - kpn.2 and kpn.8 block their implementations (kpn.10, kpn.14): the tool's
+  silence-versus-hint behavior is undecided until the owner chooses.
+  - kpn.13 carries an open design decision: is the execution-scope field
+  public payload contract or internal diagnostic? It decides whether the wasm
+  types change (kpn.12).
+  - The open registry gaps after the plan: identity-empty-path-equations,
+  optional-references, vacuous-clean-instances, distinguish-observation-scope,
+  associativity-scaffolding (5 of 14 rows).
+  
+  Conditional references
+  - Decision: .wai/projects/catherine/designs/2026-11-24-design-the-three-axis-gate-what-catherine-wil.md
+  - Plan: .wai/projects/catherine/plans/2026-11-24-plan-landing-the-three-axis-gate-sequencing.md
+  - Review (verdict pass, supersedes needs-work): .wai/projects/catherine/reviews/2026-11-24-title-issue-review-the-three-axis-gate-ticket-2.md
+  - Issue-review findings + remediation: notes/issue-review-three-axis-tickets-2026-11-24.org
+  - Registry: docs/ref/expressibility-dispositions.md
+  - Demo (throwaway): /tmp/self/policy.py and /tmp/self/arch_*.ct.json
+  
+  Unknowns
+  - Whether the owner wants docs/VALUE.md as the constraints surface (assumed
+  in kpn.3) or a README section.
+  - Whether the untracked wai/notes artifacts should be committed at all.
+  
+  Previous entry: none
+- 2026-11-24T23:12:04Z [id:f292f388a6c8598233aedf755b451d61cef049f6b8145c86fc0cac3a9ed62c32] (#resume) Three-axis gate epic catherine-kpn COMPLETE (2026-11-24, session after 01a20f23). All 15 children landed and closed across three waves; epic closed. Commits 18a54e4..a51ee55 on main: wave 1 (docs honesty + registry cells + openspec change + policy artifact), wave 2 (scope field kernel/CLI/wasm/web end to end, mapped-arrow endpoint typing, architecture policy gate, docs restatement), wave 3 (migrate weakened-finding signal via shared classifier, registry rows closed with evidence). Gate remediation this session: pretender.toml exclude globs widened (plain dir/** forms never matched; the gate was nondeterministically flagging gitignored build artifacts book/ web/node_modules web/pkg lean/ target/), 11 espectacular contract TOMLs added (ah check no-toml -> 271/271 --run-tests green), schema_maps + schema_diff + arch-policy script split to satisfy strict file metrics. Final state: workspace 133 suites green, ah check 0 issues, pretender exit 0, check-gap-claims green, npm 7/7, arch self-test green. Uncommitted by owner decision: .wai/ session artifacts, notes/, .whisper/branches/main/notes.md, one pre-existing unrecorded line in crates/catherine-analysis/tests/pattern_builder.rs. Nothing pending.
+- 2026-11-24T23:40:14Z [id:91e008f5ccad9a0b8dcda79e340c0e0f3bc5a38ae65bfd715c38eade324dd76f] (#catherine-307) catherine-307 closed as withdrawn 2026-11-24: the review finding (classifier v1 carries sibling dropped constraints) was wrong — Translation::new builds the translated schema with objects and arrows only, so separating_row's v1 always held exactly the scanned constraint. Falsified empirically: a scan-resolvable two-drop fixture (zero-row instance, equation+key over one object) yields row 1 for the equation under BOTH old and new binaries; a diff-surface probe confirmed scan semantics. No source change; the fixture + both-dropped coverage test landed in cli_migrate (suite's first two-drop case, equation row 1 / key row 0) in commit 7595819b88. Registry vacuous-clean-instances row moved planned->landed in the same commit.
+- 2026-11-25T00:27:35Z [id:61caf7aa009ca3b0a195f47cdbda9539d7d359d8429aa709397010c450e52f7b] (#release) v0.5.0 released 2026-11-25: the three-axis gate (waves 1-3) shipped — data.scope payload field, named bounds on unknown payloads, architecture policy gate, non-functorial schema-map refusal, migrate weakened findings with per-constraint witness rows, docs honesty. All five crates on crates.io; GitHub release with 5 binaries + checksums + provenance. Two release-gate lessons recorded: (1) wave 3 committed MigrationFindingKind::Weakened without the pattern-suite match arms - the committed tree did not compile until 6495393; (2) the eval commit namespace captures only hand-written lines, so rustfmt's rewrites stayed uncommitted and the first tag run failed cargo fmt --check remotely while the worktree passed - fixed in 0b62839 and the tag re-pointed. Toolchain drift fixes: [lints.cargo] unused_dependencies allow on catherine-kani (#![cfg(kani)] body), lifetime elisions in schema_diff/dropped.rs, too_many_arguments allow on emit_findings.

@@ -1,0 +1,152 @@
+#+TITLE: Decision memo — catherine's next moves (what we do, what we do not)
+#+DATE: 2026-11-24
+#+OPTIONS: toc:2
+
+* Purpose
+This is the single artifact that states the decision the session reached, the
+evidence behind it, the sequencing, the stopping rule, and the list of things
+we are deliberately not doing. It supersedes the scattered proposals in the
+evidence notes (index at the end); those remain the detailed record.
+
+Scope: the *next* moves for catherine after the general evaluation of
+2026-11-24. It does not reopen the value proposition (see
+~notes/rule-of-5-value-proposition-2026-11-24.org~ for that review) and it does
+not decide where this memo lives in the repository — that is an open item at the
+bottom.
+
+* The decision
+**We do not widen what catherine can express.** We make the three axes it
+already serves honest and enforceable, and we leave the constraint language
+where it is.
+
+Concretely: five small items (one payload, one parser refusal, one reuse, one
+hint, one registry cell), one optional repository asset (the architecture
+policy gate), and a set of documentation corrections that cost nothing but
+change what the project claims about itself.
+
+The reason is the review's own evidence: the differentiator that is real and
+hard to copy is not a feature list — it is that catherine's *limits* are
+executable (14 registry rows, 8 open / 6 closed, each with a live case and a CI
+gate). Widening the language dilutes the thing that is already distinctive;
+tightening the honesty of the existing axes strengthens it.
+
+* The three axes (and the gate they form)
+| Axis | What it means | What serves it | Done when |
+|---|---|---|---|
+| **A — referential agreement** | claims of the form "these two stored paths must land on the same row" | path equations, keys, coproducts, pullbacks, naturality, composition | every such claim the model states is executed with a witness; what cannot be stated is named in a registry row |
+| **B — schema evolution** | what a schema change does to the data | ~migrate~ (Δ), ~diff~, the schema-map parser | no change can silently produce a wrong instance or a lost constraint |
+| **C — executable limits** | knowing and proving what the tool cannot do | the expressibility registry, the gap suite, the negative-control bundles | every limitation claim names a registry row and a live case; a stale row fails CI |
+
+**The gate:** a proposed capability that serves none of A, B or C is refused by
+default. This is the treatment the rule lens already received (a
+pre-registered hypothesis, scoped to extracted tables only) — the gate is the
+repo's own practice, written down.
+
+* "State-shape domain" — defined once
+> A domain whose claims are about the *shape and agreement of stored
+> references* — which rows exist, which references they carry, and which
+> composed paths must agree — rather than about computation over values
+> (arithmetic, time, decisions over data).
+
+Rule of thumb: if the claim can be written as "these two stored paths must land
+on the same row", it is in scope (axis A); if it is about *evolution*, it is
+axis B; if it is about *values, time or cardinality*, it is out of scope and
+belongs in the registry as a named gap (axis C). This definition replaces the
+eleven uses of "state-shape" that had no definition (review finding CLAR-001).
+
+* Sequencing — cheapest first
+**Phase 0 — documentation only (no code, no pipeline)**
+1. Fix the ~search~ semantics mismatch: README.md:22 and PROPOSAL.md:109-110
+   promise "the smallest breaking instance"; the shipped surface returns a
+   *satisfying* witness (~SearchOutcome::Witness~). The breaking instance comes
+   from ~check~ over a supplied instance and from ~diff~ as a separating
+   witness.
+2. Fix the "model this conventionally" claim: it is asserted of the tool
+   (README.md:30-31, USING.md:97-99 & 224-226, PROPOSAL.md:113-114,
+   DESIGN.md:68-69) but no code path emits it (~grep -rn "model this
+   conventionally" crates/~ → no matches; the FizzBuzz control is silent by
+   design). Either implement it as a ~warnings~/~hints~ line, or restate it as
+   the process rule it is.
+3. Rewrite the one-sentence value proposition around referential claims plus
+   the unmatched evolution axis, and add the axes table + the state-shape
+   definition to one normative constraints surface that PROPOSAL, DESIGN and
+   USING all point at (the registry is its executable half).
+4. Registry cells: the identity-gap row states the workaround; the
+   ~vacuous-clean-instances~ row stays open until a warning exists.
+
+**Phase 1 — small code**
+5. ~unknown~ payload names the bound to pass (item 4).
+6. Scope count on every answer (item 1) — behind an openspec change, with
+   ~ah check --changes~ and ~just check-wasm~; it touches the payload shape,
+   not the constraint language.
+
+**Phase 2 — the evolution axis**
+7. Mapped-arrow endpoint typing in the schema-map parser (item 2), with the
+   ~non-functorial-schema-map~ row flipped to ~closed~ in the same change.
+8. ~migrate~ reuses the diff classifier, or hints at it (item 3), with the two
+   dropped-constraint rows flipped (or explicitly left open).
+
+**Phase 3 — the optional asset**
+9. The architecture policy gate: the permitted-edge list as a design artifact
+   (authored from DESIGN.md:156-159, README.md:205 and docs/kani-lane.md —
+   never from Cargo.toml), the extractor with its own test, and the four-run
+   negative-control bundle (clean; core→cli; core→genesis_vibes; kani→core;
+   plus the missing-edge case).
+
+* Evidence — every conclusion has a command
+| Conclusion | Command (reproducible) |
+|---|---|
+| The seam between two services is invisible to each service alone | ~catherine check checkout.ct.json~ (exit 0), ~... fulfilment.ct.json~ (exit 0), ~... checkout fulfilment seam~ (exit 3, "at row Order#2", source attribution) |
+| A dropped column loses elements, not rows | ~catherine migrate orders_v1.ct.json~ → "2 lost data finding(s)", exit 8, row counts unchanged |
+| A decision table has a dead rule and an uncovered input | ~catherine rules pricing_rules.ct.json --values tier=gold,silver --values qty=1,10~ → "redundant: gold_bulk derives from gold_any∘bulk_any" + "underconstraint: uncovered inputs …" |
+| The architecture gate rejects forbidden edges | ~catherine check arch_actual.ct.json~ (exit 0); ~arch_bad_core_cli.ct.json~ / ~arch_bad_suite_leak.ct.json~ / ~arch_bad_kani_isolation.ct.json~ (exit 3, "uncovered"); ~arch_missing_edge.ct.json~ (exit 4, dangling) |
+| The limitations are executable | ~cargo test -p catherine-cli --test expressibility_gaps~ (6 passed); ~just check-gap-claims~ ("every limitation claim names a disposition row id") |
+| The tool stays silent where conventional wins | ~catherine check fixtures/katas/fizzbuzz.ct.json~ → exit 0, empty, ~warnings=[]~ |
+| The self-model's boundary is real | the Lean twin: ~lean/Catherine/{Schema,Instance,EvalPath,Check,Findings,Mirror,Parity}.lean~ + ~Proofs/{Soundness,EquationCompleteness,DanglingDiscipline}.lean~ |
+
+* Done-when (the stopping rule)
+The programme above is finished when: Phase 0's documentation corrections are
+landed; items 5–8 have landed; the registry rows that the landed capabilities
+close are ~closed~ with sealing evidence and the others are still ~gap~ and say
+why; ~catherine check~ reports its execution scope so "clean" is
+distinguishable from "unchecked"; and the architecture gate (if Phase 3 lands)
+has its policy, its extractor test and its negative-control bundle.
+
+Beyond that the backlog does not grow by default: a new item must name the axis
+it serves or be refused.
+
+* Not doing (and why)
+| Refused | Reason |
+|---|---|
+| identity path form | a working workaround exists in the shipped katas (identity laws stated as fixed-point over a concrete arrow); equational algebra is the classic route to a generic checker |
+| cardinality / existence predicates | real state-shape claims, but they widen the constraint language toward a constraint solver — admissible only after the state-shape definition lands, and then only with a triviality-floor test |
+| a general value / multi-valued-cell type | that is a data model, not a kernel |
+| default row bounds for ~search~/~diff~ | a hint naming the bound to pass is enough; deriving bounds from the instance would change what "within bounds" means |
+| "model this conventionally" as a new finding kind | the honest verdict belongs in the ~hints~ channel, not in a new exit class |
+
+* Open items for the owner
+1. Where does this memo live — ~docs/~ (reviewed with the other design
+   documents), a wai design artifact, or a bd issue set? It decides whether
+   Phase 0's corrections land as doc PRs or as tracked work.
+2. Should the five items open as beads issues now, and with which red→green
+   test shapes? The test shapes are in the backlog memo.
+3. Does Phase 3 (the architecture asset) stay a proposal, or become work? It
+   is the only item that needs new code in the repository's trusted path, and
+   it should land behind the project's TDD pipeline.
+
+* Evidence notes (index)
+| Note | What it is good for |
+|---|---|
+| ~notes/catherine-evaluation-2026-11-24.org~ | the general capability evaluation: what can be modelled, what cannot, with live commands |
+| ~notes/rule-of-5-value-proposition-2026-11-24.org~ | the value-proposition and constraint review (the HIGH doc/behavior mismatches, the axes, the anti-generic gate) |
+| ~notes/keep-backlog-necessity-review-2026-11-24.org~ | the necessity review of the four proposed items and the filtered backlog with its done-when |
+| ~notes/practical-models-and-value-2026-11-24.org~ | three worked scenarios against the alternatives, and where the tool loses |
+| ~notes/can-catherine-model-catherine-2026-11-24.org~ | the self-model: what catherine can say about itself, and the architecture gate with its four negative controls |
+| ~notes/rule-of-5-conclusion-and-proposal-2026-11-24.org~ | the review of this session's conclusion and proposal, including the verification outcomes and the severity-calibration lesson |
+
+* Note on method (carried from the review)
+All HIGH findings in this session's review went through a TypeSafe verification
+pass: of six, one survived above the gate (0.96), two are REVIEW_REQUIRED, and
+three were dropped or contradicted — a measured false-positive rate of 75%.
+The lesson is calibration, not doubt: reserve HIGH for claims that would ship a
+*wrong statement*; process and design gaps are MEDIUM.
