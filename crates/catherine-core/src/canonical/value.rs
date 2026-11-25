@@ -2,11 +2,11 @@
 //! verbatim (mechanical lint refactor); no behavior change.
 
 use crate::model::{
-    Coproduct, Equation, InstanceMap, Key, Literal, Model, Predicate, RowId, Rule,
-    RulePresentation, Schema, SchemaMap,
+    Coproduct, Equation, InstanceMap, Key, Model, RowId, Rule, RulePresentation, Schema, SchemaMap,
 };
 use serde_json::{Map, Value};
 
+use super::predicate::predicate_value;
 use super::pullbacks::pullback_values;
 use super::writer::write_value;
 
@@ -151,7 +151,10 @@ fn optional_entries(
 ) -> Vec<(&'static str, Value)> {
     let mut entries = Vec::new();
     if !keys.is_empty() {
-        entries.push(("keys", Value::Array(keys.iter().map(|key| key_value(key)).collect())));
+        entries.push((
+            "keys",
+            Value::Array(keys.iter().map(|key| key_value(key)).collect()),
+        ));
     }
     if !coproducts.is_empty() {
         entries.push(("coproducts", Value::Array(coproducts)));
@@ -308,57 +311,6 @@ fn rule_value(rule: &Rule) -> Value {
         ("action", string(&rule.action)),
         ("predicate", predicate_value(&rule.predicate)),
     ])
-}
-
-/// One canonical predicate node, in the format's kind-tagged shape.
-fn predicate_value(predicate: &Predicate) -> Value {
-    match predicate {
-        Predicate::Cmp { column, op, value } => obj([
-            ("kind", string("cmp")),
-            ("column", string(&column.0)),
-            ("op", string(op.as_str())),
-            ("value", literal_value(value)),
-        ]),
-        Predicate::Mod {
-            column,
-            modulus,
-            equals,
-        } => obj([
-            ("kind", string("mod")),
-            ("column", string(&column.0)),
-            ("modulus", number(*modulus)),
-            ("equals", number(*equals)),
-        ]),
-        Predicate::And(args) => boolean_combination("and", args),
-        Predicate::Or(args) => boolean_combination("or", args),
-        Predicate::Not(arg) => obj([("kind", string("not")), ("arg", predicate_value(arg))]),
-    }
-}
-
-/// A canonical `and`/`or` node: the kind plus its operand array in written
-/// order.
-fn boolean_combination(kind: &str, args: &[Predicate]) -> Value {
-    obj([
-        ("kind", string(kind)),
-        (
-            "args",
-            Value::Array(args.iter().map(predicate_value).collect()),
-        ),
-    ])
-}
-
-/// One canonical comparison literal.
-fn literal_value(literal: &Literal) -> Value {
-    match literal {
-        Literal::Int(value) => number(*value),
-        Literal::Bool(value) => Value::Bool(*value),
-        Literal::String(value) => string(value),
-    }
-}
-
-/// A canonical integer: base-ten, no exponent or fraction.
-fn number(value: i64) -> Value {
-    Value::Number(value.into())
 }
 
 /// One canonical equation entry.

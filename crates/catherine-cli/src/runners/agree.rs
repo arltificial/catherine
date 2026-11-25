@@ -129,11 +129,7 @@ impl<'a> From<&'a Disagreement> for DisagreementDto<'a> {
 }
 
 /// The §5 human lines: one line per disagreement, naming both documents.
-fn render_disagreements(
-    disagreements: &[Disagreement],
-    a_path: &str,
-    b_path: &str,
-) -> Vec<String> {
+fn render_disagreements(disagreements: &[Disagreement], a_path: &str, b_path: &str) -> Vec<String> {
     disagreements
         .iter()
         .map(|witness| {

@@ -30,7 +30,9 @@
 //! filename. A document with zero instance rows carries no calibrating
 //! denominator and stays silent.
 
-use catherine_core::findings::{EpistemicLabel, Finding, FindingKind, GranularityCase, GranularityWitness};
+use catherine_core::findings::{
+    EpistemicLabel, Finding, FindingKind, GranularityCase, GranularityWitness,
+};
 use catherine_core::model::Model;
 
 /// The calibrated cap multiplier over the wave's proposed `√rows` bound.
@@ -97,10 +99,13 @@ mod tests {
     fn schema(n: usize, r: usize) -> Model {
         let mut arrows = BTreeMap::new();
         for i in 0..n {
-            arrows.insert(Ident(format!("a{i}")), Arrow {
-                src: Ident("x".into()),
-                tgt: Ident("x".into()),
-            });
+            arrows.insert(
+                Ident(format!("a{i}")),
+                Arrow {
+                    src: Ident("x".into()),
+                    tgt: Ident("x".into()),
+                },
+            );
         }
         Model {
             schema: Schema {
@@ -109,10 +114,7 @@ mod tests {
                 ..Schema::default()
             },
             instance: catherine_core::model::Instance {
-                rows: BTreeMap::from([(
-                    Ident("x".into()),
-                    (0..r).map(RowId).collect(),
-                )]),
+                rows: BTreeMap::from([(Ident("x".into()), (0..r).map(RowId).collect())]),
                 values: BTreeMap::new(),
             },
             ..Model::default()
@@ -140,10 +142,7 @@ mod tests {
         let FindingKind::Granularity(w) = &out[0].kind else {
             panic!("granularity kind");
         };
-        assert_eq!(
-            w.case,
-            GranularityCase::OverCap { cap: 12, rows: 6 }
-        );
+        assert_eq!(w.case, GranularityCase::OverCap { cap: 12, rows: 6 });
         // Every arrow named in the cap witness, canonical order.
         assert_eq!(w.arrows.len(), 13);
         let FindingKind::Granularity(w) = &out[1].kind else {

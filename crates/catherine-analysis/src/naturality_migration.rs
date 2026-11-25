@@ -95,7 +95,8 @@ pub fn migration_naturality(
         .instance_map
         .as_ref()
         .ok_or(MigrationError::MissingInstanceMap)?;
-    let resolved = resolve_migration_map(schema_map, instance_map, source, source_names, target_names)?;
+    let resolved =
+        resolve_migration_map(schema_map, instance_map, source, source_names, target_names)?;
     Ok(migration_sweep(source, target, schema_map, &resolved))
 }
 

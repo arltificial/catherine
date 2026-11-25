@@ -12,8 +12,8 @@ use catherine_core::findings::EpistemicLabel;
 use genesis::envelope::Warning;
 use std::io::Write;
 
-use crate::{agree, cli, diff, migrate, naturality, pattern, rules, run, runners};
 use crate::composition;
+use crate::{agree, cli, diff, migrate, naturality, pattern, rules, run, runners};
 
 /// The command match: one arm per surface, each on the shared path.
 pub(crate) fn dispatch_command(
@@ -24,30 +24,15 @@ pub(crate) fn dispatch_command(
     match command {
         C::Check { models } => check_command(run::Surface::Check, models, ctx),
         C::Findings { models } => check_command(run::Surface::Findings, models, ctx),
-        C::Search {
-            model,
-            rows,
-            max_candidates,
-        } => search_command(model, rows, *max_candidates, ctx),
+        C::Search { .. } => search_command(command, ctx),
         C::Redundant { model } => redundant_command(model, ctx),
-        C::Underconstraint {
-            models,
-            max_path_length,
-        } => underconstraint_command(models, *max_path_length, ctx),
-        C::Distinguish {
-            model,
-            second,
-            observe,
-        } => distinguish_command(model, second, observe, ctx),
+        C::Underconstraint { .. } => underconstraint_command(command, ctx),
+        C::Distinguish { .. } => distinguish_command(command, ctx),
         C::Naturality { model, second } => naturality::run(model, second, ctx),
         C::Agree { model, second } => agree::run(model, second, ctx),
         C::Merge { left, right } => merge_command(&left, &right, ctx),
-        C::Diff { model, second, rows, max_candidates } => {
-            diff_command(model, second, rows, *max_candidates, ctx)
-        }
-        C::Query { model, seed, follow, direction } => {
-            query_command(model, seed, follow, direction, ctx)
-        }
+        C::Diff { .. } => diff_command(command, ctx),
+        C::Query { .. } => query_command(command, ctx),
         C::Migrate { model } => migrate_command(model, ctx),
         C::Rules { .. } => rules_command(command, ctx),
         C::Pattern { .. } => pattern::command(command, ctx),
@@ -57,11 +42,7 @@ pub(crate) fn dispatch_command(
 /// The `merge` arm's rendering: UNKNOWN identity-conflict cells name both
 /// conflicting sides; a completed pushout reports merged counts; the tool
 /// never auto-resolves a conflict (exit 3 on any cell, 1 on labeled errors).
-fn merge_command(
-    left: &str,
-    right: &str,
-    ctx: &mut Ctx<'_, impl Write, impl Write>,
-) -> i32 {
+fn merge_command(left: &str, right: &str, ctx: &mut Ctx<'_, impl Write, impl Write>) -> i32 {
     match composition::merge::run(left, right) {
         Ok(outcome) => {
             for cell in &outcome.cells {
@@ -86,7 +67,11 @@ fn merge_command(
                     glued.schema.equations.len()
                 );
             }
-            if outcome.cells.is_empty() { 0 } else { 3 }
+            if outcome.cells.is_empty() {
+                0
+            } else {
+                3
+            }
         }
         Err(err) => {
             let _ = writeln!(ctx.stderr, "{}", err.positioned_message());
@@ -125,17 +110,22 @@ impl<'a, O: Write, E: Write> Ctx<'a, O, E> {
     }
 }
 
-/// Forward [`runners::run_search`] on the shared execution path.
-fn search_command<O: Write, E: Write>(
-    model: &str,
-    rows: &[String],
-    max_candidates: usize,
-    ctx: &mut Ctx<'_, O, E>,
-) -> i32 {
-    runners::run_search(
+/// Forward [`runners::run_search`] on the shared execution path. The arm
+/// above binds no fields, so `dispatch_command` stays inside the
+/// function-line cap; this helper re-destructures `Commands::Search`.
+fn search_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, O, E>) -> i32 {
+    let cli::Commands::Search {
         model,
         rows,
         max_candidates,
+    } = command
+    else {
+        unreachable!("dispatch routes only Commands::Search here");
+    };
+    runners::run_search(
+        model,
+        rows,
+        *max_candidates,
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),
@@ -157,14 +147,22 @@ fn redundant_command<O: Write, E: Write>(model: &str, ctx: &mut Ctx<'_, O, E>) -
 }
 
 /// Forward [`runners::run_underconstraint`] on the shared execution path.
+/// The arm above binds no fields, so `dispatch_command` stays inside the
+/// function-line cap; this helper re-destructures `Commands::Underconstraint`.
 fn underconstraint_command<O: Write, E: Write>(
-    models: &[String],
-    max_path_length: usize,
+    command: &cli::Commands,
     ctx: &mut Ctx<'_, O, E>,
 ) -> i32 {
-    runners::run_underconstraint(
+    let cli::Commands::Underconstraint {
         models,
         max_path_length,
+    } = command
+    else {
+        unreachable!("dispatch routes only Commands::Underconstraint here");
+    };
+    runners::run_underconstraint(
+        models,
+        *max_path_length,
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),
@@ -174,12 +172,20 @@ fn underconstraint_command<O: Write, E: Write>(
 }
 
 /// Forward [`runners::run_distinguish`] on the shared execution path.
+/// The arm above binds no fields, so `dispatch_command` stays inside the
+/// function-line cap; this helper re-destructures `Commands::Distinguish`.
 fn distinguish_command<O: Write, E: Write>(
-    model: &str,
-    second: &str,
-    observe: &[String],
+    command: &cli::Commands,
     ctx: &mut Ctx<'_, O, E>,
 ) -> i32 {
+    let cli::Commands::Distinguish {
+        model,
+        second,
+        observe,
+    } = command
+    else {
+        unreachable!("dispatch routes only Commands::Distinguish here");
+    };
     runners::run_distinguish(
         model,
         second,
@@ -192,19 +198,24 @@ fn distinguish_command<O: Write, E: Write>(
     )
 }
 
-/// Forward [`diff::run_diff`] on the shared execution path.
-fn diff_command<O: Write, E: Write>(
-    model: &str,
-    second: &str,
-    rows: &[String],
-    max_candidates: usize,
-    ctx: &mut Ctx<'_, O, E>,
-) -> i32 {
-    diff::run_diff(
+/// Forward [`diff::run_diff`] on the shared execution path. The arm
+/// above binds no fields, so `dispatch_command` stays inside the
+/// function-line cap; this helper re-destructures `Commands::Diff`.
+fn diff_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, O, E>) -> i32 {
+    let cli::Commands::Diff {
         model,
         second,
         rows,
         max_candidates,
+    } = command
+    else {
+        unreachable!("dispatch routes only Commands::Diff here");
+    };
+    diff::run_diff(
+        model,
+        second,
+        rows,
+        *max_candidates,
         ctx.json,
         ctx.quiet,
         std::mem::take(&mut ctx.warnings),
@@ -213,14 +224,19 @@ fn diff_command<O: Write, E: Write>(
     )
 }
 
-/// Forward [`runners::run_query`] on the shared execution path.
-fn query_command<O: Write, E: Write>(
-    model: &str,
-    seed: &[String],
-    follow: &[String],
-    direction: &str,
-    ctx: &mut Ctx<'_, O, E>,
-) -> i32 {
+/// Forward [`runners::run_query`] on the shared execution path. The arm
+/// above binds no fields, so `dispatch_command` stays inside the
+/// function-line cap; this helper re-destructures `Commands::Query`.
+fn query_command<O: Write, E: Write>(command: &cli::Commands, ctx: &mut Ctx<'_, O, E>) -> i32 {
+    let cli::Commands::Query {
+        model,
+        seed,
+        follow,
+        direction,
+    } = command
+    else {
+        unreachable!("dispatch routes only Commands::Query here");
+    };
     runners::run_query(
         model,
         seed,

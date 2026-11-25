@@ -55,12 +55,7 @@ pub struct Disagreement {
 /// target on both sides to be shared); rows are matched by presentation
 /// name. Sorted, one [`Disagreement`] per breaking cell; one-sided rows
 /// and keys are silent.
-pub fn agree(
-    a: &Model,
-    b: &Model,
-    names_a: &RowNames,
-    names_b: &RowNames,
-) -> Vec<Disagreement> {
+pub fn agree(a: &Model, b: &Model, names_a: &RowNames, names_b: &RowNames) -> Vec<Disagreement> {
     let mut disagreements = Vec::new();
     for (arrow_name, arrow) in &a.schema.arrows {
         let Some(shared) = b.schema.arrows.get(arrow_name) else {

@@ -31,8 +31,7 @@
 //! the parser deliberately preserves them as data.
 
 use catherine_core::findings::{
-    EpistemicLabel, Finding, FindingKind, NaturalityWitness,
-    ViolationWitness,
+    EpistemicLabel, Finding, FindingKind, NaturalityWitness, ViolationWitness,
 };
 use catherine_core::model::{Ident, InstanceMap, Model, RowId};
 use catherine_core::parse::RowNames;
@@ -242,7 +241,11 @@ fn square(
 
 /// One arrow's image at a row of another instance's object; `None` for a
 /// dangling cell or an out-of-space row.
-pub(crate) fn arrow_image(document: &Model, arrow_name: &Ident, row: Option<RowId>) -> Option<RowId> {
+pub(crate) fn arrow_image(
+    document: &Model,
+    arrow_name: &Ident,
+    row: Option<RowId>,
+) -> Option<RowId> {
     row.and_then(|row| {
         document
             .instance
@@ -255,4 +258,3 @@ pub(crate) fn arrow_image(document: &Model, arrow_name: &Ident, row: Option<RowI
 }
 
 pub use crate::naturality_migration::{migration_naturality, MigrationError, MigrationOutcome};
-

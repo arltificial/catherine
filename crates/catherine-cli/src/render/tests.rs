@@ -4,12 +4,12 @@
 //! size gate; no behavior change.
 
 use super::*;
+use catherine_core::findings::EpistemicLabel;
 use catherine_core::findings::{
     ContradictionWitness, DanglingWitness, RedundantWitness, UnderconstraintWitness,
 };
-use catherine_core::model::{Arrow, ConstraintStatus, Equation, Ident, Key};
-use catherine_core::findings::EpistemicLabel;
 use catherine_core::model::Path;
+use catherine_core::model::{Arrow, ConstraintStatus, Equation, Ident, Key};
 use std::collections::BTreeMap;
 
 fn finding(kind: FindingKind, label: EpistemicLabel) -> Finding {

@@ -63,17 +63,17 @@ pub use crate::render::migrate::{migrate_envelope, render_migrate, MigrateData};
 pub use crate::render::rules::{render_rules, rules_envelope, RuleScopeView, RulesData};
 
 use catherine_core::findings::{
-    CoproductWitness, DanglingWitness, DomainQuestion, EquationWitness, Finding,
-    FindingKind, GranularityCase, GranularityWitness, KeyWitness, NaturalityWitness,
-    PullbackWitness, UnderconstraintWitness, ViolationWitness,
+    CoproductWitness, DanglingWitness, DomainQuestion, EquationWitness, Finding, FindingKind,
+    GranularityCase, GranularityWitness, KeyWitness, NaturalityWitness, PullbackWitness,
+    UnderconstraintWitness, ViolationWitness,
 };
 use catherine_core::model::{Ident, Pullback, RowId, Schema};
 
-use self::text::{
-    arrows_string, arrow_list, label_suffix, naturality_value, path_codomain, path_domain, row_at,
-};
 /// The public surface keeps the stable `render::path_string` path.
 pub use self::text::path_string;
+use self::text::{
+    arrow_list, arrows_string, label_suffix, naturality_value, path_codomain, path_domain, row_at,
+};
 
 /// The CLI version carried in every envelope's `cli_version`.
 pub const CLI_VERSION: &str = env!("CARGO_PKG_VERSION");

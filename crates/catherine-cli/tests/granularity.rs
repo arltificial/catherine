@@ -42,7 +42,10 @@ fn kinds(out: &Output) -> Vec<String> {
 }
 
 fn fixture(name: &str) -> String {
-    format!("{}/../../fixtures/granularity/{name}", env!("CARGO_MANIFEST_DIR"))
+    format!(
+        "{}/../../fixtures/granularity/{name}",
+        env!("CARGO_MANIFEST_DIR")
+    )
 }
 
 /// The over-cap fixture, derived from the bogart pilot's model shape
@@ -84,7 +87,10 @@ fn kata_corpus_stays_silent() {
     assert!(files.len() > 20, "the kata corpus is present");
     for file in files {
         let out = run_check(&file);
-        let gran: Vec<_> = kinds(&out).into_iter().filter(|k| k == "granularity").collect();
+        let gran: Vec<_> = kinds(&out)
+            .into_iter()
+            .filter(|k| k == "granularity")
+            .collect();
         assert!(
             gran.is_empty(),
             "{file} fired a granularity finding — recalibrate the thresholds, never special-case the filename"
@@ -110,16 +116,13 @@ fn walk(dir: &Path) -> Vec<String> {
         .expect("kata dir readable")
         .flatten()
         .collect();
-    let (dirs, plain): (Vec<_>, Vec<_>) =
-        entries.into_iter().partition(|e| e.path().is_dir());
+    let (dirs, plain): (Vec<_>, Vec<_>) = entries.into_iter().partition(|e| e.path().is_dir());
     dirs.iter()
         .flat_map(|e| walk(&e.path()))
         .chain(
             plain
                 .iter()
-                .filter(|e| {
-                    e.path().extension() == Some(std::ffi::OsStr::new("json"))
-                })
+                .filter(|e| e.path().extension() == Some(std::ffi::OsStr::new("json")))
                 .map(|e| e.path().to_string_lossy().into_owned()),
         )
         .collect()

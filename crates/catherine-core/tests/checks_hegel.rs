@@ -20,10 +20,10 @@
 //! random draw reaches only by luck.
 
 mod common;
-#[path = "checks_properties/hegel_scope.rs"]
-mod scope;
 #[path = "checks_properties/expected.rs"]
 mod expected;
+#[path = "checks_properties/hegel_scope.rs"]
+mod scope;
 
 use common::fixture;
 use common::generators::arb_case;

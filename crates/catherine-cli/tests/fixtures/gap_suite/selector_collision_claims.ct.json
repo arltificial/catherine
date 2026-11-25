@@ -1,0 +1,18 @@
+{
+  "format_version": "1.3",
+  "schema": {
+    "objects": ["Capture", "Partition", "Digest"],
+    "arrows": [
+      {"name": "partition", "src": "Capture", "tgt": "Partition"},
+      {"name": "digest", "src": "Capture", "tgt": "Digest"}
+    ],
+    "equations": []
+  },
+  "instance": {
+    "rows": {"Capture": ["c1", "c2"], "Partition": ["bat"], "Digest": ["h_840e"]},
+    "tables": {
+      "partition": {"c1": "bat", "c2": "bat"},
+      "digest": {"c1": "h_840e", "c2": "h_840e"}
+    }
+  }
+}

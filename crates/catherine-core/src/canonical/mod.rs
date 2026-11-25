@@ -25,6 +25,7 @@
 //! the hash contract, asserted structurally everywhere else.
 
 mod label;
+mod predicate;
 mod pullbacks;
 mod value;
 mod writer;

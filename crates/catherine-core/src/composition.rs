@@ -267,7 +267,9 @@ pub fn glue(documents: &[Document]) -> Result<Glued, CompositionError> {
     let mut stored = BTreeMap::new();
     for document in documents {
         for (arrow, column) in &document.model.schema.stored {
-            stored.entry(arrow.clone()).or_insert_with(|| column.clone());
+            stored
+                .entry(arrow.clone())
+                .or_insert_with(|| column.clone());
         }
     }
     Ok(Glued {

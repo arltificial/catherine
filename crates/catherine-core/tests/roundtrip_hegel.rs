@@ -31,7 +31,6 @@
 mod model_fixture;
 
 use catherine_core::canonical::{canonical_bytes, serialize};
-use std::collections::BTreeMap;
 use catherine_core::hash::model_hash;
 use catherine_core::model::{Ident, Instance, Model, RowId, Schema, Version};
 use catherine_core::parse::parse;
@@ -39,6 +38,7 @@ use hegel::generators as gs;
 use hegel::TestCase;
 use model_fixture::{arb_model, cross_maps, dense_rows, object, self_loop, table};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 /// `parse(serialize(arbitrary_model)) == model` — serialization is a
 /// parse fixed point for arbitrary valid models.

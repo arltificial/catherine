@@ -48,11 +48,12 @@ mod schema;
 mod schema_map;
 mod serde_error;
 mod spans;
+mod tables;
 
 use crate::error::{ErrorCode, ParseError, SemanticError};
 use crate::model::{
-    Arrow, Coproduct, Equation, Ident, InstanceMap, Key, Model, Pullback, RowId,
-    RulePresentation, SchemaMap,
+    Arrow, Coproduct, Equation, Ident, InstanceMap, Key, Model, Pullback, RowId, RulePresentation,
+    SchemaMap,
 };
 use rows::check_rows;
 pub use rows::RowNames;
@@ -66,6 +67,7 @@ use schema::{check_arrows, check_equations, check_objects, check_version, RawDoc
 use serde_error::doc_err;
 use spans::{scan_spans, Spans};
 use std::collections::BTreeMap;
+use tables::check_tables;
 
 /// Parse a `.ct.json` v1 model document. Accepted additive minors of the
 /// current major (1) are capped at `KNOWN_MINOR` (schema.rs, currently 6);
@@ -93,6 +95,48 @@ pub fn parse_with_rows(text: &str) -> Result<(Model, RowNames), ParseError> {
 /// passes (schema map, rule presentation, predicate language).
 fn reject(spans: &Spans, pointer: &str, code: ErrorCode, message: String) -> ParseError {
     spans.semantic(pointer, code, message)
+}
+
+/// The document's sections after the version gate: the required
+/// `schema`/`instance` pair (each rejected in document order — `schema`
+/// first, then `instance`) plus the three optional additive sections.
+/// Split out of `validate_with` (mechanical lint refactor; no behavior
+/// change) so `validate_with`'s forwarding calls stay inside the
+/// function-size gate.
+fn required_sections(
+    doc: RawDoc,
+    spans: &Spans,
+) -> Result<
+    (
+        RawSchema,
+        schema::RawInstance,
+        Option<schema_map::RawSchemaMap>,
+        Option<rule_presentation::RawRulePresentation>,
+        Option<instance_map::RawInstanceMap>,
+    ),
+    ParseError,
+> {
+    let RawDoc {
+        schema,
+        instance,
+        schema_map,
+        rule_presentation,
+        instance_map,
+        ..
+    } = doc;
+    let Some(schema) = schema else {
+        return Err(spans.syntax("", "missing required field `schema`"));
+    };
+    let Some(instance) = instance else {
+        return Err(spans.syntax("", "missing required field `instance`"));
+    };
+    Ok((
+        schema,
+        instance,
+        schema_map,
+        rule_presentation,
+        instance_map,
+    ))
 }
 
 /// The parse composition, step by step (each step delegated):
@@ -140,25 +184,30 @@ fn validate_with(
     defer_equations: bool,
 ) -> Result<(Model, RowNames, Option<PendingEquations>), ParseError> {
     let version = check_version(&doc, spans)?;
-    let Some(schema) = doc.schema else {
-        return Err(spans.syntax("", "missing required field `schema`"));
-    };
-    let Some(instance) = doc.instance else {
-        return Err(spans.syntax("", "missing required field `instance`"));
-    };
+    let (schema, instance, schema_map, rule_presentation, instance_map) =
+        required_sections(doc, spans)?;
     let objects = check_objects(&schema, spans)?;
     let arrows = check_arrows(&schema, &objects, spans)?;
     let (equations, pending) = resolved_equations(&schema, &arrows, spans, defer_equations)?;
     let row_index = check_rows(&instance, &objects, spans)?;
     let values = check_tables(&instance, &arrows, &row_index, spans)?;
     let (keys, coproducts, pullbacks) = check_structure(&schema, &objects, &arrows, spans)?;
-    let (instance_map, schema_map, rule_presentation) = declared_additives(
-        &doc.instance_map, &doc.schema_map, &doc.rule_presentation,
-        &objects, &arrows, &row_index, spans,
-    )?;
+    let instance_map = declared_instance_map(&instance_map, &objects, &row_index, spans)?;
+    let schema_map = declared_schema_map(&schema_map, &objects, &arrows, spans)?;
+    let rule_presentation = declared_rule_presentation(&rule_presentation, &objects, spans)?;
     let (mut model, rows) = build_model(
-        version, objects, arrows, equations, keys, coproducts, pullbacks,
-        row_index, values, schema_map, rule_presentation, instance_map,
+        version,
+        objects,
+        arrows,
+        equations,
+        keys,
+        coproducts,
+        pullbacks,
+        row_index,
+        values,
+        schema_map,
+        rule_presentation,
+        instance_map,
     );
     apply_stored(&mut model, schema.stored);
     Ok((model, rows, pending))
@@ -177,24 +226,6 @@ fn check_structure(
     let coproducts = check_coproducts(schema, objects, arrows, spans)?;
     let pullbacks = check_pullbacks(schema, objects, arrows, spans)?;
     Ok((keys, coproducts, pullbacks))
-}
-
-/// The additive declared sections (1.1 schema map, 1.2 rule presentation,
-/// 1.4 instance map): each checked against the already-validated schema
-/// and row index.
-fn declared_additives(
-    doc_instance_map: &Option<instance_map::RawInstanceMap>,
-    doc_schema_map: &Option<schema_map::RawSchemaMap>,
-    doc_rule_presentation: &Option<rule_presentation::RawRulePresentation>,
-    objects: &BTreeMap<Ident, ()>,
-    arrows: &BTreeMap<Ident, Arrow>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    spans: &Spans,
-) -> Result<(Option<InstanceMap>, Option<SchemaMap>, Option<RulePresentation>), ParseError> {
-    let instance_map = declared_instance_map(doc_instance_map, objects, row_index, spans)?;
-    let schema_map = declared_schema_map(doc_schema_map, objects, arrows, spans)?;
-    let rule_presentation = declared_rule_presentation(doc_rule_presentation, objects, spans)?;
-    Ok((instance_map, schema_map, rule_presentation))
 }
 
 /// Additive `schema.stored` (ticket `catherine-kw9.3`): presentation
@@ -269,121 +300,6 @@ fn declared_rule_presentation(
         )?)),
         None => Ok(None),
     }
-}
-
-/// Instance tables: repeated keys, declared arrows, declared src rows,
-/// and values that are declared target rows or `null`. Every declared
-/// arrow carries a total vector over its source object's rows; an
-/// unspecified cell parses as `None` (dangling).
-fn check_tables(
-    instance: &schema::RawInstance,
-    arrows: &BTreeMap<Ident, Arrow>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    spans: &Spans,
-) -> Result<BTreeMap<Ident, Vec<Option<RowId>>>, ParseError> {
-    check_table_dup_keys(spans)?;
-    for arrow_name in instance.tables.keys() {
-        if !arrows.contains_key(&Ident(arrow_name.clone())) {
-            return Err(spans.syntax_key(
-                "/instance/tables",
-                arrow_name,
-                format!("instance table names undeclared arrow `{arrow_name}`"),
-            ));
-        }
-    }
-    let mut values: BTreeMap<Ident, Vec<Option<RowId>>> = BTreeMap::new();
-    for (name, arrow) in arrows {
-        let n = row_index.get(&arrow.src.0).map_or(0, BTreeMap::len);
-        values.insert(name.clone(), vec![None; n]);
-    }
-    for (arrow_name, table) in &instance.tables {
-        let arrow = &arrows[&Ident(arrow_name.clone())];
-        check_table_cells(arrow_name, arrow, table, row_index, &mut values, spans)?;
-    }
-    Ok(values)
-}
-
-/// Repeated keys inside one table are a duplicate row ident.
-fn check_table_dup_keys(spans: &Spans) -> Result<(), ParseError> {
-    if let Some(dup) = spans
-        .dup_keys
-        .iter()
-        .find(|d| d.object.starts_with("/instance/tables/"))
-    {
-        let arrow = dup.object.trim_start_matches("/instance/tables/");
-        return Err(ParseError::Semantic(SemanticError {
-            line: dup.line,
-            column: dup.column,
-            code: ErrorCode::DuplicateIdent,
-            message: format!("duplicate row ident `{}` in table `{arrow}`", dup.key),
-        }));
-    }
-    Ok(())
-}
-
-/// One table's cells: src row must exist, target row must exist (or the
-/// cell is an explicit `null` — the same dangling value as an absent
-/// cell).
-fn check_table_cells(
-    arrow_name: &str,
-    arrow: &Arrow,
-    table: &BTreeMap<String, Option<String>>,
-    row_index: &BTreeMap<String, BTreeMap<String, RowId>>,
-    values: &mut BTreeMap<Ident, Vec<Option<RowId>>>,
-    spans: &Spans,
-) -> Result<(), ParseError> {
-    let src_rows = row_index.get(&arrow.src.0);
-    let tgt_rows = row_index.get(&arrow.tgt.0);
-    for (row_name, value) in table {
-        let key_at = format!("/instance/tables/{arrow_name}");
-        let src_id = check_table_src(arrow_name, arrow, row_name, src_rows, &key_at, spans)?;
-        let Some(target) = value else {
-            continue; // explicit `null` — the same dangling value as an absent cell
-        };
-        let Some(tgt_id) = tgt_rows.and_then(|m| m.get(target)) else {
-            return Err(spans.syntax(
-                &format!("{key_at}/{row_name}"),
-                format!(
-                    "table `{arrow_name}` maps `{row_name}` to `{target}`, which is not a row of `{}`",
-                    arrow.tgt.0
-                ),
-            ));
-        };
-        values.get_mut(&Ident(arrow_name.to_string())).unwrap()[src_id.0] = Some(*tgt_id);
-    }
-    Ok(())
-}
-
-/// A table key must be a declared row of the arrow's source object.
-fn check_table_src(
-    arrow_name: &str,
-    arrow: &Arrow,
-    row_name: &str,
-    src_rows: Option<&BTreeMap<String, RowId>>,
-    key_at: &str,
-    spans: &Spans,
-) -> Result<RowId, ParseError> {
-    let Some(src_map) = src_rows else {
-        return Err(spans.syntax_key(
-            key_at,
-            row_name,
-            format!(
-                "table `{arrow_name}` keys row `{row_name}`, but `{}` has no declared rows",
-                arrow.src.0
-            ),
-        ));
-    };
-    let Some(src_id) = src_map.get(row_name) else {
-        return Err(spans.syntax_key(
-            key_at,
-            row_name,
-            format!(
-                "table `{arrow_name}` keys row `{row_name}`, which is not a row of `{}`",
-                arrow.src.0
-            ),
-        ));
-    };
-    Ok(*src_id)
 }
 
 fn check_dup_keys(spans: &Spans, pointer: &str, where_: &str) -> Result<(), ParseError> {

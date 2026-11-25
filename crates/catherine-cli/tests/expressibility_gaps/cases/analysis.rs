@@ -8,7 +8,7 @@
 //! into the verdict helpers so the observation stays under the cyclomatic
 //! gate.
 
-use super::probe::{self, envelope, findings, warnings};
+use super::probe::{self, assert_diagnostic_names, envelope, findings, warnings};
 use super::Observation;
 use crate::common;
 use serde_json::Value;
@@ -337,6 +337,41 @@ fn coproduct_fix(value: &Value) -> Observation {
     assert!(
         text.contains("card_inj") && text.contains("transfer_inj"),
         "the disjointness witness names both colliding injections: {text}"
+    );
+    Observation::Cleared
+}
+
+/// The `selector-collision-claims` row: two `Capture` rows sharing one
+/// `(partition, digest)` selector tuple — the bogart slice's real defect
+/// class (kw9.5, kw9.11) — check silent, because no at-most-one-row-per-
+/// selector-tuple claim is expressible over stored rows.
+pub(super) fn selector_collision_claims() -> Observation {
+    let run = probe::check_run("selector_collision_claims.ct.json");
+    if run.is_silent() {
+        return Observation::Limitation;
+    }
+    collision_fix(&run)
+}
+
+/// The fixed signature: a `violation`/`executed` (or diagnostic) outcome
+/// whose text names the collision class — cardinality, uniqueness or a
+/// duplicate selector tuple.
+fn collision_fix(run: &probe::CheckRun) -> Observation {
+    assert!(
+        run.is_warning() || run.findings().is_some(),
+        "selector_collision_claims: the fix names the collision, got {}",
+        run.text()
+    );
+    assert_diagnostic_names(
+        "selector-collision-claims",
+        &run.text(),
+        &[
+            "collision",
+            "cardinal",
+            "unique",
+            "duplicate",
+            "at most one",
+        ],
     );
     Observation::Cleared
 }

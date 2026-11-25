@@ -27,6 +27,7 @@ use std::io::Write;
 
 mod agree;
 mod naturality;
+mod naturality_errors;
 mod underconstraint;
 pub use agree::run_agree;
 pub use naturality::run_naturality;

@@ -53,7 +53,7 @@ pub struct Case {
 /// (eight `gap` and six `closed` at this revision). This is the one
 /// place the number is written down; [`all`] cross-checks it against the
 /// registry length so a registration change must update it deliberately.
-pub const EXPECTED_ROWS: usize = 14;
+pub const EXPECTED_ROWS: usize = 15;
 
 /// Every registered case, in disposition-table order.
 pub fn all() -> Vec<Case> {
@@ -121,6 +121,11 @@ fn execution_cases() -> Vec<Case> {
             id: "vacuous-clean-instances",
             fixtures: &["zero_rows_instance.ct.json"],
             observe: migration::vacuous_clean_instances,
+        },
+        Case {
+            id: "selector-collision-claims",
+            fixtures: &["selector_collision_claims.ct.json"],
+            observe: analysis::selector_collision_claims,
         },
         Case {
             id: "distinguish-observation-scope",

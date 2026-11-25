@@ -17,6 +17,7 @@
 //! forwarding wrappers — every command funnels into the shared
 //! execution path, never a second pipeline.
 
+mod agree;
 mod args;
 mod cli;
 mod composition;
@@ -24,7 +25,6 @@ mod config;
 mod diff;
 mod dispatch;
 mod granularity;
-mod agree;
 mod migrate;
 mod naturality;
 mod pattern;
@@ -36,10 +36,10 @@ mod runners;
 
 use clap::error::{ContextKind, ContextValue, ErrorKind};
 use clap::Parser;
+use dispatch::{dispatch_command, Ctx};
 use genesis::envelope::Warning;
 use genesis::guide::{OutputFormat, Verbosity};
 use genesis::suggestions::{CommandRegistry, SuggestionEngine};
-use dispatch::{dispatch_command, Ctx};
 use std::io::Write;
 use std::process::exit;
 

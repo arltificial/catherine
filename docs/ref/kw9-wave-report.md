@@ -45,7 +45,7 @@ Two caveats bind every use of this verdict:
 |---|---|---|---|
 | 6 wave findings → CLI verbs + fixtures + registry rows | kw9.2/.3/.7/.8/.9/.10 | landed | `b7eaf82`; 135 suites green |
 | Granularity lint vs bogart pilot | kw9.4 | **killed** — lint silent at pilot scale (cap 13 > 3 arrows); ticket's predicted flagging falsified, recorded as discrepancy; rule stays PROPOSED | `3a0b37c`; `ledger/probes/granularity/0002` |
-| Fresh-domain precision probe (U1–U2), selector-state domain | kw9.5 | **killed** — 602-row collision slice fires zero findings; the 3 known-real selector collisions are inexpressible on the check surface (no cardinality claim) | `c1b7cb3` (RED) + `39bc444` (GREEN); `fixtures/probes/selector-state/README.md` |
+| Fresh-domain precision probe (U1–U2), selector-state domain | kw9.5 | **killed** — 602-row collision slice fires zero findings; the 3 known-real selector collisions are inexpressible on the check surface (no cardinality claim; disposition row `selector-collision-claims`) | `c1b7cb3` (RED) + `39bc444` (GREEN); `fixtures/probes/selector-state/README.md` |
 | Three-arm bench protocol | kw9.6 | pre-registered, 8-row expectations, arithmetic uniqueness | `07a1f97`; `fixtures/probes/bench/README.md` |
 | Three-arm bench run | kw9.11 | **killed** (parity null result) | `1a719aa`; `crates/catherine-ledger/ledger/probes/bench/selector-state/000{1,2}-*.json` |
 | Artifact capture (claude report body) | kw9.1 | done — captured by the catitas hourly sync, no HITL needed | corpus `raw/_conversations/claude/00831713-*/artifacts/` |
@@ -82,12 +82,13 @@ Sanity: S1/S2 fire where required, floor silent, no E6 FizzBuzz alarm.
 ## What the null result does and does not establish
 
 Does: on one bounded real domain, with an executed conventional baseline, the
-model-check lens produced no finding the script missed; two known-real defect
-classes are inexpressible on the check surface.
+model-check lens produced no finding the script missed; two known-real defect classes are inexpressible on the check surface (disposition row `selector-collision-claims`).
 
 Does not: prove catherine's lens is useless — one domain, one defect family;
-the rule-lens/policy machinery (where the selector-collision class actually
-lives) was out of scope for this epic and remains the natural next target.
+the defect class itself is now registered as disposition row
+`selector-collision-claims`, and the rule-lens/policy machinery (where the
+selector-collision class actually lives) was out of scope for this epic and
+remains the natural next target (filed as `catherine-8qm`).
 
 ## Pointers
 

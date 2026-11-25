@@ -34,23 +34,18 @@ fn ident(name: &str) -> Ident {
 
 /// Parse one 1.4 document with its presentation names.
 fn side(rows: &str) -> (Model, RowNames) {
-    let text = format!(
-        r#"{{"format_version": "1.4", {SCHEMA}, "instance": {rows}}}"#
-    );
+    let text = format!(r#"{{"format_version": "1.4", {SCHEMA}, "instance": {rows}}}"#);
     parse_with_rows(&text).expect("the document parses")
 }
 
 /// Both instances declare the same rows and the same projections.
-const IDENTICAL_A: &str =
-    r#"{"rows": {"person": ["p1", "p2"], "org": ["o1", "o2"]}, "tables": {"works_at": {"p1": "o1", "p2": "o2"}}}"#;
+const IDENTICAL_A: &str = r#"{"rows": {"person": ["p1", "p2"], "org": ["o1", "o2"]}, "tables": {"works_at": {"p1": "o1", "p2": "o2"}}}"#;
 const IDENTICAL_B: &str = IDENTICAL_A;
 
 /// The shared key `p1` projects to `o1` on side A and `o2` on side B;
 /// `p2` agrees; side B alone declares `q9`.
-const CONFLICT_A: &str =
-    r#"{"rows": {"person": ["p1", "p2"], "org": ["o1", "o2"]}, "tables": {"works_at": {"p1": "o1", "p2": "o2"}}}"#;
-const CONFLICT_B: &str =
-    r#"{"rows": {"person": ["p1", "p2", "q9"], "org": ["o1", "o2"]}, "tables": {"works_at": {"p1": "o2", "p2": "o2"}}}"#;
+const CONFLICT_A: &str = r#"{"rows": {"person": ["p1", "p2"], "org": ["o1", "o2"]}, "tables": {"works_at": {"p1": "o1", "p2": "o2"}}}"#;
+const CONFLICT_B: &str = r#"{"rows": {"person": ["p1", "p2", "q9"], "org": ["o1", "o2"]}, "tables": {"works_at": {"p1": "o2", "p2": "o2"}}}"#;
 
 /// No shared keys at all: the instances touch in name only.
 const DISJOINT_A: &str =
@@ -94,7 +89,11 @@ fn disjoint_keys_are_documented_silence() {
 #[test]
 fn conflicting_overlap_emits_a_witness() {
     let disagreements = outcome(CONFLICT_A, CONFLICT_B);
-    assert_eq!(disagreements.len(), 1, "only `p1` disagrees: {disagreements:?}");
+    assert_eq!(
+        disagreements.len(),
+        1,
+        "only `p1` disagrees: {disagreements:?}"
+    );
     let witness = &disagreements[0];
     assert_eq!(witness.entity, ident("person"));
     assert_eq!(witness.key, "p1");
@@ -116,7 +115,10 @@ fn agreeing_fixture_is_silent() {
 /// The committed conflicting pair disagrees on exactly the `p1` cell.
 #[test]
 fn conflicting_fixture_emits_one_witness() {
-    let disagreements = parsed(&load_fixture("conflicting-a"), &load_fixture("conflicting-b"));
+    let disagreements = parsed(
+        &load_fixture("conflicting-a"),
+        &load_fixture("conflicting-b"),
+    );
     assert_eq!(disagreements.len(), 1, "{disagreements:?}");
     assert_eq!(disagreements[0].key, "p1");
     assert_eq!(disagreements[0].value_a, Some(ident("o1")));

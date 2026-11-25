@@ -9,7 +9,6 @@ use std::collections::BTreeMap;
 
 use super::RawSchemaMap;
 
-
 /// The arrow assignments: every declared source arrow carries an entry —
 /// `null` drops it explicitly; a target path is non-empty and every path
 /// element is a declared target arrow.

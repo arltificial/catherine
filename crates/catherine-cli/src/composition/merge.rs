@@ -19,10 +19,10 @@
 //! this module only re-classifies the pushout's one hard failure mode so
 //! callers can present conflict witnesses without losing the whole run.
 
-use super::{load_document, glue_error, Glued};
+use super::{glue_error, load_document, Glued};
+use crate::render::LabeledError;
 use catherine_core::composition::glue;
 use catherine_core::findings::EpistemicLabel;
-use crate::render::LabeledError;
 
 /// One merged model along with any identity-conflict cells the merge
 /// could not resolve.
@@ -76,9 +76,10 @@ pub fn run(left_path: &str, right_path: &str) -> Result<MergeOutcome, LabeledErr
             glued: Some(glued),
             cells: Vec::new(),
         }),
-        Err(error) if error.code() == "schema_conflict" => {
-            Ok(MergeOutcome { glued: None, cells: vec![conflict_cell(&error)] })
-        }
+        Err(error) if error.code() == "schema_conflict" => Ok(MergeOutcome {
+            glued: None,
+            cells: vec![conflict_cell(&error)],
+        }),
         Err(error) => Err(glue_error(error)),
     }
 }
@@ -121,9 +122,15 @@ mod tests {
 
     #[test]
     fn conflicting_shared_arrow_yields_unknown_cell_naming_both_sides() {
-        let outcome = run(&fixture("conflict_a.ct.json"), &fixture("conflict_b.ct.json"))
-            .expect("a conflict is a reported outcome, not an error");
-        assert!(outcome.glued.is_none(), "a conflicted pushout places no model");
+        let outcome = run(
+            &fixture("conflict_a.ct.json"),
+            &fixture("conflict_b.ct.json"),
+        )
+        .expect("a conflict is a reported outcome, not an error");
+        assert!(
+            outcome.glued.is_none(),
+            "a conflicted pushout places no model"
+        );
         assert_eq!(outcome.cells.len(), 1);
         let cell = &outcome.cells[0];
         assert_eq!(cell.label, EpistemicLabel::Unknown);
@@ -146,7 +153,10 @@ mod tests {
     fn clean_merge_has_no_unknown_cells() {
         let outcome = run(&fixture("clean_a.ct.json"), &fixture("clean_b.ct.json"))
             .expect("a clean merge succeeds");
-        assert!(outcome.cells.is_empty(), "clean merges carry no UNKNOWN label");
+        assert!(
+            outcome.cells.is_empty(),
+            "clean merges carry no UNKNOWN label"
+        );
         let glued = outcome.glued.expect("clean merge returns the model");
         assert!(glued.schema.arrows.contains_key(&Ident("f".to_string())));
     }
