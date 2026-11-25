@@ -103,14 +103,16 @@ if [ ! -x "$VERUS_BIN" ]; then
 		mv "$VERUS_HOME/tmp/$RELEASE"/* "$INSTALL"/
 	rm -rf "$VERUS_HOME/tmp/$RELEASE" "$zip"
 fi
-"$VERUS_BIN" --version | grep -q "$RELEASE" ||
-	fail "installed verus does not report the pinned release $RELEASE"
-
 # The release pins its rustup toolchain by exact name; install it
 # idempotently (minimal profile: the verifier drives rustc directly).
+# This MUST precede the `verus --version` check: the shim itself
+# requires the toolchain and cannot even report its version without it.
 rustup toolchain list | grep -q "^$TOOLCHAIN" ||
 	rustup toolchain install "$TOOLCHAIN" --profile minimal >/dev/null 2>&1 ||
 	fail "toolchain $TOOLCHAIN install failed"
+
+"$VERUS_BIN" --version | grep -q "$RELEASE" ||
+	fail "installed verus does not report the pinned release $RELEASE"
 
 mkdir -p target
 : > "$TIMINGS"
