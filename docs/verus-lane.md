@@ -22,6 +22,13 @@ other installed release; CI caches the install directory keyed on the
 pin file. Bump deliberately — a checker drift on a rolling release must
 not silently change recorded proof outcomes.
 
+First fresh-runner CI exercise (workflow_dispatch, 2026-11-25, commit
+`52745e9`): provisioning caught a real ordering defect — the shim's
+`--version` pin check ran before the toolchain install and cannot
+execute without it — fixed by installing the side toolchain first; the
+job then ran green (`verus lane: green — 1 model units verified, parity
+over 6 fixtures (5 emissions), 34 guide files as expected`).
+
 ## Layout
 
 The lane sits outside the workspace's fail-closed complexity gate by
