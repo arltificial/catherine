@@ -55,3 +55,9 @@ Status: ○ open  ◐ in_progress  ● blocked  ✓ closed  ❄ deferred
 Priority: P0–P4 (label only; not a status icon)
 ```
 
+
+## Addendum: bench phases executed (same session, after first close)
+- kw9.6 `07a1f976` — pre-registered three-arm protocol on selector-state (8-row expectations table, arithmetic uniqueness, Protocol Review/RED recorded).
+- kw9.11 `1a719aac` — executed: arm A 3/3 collisions FP=0; arms B/C silent (TP empty); verdict **killed** (parity, decision-rule row 1); ledger `bench/selector-state` 0001 floor + 0002 probe sealed/validated; 5 discrepancies recorded incl. drafter disclosure (arm C drafter = session model, not strictly prose-blind).
+- Open: **kw9.1 only** (HITL — user exports the claude `ct-modelable-domains` artifact `2GnVcWdLR5FYuR1cIlnc`).
+- Resume: `bd ready` shows no ready catherine-kw9 work; kw9.1 is the sole open ticket.
