@@ -21,7 +21,7 @@ to orient yourself.
 Detected workflow tools:
 - **wai** — research, reasoning, and design decisions
 - **beads** — issue tracking (tasks, bugs, dependencies). CLI command: **`bd`** (not `beads`)
-- **openspec** — specifications and change proposals (see `openspec/AGENTS.md`)
+- **openspec** — specifications and change proposals (see `openspec/config.yaml` and the `openspec-*` skills in `.agents/skills/`)
 
 > **CRITICAL**: Apply TDD and Tidy First throughout — not just when writing code:
 > - **Planning/task creation**: each ticket should map to a red→green→refactor cycle; refactoring tasks must be separate tickets from feature tasks.
@@ -39,6 +39,15 @@ Detected workflow tools:
 When context reaches ~40%: stop and tell the user — responses degrade past
 this point. Recommend `wai close` then `/clear` to resume cleanly.
 Do NOT skip `wai close` — it enables resume detection.
+
+## Available Pipelines
+
+| Pipeline | When to Use | Start |
+|----------|-------------|-------|
+| epic-orchestrator | Executing one ready child issue of an epic via subagent orchestration instead of inline implementation | `wai pipeline start epic-orchestrator --topic=<topic>` |
+
+> Pipeline steps may have gates that enforce artifact creation, review coverage, and oracle checks before advancement. Run `wai pipeline gates <name>` for details.
+> **Before any edit**: run `wai pipeline current --json`; if a run is active for this project, resume it (`wai pipeline next`) rather than starting ad-hoc work.
 
 ## Autonomous Work Policy
 
@@ -62,7 +71,7 @@ Read it at the start of your first session or when you need detailed guidance.
 Keep this managed block so `wai init` can refresh the instructions.
 
 
-<!-- provenance: generator=wai version=0.13.0 source=WAI sha=3e02f7c4 -->
+<!-- provenance: generator=wai version=0.13.0 source=WAI sha=a055fe02 -->
 <!-- WAI:END -->
 <!-- WAI:REFLECT:REF:START -->
 ## Accumulated Project Patterns

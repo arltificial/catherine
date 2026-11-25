@@ -13,7 +13,7 @@
 | Track work items/bugs | `bd` | `bd create --title="..." --type=task` |
 | Find available work | `bd` | `bd ready` |
 | Manage dependencies | `bd` | `bd dep add <blocked> <blocker>` |
-| Propose system changes | openspec | Read `openspec/AGENTS.md` |
+| Propose system changes | openspec | Read `openspec/config.yaml` and the `openspec-*` skills in `.agents/skills/` |
 | Define requirements | openspec | `openspec validate --strict` |
 
 Key distinction:
@@ -142,7 +142,7 @@ bd close <id>                # Complete work
 ```
 
 ### openspec
-Read `openspec/AGENTS.md` for full instructions.
+Read `openspec/config.yaml` and the `openspec-*` skills in `.agents/skills/` for full instructions.
 ```bash
 openspec list              # Active changes
 openspec list --specs      # Capabilities
@@ -152,6 +152,7 @@ openspec list --specs      # Capabilities
 
 | Pipeline | When to Use | Start |
 |----------|-------------|-------|
+| epic-orchestrator | Executing one ready child issue of an epic via subagent orchestration instead of inline implementation | `wai pipeline start epic-orchestrator --topic=<topic>` |
 
 > Pipeline steps may have gates that enforce artifact creation, review coverage, and oracle checks before advancement. Run `wai pipeline gates <name>` for details.
 
