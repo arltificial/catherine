@@ -1,0 +1,57 @@
+#+TITLE: Evidence for catherine-1bs — identity arrows (kernel limitation)
+#+DATE: [2026-11-28]
+
+Vendored evidence for ticket =catherine-1bs= (kernel: identity arrows).
+Source corpus: the charly-vibes ecosystem information-flow model
+(dulce-de-leche fleet), developed in =charly/eco-views= (local workspace
+repo, no remote — hence vendored here).
+
+* Files
+
+- =adjunction.ct.json= — the spec ⇄ implementation ⇄ tests adjunction
+  model: three representations, round-trip endomorphisms
+  (=spec_round=, =impl_round=, =impl_t_round=, =test_round=) declared as
+  modeling artifacts because the kernel cannot state identity laws, and
+  core-preservation equations standing in for the triangle identities.
+  One modeled drift (=mod_ddl_doctor= → =sp_scope=) breaks four
+  core-preservation triangle laws at once (executed: =catherine check
+  adjunction.ct.json= → exit 3, 4 violations).
+- =underconstraint.json= — the =catherine underconstraint= JSON envelope
+  over the 13-view glue of the same corpus.
+
+* The numbers
+
+| corpus state | round-trip-family questions | total underconstraint |
+|---+---+---|
+| spec ⇄ impl only (ticket as filed) | 140 | 201 |
+| + impl ⇄ tests adjunction | **1611** | 1679 |
+
+Every one of the 1611 is the kernel asking for an identity-arrow law it
+cannot state: =realize = realize∘abstract∘realize=,
+=spec_round∘spec_round = spec_round=, =witness = witness∘exercise∘witness=,
+and all compositions of the four endomorphisms. The family grows
+superlinearly with each new representation — with identities, the
+triangle laws are three equations per adjunction and the endomorphisms
+disappear from user models entirely.
+
+* Reproduce
+
+#+begin_example
+catherine underconstraint fleet.ct.json install.ct.json health.ct.json \
+  intent.ct.json specs.ct.json knowledge.ct.json gates.ct.json \
+  adjunction.ct.json infra.ct.json ops.ct.json decisions.ct.json \
+  claims.ct.json flow.ct.json --json   # the vendored envelope
+catherine check adjunction.ct.json --human            # exit 3, 4 triangle breaks
+#+end_example
+
+(the remaining 12 view documents live in =charly/eco-views=; only
+=adjunction.ct.json= is needed to reproduce the triangle-law failures.)
+
+* Related
+
+- Disposition row: =identity-empty-path-equations=
+  (=docs/ref/expressibility-dispositions.md=, status =gap=, case
+  =identity_involution.ct.json= → exit 1, "equation path must be
+  non-empty").
+- Implementation must go through an openspec proposal amending
+  =openspec/specs/kernel-checks/spec.md= (path-equation enforcement).

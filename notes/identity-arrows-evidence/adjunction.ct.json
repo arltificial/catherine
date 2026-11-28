@@ -1,0 +1,331 @@
+{
+ "format_version": "1.0",
+ "schema": {
+  "objects": [
+   "Spec",
+   "Impl",
+   "SpecCore",
+   "ImplCore",
+   "Suite",
+   "SuiteCore"
+  ],
+  "arrows": [
+   {
+    "name": "realize",
+    "src": "Spec",
+    "tgt": "Impl"
+   },
+   {
+    "name": "abstract",
+    "src": "Impl",
+    "tgt": "Spec"
+   },
+   {
+    "name": "spec_round",
+    "src": "Spec",
+    "tgt": "Spec"
+   },
+   {
+    "name": "impl_round",
+    "src": "Impl",
+    "tgt": "Impl"
+   },
+   {
+    "name": "spec_core",
+    "src": "Spec",
+    "tgt": "SpecCore"
+   },
+   {
+    "name": "impl_core",
+    "src": "Impl",
+    "tgt": "ImplCore"
+   },
+   {
+    "name": "witness",
+    "src": "Impl",
+    "tgt": "Suite"
+   },
+   {
+    "name": "exercise",
+    "src": "Suite",
+    "tgt": "Impl"
+   },
+   {
+    "name": "impl_t_round",
+    "src": "Impl",
+    "tgt": "Impl"
+   },
+   {
+    "name": "test_round",
+    "src": "Suite",
+    "tgt": "Suite"
+   },
+   {
+    "name": "spec_suite",
+    "src": "Spec",
+    "tgt": "Suite"
+   },
+   {
+    "name": "suite_spec",
+    "src": "Suite",
+    "tgt": "Spec"
+   },
+   {
+    "name": "test_core",
+    "src": "Suite",
+    "tgt": "SuiteCore"
+   }
+  ],
+  "equations": [
+   {
+    "lhs": [
+     "realize",
+     "abstract"
+    ],
+    "rhs": [
+     "spec_round"
+    ],
+    "rationale": "adjunction triangle 1 (unit image): abstract after realize is the spec-side round trip; catherine has no identity arrows, so the law is stated as the round trip equaling its declared composite",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "abstract",
+     "realize"
+    ],
+    "rhs": [
+     "impl_round"
+    ],
+    "rationale": "adjunction triangle 2 (counit image): realize after abstract is the implementation-side round trip",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "spec_round",
+     "spec_core"
+    ],
+    "rhs": [
+     "spec_core"
+    ],
+    "rationale": "the spec round trip preserves the spec's core (its intent/constraints): whatever survives realize+abstract must carry the core; a break is a spec-implementation drift witness",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "impl_round",
+     "impl_core"
+    ],
+    "rhs": [
+     "impl_core"
+    ],
+    "rationale": "the implementation round trip preserves the implementation's core (its behavior): a break is the same drift seen from the implementation side",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "witness",
+     "exercise"
+    ],
+    "rhs": [
+     "impl_t_round"
+    ],
+    "rationale": "adjunction triangle 1 for impl<->tests: exercise after witness is the implementation round trip through its test suite",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "exercise",
+     "witness"
+    ],
+    "rhs": [
+     "test_round"
+    ],
+    "rationale": "adjunction triangle 2 for impl<->tests: witness after exercise is the suite round trip",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "impl_t_round",
+     "impl_core"
+    ],
+    "rhs": [
+     "impl_core"
+    ],
+    "rationale": "the test round trip preserves the implementation's core (behavior): a break is the suite no longer witnessing the module's core \u2014 test drift",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "test_round",
+     "test_core"
+    ],
+    "rhs": [
+     "test_core"
+    ],
+    "rationale": "the suite round trip preserves the suite's core (what it verifies)",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "realize",
+     "witness"
+    ],
+    "rhs": [
+     "spec_suite"
+    ],
+    "rationale": "spec x tests coherence: the spec's witnessing suite is the suite of its realizing module (the correspondence triangle Spec->Impl->Suite vs the direct Spec->Suite)",
+    "status": "accepted"
+   },
+   {
+    "lhs": [
+     "exercise",
+     "abstract"
+    ],
+    "rhs": [
+     "suite_spec"
+    ],
+    "rationale": "spec x tests coherence: the spec a suite exercises is the spec of the module it exercises (Suite->Impl->Spec)",
+    "status": "accepted"
+   }
+  ]
+ },
+ "instance": {
+  "rows": {
+   "Spec": [
+    "sp_composition",
+    "sp_naturality",
+    "sp_doctor",
+    "sp_scope",
+    "sp_eco_model"
+   ],
+   "Impl": [
+    "mod_ah_kernel",
+    "mod_ah_cli",
+    "mod_ddl_doctor",
+    "mod_ddl_scope",
+    "mod_eco_model"
+   ],
+   "SpecCore": [
+    "spc_composition",
+    "spc_naturality",
+    "spc_doctor",
+    "spc_scope",
+    "spc_eco_model"
+   ],
+   "ImplCore": [
+    "impc_kernel",
+    "impc_cli",
+    "impc_doctor",
+    "impc_scope",
+    "impc_eco"
+   ],
+   "Suite": [
+    "suite_kernel",
+    "suite_cli",
+    "suite_doctor",
+    "suite_scope",
+    "suite_eco"
+   ],
+   "SuiteCore": [
+    "suc_kernel",
+    "suc_cli",
+    "suc_doctor",
+    "suc_scope",
+    "suc_eco"
+   ]
+  },
+  "tables": {
+   "realize": {
+    "sp_composition": "mod_ah_kernel",
+    "sp_naturality": "mod_ah_cli",
+    "sp_doctor": "mod_ddl_doctor",
+    "sp_scope": "mod_ddl_scope",
+    "sp_eco_model": "mod_eco_model"
+   },
+   "abstract": {
+    "mod_ah_kernel": "sp_composition",
+    "mod_ah_cli": "sp_naturality",
+    "mod_ddl_doctor": "sp_scope",
+    "mod_ddl_scope": "sp_scope",
+    "mod_eco_model": "sp_eco_model"
+   },
+   "spec_round": {
+    "sp_composition": "sp_composition",
+    "sp_naturality": "sp_naturality",
+    "sp_doctor": "sp_scope",
+    "sp_scope": "sp_scope",
+    "sp_eco_model": "sp_eco_model"
+   },
+   "impl_round": {
+    "mod_ah_kernel": "mod_ah_kernel",
+    "mod_ah_cli": "mod_ah_cli",
+    "mod_ddl_doctor": "mod_ddl_scope",
+    "mod_ddl_scope": "mod_ddl_scope",
+    "mod_eco_model": "mod_eco_model"
+   },
+   "spec_core": {
+    "sp_composition": "spc_composition",
+    "sp_naturality": "spc_naturality",
+    "sp_doctor": "spc_doctor",
+    "sp_scope": "spc_scope",
+    "sp_eco_model": "spc_eco_model"
+   },
+   "impl_core": {
+    "mod_ah_kernel": "impc_kernel",
+    "mod_ah_cli": "impc_cli",
+    "mod_ddl_doctor": "impc_doctor",
+    "mod_ddl_scope": "impc_scope",
+    "mod_eco_model": "impc_eco"
+   },
+   "witness": {
+    "mod_ah_kernel": "suite_kernel",
+    "mod_ah_cli": "suite_cli",
+    "mod_ddl_doctor": "suite_doctor",
+    "mod_ddl_scope": "suite_scope",
+    "mod_eco_model": "suite_eco"
+   },
+   "exercise": {
+    "suite_kernel": "mod_ah_kernel",
+    "suite_cli": "mod_ah_cli",
+    "suite_doctor": "mod_ddl_scope",
+    "suite_scope": "mod_ddl_scope",
+    "suite_eco": "mod_eco_model"
+   },
+   "impl_t_round": {
+    "mod_ah_kernel": "mod_ah_kernel",
+    "mod_ah_cli": "mod_ah_cli",
+    "mod_ddl_doctor": "mod_ddl_scope",
+    "mod_ddl_scope": "mod_ddl_scope",
+    "mod_eco_model": "mod_eco_model"
+   },
+   "test_round": {
+    "suite_kernel": "suite_kernel",
+    "suite_cli": "suite_cli",
+    "suite_doctor": "suite_scope",
+    "suite_scope": "suite_scope",
+    "suite_eco": "suite_eco"
+   },
+   "spec_suite": {
+    "sp_composition": "suite_kernel",
+    "sp_naturality": "suite_cli",
+    "sp_doctor": "suite_doctor",
+    "sp_scope": "suite_scope",
+    "sp_eco_model": "suite_eco"
+   },
+   "suite_spec": {
+    "suite_kernel": "sp_composition",
+    "suite_cli": "sp_naturality",
+    "suite_doctor": "sp_scope",
+    "suite_scope": "sp_scope",
+    "suite_eco": "sp_eco_model"
+   },
+   "test_core": {
+    "suite_kernel": "suc_kernel",
+    "suite_cli": "suc_cli",
+    "suite_doctor": "suc_doctor",
+    "suite_scope": "suc_scope",
+    "suite_eco": "suc_eco"
+   }
+  }
+ }
+}
